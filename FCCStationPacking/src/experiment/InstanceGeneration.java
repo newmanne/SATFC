@@ -15,7 +15,11 @@ import experiment.solver.ISolver;
 import experiment.solver.RunResult;
 import experiment.solver.SATResult;
 
-
+/**
+ * Experiment to generate largest satisfiable station packing instance.
+ * @author afrechet
+ *
+ */
 public class InstanceGeneration {
 
 	private IInstanceEncoder fInstanceEncoder;

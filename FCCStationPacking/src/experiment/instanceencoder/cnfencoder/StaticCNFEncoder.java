@@ -16,14 +16,22 @@ import org.apache.commons.math3.util.Pair;
 import data.Constraint;
 import data.Station;
 
+/**
+ * A static CNF encoder which builds encoding on the fly for each encode query.
+ * @author afrechet
+ *
+ */
 public class StaticCNFEncoder implements ICNFEncoder{
 
 	
 	private HashMap<Station,Collection<String>> fStationtoDACClause;
 	private HashMap<Pair<Station,Station>,Collection<String>> fStationPairtoDACClause;
-	
 	private HashMap<Station,Integer> fMaxVariable;
 	
+	/**
+	 * @param aStationChannelDomain - a map taking a station to its the list of valid channels it can be on.
+	 * @param aConstraints - a set of pairwise constraints.
+	 */
 	public StaticCNFEncoder(Map<Station,Set<Integer>> aStationChannelDomain, Set<Constraint> aConstraints)
 	{
 		fMaxVariable = new HashMap<Station,Integer>();

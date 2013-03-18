@@ -4,8 +4,19 @@ import java.util.Set;
 
 import data.Station;
 
+/**
+ * Encodes set of station in DAC CNF format. 
+ * All constraints are given in constructor.
+ * @author afrechet
+ *
+ */
 public interface ICNFEncoder {
 
+	/**
+	 * 
+	 * @param aStations - a set of stations to encode.
+	 * @return A DAC CNF encoding for that set of stations and encoder's relevant constraints. 
+	 */
 	public String encode(Set<Station> aStations);
 	
 }

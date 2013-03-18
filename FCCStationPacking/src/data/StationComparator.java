@@ -2,12 +2,12 @@ package data;
 
 import java.util.Comparator;
 
+/**
+ * Standard comparator for stations based on their IDs.
+ * @author afrechet
+ *
+ */
 public class StationComparator implements Comparator<Station> {
-
-	public StationComparator()
-	{
-		
-	}
 	
 	@Override
 	public int compare(Station o1, Station o2) {

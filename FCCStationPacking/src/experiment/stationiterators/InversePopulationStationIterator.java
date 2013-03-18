@@ -9,13 +9,29 @@ import java.util.Random;
 
 import data.Station;
 
-
+/**
+ * Station iterators that returns given set of stations as if they were sampled according to the inverse of their population (i.e.
+ * the most populous stations are sampled first).
+ * @author afrechet
+ *
+ */
 public class InversePopulationStationIterator implements Iterator<Station>{
 
 	private Iterator<Station> fOrderedStationsIterator;
 	
-	public InversePopulationStationIterator(Collection<Station> aStations, Map<Station,Integer> aStationPopulation, Random aRandomizer)
+	/**
+	 * @param aStations - a set of stations to iterate over.
+	 * @param aStationPopulation - a map sending a station to its population.
+	 * @param aRandomizer - random to use for sampling.
+	 * @throws Exception 
+	 */
+	public InversePopulationStationIterator(Collection<Station> aStations, Map<Station,Integer> aStationPopulation, Random aRandomizer) throws Exception
 	{
+	
+		if(!aStationPopulation.keySet().containsAll(aStations))
+		{
+			throw new Exception("Given populations for station iterator do not cover all given stations.");
+		}
 		
 		aStations = new LinkedList<Station>(aStations);
 		

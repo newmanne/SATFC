@@ -14,9 +14,9 @@ import junit.framework.TestCase;
 
 public class TInversePopulationStationIterator extends TestCase {
 	
-	public void testSize()
+	public void testSize() throws Exception
 	{
-		int aSize = 100;
+		int aSize = 100000;
 		int aMaxPopulation = 100000000;
 		int aSeed = 1;
 		
@@ -47,7 +47,7 @@ public class TInversePopulationStationIterator extends TestCase {
 		
 	}
 	
-	public void testDistribution()
+	public void testDistribution() throws Exception
 	{
 		int aSize = 5;
 		int aPrecision = 10000;

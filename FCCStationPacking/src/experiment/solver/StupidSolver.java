@@ -6,7 +6,13 @@ import java.util.Random;
 
 import experiment.probleminstance.IProblemInstance;
 
-
+/**
+ * <b> FOR TESTING PURPOSE</b> <br>
+ * Does not solve given problem instance - returns SAT or UNSAT with input probability after waiting
+ *  a randomized amount of time around input wait time.
+ * @author afrechet
+ *
+ */
 public class StupidSolver implements ISolver{
 
 	private double fSATprob;
