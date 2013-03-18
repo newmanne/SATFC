@@ -22,13 +22,12 @@ public class LocalExperimentReporter implements IExperimentReporter{
 	}
 	
 	@Override
-	public boolean report(IProblemInstance aInstance, RunResult aRunResult) throws Exception{
+	public void report(IProblemInstance aInstance, RunResult aRunResult) throws Exception{
 		
 		String aLine = aInstance.toString()+","+Double.toString(aRunResult.getRuntime())+","+aRunResult.getResult().toString()+"\n";
 		
 		FileUtils.writeStringToFile(new File(fReportDirectory+File.separatorChar+fExperimentName+".csv"),aLine, true);
 		
-		return true;
 	}
 
 }
