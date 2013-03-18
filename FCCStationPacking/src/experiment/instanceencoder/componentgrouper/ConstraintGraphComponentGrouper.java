@@ -40,6 +40,7 @@ public class ConstraintGraphComponentGrouper implements IComponentGrouper{
 		System.out.println(aConstraintGraph.edgeSet().size());
 		
 		ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<Station,DefaultEdge>(aConstraintGraph);
+		
 		fComponents = new ArrayList<Set<Station>>();
 		for(Set<Station> aComponent : aConnectivityInspector.connectedSets())
 		{

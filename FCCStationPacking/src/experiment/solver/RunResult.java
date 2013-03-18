@@ -1,5 +1,10 @@
 package experiment.solver;
 
+/**
+ * Container object for the result of a solver executed on a problem instance.
+ * @author afrechet
+ *
+ */
 public class RunResult {
 	
 	private SATResult fResult;

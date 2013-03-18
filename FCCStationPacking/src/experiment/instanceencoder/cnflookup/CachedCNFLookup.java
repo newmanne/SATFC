@@ -15,10 +15,19 @@ public class CachedCNFLookup implements ICNFLookup{
 
 	private HashMap<Set<Station>,String> fStationsHashtoCNFName;
 	
+	public CachedCNFLookup(String aMapFileName)
+	{	
+		
+		
+		fStationsHashtoCNFName = new HashMap<Set<Station>,String>();
+	}
+	
 	public CachedCNFLookup()
 	{
 		fStationsHashtoCNFName = new HashMap<Set<Station>,String>();
 	}
+	
+	
 	
 	@Override
 	public boolean hasCNFfor(Set<Station> aStations) {

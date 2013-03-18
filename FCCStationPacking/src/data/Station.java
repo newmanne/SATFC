@@ -5,6 +5,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
+/**
+ * Container class for the station object.
+ * Uniquely identified by its integer ID.
+ * @author afrechet
+ *
+ */
 public class Station {
 	
 	private Integer fID;
@@ -19,7 +25,7 @@ public class Station {
 		return fID;
 	}
 	
-	
+	@Override
 	public String toString()
 	{
 		return "Station "+fID;

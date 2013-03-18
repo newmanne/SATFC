@@ -1,7 +1,5 @@
 package execution;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
@@ -29,17 +27,13 @@ import experiment.stationiterators.InversePopulationStationIterator;
 
 public class Main {
 
-	/**
-	 * @param args
-	 * @throws IOException 
-	 */
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		
 		Random aRandomizer = new Random(1);
 
 		System.out.println("Getting data...");
-		IStationManager aStationManager = new HRStationManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPacking/experiment_dir/stations.csv");;
-		IConstraintManager aConstraintManager = new HRConstraintManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPacking/experiment_dir/AllowedChannels.csv", "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPacking/experiment_dir/PairwiseConstraints.csv");
+		IStationManager aStationManager = new HRStationManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/stations.csv");;
+		IConstraintManager aConstraintManager = new HRConstraintManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/AllowedChannels.csv", "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/PairwiseConstraints.csv");
 
 		System.out.println("Encoding data...");
 		ICNFEncoder aCNFEncoder = new StaticCNFEncoder(aConstraintManager.getStationDomains(), aConstraintManager.getPairwiseConstraints());
@@ -49,12 +43,12 @@ public class Main {
 		ICNFLookup aCNFLookup = new CachedCNFLookup();
 		
 		System.out.println("Creating instance encoder...");
-		IInstanceEncoder aInstanceEncoder = new InstanceEncoder(aCNFEncoder, aCNFLookup, aComponentGrouper, "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPacking/experiment_dir");
+		IInstanceEncoder aInstanceEncoder = new InstanceEncoder(aCNFEncoder, aCNFLookup, aComponentGrouper, "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/CNFs");
 		
 		System.out.println("Creating stupid solver...");
 		ISolver aSolver = new StupidSolver(0.5, 1);
 		System.out.println("Creating experiment reporter...");
-		IExperimentReporter aExperimentReporter = new LocalExperimentReporter("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPacking/experiment_dir", "test");
+		IExperimentReporter aExperimentReporter = new LocalExperimentReporter("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir", "test");
 		
 		System.out.println("Creating instance generation experiment...");
 		InstanceGeneration aInstanceGeneration = new InstanceGeneration(aInstanceEncoder, aSolver, aExperimentReporter);
