@@ -1,7 +1,7 @@
 package experiment.experimentreport;
 
-import experiment.probleminstance.IProblemInstance;
-import experiment.solver.RunResult;
+import experiment.instance.IInstance;
+import experiment.solver.result.SolverResult;
 
 /**
  * Report and record experiment results.
@@ -16,6 +16,6 @@ public interface IExperimentReporter {
 	 * @param aRunResult - the result of solving the given instance.
 	 * @throws Exception
 	 */
-	public void report(IProblemInstance aInstance, RunResult aRunResult) throws Exception;
+	public void report(IInstance aInstance, SolverResult aRunResult) throws Exception;
 	
 }

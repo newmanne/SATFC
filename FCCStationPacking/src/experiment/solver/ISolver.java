@@ -1,6 +1,7 @@
 package experiment.solver;
 
-import experiment.probleminstance.IProblemInstance;
+import experiment.instance.IInstance;
+import experiment.solver.result.SolverResult;
 
 /**
  * Solves station packing problem instance.
@@ -10,6 +11,6 @@ import experiment.probleminstance.IProblemInstance;
  */
 public interface ISolver {
 	
-	public RunResult solve(IProblemInstance aInstance);
+	public SolverResult solve(IInstance aInstance, double aCutoff);
 	
 }

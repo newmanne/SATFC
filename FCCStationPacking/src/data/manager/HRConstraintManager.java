@@ -23,40 +23,44 @@ public class HRConstraintManager implements IConstraintManager{
 	public HRConstraintManager(String aAllowedChannelsFilename, String aPairwiseConstraintsFilename) throws IOException
 	{
 		fStationDomains = new HashMap<Station,Set<Integer>>();
-		CSVReader aReader = new CSVReader(new FileReader(aAllowedChannelsFilename));
-		
-		//Skip header
-		aReader.readNext();
-		
-		String[] aLine;
-		while((aLine = aReader.readNext())!=null)
+		try(CSVReader aReader = new CSVReader(new FileReader(aAllowedChannelsFilename)))
 		{
-			Integer aID = Integer.valueOf(aLine[1]);
-			Station aStation = new Station(aID);
-			HashSet<Integer> aChannelDomain = new HashSet<Integer>();
-			for(int i=2;i<aLine.length;i++)
+			//Skip header
+			aReader.readNext();
+			
+			String[] aLine;
+			while((aLine = aReader.readNext())!=null)
 			{
-				Integer aChannel = Integer.valueOf(aLine[i]);
-				aChannelDomain.add(aChannel);
+				Integer aID = Integer.valueOf(aLine[1]);
+				Station aStation = new Station(aID);
+				HashSet<Integer> aChannelDomain = new HashSet<Integer>();
+				for(int i=2;i<aLine.length;i++)
+				{
+					Integer aChannel = Integer.valueOf(aLine[i]);
+					aChannelDomain.add(aChannel);
+				}
+				fStationDomains.put(aStation, aChannelDomain);
 			}
-			fStationDomains.put(aStation, aChannelDomain);
 		}
 		
+		
 		fPairwiseConstraints = new HashSet<Constraint>();
-		aReader = new CSVReader(new FileReader(aPairwiseConstraintsFilename));
-		
-		//Skip header
-		aReader.readNext();
-		
-		while((aLine = aReader.readNext())!=null)
+		try(CSVReader aReader = new CSVReader(new FileReader(aPairwiseConstraintsFilename)))
 		{
-			Integer aID1 = Integer.valueOf(aLine[0]);
-			Integer aChannel1 = Integer.valueOf(aLine[1]);
-			Integer aID2 = Integer.valueOf(aLine[2]);
-			Integer aChannel2 = Integer.valueOf(aLine[3]);
+			//Skip header
+			aReader.readNext();
 			
-			fPairwiseConstraints.add(new Constraint(new Pair<Station,Integer>(new Station(aID1),aChannel1),new Pair<Station,Integer>(new Station(aID2),aChannel2)));
-			
+			String[] aLine;
+			while((aLine = aReader.readNext())!=null)
+			{
+				Integer aID1 = Integer.valueOf(aLine[0]);
+				Integer aChannel1 = Integer.valueOf(aLine[1]);
+				Integer aID2 = Integer.valueOf(aLine[2]);
+				Integer aChannel2 = Integer.valueOf(aLine[3]);
+				
+				fPairwiseConstraints.add(new Constraint(new Pair<Station,Integer>(new Station(aID1),aChannel1),new Pair<Station,Integer>(new Station(aID2),aChannel2)));
+				
+			}
 		}
 		
 	}

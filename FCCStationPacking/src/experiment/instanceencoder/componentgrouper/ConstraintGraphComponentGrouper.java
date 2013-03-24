@@ -36,26 +36,25 @@ public class ConstraintGraphComponentGrouper implements IComponentGrouper{
 			
 			aConstraintGraph.addEdge(aStation1, aStation2);
 		}
-		System.out.println(aConstraintGraph.vertexSet().size());
-		System.out.println(aConstraintGraph.edgeSet().size());
 		
 		ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<Station,DefaultEdge>(aConstraintGraph);
 		
 		fComponents = new ArrayList<Set<Station>>();
 		for(Set<Station> aComponent : aConnectivityInspector.connectedSets())
 		{
+			
 			if(aComponent.size()>1)
 			{
 				fComponents.add(aComponent);
 			}
 		}
+
 	}
 	
 	@Override
 	public ArrayList<HashSet<Station>> group(Set<Station> aStations) {
 		
 		ArrayList<HashSet<Station>> aGroups = new ArrayList<HashSet<Station>>(fComponents.size());
-		System.out.println(fComponents.size());
 		for(int i=0;i<fComponents.size();i++)
 		{
 			aGroups.add(i,new HashSet<Station>());
@@ -67,6 +66,7 @@ public class ConstraintGraphComponentGrouper implements IComponentGrouper{
 			{
 				if(fComponents.get(i).contains(aStation)){
 					aGroups.get(i).add(aStation);
+					break;
 				}
 			}
 		}
@@ -78,7 +78,7 @@ public class ConstraintGraphComponentGrouper implements IComponentGrouper{
 				aGroupsIterator.remove();
 			}
 		}
-		
+	
 		return aGroups;
 		
 	}
