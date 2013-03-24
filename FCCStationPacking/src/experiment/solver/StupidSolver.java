@@ -4,7 +4,9 @@ package experiment.solver;
 
 import java.util.Random;
 
-import experiment.probleminstance.IProblemInstance;
+import experiment.instance.IInstance;
+import experiment.solver.result.SolverResult;
+import experiment.solver.result.SATResult;
 
 /**
  * <b> FOR TESTING PURPOSE</b> <br>
@@ -35,7 +37,7 @@ public class StupidSolver implements ISolver{
 	}
 	
 	@Override
-	public RunResult solve(IProblemInstance aInstance) {
+	public SolverResult solve(IInstance aInstance, double aCutoff) {
 		
 		double aRunTime = (fWaitTime*1000 + fRandomizer.nextDouble()*2000);
 		
@@ -49,11 +51,11 @@ public class StupidSolver implements ISolver{
 		}
 		if(fRandomizer.nextDouble()<fSATprob)
 		{
-			return new RunResult(SATResult.SAT, aRunTime);
+			return new SolverResult(SATResult.SAT, aRunTime);
 		}
 		else
 		{
-			return new RunResult(SATResult.UNSAT, aRunTime);
+			return new SolverResult(SATResult.UNSAT, aRunTime);
 		}
 	}
 

@@ -4,8 +4,8 @@ import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 
-import experiment.probleminstance.IProblemInstance;
-import experiment.solver.RunResult;
+import experiment.instance.IInstance;
+import experiment.solver.result.SolverResult;
 
 
 
@@ -22,7 +22,7 @@ public class LocalExperimentReporter implements IExperimentReporter{
 	}
 	
 	@Override
-	public void report(IProblemInstance aInstance, RunResult aRunResult) throws Exception{
+	public void report(IInstance aInstance, SolverResult aRunResult) throws Exception{
 		
 		String aLine = aInstance.toString()+","+Double.toString(aRunResult.getRuntime())+","+aRunResult.getResult().toString()+"\n";
 		

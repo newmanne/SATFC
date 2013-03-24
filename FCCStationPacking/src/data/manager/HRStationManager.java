@@ -24,27 +24,30 @@ public class HRStationManager implements IStationManager{
 		fUnfixedStations = new HashSet<Station>();
 		fPopulation = new HashMap<Station,Integer>();
 		
-		CSVReader aReader = new CSVReader(new FileReader(aStationFilename));
-		
-		//Skip header
-		aReader.readNext();
-		
-		String[] aLine;
-		while((aLine = aReader.readNext())!=null)
+		try(CSVReader aReader = new CSVReader(new FileReader(aStationFilename)))
 		{
-			if(aLine[2].compareTo("USA")!=0 || aLine[4].trim().isEmpty())
-			{
-				fFixedStations.add(new Station(Integer.valueOf(aLine[0])));
-			}
-			else
-			{
-				Station aUnfixedStation = new Station(Integer.valueOf(aLine[0]));
-				fUnfixedStations.add(aUnfixedStation);
-				
-				fPopulation.put(aUnfixedStation, Integer.valueOf(aLine[4]));
-			}
+		
+			//Skip header
+			aReader.readNext();
 			
+			String[] aLine;
+			while((aLine = aReader.readNext())!=null)
+			{
+				if(aLine[2].compareTo("USA")!=0 || aLine[4].trim().isEmpty())
+				{
+					fFixedStations.add(new Station(Integer.valueOf(aLine[0])));
+				}
+				else
+				{
+					Station aUnfixedStation = new Station(Integer.valueOf(aLine[0]));
+					fUnfixedStations.add(aUnfixedStation);
+					
+					fPopulation.put(aUnfixedStation, Integer.valueOf(aLine[4]));
+				}
+				
+			}
 		}
+		
 		fStations = new HashSet<Station>(fFixedStations);
 		fStations.addAll(fUnfixedStations);
 	}
