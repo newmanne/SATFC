@@ -3,7 +3,6 @@ package experiment.instanceencoder.cnflookup;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.codec.binary.Hex;
