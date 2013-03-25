@@ -1,5 +1,6 @@
 package data;
 
+import ca.ubc.cs.beta.stationpacking.data.Station;
 import junit.framework.TestCase;
 
 public class TStation extends TestCase {

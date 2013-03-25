@@ -2,6 +2,8 @@ package data.manager;
 
 import java.io.IOException;
 
+import ca.ubc.cs.beta.stationpacking.data.manager.HRStationManager;
+
 import junit.framework.TestCase;
 
 public class THRStationManager extends TestCase {
