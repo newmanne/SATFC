@@ -5,8 +5,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
-import data.Station;
-import experiment.stationiterators.InversePopulationStationIterator;
+import ca.ubc.cs.beta.stationpacking.data.Station;
+import ca.ubc.cs.beta.stationpacking.experiment.stationiterators.InversePopulationStationIterator;
+
 
 
 

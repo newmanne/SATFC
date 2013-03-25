@@ -3,8 +3,11 @@ package data.manager;
 import java.io.IOException;
 import java.util.HashSet;
 
-import data.Constraint;
-import data.Station;
+import ca.ubc.cs.beta.stationpacking.data.Constraint;
+import ca.ubc.cs.beta.stationpacking.data.Station;
+import ca.ubc.cs.beta.stationpacking.data.manager.HRConstraintManager;
+import ca.ubc.cs.beta.stationpacking.data.manager.IConstraintManager;
+
 
 import junit.framework.TestCase;
 
@@ -20,11 +23,11 @@ public class THRConstraintManager extends TestCase {
 		for(Constraint aConstraint : aConstraintManager.getPairwiseConstraints())
 		{
 			
-			aStations.add(aConstraint.getInterferingPair().getKey());
-			aStations.add(aConstraint.getProtectedPair().getKey());
+			aStations.add(aConstraint.getInterferingPair().getStation());
+			aStations.add(aConstraint.getProtectedPair().getStation());
 			
-			aStationIDs.add(aConstraint.getInterferingPair().getKey().getID());
-			aStationIDs.add(aConstraint.getProtectedPair().getKey().getID());
+			aStationIDs.add(aConstraint.getInterferingPair().getStation().getID());
+			aStationIDs.add(aConstraint.getProtectedPair().getStation().getID());
 			
 		}
 
