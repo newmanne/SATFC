@@ -38,7 +38,7 @@ public class Main {
 	
 	public static void main(String[] args) throws Exception {
 		
-		Random aRandomizer = new Random(1);
+		Random aRandomizer = new Random(2);
 
 		log.info("Getting data...");
 		IStationManager aStationManager = new HRStationManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/stations.csv");;
