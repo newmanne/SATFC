@@ -1,7 +1,9 @@
 import sys
+from sys import platform as _platform
 import os
 import time
 import platform
+import re
 
 #Paths
 solver_dir = './'
@@ -16,6 +18,7 @@ plingelingx64_path = lingeling_dir +'lingelingx64/plingeling'
 picosat_dir = solver_dir + 'picosat/'
 picosatx64_path = picosat_dir + 'picosatx64/picosat'
 picosatx32_path = picosat_dir + 'picosatx32/picosat'
+picosatx64osx_path = picosat_dir + 'picosatx64osx/picosat'
 
 clasp_dir = solver_dir + 'clasp/'
 claspx64_path = clasp_dir + 'claspx64/build/release/bin/clasp'
@@ -24,6 +27,7 @@ claspx32_path = clasp_dir + 'claspx32/build/release/bin/clasp'
 runsolver_dir = solver_dir + 'runsolver/'
 runsolverx64_path = runsolver_dir+'runsolverx64/runsolver'
 runsolverx32_path = runsolver_dir+'runsolverx32/runsolver'
+runsolverx64osx_path = runsolver_dir + 'runsolverx64osx/runsolver'
 
 #Execution
 
@@ -41,7 +45,10 @@ solvername = sys.argv[7].replace(' ','').replace("'",'')
 if '32' in bits:
     runsolver_path = runsolverx32_path
 elif '64' in bits:
-    runsolver_path = runsolverx64_path
+    if _platform == "linux" or _platform == "linux2":
+    	runsolver_path = runsolverx64_path
+    elif _platform == "darwin":
+    	runsolver_path = runsolverx64osx_path
 else:
     print 'UNRECOGNIZED ARCHITECTURE IN SETTING SOLVER PATH!'
 
@@ -70,7 +77,10 @@ elif solvername == 'picosat':
     if '32' in bits:
         solver_path = picosatx32_path
     elif '64' in bits:
-        solver_path = picosatx64_path
+        if _platform == "linux" or _platform == "linux2":
+            solver_path = picosatx64_path
+        elif _platform == "darwin":
+            solver_path = picosatx64osx_path
     else:
         print 'UNRECOGNIZED ARCHITECTURE IN SETTING SOLVER PATH!'
 else:
@@ -92,23 +102,23 @@ output_runlength = '-1'
 output_quality = '-1'
 output_seed = seed
 
-if 'Maximum CPU time exceeded' in std_out:
+TIMEOUTre = re.compile('Maximum CPU time exceeded')
+SATre = re.compile('\\bSATISFIABLE\\b')
+UNSATre = re.compile('\\bUNSATISFIABLE\\b')
+
+TIMEre = re.compile('CPU time \(s\)\: \d+\.\d+')
+
+if re.search(TIMEOUTre,std_out):
     output_solved = 'TIMEOUT'
     output_runtime = cutoff_time
     
-elif 'UNSATISFIABLE' in std_out:
+elif re.search(UNSATre,std_out):
     output_solved = 'UNSAT'
-    for line in std_out.split('\n'):
-        if 'CPU time (s):' in line:
-            output_runtime = str(float(line.split(':')[1].replace(' ','')))
-            break
-        
-elif 'SATISFIABLE' in std_out:
+    output_runtime = str(float(TIMEre.findall(std_out)[0].split(':')[1].replace(' ','')))
+elif re.search(SATre,std_out):
     output_solved = 'SAT'
-    for line in std_out.split('\n'):
-        if 'CPU time (s):' in line:
-            output_runtime = str(float(line.split(':')[1].replace(' ','')))
-            break
+    TIMEre.findall(std_out)
+    output_runtime = str(float(TIMEre.findall(std_out)[0].split(':')[1].replace(' ','')))
 else:
     output_solved = 'CRASHED'
     print std_out
