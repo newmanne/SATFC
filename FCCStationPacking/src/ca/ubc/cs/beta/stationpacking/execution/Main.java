@@ -41,29 +41,29 @@ public class Main {
 		Random aRandomizer = new Random(2);
 
 		log.info("Getting data...");
-		IStationManager aStationManager = new HRStationManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/stations.csv");;
-		IConstraintManager aConstraintManager = new NoFixedHRConstraintManager("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/AllowedChannels.csv", "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/PairwiseConstraints.csv",aStationManager.getFixedStations());
+		IStationManager aStationManager = new HRStationManager("/Users/MightyByte/Documents/data/FCCStationPackingData/stations.csv");
+		IConstraintManager aConstraintManager = new NoFixedHRConstraintManager("/Users/MightyByte/Documents/data/FCCStationPackingData/AllowedChannels.csv", "/Users/MightyByte/Documents/data/FCCStationPackingData/PairwiseConstraints.csv",aStationManager.getFixedStations());
 		
 		log.info("Encoding data...");
 		ICNFEncoder aCNFEncoder = new StaticCNFEncoder(aConstraintManager.getStationDomains(), aConstraintManager.getPairwiseConstraints());
 		log.info("Making station groups...");
 		IComponentGrouper aComponentGrouper = new ConstraintGraphComponentGrouper(aStationManager.getUnfixedStations(),aConstraintManager.getPairwiseConstraints());
 		log.info("Creating cnf lookup...");
-		String aCNFDir = "/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/CNFs";
+		String aCNFDir = "/Users/MightyByte/Documents/data/FCCStationPackingData/CNFs";
 		ICNFLookup aCNFLookup = new DirCNFLookup(aCNFDir);
 		
 		log.info("Creating instance encoder...");
 		IInstanceEncoder aInstanceEncoder = new InstanceEncoder(aCNFEncoder, aCNFLookup, aComponentGrouper, aCNFDir);
 		
 		log.info("Creating solver...");
-		String aParamConfigurationSpaceLocation = "/ubc/cs/home/a/afrechet/arrow-space/git/fcc-station-packing/FCCStationPacking/SATsolvers/sw_parameterspaces/sw_picosat.txt";
+		String aParamConfigurationSpaceLocation = "SATsolvers/sw_parameterspaces/sw_picosat.txt";
 		String aAlgorithmExecutable = "python solverwrapper.py";
-		String aExecDir = "/ubc/cs/home/a/afrechet/arrow-space/git/fcc-station-packing/FCCStationPacking/SATsolvers/";
+		String aExecDir = "SATsolvers/";
 		int aMaximumConcurrentExecution = 4;
 		ISolver aSolver = new TAESolver(aParamConfigurationSpaceLocation, aAlgorithmExecutable, aExecDir, "CLI",aMaximumConcurrentExecution);
 		
 		log.info("Creating experiment reporter...");
-		IExperimentReporter aExperimentReporter = new LocalExperimentReporter("/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir", "test");
+		IExperimentReporter aExperimentReporter = new LocalExperimentReporter("/Users/MightyByte/Documents/data/FCCStationPackingData", "test");
 		
 		log.info("Creating instance generation experiment...");
 		InstanceGeneration aInstanceGeneration = new InstanceGeneration(aInstanceEncoder, aSolver, aExperimentReporter);
