@@ -26,7 +26,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.DACStationManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
 import ca.ubc.cs.beta.stationpacking.datastructures.SolverResult;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.parsers.ParameterParser;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.ExecutableSolverParameters;
 import ca.ubc.cs.beta.stationpacking.solver.ISolver;
 import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.CNFEncoder2;
 import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.ICNFEncoder2;
@@ -47,8 +47,8 @@ import ca.ubc.cs.beta.stationpacking.solver.taesolver.componentgrouper.IComponen
  * create a solver, and then wait for messages.
  * 
  * @author narnosti
+ * @deprecated
  */
-
 public class MainSolver  implements ISolver{
 	
 	private static Logger log = LoggerFactory.getLogger(MainSolver.class);
@@ -106,7 +106,7 @@ public class MainSolver  implements ISolver{
 		
 		log.info("Parsing parameters...");
 		Map<String,AbstractOptions> aAvailableTAEOptions = TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators();
-		ParameterParser aExecParameters = getParameterParser(args,aAvailableTAEOptions);
+		ExecutableSolverParameters aExecParameters = getParameterParser(args,aAvailableTAEOptions);
 		
 		log.info("Getting station information...");
 		fStationManager = new DACStationManager(aExecParameters.getRepackingDataParameters().getStationFilename(),aExecParameters.getRepackingDataParameters().getDomainFilename());
@@ -179,9 +179,9 @@ public class MainSolver  implements ISolver{
 	/*
 	 * Copied existing code; parse parameters 
 	 */
-	static private ParameterParser getParameterParser(String[] args, Map<String,AbstractOptions> aAvailableTAEOptions){
+	static private ExecutableSolverParameters getParameterParser(String[] args, Map<String,AbstractOptions> aAvailableTAEOptions){
 		//Parse the command line arguments in a parameter object.
-		ParameterParser aExecParameters = new ParameterParser();
+		ExecutableSolverParameters aExecParameters = new ExecutableSolverParameters();
 		JCommander aParameterParser = JCommanderHelper.getJCommander(aExecParameters, aAvailableTAEOptions);
 		try{
 			aParameterParser.parse(args);
