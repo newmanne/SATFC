@@ -19,7 +19,7 @@ import ca.ubc.cs.beta.aclib.targetalgorithmevaluator.init.TargetAlgorithmEvaluat
 import ca.ubc.cs.beta.stationpacking.datamanagers.DACStationManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
 import ca.ubc.cs.beta.stationpacking.execution.MainSolver;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.parsers.InstanceGenerationParameterParser;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.InstanceGenerationParameters;
 import ca.ubc.cs.beta.stationpacking.experiment.experimentreport.IExperimentReporter;
 import ca.ubc.cs.beta.stationpacking.experiment.experimentreport.LocalExperimentReporter;
 import ca.ubc.cs.beta.stationpacking.solver.ISolver;
@@ -121,7 +121,7 @@ public class InstanceGenerationCommandLine {
 		
 		args = aNArnostiRealArgs;
 		
-	    InstanceGenerationParameterParser aExecParameters = getParameterParser(args);
+		InstanceGenerationParameters aExecParameters = getParameterParser(args);
 
 	    log.info("Creating solver...");
 		ISolver aSolver = new MainSolver(args);
@@ -137,7 +137,7 @@ public class InstanceGenerationCommandLine {
 		
 		
 		log.info("Getting station information...");
-		DACStationManager aStationManager = new DACStationManager(aExecParameters.getRepackingDataParameters().getStationFilename(),aExecParameters.getRepackingDataParameters().getDomainFilename());
+		DACStationManager aStationManager = new DACStationManager(aExecParameters.getRepackingDataParameters().StationFilename,aExecParameters.getRepackingDataParameters().DomainFilename);
 	    
 		
 		Set<Station> aStations = aStationManager.getStations();
@@ -162,7 +162,7 @@ public class InstanceGenerationCommandLine {
 		Iterator<Station> aStationIterator = new InversePopulationStationIterator(aToConsiderStations, aExecParameters.getSeed());
 
 		log.info("Beginning experiment...");
-		aInstanceGeneration.run(aStartingStations, aStationIterator, aChannels, aExecParameters.getCutoffTime());
+		aInstanceGeneration.run(aStartingStations, aStationIterator, aChannels, aExecParameters.getCutoffTime(),aExecParameters.getSeed());
 
 	}
 	
@@ -170,13 +170,13 @@ public class InstanceGenerationCommandLine {
 	/*
 	 * Copied existing code to parse parameters
 	 */
-	private static InstanceGenerationParameterParser getParameterParser(String[] args){
+	private static InstanceGenerationParameters getParameterParser(String[] args){
 				
 		//TAE Options
 		Map<String,AbstractOptions> aAvailableTAEOptions = TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators();
 		
 		//Parse the command line arguments in a parameter object.
-		InstanceGenerationParameterParser aExecParameters = new InstanceGenerationParameterParser();
+		InstanceGenerationParameters aExecParameters = new InstanceGenerationParameters();
 		JCommander aParameterParser = JCommanderHelper.getJCommander(aExecParameters, aAvailableTAEOptions);
 		try
 		{
