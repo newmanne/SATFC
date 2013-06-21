@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.experiment;
+package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.File;
 import java.util.HashSet;
@@ -25,6 +25,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.DACConstraintManager2;
 import ca.ubc.cs.beta.stationpacking.datamanagers.DACStationManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.InstanceGenerationParameters;
+import ca.ubc.cs.beta.stationpacking.experiment.InstanceGeneration;
+import ca.ubc.cs.beta.stationpacking.experiment.InversePopulationStationIterator;
 import ca.ubc.cs.beta.stationpacking.experiment.experimentreport.IExperimentReporter;
 import ca.ubc.cs.beta.stationpacking.experiment.experimentreport.LocalExperimentReporter;
 import ca.ubc.cs.beta.stationpacking.solver.ISolver;
