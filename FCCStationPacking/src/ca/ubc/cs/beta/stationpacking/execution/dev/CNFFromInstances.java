@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution;
+package ca.ubc.cs.beta.stationpacking.execution.dev;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,8 +25,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.DACConstraintManager2;
 import ca.ubc.cs.beta.stationpacking.datamanagers.DACStationManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
+import ca.ubc.cs.beta.stationpacking.execution.InstanceGenerationExecutor;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.InstanceGenerationParameters;
-import ca.ubc.cs.beta.stationpacking.experiment.InstanceGenerationExecutor;
 import ca.ubc.cs.beta.stationpacking.solver.taesolver.cnflookup.HybridCNFResultLookup;
 import ca.ubc.cs.beta.stationpacking.solver.taesolver.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solver.taesolver.componentgrouper.IComponentGrouper;
