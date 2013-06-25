@@ -8,7 +8,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
+import ca.ubc.cs.beta.stationpacking.solver.taesolver.TAESolver;
 
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -16,7 +20,9 @@ import au.com.bytecode.opencsv.CSVReader;
 /* NA - Code to read the new DAC file format
  * 
  */
-public class DACConstraintManager2 implements IConstraintManager{
+public class DACConstraintManager implements IConstraintManager{
+	
+	private static Logger log = LoggerFactory.getLogger(DACConstraintManager.class);
 	
 	Map<Integer,Station> fStations = new HashMap<Integer,Station>();
 	HashMap<Station,Set<Station>> fLowerVHFCOConstraints;
@@ -32,7 +38,7 @@ public class DACConstraintManager2 implements IConstraintManager{
 	static final Integer LVHFmin = 2, LVHFmax = 6, UVHFmin=7, UVHFmax = 13, UHFmin = 14, UHFmax = 51;
 	Set<Integer> LVHFChannels = new HashSet<Integer>(), UVHFChannels = new HashSet<Integer>(), UHFChannels = new HashSet<Integer>();
 	
-	public DACConstraintManager2(Set<Station> aStations, String aPairwiseConstraintsFilename){	
+	public DACConstraintManager(Set<Station> aStations, String aPairwiseConstraintsFilename){	
 		
 		LVHFChannels = new HashSet<Integer>();
 		for(int i = LVHFmin; i<= LVHFmax; i++) LVHFChannels.add(i);
@@ -123,7 +129,7 @@ public class DACConstraintManager2 implements IConstraintManager{
 			}
 			aReader.close();
 		} catch(Exception e){
-			System.out.println("Exception in DACConstraintManager constructor: "+e.getMessage());
+			log.error("Exception in DACConstraintManager constructor: "+e.getMessage());
 			e.printStackTrace();
 		}
 		
@@ -237,14 +243,14 @@ public class DACConstraintManager2 implements IConstraintManager{
 				for(Station aStation1 : aStations){ //Look at all stations on that channel
 					for(Station aStation2 : aStations){ //Check to see if aStaion violates a co-channel constraint
 						if(getCOInterferingStations(aStation1,aChannel).contains(aStation2)){
-							System.out.println("\n"+aStation1 + " and "+aStation2+" share channel "+aChannel+", on which they interfere.\n");
+							log.error("\n"+aStation1 + " and "+aStation2+" share channel "+aChannel+", on which they interfere.\n");
 							return false; 
 						}
 					}
-					if(aAssignment.containsKey(aChannel+1)){ //Check to see if aStaion violates an adj-channel constraint
+					if(aAssignment.containsKey(aChannel+1)){ //Check to see if aStation violates an adj-channel constraint
 						for(Station aStation2 : aAssignment.get(aChannel+1)){
 							if(getADJplusInterferingStations(aStation1,aChannel).contains(aStation2)){
-								System.out.println("\n"+aStation1 + " is on channel "+aChannel+", while "+aStation2+" is on channel "+(aChannel+1)+", causing them to interfere.\n");
+								log.error("\n"+aStation1 + " is on channel "+aChannel+", while "+aStation2+" is on channel "+(aChannel+1)+", causing them to interfere.\n");
 								return false;
 							}
 						}
@@ -252,7 +258,7 @@ public class DACConstraintManager2 implements IConstraintManager{
 				}
 			}
 		} catch(Exception e){
-			System.out.println("\nStation assigned to channel not in the range 2-51.\n");
+			log.error("\nStation assigned to channel not in the range 2-51.\n");
 			return false; //Station assigned to a channel not in the range 2-51; should we throw an exception?
 		}
 		return true;

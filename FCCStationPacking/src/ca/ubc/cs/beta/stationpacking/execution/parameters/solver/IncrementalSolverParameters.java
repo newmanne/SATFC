@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import com.beust.jcommander.Parameter;
 

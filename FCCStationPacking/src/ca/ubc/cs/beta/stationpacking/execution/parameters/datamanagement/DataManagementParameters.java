@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.datamanagement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

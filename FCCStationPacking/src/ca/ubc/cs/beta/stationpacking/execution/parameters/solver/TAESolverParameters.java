@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import java.io.File;
 import java.util.Map;
@@ -16,8 +16,10 @@ import ca.ubc.cs.beta.aclib.targetalgorithmevaluator.init.TargetAlgorithmEvaluat
 import ca.ubc.cs.beta.stationpacking.datamanagers.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.IStationManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.datamanagement.DataManagementParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.validator.ImplementedSolverParameterValidator;
 import ca.ubc.cs.beta.stationpacking.solver.ISolver;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.repackingdata.RepackingDataParameters;
 import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.CNFEncoder2;
 import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.ICNFEncoder2;
 import ca.ubc.cs.beta.stationpacking.solver.cnfwriter.CNFStringWriter;

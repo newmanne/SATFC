@@ -15,13 +15,10 @@ import au.com.bytecode.opencsv.CSVReader;
  */
 
 
-public class DACStationManager implements IStationManager{
+public class PopulatedDomainStationManager implements IStationManager{
 	
-	//private Set<Station> fUnfixedStations = new HashSet<Station>();
-	//private Set<Station> fFixedStations = new HashSet<Station>();
-	//private Set<Station> fStations = new HashSet<Station>();
 	private HashMap<Integer,Station> fStations = new HashMap<Integer,Station>();
-	public DACStationManager(String aStationFilename, String aStationDomainsFilename) throws Exception{
+	public PopulatedDomainStationManager(String aStationFilename, String aStationDomainsFilename) throws Exception{
 		CSVReader aReader = new CSVReader(new FileReader(aStationDomainsFilename),',');
 		String[] aLine;
 		Integer aID,aChannel;

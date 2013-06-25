@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters.dataparser;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.parser;
 
 import java.io.FileReader;
 import java.util.ArrayList;
