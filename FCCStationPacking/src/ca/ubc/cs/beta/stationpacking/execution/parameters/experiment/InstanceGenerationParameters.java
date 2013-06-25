@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.experiment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,7 +17,8 @@ import com.beust.jcommander.ParameterException;
 import ca.ubc.cs.beta.aclib.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aclib.options.AbstractOptions;
 import ca.ubc.cs.beta.aclib.options.AlgorithmExecutionOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.dataparser.ReportParser;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.parser.ReportParser;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.repackingdata.PopulatedRepackingDataParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.validator.ImplementedSolverParameterValidator;
 
 import com.beust.jcommander.Parameter;
@@ -33,8 +34,8 @@ public class InstanceGenerationParameters extends AbstractOptions {
 	
 	//Data parameters
 	@ParametersDelegate
-	private RepackingDataParameters fRepackingDataParameters = new RepackingDataParameters();
-	public RepackingDataParameters getRepackingDataParameters()
+	private PopulatedRepackingDataParameters fRepackingDataParameters = new PopulatedRepackingDataParameters();
+	public PopulatedRepackingDataParameters getRepackingDataParameters()
 	{
 		return fRepackingDataParameters;
 	}
