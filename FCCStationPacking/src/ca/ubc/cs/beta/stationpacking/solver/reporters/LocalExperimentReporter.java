@@ -1,11 +1,11 @@
-package ca.ubc.cs.beta.stationpacking.experiment.experimentreport;
+package ca.ubc.cs.beta.stationpacking.solver.reporters;
 
 import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 
-import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datastructures.SolverResult;
 
 public class LocalExperimentReporter implements IExperimentReporter{
@@ -20,7 +20,7 @@ public class LocalExperimentReporter implements IExperimentReporter{
 	}
 	
 	@Override
-	public void report(Instance aInstance, SolverResult aRunResult){
+	public void report(StationPackingInstance aInstance, SolverResult aRunResult){
 		
 		String aLine = aInstance.toString()+","+aRunResult.toString()+"\n";
 		

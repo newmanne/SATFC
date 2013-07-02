@@ -21,13 +21,13 @@ import ca.ubc.cs.beta.aclib.targetalgorithmevaluator.init.TargetAlgorithmEvaluat
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.DACConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.PopulatedDomainStationManager;
-import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.experiment.InstanceGenerationParameters;
-import ca.ubc.cs.beta.stationpacking.experiment.experimentreport.AsynchronousLocalExperimentReporter;
-import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.CNFEncoder2;
-import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.ICNFEncoder2;
+import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.CNFEncoder;
+import ca.ubc.cs.beta.stationpacking.solver.cnfencoder.ICNFEncoder;
 import ca.ubc.cs.beta.stationpacking.solver.cnfwriter.CNFStringWriter;
+import ca.ubc.cs.beta.stationpacking.solver.reporters.AsynchronousLocalExperimentReporter;
 import ca.ubc.cs.beta.stationpacking.solver.taesolver.AsyncTAESolver;
 
 
@@ -102,7 +102,7 @@ public class AsyncResolvingExecutor {
 		Map<String,AbstractOptions> aAvailableTAEOptions = TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators();
 		
 		//Parse the command line arguments in a parameter object.
-		InstanceGenerationParameters aExecParameters = new InstanceGenerationParameters();
+		AsyncResolvingParameters aExecParameters = new AsyncResolvingParameters();
 		JCommander aParameterParser = new JCommander(aExecParameters);
 		try
 		{
@@ -121,7 +121,7 @@ public class AsyncResolvingExecutor {
 		DACConstraintManager dCM = new DACConstraintManager(aStations,aExecParameters.getRepackingDataParameters().ConstraintFilename);
 		
 		//Set<Integer> aChannels = aExecParameters.getPackingChannels();
-		ICNFEncoder2 aCNFEncoder = new CNFEncoder2(aStations);
+		ICNFEncoder aCNFEncoder = new CNFEncoder(aStations);
 				
 		
 		
@@ -160,7 +160,7 @@ public class AsyncResolvingExecutor {
 						aInstanceStations.add(aStation);
 					}
 				}
-				Instance aInstance = new Instance(aInstanceStations, aInstanceChannels);
+				StationPackingInstance aInstance = new StationPackingInstance(aInstanceStations, aInstanceChannels);
 				log.info("Solving "+aInstance.toString());
 				aAsyncSolver.solve(aInstance, aTAEExecConfig.getAlgorithmCutoffTime(), aAsynchronousReporter);
 				
