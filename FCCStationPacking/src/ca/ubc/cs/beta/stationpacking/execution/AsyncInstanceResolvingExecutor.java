@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -8,13 +9,14 @@ import org.slf4j.LoggerFactory;
 import ca.ubc.cs.beta.aclib.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aclib.misc.options.UsageSection;
 import ca.ubc.cs.beta.aclib.options.ConfigToLaTeX;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.instancegeneration.InstanceGenerationParameters;
-import ca.ubc.cs.beta.stationpacking.experiment.InstanceGeneration;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.asyncresolving.AsyncResolvingParameters;
+import ca.ubc.cs.beta.stationpacking.solver.taesolver.AsyncTAESolver;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
-public class InstanceGenerationExecutor {
+public class AsyncInstanceResolvingExecutor {
 
 	private static Logger log = LoggerFactory.getLogger(InstanceGenerationExecutor.class);
 	
@@ -25,12 +27,8 @@ public class InstanceGenerationExecutor {
 		
 		
 		String[] aPaxosTargetArgs = {
-				"-EXPERIMENT_NAME",
-				"InstanceGenerationTest",
-				"-STATION_POPULATIONS_FILE",
-				"/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/station-pops.csv",
 				"-EXPERIMENT_DIR",
-				"/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Results/TestExperiment",
+				"/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Results/Resolving",
 				"-DOMAINS_FILE",
 				"/ubc/cs/home/a/afrechet/arrow-space/workspace/FCCStationPackingExperimentDir/Data/NewDACData/Domain-041813.csv",
 				"-CONSTRAINTS_FILE",
@@ -48,23 +46,21 @@ public class InstanceGenerationExecutor {
 				"--cores",
 				"6",
 				"-CUTOFF",
-				"1800",
-				"-PACKING_CHANNELS",
-				"14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30",
+				"1800"
 				};
 		
 		args = aPaxosTargetArgs;
 		
 		//Parse the command line arguments in a parameter object.
-		InstanceGenerationParameters aInstanceGenerationParameters = new InstanceGenerationParameters();
-		JCommander aParameterParser = JCommanderHelper.getJCommander(aInstanceGenerationParameters, aInstanceGenerationParameters.SolverParameters.AvailableTAEOptions);
+		AsyncResolvingParameters aInstanceResolvingParameters = new AsyncResolvingParameters();
+		JCommander aParameterParser = JCommanderHelper.getJCommander(aInstanceResolvingParameters, aInstanceResolvingParameters.SolverParameters.AvailableTAEOptions);
 		try
 		{
 			aParameterParser.parse(args);
 		}
 		catch (ParameterException aParameterException)
 		{
-			List<UsageSection> sections = ConfigToLaTeX.getParameters(aInstanceGenerationParameters,aInstanceGenerationParameters.SolverParameters.AvailableTAEOptions);
+			List<UsageSection> sections = ConfigToLaTeX.getParameters(aInstanceResolvingParameters,aInstanceResolvingParameters.SolverParameters.AvailableTAEOptions);
 			
 			boolean showHiddenParameters = false;
 			
@@ -75,14 +71,19 @@ public class InstanceGenerationExecutor {
 			return;
 		}
 		
-		InstanceGeneration aInstanceGeneration = null;
+		AsyncTAESolver aSolver = null;
 		try
 		{
 			try 
 			{
-				aInstanceGeneration = aInstanceGenerationParameters.getInstanceGeneration();
+				aSolver = aInstanceResolvingParameters.SolverParameters.getSolver();
 				
-				aInstanceGeneration.run(aInstanceGenerationParameters.getStartingStations(), aInstanceGenerationParameters.getStationIterator(), aInstanceGenerationParameters.getPackingChannels(), aInstanceGenerationParameters.Cutoff, aInstanceGenerationParameters.Seed);
+				ArrayList<StationPackingInstance> aInstances = aInstanceResolvingParameters.getInstances();
+				
+				for(StationPackingInstance aInstance : aInstances)
+				{
+					aSolver.solve(aInstance, aInstanceResolvingParameters.Cutoff, aInstanceResolvingParameters.Seed, aInstanceResolvingParameters.getExperimentReporter());
+				}
 
 			} 
 			catch (Exception e) 
@@ -92,13 +93,9 @@ public class InstanceGenerationExecutor {
 			
 		}
 		finally{
-			aInstanceGeneration.getSolver().notifyShutdown();
+			aSolver.notifyShutdown();
 		}
 		
-		
-		
-		
-
 	}
-
+		
 }

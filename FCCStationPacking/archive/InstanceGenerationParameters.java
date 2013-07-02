@@ -27,7 +27,7 @@ import com.beust.jcommander.ParametersDelegate;
 /**
  * Parser for main parameters related to executing an (instance generation) experiment.
  * @author afrechet
- *
+ * @deprecated
  */
 @UsageTextField(title="FCC StationPacking Instance Generation Options",description="Parameters required for an instance generation experiment.")
 public class InstanceGenerationParameters extends AbstractOptions {	

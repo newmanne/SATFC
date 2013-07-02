@@ -12,14 +12,14 @@ import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datastructures.Clause;
-import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datastructures.Station;
 
 
 //NA - I use LinkedHashSet because I want to get a consistent ordering for debugging purposes
 
 
-public class CNFEncoder2 implements ICNFEncoder2 {
+public class CNFEncoder implements ICNFEncoder {
 
 	
 	static final Set<Clause> fUNSAT_CLAUSES = new HashSet<Clause>();
@@ -29,7 +29,7 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 	Map<Integer,Integer> fInternalToExternal = new HashMap<Integer,Integer>();
 	Integer fMaxChannel = 100;
 	
-	public CNFEncoder2(Set<Station> aStations){
+	public CNFEncoder(Set<Station> aStations){
 		//Set<Station> aStations = aInstance.getStations();
 		//Set<Integer> aChannels = aInstance.getChannels();
 		Set<Integer> aSingleVar = new HashSet<Integer>();
@@ -82,7 +82,7 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 	 * One solution: don't use internal IDs
 	 * Another solution: store state in constructor
 	 */
-	public Set<Clause> encode(Instance aInstance, IConstraintManager aConstraintManager) throws Exception{
+	public Set<Clause> encode(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
 		Set<Clause> aClauses = new LinkedHashSet<Clause>();
 		try{
 			aClauses.addAll(getBaseClauses(aInstance));
@@ -98,7 +98,7 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 	//I could eliminate both checks and force caller to verify legality of assignment
 	//Or I could pass a ConstraintManager and have decode do full verification (exactly one channel per station, in that station's domain, no constraints violated)
 	@Override
-	public Map<Integer,Set<Station>> decode(Instance aInstance, Clause aAssignment) throws Exception{
+	public Map<Integer,Set<Station>> decode(StationPackingInstance aInstance, Clause aAssignment){
 		
 		Set<Integer> aInstanceDomain = aInstance.getChannels();
 		Map<Station,Integer> aAssignmentMap = new HashMap<Station,Integer>();
@@ -110,15 +110,15 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 					Integer aPreviousChannel = aAssignmentMap.put(aStation, aChannel);
 					if(!(aPreviousChannel==null)){
 						//System.out.println(aStation+" assigned to both Channel "+aChannel+" and Channel "+aPreviousChannel);
-						throw new Exception(aStation+" assigned to both Channel "+aChannel+" and Channel "+aPreviousChannel);
+						throw new IllegalStateException(aStation+" assigned to both Channel "+aChannel+" and Channel "+aPreviousChannel);
 					}
 				} else {
-					throw new Exception(aStation+" assigned to channel "+aChannel+", which is not feasible.");
+					throw new IllegalStateException(aStation+" assigned to channel "+aChannel+", which is not feasible.");
 				}
 			}
 		}
 		if(aAssignmentMap.size()!=aInstance.getStations().size()) 
-			throw new Exception("Instance has "+aInstance.getStations().size()+" stations, but only "+aAssignmentMap.size()+" were assigned.");
+			throw new IllegalStateException("Instance has "+aInstance.getStations().size()+" stations, but only "+aAssignmentMap.size()+" were assigned.");
 		Map<Integer,Set<Station>> aChannelAssignments = new HashMap<Integer,Set<Station>>();
 		
 		for(Station aStation : aAssignmentMap.keySet()){
@@ -131,7 +131,7 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 		return aChannelAssignments;
 	}
 		
-	private Set<Clause> getBaseClauses(Instance aInstance) throws Exception{
+	private Set<Clause> getBaseClauses(StationPackingInstance aInstance) throws Exception{
 		Set<Clause> aBaseClauseSet = new LinkedHashSet<Clause>();
 		final Set<Integer> aInstanceDomain = aInstance.getChannels();
 		
@@ -177,7 +177,7 @@ public class CNFEncoder2 implements ICNFEncoder2 {
 	}
 	*/
 	
-	private Set<Clause> getConstraintClauses(Instance aInstance, IConstraintManager aConstraintManager) throws Exception{
+	private Set<Clause> getConstraintClauses(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
 		Set<Clause> aConstraintClauseSet = new LinkedHashSet<Clause>();
 		Set<Integer> aInstanceDomain = aInstance.getChannels();
 		for(Station aStation : aInstance.getStations()){

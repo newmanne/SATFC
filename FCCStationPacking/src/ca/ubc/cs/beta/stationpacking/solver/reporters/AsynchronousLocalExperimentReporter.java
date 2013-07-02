@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.experiment.experimentreport;
+package ca.ubc.cs.beta.stationpacking.solver.reporters;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,23 +11,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.aclib.concurrent.threadfactory.SequentiallyNamedThreadFactory;
-import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datastructures.SolverResult;
 
 public class AsynchronousLocalExperimentReporter implements IExperimentReporter {
 	
 	public class AsynchronousResult
 	{	
-		private Instance fInstance;
+		private StationPackingInstance fInstance;
 		private SolverResult fSolverResult;
 		
-		public AsynchronousResult(Instance aInstance, SolverResult aSolverResult)
+		public AsynchronousResult(StationPackingInstance aInstance, SolverResult aSolverResult)
 		{
 			fInstance = aInstance;
 			fSolverResult = aSolverResult;
 		}
 		
-		public Instance getInstance()
+		public StationPackingInstance getInstance()
 		{
 			return fInstance;
 		}
@@ -65,7 +65,7 @@ public class AsynchronousLocalExperimentReporter implements IExperimentReporter 
 	}
 
 	@Override
-	public void report(Instance aInstance, SolverResult aRunResult) throws InterruptedException {
+	public void report(StationPackingInstance aInstance, SolverResult aRunResult) throws InterruptedException {
 		
 		fReportQueue.put(new AsynchronousResult(aInstance, aRunResult));
 	}

@@ -1,6 +1,6 @@
-package ca.ubc.cs.beta.stationpacking.experiment.experimentreport;
+package ca.ubc.cs.beta.stationpacking.solver.reporters;
 
-import ca.ubc.cs.beta.stationpacking.datastructures.Instance;
+import ca.ubc.cs.beta.stationpacking.datastructures.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datastructures.SolverResult;
 
 /**
@@ -16,6 +16,6 @@ public interface IExperimentReporter {
 	 * @param aRunResult - the result of solving the given instance.
 	 * @throws InterruptedException 
 	 */
-	public void report(Instance aInstance, SolverResult aRunResult) throws InterruptedException;
+	public void report(StationPackingInstance aInstance, SolverResult aRunResult) throws InterruptedException;
 	
 }
