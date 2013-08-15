@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.daemon;
+package ca.ubc.cs.beta.stationpacking.execution.daemon.java;
 
 import java.util.List;
 
@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import ca.ubc.cs.beta.aclib.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aclib.misc.options.UsageSection;
 import ca.ubc.cs.beta.aclib.options.ConfigToLaTeX;
+import ca.ubc.cs.beta.aclib.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
 import ca.ubc.cs.beta.stationpacking.daemon.java.server.SolverServer;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.ExecutableSolverParameters;
@@ -62,14 +63,14 @@ public class DaemonSolverExecutor {
 		
 		//Parse the command line arguments in a parameter object.
 		ExecutableSolverParameters aExecutableSolverParameters = new ExecutableSolverParameters();
-		JCommander aParameterParser = JCommanderHelper.getJCommander(aExecutableSolverParameters, aExecutableSolverParameters.SolverParameters.TAESATSolverParameters.AvailableTAEOptions);
+		JCommander aParameterParser = JCommanderHelper.getJCommander(aExecutableSolverParameters, TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
 		try
 		{
 			aParameterParser.parse(args);
 		}
 		catch (ParameterException aParameterException)
 		{
-			List<UsageSection> sections = ConfigToLaTeX.getParameters(aExecutableSolverParameters, aExecutableSolverParameters.SolverParameters.TAESATSolverParameters.AvailableTAEOptions);
+			List<UsageSection> sections = ConfigToLaTeX.getParameters(aExecutableSolverParameters, TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
 			
 			boolean showHiddenParameters = false;
 			
