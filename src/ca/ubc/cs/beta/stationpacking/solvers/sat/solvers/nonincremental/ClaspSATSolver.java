@@ -1,6 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -191,76 +193,56 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		            }
 		        }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
 		
-
 		// Start solving
 		log.debug("Send problem to clasp cutting off after "+cutoff+"s");
 		
 		fClaspLibrary.jnasolve(facade, problem, config, result);
-		
-		//We will increment this immediately,
-		//This will have the effect of causing the runnables above to stop running sooner.
-		currentRequestID.incrementAndGet();
-		
-		
-		log.trace("Came back from clasp.");
-		
-		timeoutFuture.cancel(true);
-		interruptFuture.cancel(true);
+		log.debug("Came back from clasp.");
 		
 		watch.stop();
 		double runtime = watch.getElapsedTime();
-		
 		watch.reset();
 		watch.start();
 		
-		//Terminate timing tasks.
-				
-//		timerService.shutdownNow();
-//		boolean interrupted = false;
-//		boolean terminated = false;
-//		try {
-//			for(int i=1;i<=TIMER_TERMINATION_RETRY_COUNTS;i++)
-//			{
-//				try
-//				{
-//					terminated = timerService.awaitTermination(TIMER_TERMINATION_WAIT_TIME, TimeUnit.SECONDS);
-//					if(!terminated)
-//					{
-//						log.error("Could not terminate clasp timer tasks within {} seconds on {}-th attempt, will try one more time.",TIMER_TERMINATION_WAIT_TIME,i);
-//					}
-//				}
-//				catch(InterruptedException e)
-//				{
-//					interrupted = true;
-//					break;
-//				}
-//			}
-//		}
-//		finally
-//		{
-//			if(interrupted)
-//			{
-//				Thread.currentThread().interrupt();
-//				throw new IllegalStateException("Clasp was interrupted while it was terminating its timer tasks.");
-//			}
-//			if(!terminated)
-//			{
-//				throw new IllegalStateException("Could no terminate clasp timer tasks in "+TIMER_TERMINATION_RETRY_COUNTS+" attempts of "+TIMER_TERMINATION_WAIT_TIME+" seconds.");
-//			}
-//		}
 		
 		ClaspResult claspResult = getSolverResult(fClaspLibrary, result, timedOut, fInterrupt, runtime);
 		
+		log.debug("Post time to clasp result obtained: {} s.",watch.getElapsedTime());
+		
+		timeoutFuture.cancel(true);
+		log.debug("Post time to timeout future cancellation: {} s.",watch.getElapsedTime());
+		interruptFuture.cancel(true);
+		log.debug("Post time to interrupt future cancellation: {} s.",watch.getElapsedTime());
+		
+		
 		HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
+		log.debug("Post time to to assignment obtained: {} s.",watch.getElapsedTime());
 
 		//clears memory
 		fClaspLibrary.destroyFacade(facade);
+		log.debug("Post time to facade destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyConfig(config);
+		log.debug("Post time to config destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyProblem(problem);
+		log.debug("Post time to problem destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyResult(result);
+		log.debug("Post time to result destroyed: {} s.",watch.getElapsedTime());
 		
 		watch.stop();
 		double postTime = watch.getElapsedTime();
+		
+		log.debug("Total post time: {} s.", postTime);
+		if(postTime > 60)
+		{
+			log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happenned.");
+		}
+		
+		//We only increment
+		log.debug("Incrementing job inde.");
+		currentRequestID.incrementAndGet();
+		
+		log.debug("Cancelling suicide future.");
+		suicideFuture.cancel(true);
 		
 		return new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment);
 	}
