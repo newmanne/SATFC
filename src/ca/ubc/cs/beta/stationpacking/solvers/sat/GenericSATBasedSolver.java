@@ -9,9 +9,6 @@ import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -29,6 +26,12 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
+
+/**
+ * SAT based ISolver that uses a SAT solver to solve station packing problems.
+ */
 public class GenericSATBasedSolver implements ISolver {
 	
 	private static Logger log = LoggerFactory.getLogger(GenericSATBasedSolver.class);
@@ -62,18 +65,19 @@ public class GenericSATBasedSolver implements ISolver {
 		Set<Set<Station>> aStationComponents = fComponentGrouper.group(aInstance,fConstraintManager);
 		log.debug("Problem separated in {} groups.",aStationComponents.size());
 		
+		int componentID = 1;
 		for(final Set<Station> aStationComponent : aStationComponents)
 		{	
-			
+			log.debug("Solving {}-th component...",componentID++);
 			Map<Station,Set<Integer>> subDomains = Maps.filterKeys(aDomains, new Predicate<Station>(){
 				@Override
 				public boolean apply(Station arg0) {
 					return aStationComponent.contains(arg0);
 				}});
-			
+			log.debug("Component has {} stations.",subDomains.size());
 			StationPackingInstance aComponentInstance = new StationPackingInstance(subDomains,aPreviousAssignment);
 			
-			log.debug("Encoding subproblem in CNF.");
+			log.debug("Encoding subproblem in CNF...");
 			Pair<CNF,ISATDecoder> aEncoding = fSATEncoder.encode(aInstance);
 			CNF aCNF = aEncoding.getKey();
 			ISATDecoder aDecoder = aEncoding.getValue();
@@ -134,11 +138,11 @@ public class GenericSATBasedSolver implements ISolver {
 					}
 				}
 			}
-			
-			
+
 			aComponentResults.add(new SolverResult(aComponentResult.getResult(),aComponentResult.getRuntime(),aStationAssignment));
 			
-			if(aComponentResult.getResult().equals(SATResult.UNSAT) || aTerminationCriterion.hasToStop())
+			//Was not SAT, so instance cannot be SAT, might as well stop now.
+			if(!aComponentResult.getResult().equals(SATResult.SAT) || aTerminationCriterion.hasToStop())
 			{
 				break;
 			}
