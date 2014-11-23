@@ -21,7 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 public class StationPackingInstance {
 	
 	private final Map<Station,Set<Integer>> fDomains;
-	private final HashMap<Station,Integer> fPreviousAssignment;
+	private final Map<Station,Integer> fPreviousAssignment;
 	
 	/**
 	 * Create a station packing instance.
@@ -38,6 +38,7 @@ public class StationPackingInstance {
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
 		
+		//HashMap<Station,Integer> tempPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -45,6 +46,7 @@ public class StationPackingInstance {
 			if(previousChannel != null && !aDomains.get(station).contains(previousChannel))
 			{
 				throw new IllegalArgumentException("Provided previous assignment assigned channel "+previousChannel+" to station "+station+" which is not in its problem domain "+aDomains.get(station)+".");
+				//tempPreviousAssignment.remove(station);
 			}
 			
 			if(aDomains.get(station).isEmpty())
@@ -55,6 +57,7 @@ public class StationPackingInstance {
 		
 		fDomains = Collections.unmodifiableMap(new HashMap<Station,Set<Integer>>(aDomains));
 		fPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
+		//fPreviousAssignment = Collections.unmodifiableMap(tempPreviousAssignment);
 	}
 	
 	/**
