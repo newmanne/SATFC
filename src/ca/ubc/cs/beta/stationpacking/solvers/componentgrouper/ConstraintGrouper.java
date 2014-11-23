@@ -27,7 +27,7 @@ public class ConstraintGrouper implements IComponentGrouper{
 		HashSet<Set<Station>> aGroups = new HashSet<Set<Station>>();
 		
 		ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<Station,DefaultEdge>(aConstraintGraph);
-	
+		
 		for(Set<Station> aConnectedComponent : aConnectivityInspector.connectedSets())
 		{
 			aGroups.add(aConnectedComponent);
@@ -43,10 +43,11 @@ public class ConstraintGrouper implements IComponentGrouper{
 	 */
 	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(StationPackingInstance aInstance, IConstraintManager aConstraintManager)
 	{
-		Set<Station> aStations = aInstance.getStations();
-		Map<Station,Set<Integer>> aDomains = aInstance.getDomains();
+		final Set<Station> aStations = aInstance.getStations();
+		final Map<Station,Set<Integer>> aDomains = aInstance.getDomains();
 		
-		SimpleGraph<Station,DefaultEdge> aConstraintGraph = new SimpleGraph<Station,DefaultEdge>(DefaultEdge.class);
+		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = new SimpleGraph<Station,DefaultEdge>(DefaultEdge.class);
+		
 		for(Station aStation : aStations){
 			aConstraintGraph.addVertex(aStation);
 		}
@@ -62,7 +63,6 @@ public class ConstraintGrouper implements IComponentGrouper{
 				}
 				
 				int channelp1 = channel+1;
-			
 				for(Station aStation2 : aConstraintManager.getADJplusInterferingStations(aStation1,channel)){
 					if(aStations.contains(aStation2) && aDomains.get(aStation2).contains(channelp1))
 					{

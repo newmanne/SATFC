@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,50 +154,59 @@ public class ChannelSpecificConstraintManager implements IConstraintManager{
 				String[] line;
 				while((line = reader.readNext())!=null)
 				{
-					String key = line[0].trim();
-					ConstraintKey constraintKey;
-					if(key.equals("CO"))
+					try
 					{
-						constraintKey = ConstraintKey.CO;
-					}
-					else if(key.equals("ADJ+1"))
-					{
-						constraintKey = ConstraintKey.ADJp1;
-					}
-					else if(key.equals("ADJ-1"))
-					{
-						constraintKey = ConstraintKey.ADJm1;
-					}
-					else
-					{
-						throw new IllegalArgumentException("Unrecognized constraint key "+key);
-					}
-					
-					int lowChannel = Integer.valueOf(line[1].trim());
-					int highChannel = Integer.valueOf(line[2].trim());
-					if(lowChannel > highChannel)
-					{
-						throw new IllegalStateException("Low channel greater than high channel.");
-					}
-					
-					int subjectStationID = Integer.valueOf(line[3].trim());
-					Station subjectStation = aStationManager.getStationfromID(subjectStationID);
-					
-					for(int subjectChannel = lowChannel; subjectChannel<=highChannel;subjectChannel++)
-					{
-						for(int i=4;i<line.length;i++)
+						String key = line[0].trim();
+						ConstraintKey constraintKey;
+						if(key.equals("CO"))
 						{
-							if(line[i].trim().isEmpty())
+							constraintKey = ConstraintKey.CO;
+						}
+						else if(key.equals("ADJ+1"))
+						{
+							constraintKey = ConstraintKey.ADJp1;
+						}
+						else if(key.equals("ADJ-1"))
+						{
+							constraintKey = ConstraintKey.ADJm1;
+						}
+						else
+						{
+							throw new IllegalArgumentException("Unrecognized constraint key "+key);
+						}
+						
+						int lowChannel = Integer.valueOf(line[1].trim());
+						int highChannel = Integer.valueOf(line[2].trim());
+						if(lowChannel > highChannel)
+						{
+							throw new IllegalStateException("Low channel greater than high channel.");
+						}
+						
+						int subjectStationID = Integer.valueOf(line[3].trim());
+						Station subjectStation = aStationManager.getStationfromID(subjectStationID);
+						
+						for(int subjectChannel = lowChannel; subjectChannel<=highChannel;subjectChannel++)
+						{
+							for(int i=4;i<line.length;i++)
 							{
-								break;
+								if(line[i].trim().isEmpty())
+								{
+									break;
+								}
+								int targetStationID = Integer.valueOf(line[i].trim());
+								
+								Station targetStation = aStationManager.getStationfromID(targetStationID);
+								
+								addConstraint(subjectStation, targetStation, subjectChannel, constraintKey);
 							}
-							int targetStationID = Integer.valueOf(line[i].trim());
-							
-							Station targetStation = aStationManager.getStationfromID(targetStationID);
-							
-							addConstraint(subjectStation, targetStation, subjectChannel, constraintKey);
 						}
 					}
+					catch(Exception e)
+					{
+						log.error("Could not read constraint from line:\n{}",StringUtils.join(line,','));
+						throw e;
+					}
+					
 					
 				}
 			}

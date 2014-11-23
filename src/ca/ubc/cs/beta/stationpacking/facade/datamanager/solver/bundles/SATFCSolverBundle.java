@@ -13,11 +13,12 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifierpresolvers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifierpresolvers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.certifierpresolvers.cgneighborhood.StationSubsetUNSATCertifier;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.NoGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -53,13 +54,14 @@ public class SATFCSolverBundle extends ASolverBundle{
 			) {
 		
 		super(aStationManager, aConstraintManager);
-		
-		log.debug("Solver selector: PRE-SOLVING WITH CLASP AS MAIN SOLVER.");
+		log.debug("SATFC solver bundle.");
 		
 		SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
-		IComponentGrouper aGrouper = new NoGrouper();
 		
-		log.debug("Initializing clasp solvers.");
+		log.debug("Decomposing intances into connected components using constraint graph.");
+		IComponentGrouper aGrouper = new ConstraintGrouper();
+		
+		log.debug("Initializing base configured clasp solvers.");
 		
 		AbstractCompressedSATSolver aUHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
 		ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor,  this.getConstraintManager(), aGrouper);
@@ -74,6 +76,7 @@ public class SATFCSolverBundle extends ASolverBundle{
 		ISolver UHFsolver;
 		ISolver VHFsolver;
 		
+		log.debug("Adding neighborhood presolvers.");
 		UHFsolver = new SequentialSolversComposite(
 				Arrays.asList(
 						new ConstraintGraphNeighborhoodPresolver(aConstraintManager, 
@@ -96,16 +99,26 @@ public class SATFCSolverBundle extends ASolverBundle{
 						)
 				);
 		
-		//Decorate solvers to save CNFs.
+		//Decorate solvers.
+		
+		//Remove unconstrained stations.
+		log.debug("Decorate solver to first remove underconstrained stations.");
+		UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, aConstraintManager);
+		VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, aConstraintManager);
+		
+		
+		//Save CNFs, if needed.
 		if(aCNFDirectory != null)
 		{
+			log.debug("Decorate solver to save CNFs.");
 			UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
 			VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
 		}
 		
-		//Decorate solvers to save results.
+		//Save results, if needed.
 		if(aResultFile != null)
 		{
+			log.debug("Decorate solver to save results.");
 			UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
 			VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
 		}
