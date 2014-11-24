@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="satfc" default="deploy-release">
+<project name="satfc" default="deploy">
 
 	<property name="private.buildfile" value="build-resources/private/user-antbuild.properties"/>
 	<property file="${private.buildfile}"/>
@@ -212,7 +212,7 @@ dirty: ${git.dirty}</echo>
 	</target>
 	
 	
-	<target name="deploy-release" depends="zip" description="untars tarball in software.dir and creates symlink">
+	<target name="deploy" depends="zip" description="untars tarball in software.dir and creates symlink">
 		
 		<untar src="${software.dir}${file.separator}${outputfilename}.tar.gz" dest="${software.dir}" compression="gzip"/>
 		
@@ -223,7 +223,5 @@ dirty: ${git.dirty}</echo>
 		<echo>Untar Successful to ${software.dir}${file.separator}${outputfilename}</echo>
 		
 	</target>
-			
-	<target name="deploy" depends="zip, deploy-release"/>
 			
 </project>
