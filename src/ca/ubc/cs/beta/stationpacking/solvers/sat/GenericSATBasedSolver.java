@@ -41,6 +41,7 @@ public class GenericSATBasedSolver implements ISolver {
 	private final ISATEncoder fSATEncoder;
 	private final ISATSolver fSATSolver;
 	
+	//TODO Remove component grouping from generic SAT solver, make it a more flexible decorator.
 	protected GenericSATBasedSolver(ISATSolver aSATSolver, ISATEncoder aSATEncoder, IConstraintManager aConstraintManager, IComponentGrouper aComponentGrouper)
 	{
 		fConstraintManager = aConstraintManager;
