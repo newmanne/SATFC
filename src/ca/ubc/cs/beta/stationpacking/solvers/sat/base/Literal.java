@@ -17,9 +17,7 @@ public class Literal implements Serializable{
 	 */
 	public Literal(long aVariable, boolean aSign)
 	{
-		/*
-		 * TODO Litterals should not be allowed to be < 0 , but to support the current incremental code, we let it be.
-		 */
+		 //TODO Litterals should not be allowed to be < 0 , but to support the current incremental code, we let it be.
 		fVariable = aVariable;
 		fSign = aSign;
 	}
