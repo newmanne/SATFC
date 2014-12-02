@@ -132,5 +132,11 @@ public class InstanceParameters extends AbstractOptions {
 	@Parameter(names = "-DATA-FOLDERNAME",description = "station config data folder name", required=true)
     public String fDataFoldername;
 	
+	@Override
+	public String toString()
+	{
+		return "("+getDomains().toString()+","+getPreviousAssignment().toString()+","+Cutoff+","+Seed+","+fDataFoldername+")";
+	}
+	
 
 }

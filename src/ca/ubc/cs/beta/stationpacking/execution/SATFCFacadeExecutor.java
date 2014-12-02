@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +25,8 @@ public class SATFCFacadeExecutor {
 	 * @param args - parameters satisfying {@link SATFCFacadeParameters}.
 	 */
 	public static void main(String[] args) {
+		
+		System.out.println(Arrays.toString(args));
 		
 		//Parse the command line arguments in a parameter object.
 		Logger log = null ;

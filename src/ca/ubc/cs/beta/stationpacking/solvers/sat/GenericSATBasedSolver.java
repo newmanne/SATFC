@@ -126,9 +126,13 @@ public class GenericSATBasedSolver implements ISolver {
 						Station aStation = aStationChannelPair.getKey();
 						Integer aChannel = aStationChannelPair.getValue();
 						
-						if(!aComponentInstance.getStations().contains(aStation) || !aComponentInstance.getDomains().get(aStation).contains(aChannel))
+						if(!aComponentInstance.getStations().contains(aStation))
 						{
-							throw new IllegalStateException("A decoded station and channel from a component SAT assignment is not in that component's problem instance. ("+aStation+", channel:"+aChannel+")");
+							throw new IllegalStateException("A decoded station ("+aStation+") from a component SAT assignment is not in that component's problem instance.");
+						}
+						if(!aComponentInstance.getDomains().get(aStation).contains(aChannel))
+						{
+							throw new IllegalStateException("A decoded station ("+aStation+") from a component SAT assignment is not assigned to a channel ("+aChannel+") in its problem domain ("+aComponentInstance.getDomains().get(aStation)+").");
 						}
 						
 						if(!aStationAssignment.containsKey(aChannel))

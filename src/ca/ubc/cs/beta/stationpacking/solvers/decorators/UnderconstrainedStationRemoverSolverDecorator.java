@@ -18,6 +18,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * Solver decorator that removes underconstrained stations from the instance, solve the sub-instance and then add back
@@ -46,44 +47,75 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 	public SolverResult solve(StationPackingInstance aInstance,
 			ITerminationCriterion aTerminationCriterion, long aSeed) {
 		
+		Watch watch = new Watch();
+		watch.start();
+		
 		//Find  the under constrained nodes in the instance.
 		final Set<Station> underconstrainedStations = new HashSet<Station>();
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
 		
 		log.debug("Finding underconstrained stations in the instance...");
 		
+		final Map<Station,Integer> numCoNeighbours = new HashMap<Station,Integer>();
+		final Map<Station,Integer> numAdjNeighbours = new HashMap<Station,Integer>();
+		
 		for(Station station : domains.keySet())
 		{
 			final Set<Integer> domain = domains.get(station); 
-			
-			final int domainSize = domain.size();
-			
-			int numCoNeighbours = 0;
-			int numAdjNeighbours = 0;
 			for(Integer domainChannel : domain)
 			{
-				for(Station neighbour : fConstraintManager.getCOInterferingStations(station,domainChannel))
+				for(Station coNeighbour : fConstraintManager.getCOInterferingStations(station,domainChannel))
 				{
-					if(domains.keySet().contains(neighbour) && domains.get(neighbour).contains(domainChannel))
+					if(domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel))
 					{
-						numCoNeighbours++;
+						Integer stationNumCo = numCoNeighbours.get(station);
+						if(stationNumCo == null)
+						{
+							stationNumCo = 0;
+						}
+						stationNumCo++;
+						numCoNeighbours.put(station, stationNumCo);
+						
+						Integer neighbourNumCo = numCoNeighbours.get(coNeighbour);
+						if(neighbourNumCo == null)
+						{
+							neighbourNumCo = 0;
+						}
+						neighbourNumCo++;
+						numCoNeighbours.put(coNeighbour, neighbourNumCo);
 					}
 				}
-				for(Station neighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
+				for(Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
 				{
-					if(domains.keySet().contains(neighbour) && domains.get(neighbour).contains(domainChannel+1))
+					if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
 					{
-						numAdjNeighbours++;
+						Integer stationNumAdj = numAdjNeighbours.get(station);
+						if(stationNumAdj == null)
+						{
+							stationNumAdj = 0;
+						}
+						stationNumAdj++;
+						numAdjNeighbours.put(station, stationNumAdj);
 					}
 				}
 			}
+		}
+		
+		for(Station station : domains.keySet())
+		{
+			final Set<Integer> domain = domains.get(station);
 			
-			if(domainSize > numCoNeighbours + numAdjNeighbours)
+			final int domainSize = domain.size();
+			final int numCo = numCoNeighbours.containsKey(station) ? numCoNeighbours.get(station) : 0;
+			final int numAdj = numAdjNeighbours.containsKey(station) ? numAdjNeighbours.get(station) : 0;
+			
+			if(domainSize > numCo + numAdj)
 			{
-				log.trace("Station {} is underconstrained, removing it from the instance (to be readded after solving).",station);
+				log.trace("Station {} is underconstrained ({} domain but {} co- and {} adj-neighbours), removing it from the instance (to be rea-dded after solving).",station,domainSize,numCo,numAdj);
 				underconstrainedStations.add(station);
 			}
 		}
+		
 		
 		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
 		
@@ -96,18 +128,25 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 			}});
 
 		final SolverResult subResult;
+		final double preTime;
 		if(!alteredDomains.isEmpty())
 		{
 			//Solve the reduced instance.
 			log.debug("Solving the sub-instance...");
-			final StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment());
+			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment());
+			watch.stop();
+			preTime = watch.getElapsedTime();
+			log.trace("{} s spent on underconstrained pre-solving setup.",preTime);
 			subResult = fDecoratedSolver.solve(alteredInstance, aTerminationCriterion, aSeed);
 		}
 		else
 		{
 			log.debug("All stations were underconstrained!");
+			preTime = watch.getElapsedTime();
+			log.trace("{} s spent on underconstrained pre-solving setup.",preTime);
 			subResult = new SolverResult(SATResult.SAT, 0.0,new HashMap<Integer,Set<Station>>());
 		}
+		watch.start();
 		
 		if(subResult.getResult().equals(SATResult.SAT))
 		{
@@ -118,12 +157,16 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 			
 			for(Station station : underconstrainedStations)
 			{
+				
 				boolean stationAdded = false;
 				
 				Set<Integer> domain = domains.get(station);
 				//Try to add the underconstrained station at one of its channel domain.
+				log.trace("Trying to add back underconstrained station {} on its domain {} ...",station,domain);
+				
 				for(Integer channel : domain)
 				{
+					log.trace("Checking domain channel {} ...",channel);
 					if(!alteredAssignment.containsKey(channel))
 					{
 						alteredAssignment.put(channel, new HashSet<Station>());
@@ -134,6 +177,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 					
 					if(addedSAT)
 					{
+						log.trace("Added on channel {}.",channel);
 						stationAdded = true;
 						break;
 					}
@@ -145,21 +189,26 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 							alteredAssignment.remove(channel);
 						}
 					}
-					if(!stationAdded)
-					{
-						throw new IllegalStateException("Could not add unconstrained station "+station+" on any of its domain channels.");
-					}
+				}
+				if(!stationAdded)
+				{
+					throw new IllegalStateException("Could not add unconstrained station "+station+" on any of its domain channels.");
 				}
 			}
-			
-			return new SolverResult(SATResult.SAT, subResult.getRuntime(), alteredAssignment);
+			watch.stop();
+			final double postTime = watch.getElapsedTime();
+			log.trace("{} s spent on underconstrained post-solving wrap up.",postTime);
+			return new SolverResult(SATResult.SAT, subResult.getRuntime() + preTime + postTime, alteredAssignment);
 			
 		}
 		else
 		{
 			log.debug("Sub-instance was not satisfiable, no need to consider adding back underconstrained stations.");
 			//Not satisfiable, so re-adding the underconstrained nodes cannot change anything.
-			return subResult;
+			watch.stop();
+			final double postTime = watch.getElapsedTime();
+			log.trace("{} s spent on underconstrained post-solving wrap up.",postTime);
+			return SolverResult.addTime(subResult, preTime + postTime);
 		}
 	}
 
