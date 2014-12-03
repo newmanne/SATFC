@@ -54,9 +54,21 @@ public class SATFCFacadeBuilder {
 		} catch(URISyntaxException e) {
 		  f = new File(url.getPath());
 		}
+
 		System.out.println(f.getAbsolutePath());
 		
-		String currentLocation = f.isDirectory() ? f.getAbsolutePath() : f.getAbsoluteFile().getParentFile().getAbsolutePath(); 
+		String currentLocation;
+		
+		if(f.isDirectory())
+		{
+			//Not deployed, probably in eclipse.
+			currentLocation = new File(f.getParentFile(),"src"+File.separator+"dist").getAbsolutePath(); 
+		}
+		else
+		{
+			//Deployed, probably under the gradle install build structure.
+			currentLocation = f.getParentFile().getParentFile().getAbsolutePath();
+		}
 		
 		File file = new File(currentLocation + File.separator + relativeLibPath);
 		if(file.exists())
