@@ -6,7 +6,8 @@
  * @TODO 
  *	1. Automatic git push after publish.
  *	2. Resolve native dependencies (e.g. on clasp). 
- *  3. Figure out how to work with private, password protected non-maven-central repo.
+ *      3. Figure out how to work with private, password protected non-maven-central repo.
+ *      4. Nicer failure on local.properties
  *
  */
 
@@ -61,10 +62,10 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.0.13'
     compile 'ch.qos.logback:logback-core:1.0.13'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.4.4'
-	compile 'com.fasterxml.jackson.core:jackson-core:2.4.4'
-	compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.4'
-	compile 'com.beust:jcommander:1.35-patched'
-	compile 'commons-collections:commons-collections:3.2.1'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.4.4'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.4'
+    compile 'com.beust:jcommander:1.35-patched'
+    compile 'commons-collections:commons-collections:3.2.1'
     compile 'net.java.dev.jna:jna:4.0.0'
     compile 'com.mangosdk:spi:0.2.4'
 
@@ -77,9 +78,8 @@ dependencies {
 applicationName = 'SATFC'
 jar.baseName = applicationName
 version = "1.0-"+getGitName()
-//mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
+mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 
-mainClassName = 'ca.ubc.cs.beta.stationpacking.TestDependencies'
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
 
@@ -122,39 +122,4 @@ publishing {
 		}
 	
 	}
-
 }
-
-
-
-
-
-
-//task copyRuntimeLibs(type: Copy) {
-//	description 'Copy runtime libraries to dist/lib.'
-//	from configurations.runtime  
-//	into "dist/lib"  
-//}
-
-//task copyClasp(type: Copy) {
-//	description 'Copies necessary clasp files to dist.'	
-//    from "SATsolvers/clasp"
-//    include "compile.sh"
-//    include "libjnaclasp-2.1.3.tar.gz"
-//    include "jna/libjnaclasp.*"
-//	into "dist/clasp"  
-//}
-
-//task createStartScript(type: CreateStartScripts) {
-//	description 'Create SATFC execution script.'
-//	mainClassName 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
-//	applicationName 'SATFC'
-//	defaultJvmOpts ['-Xmx2048m']
-//	outputDir ''
-//}
-
-//task makeExecScripts(dependsOn: 'classes', type: JavaExec) {
-//    main = 'ca.ubc.cs.beta.aeatk.ant.execscript.ExecScriptCreator'
-//    classpath = sourceSets.main.runtimeClasspath
-//    args '--class', 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor', '--name', 'satfc', '--file-to-write', 'dist/', '--default-mem', '2048' 
-//}
