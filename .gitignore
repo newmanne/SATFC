@@ -12,6 +12,7 @@ version
 *.swp
 /bin
 .classpath
+.factorypath
 .project
 .settings/*
 .gradle/*
