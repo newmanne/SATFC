@@ -1,7 +1,5 @@
 bin
 build
-build-resources/private
-dist
 version
 *.ods
 *.o
