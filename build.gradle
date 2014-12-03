@@ -2,6 +2,11 @@
  * SATFC Build file.
  * @author afrechet
  * @author newmanne
+ * 
+ * @TODO 
+ *	1. Automatic git push after publish.
+ *	2. Resolve native dependencies (e.g. on clasp). 
+ *
  */
 
 // Build script dependencies.
@@ -76,7 +81,9 @@ dependencies {
 applicationName = 'SATFC'
 jar.baseName = applicationName
 version = "1.0-"+getGitName()
-mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
+//mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
+
+mainClassName = 'ca.ubc.cs.beta.stationpacking.TestDependencies'
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
 
@@ -92,7 +99,6 @@ public String getEARGMavenRepo()
 task sourceJar(type: Jar) {
 	from sourceSets.main.allJava
 }
-
 publishing {
 
 	repositories {
@@ -124,6 +130,10 @@ publishing {
 }
 
 
+
+
+
+
 //task copyRuntimeLibs(type: Copy) {
 //	description 'Copy runtime libraries to dist/lib.'
 //	from configurations.runtime  
@@ -152,7 +162,3 @@ publishing {
 //    classpath = sourceSets.main.runtimeClasspath
 //    args '--class', 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor', '--name', 'satfc', '--file-to-write', 'dist/', '--default-mem', '2048' 
 //}
-
-
-
-
