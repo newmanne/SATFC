@@ -6,6 +6,7 @@
  * @TODO 
  *	1. Automatic git push after publish.
  *	2. Resolve native dependencies (e.g. on clasp). 
+ *  3. Figure out how to work with private, password protected non-maven-central repo.
  *
  */
 
@@ -19,11 +20,6 @@ buildscript {
 repositories {
     //EARG maven repo.   
     maven {
-    	credentials
-    	{
-    		username "EARG-builder"
-    		password "earg-password"
-    	}
     	url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
     }
     
