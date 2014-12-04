@@ -132,21 +132,22 @@ To take advantage of the specific distribution of encountered feasibility checki
 
 \subsection{Setting Up \& Building \SATFC}
 
-Packaged with \SATFC are its source code, necessary libraries as well as a copy of \clasp. The latter needs to be compiled on your machine:
+The release folder in \SATFC's repository should contain a compiled, ready-to-go compressed version of \SATFC. Packaged with \SATFC are its source code, necessary libraries as well as a copy of \clasp. 
 
+To build your own command-line executable version, execute the following:
 \begin{lstlisting}[style=Bash]
 > cd <SATFC repository>
+> ./gradlew installApp
+\end{lstlisting}
+This will build and package \SATFC in \texttt{<SATFC repository>/build/install/}. This may be a lengthy process as it is possibly installing Gradle, downloading all of \SATFC's dependencies and building the project. Note that it can sometimes fail while trying to download dependencies - restarting the process fixes this.
+
+In any case, \clasp may need to be compiled for your machine. This can be done as follows:
+\begin{lstlisting}[style=Bash]
+> cd <SATFC folder>
 > cd src/dist/clasp/
 > bash compile.sh
 \end{lstlisting}
-
-Only the source code is provided with \SATFC. To build your own command-line executable version, execute the following:
-\begin{lstlisting}[style=Bash]
-> cd <SATFC repository>
-> gradlew installApp
-\end{lstlisting}
-
-This will build and package \SATFC in \texttt{<SATFC repository>/build/install/}.
+The \SATFC folder is either the decompressed pre-compiled \SATFC folder, or \texttt{build/install/SATFC} inside the \SATFC repository if you are building your own version.
 
 \subsection{Standalone}\label{sec:standalone}
 
@@ -156,7 +157,7 @@ Every time \SATFC is launched from the command line, it will have to load the Ja
 
 To use \SATFC from the command line to solve feasibility checking problems, go in the \SATFC directory and execute the following:
 \begin{lstlisting}[style=Bash]
-> bash satfc -DATA-FOLDERNAME <data folder> -DOMAINS <station domains>
+> bash bin/SATFC -DATA-FOLDERNAME <data folder> -DOMAINS <station domains>
 \end{lstlisting}
 where 
 \begin{itemize}

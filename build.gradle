@@ -99,7 +99,13 @@ license {
 public String getEARGMavenRepo()
 {
 	Properties properties = new Properties()
-	properties.load(project.rootProject.file('local.properties').newDataInputStream())
+	def propertyFilename = 'local.properties'
+	def propertyFile = project.rootProject.file('local.properties')
+	if(!propertyFile.exists()) {
+		println 'Necessary file '+propertyFilename+' was not present, creating an empty version of it!'
+		propertyFile.createNewFile()
+	}
+	properties.load(propertyFile.newDataInputStream())
 	def eargMavenRepo = properties.getProperty('earg.mavenrepo.dir')
 	return eargMavenRepo
 }
