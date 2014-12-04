@@ -75,9 +75,6 @@ public class SATFCFacadeBuilder {
 		} catch(URISyntaxException e) {
 		  f = new File(url.getPath());
 		}
-
-		System.out.println(f.getAbsolutePath());
-		
 		String currentLocation;
 		
 		if(f.isDirectory())
