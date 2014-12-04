@@ -47,8 +47,6 @@ public class SATFCFacadeExecutor {
 	 */
 	public static void main(String[] args) {
 		
-		System.out.println(Arrays.toString(args));
-		
 		//Parse the command line arguments in a parameter object.
 		Logger log = null ;
 		try 
