@@ -128,8 +128,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         // Split into components
         /* NOTE: any decorator placed above this must a) be thread-safe b) be ready to deal with being shutdown at any time */
         log.debug("Decorate solver to split the graph into connected components and then merge the results");
-        UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, aConstraintManager, 1);
-        VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, aConstraintManager, 1);
+        UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, aConstraintManager);
+        VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, aConstraintManager);
 
         //Remove unconstrained stations.
         log.debug("Decorate solver to first remove underconstrained stations.");

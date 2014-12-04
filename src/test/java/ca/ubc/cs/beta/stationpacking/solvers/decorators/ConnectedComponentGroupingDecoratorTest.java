@@ -26,7 +26,7 @@ public class ConnectedComponentGroupingDecoratorTest {
         final IComponentGrouper grouper = mock(IComponentGrouper.class);
         final IConstraintManager constraintManager = mock(IConstraintManager.class);
         final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
-        final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager, 1);
+        final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager);
 
         final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
         final Set<Station> componentA = mock(Set.class);
@@ -43,13 +43,13 @@ public class ConnectedComponentGroupingDecoratorTest {
 
     @Test
     public void testEarlyStopping() {
-        // should test that if a problem has 3 UNSAT components and 2 threads, then the code examines at most 2 components
+        // should test that if a problem has 3 UNSAT components, then the code examines only 1 component
         final long seed = 0;
         final ISolver solver = mock(ISolver.class);
         final IComponentGrouper grouper = mock(IComponentGrouper.class);
         final IConstraintManager constraintManager = mock(IConstraintManager.class);
         final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
-        final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager, 2);
+        final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager);
 
         final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
         final Set<Station> componentA = mock(Set.class);
@@ -62,7 +62,7 @@ public class ConnectedComponentGroupingDecoratorTest {
         when(solver.solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed))).thenReturn(unsat);
         connectedComponentGroupingDecorator.solve(instance, terminationCriterion, seed);
 
-        verify(solver, atMost(2)).solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed));
+        verify(solver, times(1)).solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed));
     }
 
 
