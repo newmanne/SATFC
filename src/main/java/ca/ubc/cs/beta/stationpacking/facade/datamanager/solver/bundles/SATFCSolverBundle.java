@@ -21,18 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.Arrays;
-
 import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
@@ -41,8 +36,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.RedisCachingSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
@@ -51,6 +47,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -81,8 +81,10 @@ public class SATFCSolverBundle extends ASolverBundle {
             String aResultFile,
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
-
         super(aStationManager, aConstraintManager);
+        // TODO: how do these get here?
+        SATFCCachingParameters satfcCachingParameters = null;
+
         log.debug("SATFC solver bundle.");
 
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
@@ -134,6 +136,11 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isDecompose())
         {
+        // Check the cache - this is at the component level
+        if (satfcCachingParameters.useCache()) {
+            UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
+            VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
+        }
             // Split into components
             log.debug("Decomposing intances into connected components using constraint graph.");
             IComponentGrouper aGrouper = new ConstraintGrouper();
@@ -150,11 +157,10 @@ public class SATFCSolverBundle extends ASolverBundle {
             VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
         }
 
-        //Save CNFs, if needed.
-        if (aCNFDirectory != null) {
-            log.debug("Decorate solver to save CNFs.");
-            UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
-            VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
+        // Check the cache - this is at the full graph level
+        if (satfcCachingParameters.useCache()) {
+            UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
+            VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
         }
 
         //Save results, if needed.

@@ -31,6 +31,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -109,7 +111,8 @@ public class StationPackingInstance {
 		}
 		return allChannels;
 	}
-	
+
+	// warning: changing this method will completely mess up hashing!
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -166,7 +169,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's stations.
 	 */
 	public Set<Station> getStations(){
-		return Collections.unmodifiableSet(fDomains.keySet());
+		return ImmutableSet.copyOf(fDomains.keySet());
 	}
 	
 	/**
@@ -174,7 +177,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's channels.
 	 */
 	public Map<Station,Set<Integer>> getDomains(){
-		return Collections.unmodifiableMap(fDomains);
+		return ImmutableMap.copyOf(fDomains);
 	}
 	
 	/**
@@ -182,7 +185,7 @@ public class StationPackingInstance {
 	 */
 	public Map<Station,Integer> getPreviousAssignment()
 	{
-		return Collections.unmodifiableMap(fPreviousAssignment);
+		return ImmutableMap.copyOf(fPreviousAssignment);
 	}
 	
 	/**
