@@ -34,7 +34,7 @@ public class SATBasedSolver extends GenericSATBasedSolver {
 
 	public SATBasedSolver(AbstractSATSolver aSATSolver, SATEncoder aSATEncoder, IConstraintManager aConstraintManager, IComponentGrouper aComponentGrouper)
 	{
-		super(aSATSolver,aSATEncoder,aConstraintManager,aComponentGrouper);
+		super(aSATSolver,aSATEncoder,aConstraintManager);
 	}
 
 }

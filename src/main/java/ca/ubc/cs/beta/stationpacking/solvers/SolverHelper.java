@@ -112,14 +112,12 @@ public class SolverHelper {
 	 * @param aComponentResults
 	 * @return the merged the results of solving multiple disconnected components of a same station packing problem.
 	 */
-	public static SolverResult mergeComponentResults(Collection<SolverResult> aComponentResults){
-		double aRuntime = 0.0;
-		
+	public static SolverResult mergeComponentResults(Collection<SolverResult> aComponentResults, double aRuntime){
+
 		//Merge runtimes as sum of times.
 		HashSet<SATResult> aSATResults = new HashSet<SATResult>();
 		for(SolverResult aSolverResult : aComponentResults)
 		{
-			aRuntime += aSolverResult.getRuntime();
 			aSATResults.add(aSolverResult.getResult());
 		}
 		
