@@ -1,3 +1,24 @@
+/**
+ * Copyright 2014, Auctionomics, Alexandre Fréchette, Kevin Leyton-Brown.
+ *
+ * This file is part of SATFC.
+ *
+ * SATFC is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * SATFC is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * For questions, contact us at:
+ * afrechet@cs.ubc.ca
+ */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.data;
 
 import java.io.File;
@@ -6,7 +27,6 @@ import java.util.HashMap;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.UnabridgedFormatConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 
@@ -16,14 +36,14 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
  */
 public class DataManager {
     
-    /**
+	/**
      * File path suffix for a (station config / interference) domain file.
      */
-	public static String DOMAIN_FILE = File.separator+"domains.csv";
+	public static String DOMAIN_FILE = File.separator+"Domain.csv";
 	/**
 	 * File path suffix for a (station config / interference) interference constraints file.
 	 */
-	public static String INTERFERENCES_FILE = File.separator+"interferences.csv";
+	public static String INTERFERENCES_FILE = File.separator+"Interference_Paired.csv";
 	
 	private HashMap<String, ManagerBundle> fData;
 	

@@ -17,6 +17,10 @@ buildscript {
 	dependencies { classpath 'org.ajoberstar:gradle-git:0.9.0' }
 }
 
+plugins {
+    id "com.github.hierynomus.license" version "0.11.0"
+}
+
 // In this section you declare where to find the dependencies of your project
 repositories {
     //EARG maven repo.   
@@ -27,21 +31,10 @@ repositories {
     mavenCentral()
 }
 
-//Grab git information.
-import org.ajoberstar.grgit.Grgit
-public String getGitName()
-{
-	def repo = Grgit.open(project.file('.'))
-	
-	def branch = repo.branch.current.name
-	def sha = repo.head().abbreviatedId
-	
-	return branch+'-'+sha
-}
-
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
+apply plugin: 'license'
 
 sourceCompatibility = 1.8
 
@@ -74,14 +67,33 @@ dependencies {
     testCompile 'org.mockito:mockito-all:1.10.8'
 }
 
+//Grab git information.
+import org.ajoberstar.grgit.Grgit
+public String getGitName()
+{
+	def repo = Grgit.open(project.file('.'))
+	
+	def branch = repo.branch.current.name
+	def sha = repo.head().abbreviatedId
+	
+	return branch+'-'+sha
+}
+
 //Project properties.
 applicationName = 'SATFC'
 jar.baseName = applicationName
-version = "1.0-"+getGitName()
+version = "1.2-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
-
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
+//License.
+license {
+	ext.name = applicationName
+    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+    ext.author1 = 'Alexandre Fréchette'
+    ext.author2 = 'Kevin Leyton-Brown'
+    ext.email = 'afrechet@cs.ubc.ca'
+}
 
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()
