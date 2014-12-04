@@ -15,3 +15,9 @@ version
 .settings/*
 .gradle/*
 local.properties
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.pdf
