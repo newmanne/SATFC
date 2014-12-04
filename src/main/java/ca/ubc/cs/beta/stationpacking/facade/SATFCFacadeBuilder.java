@@ -79,8 +79,14 @@ public class SATFCFacadeBuilder {
 		
 		if(f.isDirectory())
 		{
-			//Not deployed, probably in eclipse.
-			currentLocation = new File(f.getParentFile(),"src"+File.separator+"dist").getAbsolutePath(); 
+			if(f.getName().equals("bin")) {
+				// eclipse
+				currentLocation = new File(f.getParentFile(),"src"+File.separator+"dist").getAbsolutePath();
+			} else {
+				// intellij
+				currentLocation = new File(f.getParentFile().getParentFile().getParentFile(), "src"+File.separator+"dist").getAbsolutePath();
+			}
+
 		}
 		else
 		{
