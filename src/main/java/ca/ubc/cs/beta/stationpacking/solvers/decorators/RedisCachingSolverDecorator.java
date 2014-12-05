@@ -1,8 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.database.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.hash.HashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +12,11 @@ import java.util.Optional;
 
 /**
  * Created by newmanne on 02/12/14.
+ * Interfaces with redis to store and retrieve CacheEntry's
  */
 @Slf4j
-public class RedisCachingSolverDecorator extends CachingSolverDecorator {
+public class RedisCachingSolverDecorator extends ACachingSolverDecorator {
+
     private final Jedis fJedis;
 
     /**
@@ -35,15 +37,13 @@ public class RedisCachingSolverDecorator extends CachingSolverDecorator {
     }
 
     @Override
-    protected Optional<CacheEntry> getSolverResultFromCache(StationPackingInstance aInstance) {
-        final HashCode hash = hash(aInstance);
+    protected Optional<CacheEntry> getSolverResultFromCache(HashCode hash) {
         final String key = getKey(hash);
         log.info("Asking redis for entry " + key);
         final String value = fJedis.get(key);
         final Optional<CacheEntry> result;
         if (value != null) {
             final CacheEntry cacheEntry = JSONUtils.toObject(value, CacheEntry.class);
-            log.info("Cache hit! Result is " + cacheEntry.getSolverResult().getResult());
             result = Optional.of(cacheEntry);
         } else {
             result = Optional.empty();

@@ -6,32 +6,25 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.database.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 11/30/14.
  */
-public abstract class CachingSolverDecorator extends ASolverDecorator {
+@Slf4j
+public abstract class ACachingSolverDecorator extends ASolverDecorator {
 
     private final SATFCCachingParameters satfcCachingParameters;
     // a hash representation of the stations / interference constraints
@@ -44,7 +37,7 @@ public abstract class CachingSolverDecorator extends ASolverDecorator {
     /**
      * @param aSolver - decorated ISolver.
      */
-    public CachingSolverDecorator(ISolver aSolver, SATFCCachingParameters satfcCachingParameters, String aGraphHash) {
+    public ACachingSolverDecorator(ISolver aSolver, SATFCCachingParameters satfcCachingParameters, String aGraphHash) {
         super(aSolver);
         this.satfcCachingParameters = satfcCachingParameters;
         this.fGraphHash = aGraphHash;
@@ -53,18 +46,24 @@ public abstract class CachingSolverDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result;
-        final Optional<CacheEntry> cachedResult = getSolverResultFromCache(aInstance);
+        boolean resultInCache = false;
+        HashCode hash = hash(aInstance);
+        Optional<CacheEntry> cachedResult = getSolverResultFromCache(hash);
+        while (cachedResult.isPresent() && !cachedResult.get().getDomains().equals(aInstance.getDomains())) {
+            log.debug("Hash " + hash + " has a collision, rehashing");
+            hash = rehash(hash);
+            cachedResult = getSolverResultFromCache(hash);
+        }
         if (cachedResult.isPresent()) {
             final CacheEntry cacheEntry = cachedResult.get();
-            if (!cacheEntry.getDomains().equals(aInstance.getDomains())) {
-                throw new RuntimeException("You've got a hash collision! Time to think about this properly");
-            }
+            log.info("Cache hit! Result is " + cacheEntry.getSolverResult().getResult());
             // TODO: think about timeout result stored in cache where you have more time and would rather try anyways
             result = cachedResult.get().getSolverResult();
         } else {
+            log.info("Cache miss! Solving");
             result = super.solve(aInstance, aTerminationCriterion, aSeed);
             if (shouldCache(result)) {
-                cacheResult(new CacheEntry(result, aInstance.getDomains()));
+                cacheResult(new CacheEntry(result, aInstance.getDomains(), new Date()));
             }
         }
         return result;
@@ -82,35 +81,16 @@ public abstract class CachingSolverDecorator extends ASolverDecorator {
                 .hash();
     }
 
+    private HashCode rehash(HashCode hash) {
+        return fHashFuction.newHasher().putString(hash.toString(), Charsets.UTF_8).hash();
+    }
+
     protected HashCode hash(Map<Station, Set<Integer>> aDomains) {
         return hash(new StationPackingInstance(aDomains));
     }
 
     protected abstract void cacheResult(CacheEntry entry);
 
-    protected abstract Optional<CacheEntry> getSolverResultFromCache(StationPackingInstance aInstance);
-
-    @Data
-    @JsonDeserialize(using = CacheEntryDeserializer.class)
-    public static class CacheEntry {
-        private final SolverResult solverResult;
-        private final Map<Station, Set<Integer>> domains;
-    }
-
-    public static class CacheEntryDeserializer extends JsonDeserializer<CacheEntry> {
-
-        @Override
-        public CacheEntry deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
-            final CacheEntryJson cacheEntryJson = jp.readValueAs(CacheEntryJson.class);
-            final Map<Station, Set<Integer>> collect = cacheEntryJson.getDomains().entrySet().stream().collect(Collectors.toMap(e -> new Station(e.getKey()), e -> e.getValue()));
-            return new CacheEntry(cacheEntryJson.getSolverResult(), collect);
-        }
-    }
-
-    @Data
-    public static class CacheEntryJson {
-        private SolverResult solverResult;
-        private Map<Integer, Set<Integer>> domains;
-    }
+    protected abstract Optional<CacheEntry> getSolverResultFromCache(HashCode hash);
 
 }

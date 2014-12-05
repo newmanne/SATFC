@@ -138,8 +138,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         // Check the cache - this is at the component level
         if (satfcCachingParameters.useCache()) {
             log.debug("Decorate solver to check the cache at the component level");
-            UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
-            VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
+            UHFsolver = satfcCachingParameters.createCachingSolverDecorator(UHFsolver, "");
+            VHFsolver = satfcCachingParameters.createCachingSolverDecorator(VHFsolver, "");
         }
             // Split into components
             log.debug("Decomposing intances into connected components using constraint graph.");
@@ -160,8 +160,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         // Check the cache - this is at the full graph level
         if (satfcCachingParameters.useCache()) {
             log.debug("Decorate solver to check the cache first");
-            UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
-            VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
+            UHFsolver = satfcCachingParameters.createCachingSolverDecorator(UHFsolver, "");
+            VHFsolver = satfcCachingParameters.createCachingSolverDecorator(VHFsolver, "");
         }
 
         //Save results, if needed.
