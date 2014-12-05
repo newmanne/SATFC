@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.solvers.database;
+package ca.ubc.cs.beta.stationpacking.database;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
