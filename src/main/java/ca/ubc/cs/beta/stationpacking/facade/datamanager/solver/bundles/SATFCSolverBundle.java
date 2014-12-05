@@ -82,8 +82,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
         super(aStationManager, aConstraintManager);
-        // TODO: how do these get here?
-        SATFCCachingParameters satfcCachingParameters = null;
+        SATFCCachingParameters satfcCachingParameters = new SATFCCachingParameters();
 
         log.debug("SATFC solver bundle.");
 
@@ -138,6 +137,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         {
         // Check the cache - this is at the component level
         if (satfcCachingParameters.useCache()) {
+            log.debug("Decorate solver to check the cache at the component level");
             UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
             VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
         }
@@ -159,6 +159,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         // Check the cache - this is at the full graph level
         if (satfcCachingParameters.useCache()) {
+            log.debug("Decorate solver to check the cache first");
             UHFsolver = new RedisCachingSolverDecorator(UHFsolver, satfcCachingParameters, "");
             VHFsolver = new RedisCachingSolverDecorator(VHFsolver, satfcCachingParameters, "");
         }

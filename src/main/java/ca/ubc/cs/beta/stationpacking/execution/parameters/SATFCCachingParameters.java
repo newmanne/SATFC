@@ -11,20 +11,16 @@ public class SATFCCachingParameters {
 
     // smallest amount of time a computation can take to make it worth caching
     @Getter
-    public double minTimeToCache;
-
-    // smallest amount of time for which you will take a cached timeout at its word
-    @Getter
-    public double minTimeToTrustCache;
+    public double minTimeToCache = 1;
 
     @Parameter(names = "--useCache", description = "Should the cache be used", required = false)
-    public boolean useCache;
+    public boolean useCache = true;
 
     @Parameter(names = "--redisURL", description = "Redis URL", required = false)
-    public String redisURL;
+    public String redisURL = "localhost";
 
     @Parameter(names = "--redisPort", description = "Redis port", required = false)
-    public int redisPort;
+    public int redisPort = 6379;
 
     private Jedis jedis;
 
@@ -34,8 +30,10 @@ public class SATFCCachingParameters {
 
     public synchronized Jedis getJedis() {
         if (jedis == null) {
-            jedis = new Jedis("localhost", 6379);
+            // TODO: log some stuff
+            jedis = new Jedis(redisURL, redisPort);
         }
         return jedis;
     }
+
 }

@@ -84,20 +84,20 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 		final String clasplibrary = SolverParameters.Library; 
 		SolverManager aSolverManager = new SolverManager(
 				new ISolverBundleFactory() {
-			
+
 					@Override
 					public ISolverBundle getBundle(IStationManager aStationManager,
 							IConstraintManager aConstraintManager) {
-						
+
 						/*
 						 * Set what solver selector will be used here.
 						 */
 						// TODO: allow specification of solver customization options
 						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, new SATFCFacadeParameter.SolverCustomizationOptions());
-						
+
 					}
 				}
-				
+
 				);
 		
 		//Gather any necessary station packing data.
