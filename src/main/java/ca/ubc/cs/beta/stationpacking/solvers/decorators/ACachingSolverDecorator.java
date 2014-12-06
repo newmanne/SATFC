@@ -63,7 +63,8 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
             log.info("Cache miss! Solving");
             result = super.solve(aInstance, aTerminationCriterion, aSeed);
             if (shouldCache(result)) {
-                cacheResult(new CacheEntry(result, aInstance.getDomains(), new Date()));
+                final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date());
+                cacheResult(hash, cacheEntry);
             }
         }
         return result;
@@ -89,7 +90,7 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
         return hash(new StationPackingInstance(aDomains));
     }
 
-    protected abstract void cacheResult(CacheEntry entry);
+    protected abstract void cacheResult(HashCode hash, CacheEntry entry);
 
     protected abstract Optional<CacheEntry> getSolverResultFromCache(HashCode hash);
 

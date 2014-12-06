@@ -1,8 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import ca.ubc.cs.beta.stationpacking.database.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.database.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.hash.HashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -30,8 +30,7 @@ public class RedisCachingSolverDecorator extends ACachingSolverDecorator {
     }
 
     @Override
-    protected void cacheResult(CacheEntry entry) {
-        final HashCode hash = hash(entry.getDomains());
+    protected void cacheResult(HashCode hash, CacheEntry entry) {
         final String jsonResult = JSONUtils.toString(entry);
         fJedis.set(getKey(hash), jsonResult);
     }
