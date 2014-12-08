@@ -1,5 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -10,20 +19,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.beust.jcommander.internal.Lists;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
 /**
  * Created by newmanne on 28/11/14.
@@ -76,8 +75,18 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
             });
         watch.stop();
         final SolverResult result = SolverHelper.mergeComponentResults(solverResults.values(), watch.getElapsedTime());
+        
+                
+        
         if (result.getResult() == SATResult.SAT)
         {
+            //Verify result.
+            log.debug("Verifying result:");
+            boolean correct = fConstraintManager.isSatisfyingAssignment(result.getAssignment());
+            if(!correct)
+            {
+                throw new IllegalStateException("Grouped result was SAT but assignment was not verified to be satisfiable.");
+            }
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
         }
         log.debug("\nResult:");
