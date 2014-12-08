@@ -48,9 +48,6 @@ public class GenericSATBasedSolver implements ISolver {
 
         log.debug("Solving instance of {}...", aInstance.getInfo());
 
-        Map<Station, Set<Integer>> aDomains = aInstance.getDomains();
-        Map<Station, Integer> aPreviousAssignment = aInstance.getPreviousAssignment();
-
         log.debug("Encoding subproblem in CNF...");
         Pair<CNF, ISATDecoder> aEncoding = fSATEncoder.encode(aInstance);
         CNF aCNF = aEncoding.getKey();

@@ -19,7 +19,7 @@
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
-package ca.ubc.cs.beta.stationpacking.solvers.certifierpresolvers.cgneighborhood;
+package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
 import java.util.Collection;
 import java.util.HashSet;
