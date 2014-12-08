@@ -116,20 +116,6 @@ public class GenericSATBasedSolver implements ISolver {
             if (aAssignmentSize != aInstance.getStations().size()) {
                 throw new IllegalStateException("Merged station assignment doesn't assign exactly the stations in the instance.");
             }
-
-
-            //Check that assignment is indeed satisfiable.
-            if (!fConstraintManager.isSatisfyingAssignment(solverResult.getAssignment())) {
-
-                log.error("Bad assignment:");
-                for (Integer aChannel : solverResult.getAssignment().keySet()) {
-                    log.error(aChannel + ',' + solverResult.getAssignment().get(aChannel).toString());
-                }
-
-                throw new IllegalStateException("Merged station assignment violates some pairwise interference constraint.");
-            } else {
-                log.debug("Assignment was independently verified to be satisfiable.");
-            }
         }
         log.debug("...done.");
 

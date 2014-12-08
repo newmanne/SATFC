@@ -39,6 +39,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
@@ -124,18 +125,22 @@ public class SATFCSolverBundle extends ASolverBundle {
                 )
         );
 
-        //Decorate solvers - remember that the decorator that you put first is applied last
+        /**
+         * Decorate solvers - remember that the decorator that you put first is applied last
+         */
 
         // Split into components
-        /* NOTE: any decorator placed above this must a) be thread-safe b) be ready to deal with being shutdown at any time */
+        /*
+         *  NOTE: any decorator placed above this must a) be thread-safe b) be ready to deal with being shutdown at any time 
+         *  */
         log.debug("Decorate solver to split the graph into connected components and then merge the results");
-        UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, aConstraintManager);
-        VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, aConstraintManager);
+        UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
+        VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
 
         //Remove unconstrained stations.
         log.debug("Decorate solver to first remove underconstrained stations.");
-        UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, aConstraintManager);
-        VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, aConstraintManager);
+        UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
+        VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
 
         //Save CNFs, if needed.
         if (aCNFDirectory != null) {
@@ -150,6 +155,13 @@ public class SATFCSolverBundle extends ASolverBundle {
             UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
             VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
         }
+        
+        //Verify results.
+        /* 
+         * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
+         */
+        UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
+        VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;

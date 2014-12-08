@@ -80,13 +80,6 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         
         if (result.getResult() == SATResult.SAT)
         {
-            //Verify result.
-            log.debug("Verifying result:");
-            boolean correct = fConstraintManager.isSatisfyingAssignment(result.getAssignment());
-            if(!correct)
-            {
-                throw new IllegalStateException("Grouped result was SAT but assignment was not verified to be satisfiable.");
-            }
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
         }
         log.debug("\nResult:");
