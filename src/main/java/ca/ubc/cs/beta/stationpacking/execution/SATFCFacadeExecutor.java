@@ -31,6 +31,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 
 import com.beust.jcommander.ParameterException;
 
@@ -70,6 +71,7 @@ public class SATFCFacadeExecutor {
 				satfcBuilder.setLibrary(parameters.fClaspLibrary);
 			}
 			satfcBuilder.setInitializeLogging(true);
+			satfcBuilder.setSolverChoice(parameters.fSolverChoice);
 			
 			try(SATFCFacade satfc = satfcBuilder.build())
 			{
