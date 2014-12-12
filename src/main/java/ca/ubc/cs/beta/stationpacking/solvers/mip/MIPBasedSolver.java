@@ -183,7 +183,7 @@ public class MIPBasedSolver implements ISolver
 	}
 	
 	
-    private static Pair<IloCplex,Map<IloIntVar,Pair<Station,Integer>>> encodeMIP(StationPackingInstance aInstance, IConstraintManager aConstraintManager) throws IloException
+    public static Pair<IloCplex,Map<IloIntVar,Pair<Station,Integer>>> encodeMIP(StationPackingInstance aInstance, IConstraintManager aConstraintManager) throws IloException
     {
     	IloCplex mip = new IloCplex();
     	
@@ -327,7 +327,7 @@ public class MIPBasedSolver implements ISolver
      * @param aDecoder - a decoder of MIP variables to station channel pairs.
      * @return the station packing assignment contained in the solved MIP. 
      */
-	private Map<Integer, Set<Station>> getAssignment(final IloCplex aMIP, final Map<IloIntVar, Pair<Station, Integer>> aDecoder) {
+	private static Map<Integer, Set<Station>> getAssignment(final IloCplex aMIP, final Map<IloIntVar, Pair<Station, Integer>> aDecoder) {
 		
 		final Map<Integer, Set<Station>> assignment = new HashMap<Integer,Set<Station>>();
 		for(Entry<IloIntVar,Pair<Station,Integer>> entryDecoder : aDecoder.entrySet())
