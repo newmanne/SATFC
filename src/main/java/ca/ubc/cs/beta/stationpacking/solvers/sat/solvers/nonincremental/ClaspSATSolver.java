@@ -148,13 +148,13 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		final Pointer result = fClaspLibrary.createResult();
 		final AtomicBoolean timedOut = new AtomicBoolean(false);
 		
-		final double cutoff = aTerminationCriterion.getRemainingTime();
-		
 		watch.stop();
 		double preTime = watch.getElapsedTime();
 		
 		watch.reset();
 		watch.start();
+		
+		final double cutoff = aTerminationCriterion.getRemainingTime();
 		
 		// Launches a timer that will set the interrupt flag of the result object to true after aCutOff seconds. 
 		Future<?> timeoutFuture = fTimerService.schedule(
@@ -183,7 +183,7 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
         			{       			    
             			    if(MY_REQUEST_ID == currentRequestID.get())
             			    {
-                				if (fInterrupt.get() || aTerminationCriterion.hasToStop())
+                				if (fInterrupt.get())
                 				{
                 					log.trace("Clasp interruption was triggered.");
                 					fClaspLibrary.interrupt(facade);
