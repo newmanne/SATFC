@@ -27,7 +27,7 @@ repositories {
     maven {
     	url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
     }
-    
+    mavenLocal()
     mavenCentral()
 }
 
