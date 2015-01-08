@@ -21,5 +21,4 @@ local.properties
 *.synctex.gz
 *.toc
 manual/*.pdf
-test-output/*
 *.iml
