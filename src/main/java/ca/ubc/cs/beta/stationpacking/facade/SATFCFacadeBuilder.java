@@ -25,6 +25,10 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
+
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
  * @author afrechet
@@ -35,6 +39,7 @@ public class SATFCFacadeBuilder {
 	private String fLibrary;
 	private String fCNFDirectory;
 	private String fResultFile;
+	private SATFCFacadeParameter.SolverChoice fSolverChoice;
 	
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -45,6 +50,7 @@ public class SATFCFacadeBuilder {
 		fLibrary = findSATFCLibrary();
 		fCNFDirectory = null;
 		fResultFile = null;
+		fSolverChoice = SolverChoice.SATFC;
 	}
 	
 	/**
@@ -79,8 +85,14 @@ public class SATFCFacadeBuilder {
 		
 		if(f.isDirectory())
 		{
-			//Not deployed, probably in eclipse.
-			currentLocation = new File(f.getParentFile(),"src"+File.separator+"dist").getAbsolutePath(); 
+			if(f.getName().equals("bin")) {
+				// eclipse
+				currentLocation = new File(f.getParentFile(),"src"+File.separator+"dist").getAbsolutePath();
+			} else {
+				// intellij
+				currentLocation = new File(f.getParentFile().getParentFile().getParentFile(), "src"+File.separator+"dist").getAbsolutePath();
+			}
+
 		}
 		else
 		{
@@ -114,7 +126,7 @@ public class SATFCFacadeBuilder {
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
 		
-		return new SATFCFacade(fLibrary, fInitializeLogging,fCNFDirectory,fResultFile);
+		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice));
 	}
 	
 	/**
@@ -156,6 +168,15 @@ public class SATFCFacadeBuilder {
 	public void setResultFile(String aResultFile)
 	{
 		fResultFile = aResultFile;
+	}
+	
+	/**
+	 * Set the type of solver choice to use in SATFC.
+	 * @param aSolverChoice
+	 */
+	public void setSolverChoice(SATFCFacadeParameter.SolverChoice aSolverChoice)
+	{
+		fSolverChoice = aSolverChoice;
 	}
 	
 	

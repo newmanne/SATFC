@@ -25,6 +25,7 @@ import ca.ubc.cs.beta.aeatk.logging.ComplexLoggingOptions;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
@@ -47,6 +48,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
 	public String fClaspLibrary;
+	
+	@Parameter(names = "-SOLVER-CHOICE", description = "type of SATFC")
+	public SolverChoice fSolverChoice = SolverChoice.SATFC;
 	
 	/**
 	 * Logging options.

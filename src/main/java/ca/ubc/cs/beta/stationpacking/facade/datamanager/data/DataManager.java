@@ -73,7 +73,8 @@ public class DataManager {
 		else
 		{
 			IStationManager stationManager = new DomainStationManager(path+DOMAIN_FILE);
-
+			
+			//IConstraintManager constraintManager = new ChannelSpecificConstraintManager(stationManager, path+INTERFERENCES_FILE);
 			IConstraintManager constraintManager = new UnabridgedFormatConstraintManager(stationManager, path+INTERFERENCES_FILE);
 			fData.put(path, new ManagerBundle(stationManager, constraintManager));
 			return true;

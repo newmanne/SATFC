@@ -41,6 +41,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSAT
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -79,15 +80,12 @@ public class SATFCFacade implements AutoCloseable{
 	
 	/**
 	 * Construct a SATFC solver facade, with the option of initializing logging if its not already done.
-	 * @param aClaspLibrary - the location of the compiled jna clasp library to use.
-	 * @param aInitializeLogging - whether to initialize logging or not.
-	 * @param aCNFDirectory - where to save CNFs encountered by SATFC (will incur a performance penalty, only good for experiment purposes).
-	 * @param aResultFile - a file in which to write problem/results pairs encountered.
+	 * @param aSATFCParameters parameters needed by the facade.
 	 */
-	SATFCFacade(final String aClaspLibrary, final boolean aInitializeLogging, final String aCNFDirectory, final String aResultFile)
+	SATFCFacade(final SATFCFacadeParameter aSATFCParameters)
 	{
 		//Initialize logging.
-		if(!logInitialized && aInitializeLogging)
+		if(!logInitialized && aSATFCParameters.isInitializeLogging())
 		{
 			initializeLogging(LogLevel.INFO);
 			log = LoggerFactory.getLogger(getClass());
@@ -99,12 +97,12 @@ public class SATFCFacade implements AutoCloseable{
 		}
 		
 		//Check provided library.
-		if(aClaspLibrary == null)
+		if(aSATFCParameters.getClaspLibrary() == null)
 		{
 			throw new IllegalArgumentException("Cannot provide null library.");
 		}
 		
-		File libraryFile = new File(aClaspLibrary);
+		File libraryFile = new File(aSATFCParameters.getClaspLibrary());
 		if(!libraryFile.exists())
 		{
 			throw new IllegalArgumentException("Provided clasp library does not exist.");
@@ -116,7 +114,7 @@ public class SATFCFacade implements AutoCloseable{
 		
 		try
 		{
-			new ClaspSATSolver(aClaspLibrary, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+			new ClaspSATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
 		}
 		catch(UnsatisfiedLinkError e)
 		{
@@ -127,7 +125,7 @@ public class SATFCFacade implements AutoCloseable{
 					"1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n"+
 					"2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n"+
 					"3) Manually set the library to use with the \"-CLASP-LIBRARY\" options. On MacOS it should be a .dylib file, on linux a .so file.\n"+
-					"--------------------------------------------------------", aClaspLibrary, aClaspLibrary
+					"--------------------------------------------------------", aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary()
 					);
 			
 			log.debug("Exception occured while loading library:\n",e);
@@ -135,7 +133,7 @@ public class SATFCFacade implements AutoCloseable{
 			throw new IllegalArgumentException("Could not load JNA library.");
 		}
 		
-		log.debug("Using library {}.",aClaspLibrary);
+		log.debug("Using library {}.",aSATFCParameters.getClaspLibrary());
 		
 		fSolverManager = new SolverManager(
 				new ISolverBundleFactory() {
@@ -144,8 +142,27 @@ public class SATFCFacade implements AutoCloseable{
 					public ISolverBundle getBundle(IStationManager aStationManager,
 							IConstraintManager aConstraintManager) {
 						
-						//Set what bundle we're using here.
-						return new SATFCSolverBundle(aClaspLibrary, aStationManager, aConstraintManager,aCNFDirectory,aResultFile);
+						/*
+						 * SOLVER BUNDLE.
+						 * 
+						 * Set what bundle we're using here.
+						 */
+						switch(aSATFCParameters.getSolverChoice())
+						{
+						case SATFC:
+							return new SATFCSolverBundle(
+									aSATFCParameters.getClaspLibrary(),
+									aStationManager,
+									aConstraintManager,
+									aSATFCParameters.getCNFDirectory(),
+									aSATFCParameters.getResultFile());
+						case MIPFC:
+							return new MIPFCSolverBundle(aStationManager, aConstraintManager);
+						default:
+							throw new IllegalArgumentException("Unrecognized solver choice "+aSATFCParameters.getSolverChoice());
+						}
+						
+						
 					}
 				}
 				
