@@ -14,9 +14,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 
 import lombok.Data;
@@ -70,11 +72,14 @@ public class Converter {
 		 */
 		private static final long serialVersionUID = 1L;
 
-		@Parameter(names = "--instance", description = "The instances to convert. Can be a single instance file (.qstn for a question file, .sql for a sql instance, .srpk for a station repacking instance), a folder containing a bunch of files, or a .txt file containing a list of files, or any composition of the previous.")
-		List<String> fInstanceNames;
+		@Parameter(names = "--instance", description = "The instances to convert. Can be a single instance file (.qstn for a question file, .sql for a sql instance, .srpk for a station repacking instance), a folder containing a bunch of files, or a .txt/.csv file containing a list of files, or any composition of the previous.")
+		List<String> fInstanceNames = null;
 		
-		@Parameter(names = "--interference-directory", description = "Interference folder associated with the given instances (required for instances that do not specify interference folders).")
+		@Parameter(names = "--interference-folder", description = "Interference folder associated with the given instances (required for instances that do not specify interference folders).")
 		String fInterferenceFolder = null;
+		
+		@Parameter(names = "--interference-folder-prefix", description ="Prefix to add to any interference folder, usually a path to a directory containing all interference folders.")
+		String fInterferenceFolderPrefix = null;
 		
 		@UsageTextField(defaultValues = "<current directory>")
 		@Parameter(names = "--out-directory", description = "Folder where to write converted instance")
@@ -93,12 +98,12 @@ public class Converter {
 		
 		final List<String> instancesFilenames = new ArrayList<String>(); 
 		
-		final List<String> instanceNames = new ArrayList<String>(aInstanceNames);
-		final Iterator<String> instanceNamesIterator = instanceNames.iterator();
+		final Queue<String> instanceNames = new LinkedList<String>(aInstanceNames);
 		
-		while(instanceNamesIterator.hasNext())
+		while(!instanceNames.isEmpty())
 		{
-			final String instanceName = instanceNamesIterator.next();
+		    log.debug("Still {} possible instances to add...", instanceNames.size());
+			final String instanceName = instanceNames.remove();
 			final File instanceFile = new File(instanceName);
 			
 			if(!instanceFile.exists())
@@ -122,6 +127,7 @@ public class Converter {
 				switch(extension)
 				{
 				case "txt":
+				case "csv":
 					log.debug("Adding all the instances listed in the file {} ...", instanceFile.getAbsolutePath());
 					int count = 0;
 					try {
@@ -143,13 +149,15 @@ public class Converter {
 					log.debug("Added {} instances.",count);
 					
 					break;
+					
+					
 				case "qstn":
 				case "sql":
 				case "srpk":
 					instancesFilenames.add(instanceName);
 					break;
 				default:
-					throw new ParameterException("Unrecognized instance extension "+extension+".");
+					log.warn("Unrecognized instance extension {} for file in provided instance {}. Skipping instance.",extension, instanceName);
 				}
 			}
 		}
@@ -296,19 +304,21 @@ public class Converter {
 				case "CUTOFF":
 					cutoff = Double.valueOf(lineParts[1]);
 					break;
+				case "SOURCE":
+				    break;
 				default:
 					try
 					{
-						Integer stationID = Integer.valueOf(lineParts[1]);
+						Integer stationID = Integer.valueOf(lineParts[0]);
 						
-						Integer previousChannel = Integer.valueOf(lineParts[2]);
+						Integer previousChannel = Integer.valueOf(lineParts[1]);
 						if(previousChannel > 0)
 						{
 							previousAssignment.put(stationID, previousChannel);
 						}
 						
 						Set<Integer> domain = new HashSet<Integer>();
-						for(int i=3;i<lineParts.length;i++)
+						for(int i=2;i<lineParts.length;i++)
 						{
 							Integer channel = Integer.valueOf(lineParts[i]);
 							domain.add(channel);
@@ -374,12 +384,20 @@ public class Converter {
 		 * Gather all instances.
 		 */
 		log.debug("Gathering all instance names...");
+		if(parameters.fInstanceNames == null)
+		{
+		    throw new ParameterException("Must specify at least one instance.");
+		}
 		List<String> instanceFilenames = getInstancesFilenames(parameters.fInstanceNames);
 		List<StationPackingProblemSpecs> specs = new ArrayList<StationPackingProblemSpecs>(instanceFilenames.size());
+		log.debug("Converting instances to specs...");
+		int i =0;
 		for(String instanceFilename : instanceFilenames)
 		{
+		    log.debug("Reading in instance {}/{}.",i++,instanceFilenames.size());
 			specs.add(getStationPackingProblemSpecs(instanceFilename));
 		}
+		
 		
 		/*
 		 * Convert the instances.
@@ -391,12 +409,13 @@ public class Converter {
 		String outputDir = parameters.fOutDirectory != null ? parameters.fOutDirectory : "";
 		
 		OutType outType = parameters.fOutType;
+		int j =0;
 		for(StationPackingProblemSpecs spec : specs)
 		{
 			final String source = spec.getSource();
-			log.debug("Converting instance {} ...",source);
+			log.debug("[{}/{}] Converting instance {} ...",j++,specs.size(),source);
 			
-			final String configFoldername;
+			String configFoldername;
 			if(spec.getDataFoldername() != null)
 			{
 				configFoldername = spec.getDataFoldername();
@@ -410,8 +429,14 @@ public class Converter {
 				configFoldername = parameters.fInterferenceFolder;
 			}
 			
+			//Append prefix
+			if(parameters.fInterferenceFolderPrefix != null)
+			{
+			    configFoldername = new File(parameters.fInterferenceFolderPrefix,configFoldername).toString();
+			}
+			
 			//Load in the interference data.
-			log.debug("Loading in interference data from {} ..."+configFoldername);
+			log.debug("Loading in interference data from {} ...",configFoldername);
 			ManagerBundle bundle;
 			try {
 				bundle = dataManager.getData(configFoldername);
