@@ -13,8 +13,13 @@
 
 // Build script dependencies.
 buildscript {
-	repositories { mavenCentral() }
-	dependencies { classpath 'org.ajoberstar:gradle-git:0.9.0' }
+
+	repositories { 
+		mavenCentral() 
+	}
+	dependencies { 
+		classpath 'org.ajoberstar:gradle-git:0.12.0' 
+	}
 }
 
 plugins {
@@ -68,13 +73,23 @@ dependencies {
     
     //Local dependencies
     compile files('libs/cplex.jar')
+    
 }
 
 //Grab git information.
 import org.ajoberstar.grgit.Grgit
 public String getGitName()
 {
-	def repo = Grgit.open(project.file('.'))
+	def repo
+	try
+	{
+		repo = Grgit.open(project.file('.'))
+	}
+	catch(Exception e)
+	{
+		println 'Not building SATFC from a git repository, versioning will be limited.'
+		return 'nogit'
+	}
 	
 	def branch = repo.branch.current.name
 	def sha = repo.head().abbreviatedId

@@ -134,16 +134,22 @@ To take advantage of the specific distribution of encountered feasibility checki
 
 The releases folder in \SATFC's repository should contain a compiled, ready-to-go compressed version of \SATFC. Packaged with \SATFC are its source code, necessary libraries as well as a copy of \clasp. 
 
-\SATFC uses the Gradle build system and maven for dependency resolution. To build your own command-line executable version of \SATFC, execute the following:
+\SATFC uses the Gradle build system and maven for dependency resolution. To compile from source and build your own command-line executable version of \SATFC, execute the following:
 \begin{lstlisting}[style=Bash]
 > cd <SATFC repository>
 > ./gradlew installApp
 \end{lstlisting}
-This builds and packages \SATFC in \texttt{<SATFC repository>/build/install/}, and may be a lengthy process as it (possibly) installs Gradle, downloads all of \SATFC's dependencies (from external repositories) and builds the project. Note that it can sometimes fail while trying to download dependencies - restarting the process fixes this.
+This builds and packages \SATFC in \texttt{<SATFC repository>/build/install/}, and may be a lengthy process as it (possibly) installs Gradle, downloads all of \SATFC's dependencies (from external repositories) and builds the project. Note that it can sometimes fail while trying to download dependencies - restarting the process fixes this. Note that \SATFC's versioning is based on branch and sha1 hash of the latest commit of its git repository. 
 
-In any case, \clasp may need to be compiled for your machine. To compile \clasp joined to a \SATFC release, do the following:
+Build tasks other than \texttt{installApp} are also available. A list can be obtained by doing
 \begin{lstlisting}[style=Bash]
-> cd <SATFC directory>
+> ./gradlew tasks
+\end{lstlisting}
+For instance, the \texttt{distTar} or \texttt{distZip} packages a \SATFC release in \texttt{<SATFC repository>/build/distributions/}, and the \texttt{javadoc} task produces all the \SATFC javadocs.
+
+In any case, \clasp may need to be compiled for your machine. To compile the \clasp packaged with a \SATFC release, do the following:
+\begin{lstlisting}[style=Bash]
+> cd <SATFC release directory>
 > cd clasp/
 > bash compile.sh
 \end{lstlisting}
