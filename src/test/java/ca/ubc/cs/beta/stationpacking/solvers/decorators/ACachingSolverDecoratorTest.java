@@ -15,8 +15,8 @@ public class ACachingSolverDecoratorTest {
 
         private final Map<String, CacheEntry> cache = Maps.newHashMap();
 
-        public MapCachingSolverDecorator(ISolver aSolver, SATFCCachingParameters satfcCachingParameters, String aGraphHash) {
-            super(aSolver, satfcCachingParameters, aGraphHash);
+        public MapCachingSolverDecorator(ISolver aSolver, String aGraphHash) {
+            super(aSolver, aGraphHash);
         }
 
         @Override

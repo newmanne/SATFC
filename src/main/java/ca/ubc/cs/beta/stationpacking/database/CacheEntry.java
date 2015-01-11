@@ -26,6 +26,7 @@ public class CacheEntry {
     private final SolverResult solverResult;
     private final Map<Station, Set<Integer>> domains;
     private final Date cacheDate;
+    private final String interference;
 
     public static class CacheEntryDeserializer extends JsonDeserializer<CacheEntry> {
 
@@ -35,7 +36,7 @@ public class CacheEntry {
             final Map<Station, Set<Integer>> collect = cacheEntryJson.getDomains().entrySet()
                     .stream()
                     .collect(Collectors.toMap(e -> new Station(e.getKey()), Map.Entry::getValue));
-            return new CacheEntry(cacheEntryJson.getSolverResult(), collect, cacheEntryJson.getCacheDate());
+            return new CacheEntry(cacheEntryJson.getSolverResult(), collect, cacheEntryJson.getCacheDate(), cacheEntryJson.getInterference());
         }
 
     }
@@ -45,6 +46,7 @@ public class CacheEntry {
         private SolverResult solverResult;
         private Map<Integer, Set<Integer>> domains;
         private Date cacheDate;
+        private String interference;
     }
 
 }

@@ -26,9 +26,9 @@ import java.util.Set;
 @Slf4j
 public abstract class ACachingSolverDecorator extends ASolverDecorator {
 
-    private final SATFCCachingParameters satfcCachingParameters;
-    // a hash representation of the stations / interference constraints
-    private final String fGraphHash;
+    private static final double MIN_TIME_TO_CACHE = 1.0;
+	// a representation of the stations / interference constraints
+    private final String fInterferenceName;
     // a list of results that can make their way to the database
     private final static ImmutableList<SATResult> fCacheableResults = ImmutableList.of(SATResult.SAT, SATResult.UNSAT, SATResult.TIMEOUT);
     // hashing function
@@ -37,16 +37,14 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
     /**
      * @param aSolver - decorated ISolver.
      */
-    public ACachingSolverDecorator(ISolver aSolver, SATFCCachingParameters satfcCachingParameters, String aGraphHash) {
+    public ACachingSolverDecorator(ISolver aSolver, String aGraphHash) {
         super(aSolver);
-        this.satfcCachingParameters = satfcCachingParameters;
-        this.fGraphHash = aGraphHash;
+        this.fInterferenceName = aGraphHash;
     }
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result;
-        boolean resultInCache = false;
         HashCode hash = hash(aInstance);
         Optional<CacheEntry> cachedResult = getSolverResultFromCache(hash);
         while (cachedResult.isPresent() && !cachedResult.get().getDomains().equals(aInstance.getDomains())) {
@@ -63,7 +61,7 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
             log.info("Cache miss! Solving");
             result = super.solve(aInstance, aTerminationCriterion, aSeed);
             if (shouldCache(result)) {
-                final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date());
+                final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date(), fInterferenceName);
                 cacheResult(hash, cacheEntry);
             }
         }
@@ -72,13 +70,13 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
 
     private boolean shouldCache(SolverResult result) {
         // No point in caching a killed result or one that we can compute faster than a db lookup
-        return fCacheableResults.contains(result.getResult()) && result.getRuntime() > satfcCachingParameters.minTimeToCache;
+        return fCacheableResults.contains(result.getResult()) && result.getRuntime() > MIN_TIME_TO_CACHE;
     }
 
     protected HashCode hash(StationPackingInstance aInstance) {
         return fHashFuction.newHasher()
                 .putString(aInstance.getHashString(), Charsets.UTF_8)
-                .putString(fGraphHash, Charsets.UTF_8)
+                .putString(fInterferenceName, Charsets.UTF_8)
                 .hash();
     }
 

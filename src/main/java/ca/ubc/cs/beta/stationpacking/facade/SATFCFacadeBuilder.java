@@ -26,6 +26,11 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import lombok.NonNull;
+
+import com.google.common.base.Preconditions;
+
+import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
@@ -43,6 +48,10 @@ public class SATFCFacadeBuilder {
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
 	private SATFCFacadeParameter.SolverCustomizationOptions fCustomizationOptions;
+	// caching 
+	private boolean fCache;
+	private CachingDecoratorFactory fCachingDecoratorFactory;
+	private String fInterference;
 	
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -54,6 +63,7 @@ public class SATFCFacadeBuilder {
 		fCNFDirectory = null;
 		fResultFile = null;
 		fSolverChoice = SolverChoice.SATFC;
+		fCache = false;
 		fCustomizationOptions = new SolverCustomizationOptions();
 	}
 	
@@ -129,8 +139,13 @@ public class SATFCFacadeBuilder {
 		{
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
+		if (fCache) {
+			Preconditions.checkNotNull(fCachingDecoratorFactory, "No caching factory initialized");
+			Preconditions.checkNotNull(fInterference, "Interference not specified (for caching)");
+		}
 		
 		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
+		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCache, fCachingDecoratorFactory, fInterference));
 	}
 	
 	/**
@@ -187,6 +202,12 @@ public class SATFCFacadeBuilder {
 		fCustomizationOptions = aOptions;
 	}
 	
+	public void setCaching(@NonNull CachingDecoratorFactory cachingDecoratorFactory, @NonNull String interference) 
+	{
+		fCache = true;
+		fCachingDecoratorFactory = cachingDecoratorFactory;
+		fInterference = interference;
+	}
 	
 	
 	

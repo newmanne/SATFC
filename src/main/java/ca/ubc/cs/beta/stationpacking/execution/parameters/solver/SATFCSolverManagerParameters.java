@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,13 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 	 */
 	@Parameter(names = "-RESULT-FILE", description = "a file in which to save the results of problems encountered.")
 	public String ResultFile = null;
-	
+
+	/**
+	 * 	Caching parameters
+	 */
+	@ParametersDelegate
+	public SATFCCachingParameters satfcCachingParameters = new SATFCCachingParameters();
+
 	/**
 	 * @return SATFC solver manager initialized with the given parameters.
 	 */
@@ -93,6 +100,7 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 						 * Set what solver selector will be used here.
 						 */
 						// TODO: allow specification of solver customization options
+						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, satfcCachingParameters.useCache, satfcCachingParameters.getCachingDecoratorFactory(), satfcCachingParameters.interference);
 						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, new SATFCFacadeParameter.SolverCustomizationOptions());
 
 					}

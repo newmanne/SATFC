@@ -25,6 +25,7 @@ import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
@@ -47,6 +48,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +66,20 @@ public class SATFCSolverBundle extends ASolverBundle {
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
 
+    @Override
+    public ISolver getSolver(StationPackingInstance aInstance) {
+
+        //Return the right solver based on the channels in the instance.
+
+        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
+            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
+            return fVHFSolver;
+        } else {
+            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
+            return fUHFSolver;
+        }
+    }
+
     /**
      * Create a SATFC solver bundle.
      *
@@ -80,9 +96,11 @@ public class SATFCSolverBundle extends ASolverBundle {
             String aCNFDirectory,
             String aResultFile,
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
+            boolean aShouldCache,
+            CachingDecoratorFactory aCachingDecoratorFactory,
+            String aInterference
     ) {
         super(aStationManager, aConstraintManager);
-        SATFCCachingParameters satfcCachingParameters = new SATFCCachingParameters();
 
         log.debug("SATFC solver bundle.");
 
@@ -136,10 +154,11 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (solverOptions.isDecompose())
         {
         // Check the cache - this is at the component level
-        if (satfcCachingParameters.useCache()) {
+        if (aShouldCache) {
             log.debug("Decorate solver to check the cache at the component level");
-            UHFsolver = satfcCachingParameters.createCachingSolverDecorator(UHFsolver, "");
-            VHFsolver = satfcCachingParameters.createCachingSolverDecorator(VHFsolver, "");
+            UHFsolver = aCachingDecoratorFactory.createCachingDecorator(UHFsolver, aInterference);
+            VHFsolver = aCachingDecoratorFactory.createCachingDecorator(VHFsolver, aInterference);
+
         }
             // Split into components
             log.debug("Decomposing intances into connected components using constraint graph.");
@@ -158,10 +177,10 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         // Check the cache - this is at the full graph level
-        if (satfcCachingParameters.useCache()) {
+        if (aShouldCache) {
             log.debug("Decorate solver to check the cache first");
-            UHFsolver = satfcCachingParameters.createCachingSolverDecorator(UHFsolver, "");
-            VHFsolver = satfcCachingParameters.createCachingSolverDecorator(VHFsolver, "");
+            UHFsolver = aCachingDecoratorFactory.createCachingDecorator(UHFsolver, aInterference);
+            VHFsolver = aCachingDecoratorFactory.createCachingDecorator(VHFsolver, aInterference);
         }
 
         //Save results, if needed.
@@ -170,9 +189,9 @@ public class SATFCSolverBundle extends ASolverBundle {
             UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
             VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
         }
-        
+
         //Verify results.
-        /* 
+        /*
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
         UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
@@ -181,19 +200,6 @@ public class SATFCSolverBundle extends ASolverBundle {
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
 
-    }
-
-    @Override
-    public ISolver getSolver(StationPackingInstance aInstance) {
-
-        //Return the right solver based on the channels in the instance.
-        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
-            return fVHFSolver;
-        } else {
-            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
-            return fUHFSolver;
-        }
     }
 
     @Override

@@ -24,9 +24,9 @@ public class RedisCachingSolverDecorator extends ACachingSolverDecorator {
      * @param satfcCachingParameters
      * @param aGraphHash
      */
-    public RedisCachingSolverDecorator(ISolver aSolver, SATFCCachingParameters satfcCachingParameters, String aGraphHash) {
-        super(aSolver, satfcCachingParameters, aGraphHash);
-        fJedis = satfcCachingParameters.getJedis();
+    public RedisCachingSolverDecorator(ISolver aSolver, String aInterference, Jedis aJedis) {
+        super(aSolver, aInterference);
+        fJedis = aJedis;
     }
 
     @Override

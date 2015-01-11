@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import lombok.Data;
 import lombok.experimental.Builder;
 
@@ -12,6 +14,9 @@ public class SATFCFacadeParameter {
 	private final String resultFile;
 	private final SolverChoice solverChoice;
 	private final SolverCustomizationOptions options;
+	private final boolean cache;
+	private final CachingDecoratorFactory cachingDecoratorFactory;
+	private final String interference;
 
 	public static enum SolverChoice
 	{
