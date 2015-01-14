@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import com.beust.jcommander.internal.Maps;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -120,6 +121,8 @@ public class SATFCFacadeExecutor {
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
 				}
+				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
+
 			} else {
 				// assume SATFC called normally
 				log.info("Solving ...");
