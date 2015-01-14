@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
 import ca.ubc.cs.beta.stationpacking.database.RedisCachingDecoratorFactory;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -22,11 +23,12 @@ public class SATFCCachingParameters {
     @Parameter(names = "--redisPort", description = "Redis port", required = false)
     public int redisPort = 6379;
     
-    @Parameter(names = "--cacheInterferenceName", description = "Interference name (for caching)", required = false)
-    public String interference;
+    @Parameter(names = "--cacheGraphKey", description = "Interference name (for caching)", required = false)
+    public String cacheGraphKey;
     
     public CachingDecoratorFactory getCachingDecoratorFactory() {
-    	return useCache ? new RedisCachingDecoratorFactory(redisURL, redisPort) : null;
+    	Preconditions.checkState(useCache);
+    	return new RedisCachingDecoratorFactory(redisURL, redisPort);
     }
 
 }

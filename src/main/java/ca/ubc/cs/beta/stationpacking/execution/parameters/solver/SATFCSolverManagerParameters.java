@@ -100,7 +100,6 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 						 * Set what solver selector will be used here.
 						 */
 						// TODO: allow specification of solver customization options
-						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, satfcCachingParameters.useCache, satfcCachingParameters.getCachingDecoratorFactory(), satfcCachingParameters.interference);
 						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, new SATFCFacadeParameter.SolverCustomizationOptions());
 
 					}

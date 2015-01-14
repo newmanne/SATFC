@@ -14,9 +14,6 @@ public class SATFCFacadeParameter {
 	private final String resultFile;
 	private final SolverChoice solverChoice;
 	private final SolverCustomizationOptions options;
-	private final boolean cache;
-	private final CachingDecoratorFactory cachingDecoratorFactory;
-	private final String interference;
 
 	public static enum SolverChoice
 	{
@@ -29,6 +26,11 @@ public class SATFCFacadeParameter {
 		private boolean presolve = true;
 		private boolean underconstrained = true;
 		private boolean decompose = true;
+		
+		// caching params
+		private boolean cache = false;
+		private CachingDecoratorFactory cachingDecoratorFactory = null;
+		private String cacheGraphKey = null;
 	}
 
 }

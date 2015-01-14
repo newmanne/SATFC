@@ -2,8 +2,11 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 
 /**
  * Created by newmanne on 13/01/15.
@@ -18,12 +21,20 @@ public class SolverCustomizationOptionsParameters {
         private boolean noUnderconstrained;
         @Parameter(names = "--no-decomposition", description = "disable connected component decomposition")
         private boolean noDecompose;
+        @ParametersDelegate
+        private SATFCCachingParameters cachingParams = new SATFCCachingParameters();
 
         public SATFCFacadeParameter.SolverCustomizationOptions getOptions() {
             SATFCFacadeParameter.SolverCustomizationOptions options = new SATFCFacadeParameter.SolverCustomizationOptions();
             options.setPresolve(!noPresolve);
             options.setUnderconstrained(!noUnderconstrained);
             options.setDecompose(!noDecompose);
+            if (cachingParams.useCache) 
+            {
+            	options.setCache(true);
+            	options.setCacheGraphKey(cachingParams.cacheGraphKey);
+            	options.setCachingDecoratorFactory(cachingParams.getCachingDecoratorFactory());
+            }
             return options;
         }
 

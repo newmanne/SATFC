@@ -145,7 +145,6 @@ public class SATFCFacadeBuilder {
 		}
 		
 		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
-		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCache, fCachingDecoratorFactory, fInterference));
 	}
 	
 	/**

@@ -96,9 +96,6 @@ public class SATFCSolverBundle extends ASolverBundle {
             String aCNFDirectory,
             String aResultFile,
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
-            boolean aShouldCache,
-            CachingDecoratorFactory aCachingDecoratorFactory,
-            String aInterference
     ) {
         super(aStationManager, aConstraintManager);
 
@@ -153,13 +150,12 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isDecompose())
         {
-        // Check the cache - this is at the component level
-        if (aShouldCache) {
-            log.debug("Decorate solver to check the cache at the component level");
-            UHFsolver = aCachingDecoratorFactory.createCachingDecorator(UHFsolver, aInterference);
-            VHFsolver = aCachingDecoratorFactory.createCachingDecorator(VHFsolver, aInterference);
-
-        }
+	        // Check the cache - this is at the component level
+	        if (solverOptions.isCache()) {
+	            log.debug("Decorate solver to check the cache at the component level");
+	            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
+	            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
+	        }
             // Split into components
             log.debug("Decomposing intances into connected components using constraint graph.");
             IComponentGrouper aGrouper = new ConstraintGrouper();
@@ -177,10 +173,10 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         // Check the cache - this is at the full graph level
-        if (aShouldCache) {
+        if (solverOptions.isCache()) {
             log.debug("Decorate solver to check the cache first");
-            UHFsolver = aCachingDecoratorFactory.createCachingDecorator(UHFsolver, aInterference);
-            VHFsolver = aCachingDecoratorFactory.createCachingDecorator(VHFsolver, aInterference);
+            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
+            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
         }
 
         //Save results, if needed.
