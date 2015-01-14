@@ -80,7 +80,7 @@ public class SATFCFacadeExecutor {
 			
 			SATFCFacade satfc = satfcBuilder.build();
 			// TODO: actual parameter validation for user friendliness
-			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null)
+			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null)
 			{
 				log.info("Reading instances from {}", parameters.fInstanceFile);
 				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
@@ -92,7 +92,7 @@ public class SATFCFacadeExecutor {
 					try
 					{
 						// TODO: detect extension and use the appropriate converter. For now I'm just assuming sprk
-						stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(instanceFileName);
+						stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
 					} catch (IOException e) {
 						log.warn("Error parsing file {}", instanceFileName);
 						e.printStackTrace();

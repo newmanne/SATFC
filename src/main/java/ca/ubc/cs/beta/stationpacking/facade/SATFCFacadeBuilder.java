@@ -30,9 +30,6 @@ import lombok.NonNull;
 import com.google.common.base.Preconditions;
 
 import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverCustomizationOptions;
 
@@ -51,7 +48,7 @@ public class SATFCFacadeBuilder {
 	// caching 
 	private boolean fCache;
 	private CachingDecoratorFactory fCachingDecoratorFactory;
-	private String fInterference;
+	private String fCacheGraphKey;
 	
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -141,7 +138,7 @@ public class SATFCFacadeBuilder {
 		}
 		if (fCache) {
 			Preconditions.checkNotNull(fCachingDecoratorFactory, "No caching factory initialized");
-			Preconditions.checkNotNull(fInterference, "Interference not specified (for caching)");
+			Preconditions.checkNotNull(fCacheGraphKey, "Interference not specified (for caching)");
 		}
 		
 		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
@@ -201,11 +198,11 @@ public class SATFCFacadeBuilder {
 		fCustomizationOptions = aOptions;
 	}
 	
-	public void setCaching(@NonNull CachingDecoratorFactory cachingDecoratorFactory, @NonNull String interference) 
+	public void setCaching(@NonNull CachingDecoratorFactory cachingDecoratorFactory, @NonNull String cacheGraphKey)
 	{
 		fCache = true;
 		fCachingDecoratorFactory = cachingDecoratorFactory;
-		fInterference = interference;
+		fCacheGraphKey = cacheGraphKey;
 	}
 	
 	

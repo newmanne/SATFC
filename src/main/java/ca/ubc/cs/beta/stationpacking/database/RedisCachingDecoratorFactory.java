@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.database;
 
+import lombok.NonNull;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.RedisCachingSolverDecorator;
@@ -15,7 +16,7 @@ public class RedisCachingDecoratorFactory implements CachingDecoratorFactory {
 	}
 	
 	@Override
-	public ISolver createCachingDecorator(ISolver aSolver, String aIntereference) {
+	public ISolver createCachingDecorator(@NonNull ISolver aSolver, @NonNull String aIntereference) {
 		return new RedisCachingSolverDecorator(aSolver, aIntereference, fJedis);
 	}
 

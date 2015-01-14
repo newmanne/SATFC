@@ -47,6 +47,8 @@ public class SATFCFacadeParameters extends AbstractOptions {
 
 	@Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
 	public String fInstanceFile;
+	@Parameter(names = "-INSTANCES-FOLDER", description = "folder where the instance files are located")
+	public String fInstanceFolder;
 	@Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
 	public String fInterferencesFolder;
 

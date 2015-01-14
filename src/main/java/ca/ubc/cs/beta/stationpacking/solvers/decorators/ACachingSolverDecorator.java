@@ -75,7 +75,7 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
 
     protected HashCode hash(StationPackingInstance aInstance) {
         return fHashFuction.newHasher()
-                .putString(aInstance.getHashString(), Charsets.UTF_8)
+                .putString(aInstance.toString(), Charsets.UTF_8)
                 .putString(fInterferenceName, Charsets.UTF_8)
                 .hash();
     }
