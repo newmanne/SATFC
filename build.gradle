@@ -65,6 +65,7 @@ dependencies {
     compile 'commons-collections:commons-collections:3.2.1'
     compile 'net.java.dev.jna:jna:4.0.0'
     compile 'com.mangosdk:spi:0.2.4'
+	compile 'redis.clients:jedis:2.6.1'
 
     // Test dependencies.
     testCompile 'junit:junit:4.11'

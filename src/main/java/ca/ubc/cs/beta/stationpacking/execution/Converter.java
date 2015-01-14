@@ -24,6 +24,7 @@ import java.util.Set;
 import lombok.Data;
 import lombok.NonNull;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -165,7 +166,7 @@ public class Converter {
 	}
 	
 	@Data
-	private static class StationPackingProblemSpecs
+	public static class StationPackingProblemSpecs
 	{
 		@NonNull
 		private final String source;
@@ -588,12 +589,6 @@ public class Converter {
 				throw new ParameterException("Unrecognized out type "+outType+".");
 			}
 		}
-		
-		
-		
-		
-		
-		
 		
 	}
 	
