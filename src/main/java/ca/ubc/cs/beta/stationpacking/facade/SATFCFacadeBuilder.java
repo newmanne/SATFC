@@ -45,11 +45,7 @@ public class SATFCFacadeBuilder {
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
 	private SATFCFacadeParameter.SolverCustomizationOptions fCustomizationOptions;
-	// caching 
-	private boolean fCache;
-	private CachingDecoratorFactory fCachingDecoratorFactory;
-	private String fCacheGraphKey;
-	
+
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
 	 */
@@ -60,7 +56,6 @@ public class SATFCFacadeBuilder {
 		fCNFDirectory = null;
 		fResultFile = null;
 		fSolverChoice = SolverChoice.SATFC;
-		fCache = false;
 		fCustomizationOptions = new SolverCustomizationOptions();
 	}
 	
@@ -136,11 +131,7 @@ public class SATFCFacadeBuilder {
 		{
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
-		if (fCache) {
-			Preconditions.checkNotNull(fCachingDecoratorFactory, "No caching factory initialized");
-			Preconditions.checkNotNull(fCacheGraphKey, "Interference not specified (for caching)");
-		}
-		
+
 		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
 	}
 	
@@ -194,17 +185,9 @@ public class SATFCFacadeBuilder {
 		fSolverChoice = aSolverChoice;
 	}
 	
-	public void setCustomizationOptoins(@NonNull SolverCustomizationOptions aOptions) {
+	public void setCustomizationOptions(@NonNull SolverCustomizationOptions aOptions) {
 		fCustomizationOptions = aOptions;
 	}
-	
-	public void setCaching(@NonNull CachingDecoratorFactory cachingDecoratorFactory, @NonNull String cacheGraphKey)
-	{
-		fCache = true;
-		fCachingDecoratorFactory = cachingDecoratorFactory;
-		fCacheGraphKey = cacheGraphKey;
-	}
-	
-	
-	
+
+
 }

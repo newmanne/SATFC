@@ -28,6 +28,9 @@ public class SATFCCachingParameters extends AbstractOptions {
     
     public CachingDecoratorFactory getCachingDecoratorFactory() {
     	Preconditions.checkState(useCache);
+        Preconditions.checkNotNull(cacheGraphKey);
+        Preconditions.checkNotNull(redisPort);
+        Preconditions.checkNotNull(redisURL);
     	return new RedisCachingDecoratorFactory(redisURL, redisPort);
     }
 

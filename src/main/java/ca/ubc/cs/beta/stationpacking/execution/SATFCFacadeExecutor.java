@@ -30,6 +30,8 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import org.slf4j.Logger;
@@ -38,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.
@@ -76,7 +79,7 @@ public class SATFCFacadeExecutor {
 			}
 			satfcBuilder.setInitializeLogging(true);
 			satfcBuilder.setSolverChoice(parameters.fSolverChoice);
-			satfcBuilder.setCustomizationOptoins(parameters.fSolverOptions.getOptions());
+			satfcBuilder.setCustomizationOptions(parameters.fSolverOptions.getOptions());
 			
 			SATFCFacade satfc = satfcBuilder.build();
 			// TODO: actual parameter validation for user friendliness
@@ -85,6 +88,8 @@ public class SATFCFacadeExecutor {
 				log.info("Reading instances from {}", parameters.fInstanceFile);
 				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
 				log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
+				final List<String> errorInstanceFileNames = Lists.newArrayList();
+				final Map<String, Double> instanceRuntimes = Maps.newHashMap();
 				for (String instanceFileName : instanceFiles)
 				{
 					log.info("Beginning problem {}", instanceFileName);
@@ -95,6 +100,7 @@ public class SATFCFacadeExecutor {
 						stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
 					} catch (IOException e) {
 						log.warn("Error parsing file {}", instanceFileName);
+						errorInstanceFileNames.add(instanceFileName);
 						e.printStackTrace();
 						continue;
 					}
@@ -111,9 +117,13 @@ public class SATFCFacadeExecutor {
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
+					instanceRuntimes.put(instanceFileName, result.getRuntime());
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
-
+				log.info("Summary of runtimes: {}", instanceRuntimes);
+				if (!errorInstanceFileNames.isEmpty()) {
+					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
+				}
 			} else {
 				// assume SATFC called normally
 				log.info("Solving ...");

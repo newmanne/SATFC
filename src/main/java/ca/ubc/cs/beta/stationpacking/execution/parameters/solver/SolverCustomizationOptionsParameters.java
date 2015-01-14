@@ -2,11 +2,15 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
+import com.google.common.base.Preconditions;
+
+import java.util.Objects;
 
 /**
  * Created by newmanne on 13/01/15.
@@ -31,9 +35,10 @@ public class SolverCustomizationOptionsParameters extends AbstractOptions {
             options.setDecompose(decomposition);
             if (cachingParams.useCache) 
             {
-            	options.setCache(true);
+                options.setCache(true);
             	options.setCacheGraphKey(cachingParams.cacheGraphKey);
-            	options.setCachingDecoratorFactory(cachingParams.getCachingDecoratorFactory());
+                final CachingDecoratorFactory cachingDecoratorFactory = cachingParams.getCachingDecoratorFactory();
+                options.setCachingDecoratorFactory(cachingDecoratorFactory);
             }
             return options;
         }
