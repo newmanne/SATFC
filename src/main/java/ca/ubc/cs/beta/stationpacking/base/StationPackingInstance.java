@@ -169,7 +169,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's stations.
 	 */
 	public Set<Station> getStations(){
-		return ImmutableSet.copyOf(fDomains.keySet());
+		return Collections.unmodifiableSet(fDomains.keySet());
 	}
 	
 	/**
@@ -177,7 +177,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's channels.
 	 */
 	public Map<Station,Set<Integer>> getDomains(){
-		return ImmutableMap.copyOf(fDomains);
+		return Collections.unmodifiableMap(fDomains);
 	}
 	
 	/**
@@ -185,7 +185,7 @@ public class StationPackingInstance {
 	 */
 	public Map<Station,Integer> getPreviousAssignment()
 	{
-		return ImmutableMap.copyOf(fPreviousAssignment);
+		return Collections.unmodifiableMap(fPreviousAssignment);
 	}
 	
 	/**
