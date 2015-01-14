@@ -122,6 +122,13 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
+        // Check the cache - this is at the component level
+        if (solverOptions.isCache()) {
+            log.debug("Decorate solver to check the cache at the component level");
+            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
+            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
+        }
+
         if (solverOptions.isPresolve())
         {
             log.debug("Adding neighborhood presolvers.");
@@ -132,7 +139,7 @@ public class SATFCSolverBundle extends ASolverBundle {
                                             new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
                                             new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
                                     )),
-                            UHFClaspBasedSolver
+                            UHFsolver
                     )
             );
 
@@ -143,21 +150,14 @@ public class SATFCSolverBundle extends ASolverBundle {
                                             new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
                                             new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
                                     )),
-                            VHFClaspBasedSolver
+                            VHFsolver
                     )
             );
         }
 
         if (solverOptions.isDecompose())
         {
-	        // Check the cache - this is at the component level
-	        if (solverOptions.isCache()) {
-	            log.debug("Decorate solver to check the cache at the component level");
-	            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
-	            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
-	        }
             // Split into components
-            log.debug("Decomposing intances into connected components using constraint graph.");
             IComponentGrouper aGrouper = new ConstraintGrouper();
             log.debug("Decorate solver to split the graph into connected components and then merge the results");
             UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
@@ -170,13 +170,6 @@ public class SATFCSolverBundle extends ASolverBundle {
             log.debug("Decorate solver to first remove underconstrained stations.");
             UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
             VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
-        }
-
-        // Check the cache - this is at the full graph level
-        if (solverOptions.isCache()) {
-            log.debug("Decorate solver to check the cache first");
-            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
-            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
         }
 
         //Save results, if needed.
