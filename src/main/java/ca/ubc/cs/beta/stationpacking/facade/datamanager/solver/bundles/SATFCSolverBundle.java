@@ -23,6 +23,8 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 
 import org.slf4j.Logger;
@@ -76,7 +78,8 @@ public class SATFCSolverBundle extends ASolverBundle {
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
             String aCNFDirectory,
-            String aResultFile
+            String aResultFile,
+            SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
 
         super(aStationManager, aConstraintManager);
@@ -84,63 +87,68 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
 
-        log.debug("Decomposing intances into connected components using constraint graph.");
-        IComponentGrouper aGrouper = new ConstraintGrouper();
-
         log.debug("Initializing base configured clasp solvers.");
 
         AbstractCompressedSATSolver aUHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
-        ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager(), aGrouper);
+        ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         AbstractCompressedSATSolver aHVHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13);
-        ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager(), aGrouper);
+        ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         //Chain pre-solving and main solver.
         final double UNSATcertifiercutoff = 5;
         final double SATcertifiercutoff = 5;
 
-        ISolver UHFsolver;
-        ISolver VHFsolver;
-
-        log.debug("Adding neighborhood presolvers.");
-        UHFsolver = new SequentialSolversComposite(
-                Arrays.asList(
-                        new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                Arrays.asList(
-                                        new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
-                                        new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
-                                )),
-                        UHFClaspBasedSolver
-                )
-        );
-
-        VHFsolver = new SequentialSolversComposite(
-                Arrays.asList(
-                        new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                Arrays.asList(
-                                        new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
-                                        new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
-                                )),
-                        VHFClaspBasedSolver
-                )
-        );
+        ISolver UHFsolver = UHFClaspBasedSolver;
+        ISolver VHFsolver = VHFClaspBasedSolver;
 
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        // Split into components
-        /*
-         *  NOTE: any decorator placed above this must a) be thread-safe b) be ready to deal with being shutdown at any time 
-         *  */
-        log.debug("Decorate solver to split the graph into connected components and then merge the results");
-        UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
-        VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
+        if (solverOptions.isPresolve())
+        {
+            log.debug("Adding neighborhood presolvers.");
+            UHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
+                                            new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
+                                    )),
+                            UHFClaspBasedSolver
+                    )
+            );
 
-        //Remove unconstrained stations.
-        log.debug("Decorate solver to first remove underconstrained stations.");
-        UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
-        VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+            VHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
+                                            new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
+                                    )),
+                            VHFClaspBasedSolver
+                    )
+            );
+        }
+
+        if (solverOptions.isDecompose())
+        {
+            // Split into components
+            log.debug("Decomposing intances into connected components using constraint graph.");
+            IComponentGrouper aGrouper = new ConstraintGrouper();
+            log.debug("Decorate solver to split the graph into connected components and then merge the results");
+            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
+        }
+
+        if (solverOptions.isUnderconstrained())
+        {
+            //Remove unconstrained stations.
+            log.debug("Decorate solver to first remove underconstrained stations.");
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+        }
 
         //Save CNFs, if needed.
         if (aCNFDirectory != null) {
@@ -172,7 +180,6 @@ public class SATFCSolverBundle extends ASolverBundle {
     public ISolver getSolver(StationPackingInstance aInstance) {
 
         //Return the right solver based on the channels in the instance.
-
         if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
             log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
             return fVHFSolver;

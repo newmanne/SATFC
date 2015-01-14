@@ -21,6 +21,12 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
+import lombok.Data;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +40,12 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 
 import com.beust.jcommander.ParameterException;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.
@@ -72,9 +84,44 @@ public class SATFCFacadeExecutor {
 			}
 			satfcBuilder.setInitializeLogging(true);
 			satfcBuilder.setSolverChoice(parameters.fSolverChoice);
+			satfcBuilder.setCustomizationOptoins(parameters.fSolverOptions.getOptions());
 			
-			try(SATFCFacade satfc = satfcBuilder.build())
+			SATFCFacade satfc = satfcBuilder.build();
+			// TODO: actual parameter validation for user friendliness
+			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null)
 			{
+				log.info("Reading instances from {}", parameters.fInstanceFile);
+				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
+				log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
+				for (String instanceFileName : instanceFiles)
+				{
+					log.info("Beginning problem {}", instanceFileName);
+					final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
+					try
+					{
+						// TODO: detect extension and use the appropriate converter. For now I'm just assuming sprk
+						stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(instanceFileName);
+					} catch (IOException e) {
+						log.warn("Error parsing file {}", instanceFileName);
+						e.printStackTrace();
+						continue;
+					}
+					log.info("Solving ...");
+					SATFCResult result = satfc.solve(
+							stationPackingProblemSpecs.getDomains().keySet(),
+							stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
+							stationPackingProblemSpecs.getDomains(),
+							stationPackingProblemSpecs.getPreviousAssignment(),
+							parameters.fInstanceParameters.Cutoff,
+							parameters.fInstanceParameters.Seed,
+							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername());
+					log.info("..done!");
+					System.out.println(result.getResult());
+					System.out.println(result.getRuntime());
+					System.out.println(result.getWitnessAssignment());
+				}
+			} else {
+				// assume SATFC called normally
 				log.info("Solving ...");
 				SATFCResult result = satfc.solve(
 						parameters.fInstanceParameters.getPackingStationIDs(),
@@ -84,9 +131,9 @@ public class SATFCFacadeExecutor {
 						parameters.fInstanceParameters.Cutoff,
 						parameters.fInstanceParameters.Seed,
 						parameters.fInstanceParameters.fDataFoldername);
-				
+
 				log.info("..done!");
-				
+
 				System.out.println(result.getResult());
 				System.out.println(result.getRuntime());
 				System.out.println(result.getWitnessAssignment());

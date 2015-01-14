@@ -25,9 +25,11 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverCustomizationOptions;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -40,6 +42,7 @@ public class SATFCFacadeBuilder {
 	private String fCNFDirectory;
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
+	private SATFCFacadeParameter.SolverCustomizationOptions fCustomizationOptions;
 	
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -51,6 +54,7 @@ public class SATFCFacadeBuilder {
 		fCNFDirectory = null;
 		fResultFile = null;
 		fSolverChoice = SolverChoice.SATFC;
+		fCustomizationOptions = new SolverCustomizationOptions();
 	}
 	
 	/**
@@ -126,7 +130,7 @@ public class SATFCFacadeBuilder {
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
 		
-		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice));
+		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
 	}
 	
 	/**
@@ -177,6 +181,10 @@ public class SATFCFacadeBuilder {
 	public void setSolverChoice(SATFCFacadeParameter.SolverChoice aSolverChoice)
 	{
 		fSolverChoice = aSolverChoice;
+	}
+	
+	public void setCustomizationOptoins(@NonNull SolverCustomizationOptions aOptions) {
+		fCustomizationOptions = aOptions;
 	}
 	
 	

@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,8 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 						/*
 						 * Set what solver selector will be used here.
 						 */
-						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile);
+						// TODO: allow specification of solver customization options
+						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, new SATFCFacadeParameter.SolverCustomizationOptions());
 						
 					}
 				}
