@@ -98,6 +98,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
         super(aStationManager, aConstraintManager);
+        log.info("Initializing solver with the following solver options {}", solverOptions);
 
         log.debug("SATFC solver bundle.");
 
