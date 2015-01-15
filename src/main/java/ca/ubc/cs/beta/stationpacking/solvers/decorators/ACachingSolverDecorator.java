@@ -32,7 +32,7 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
     // a list of results that can make their way to the database
     private final static ImmutableList<SATResult> fCacheableResults = ImmutableList.of(SATResult.SAT, SATResult.UNSAT, SATResult.TIMEOUT);
     // hashing function
-    private static final HashFunction fHashFuction = Hashing.murmur3_128();
+    private static final HashFunction fHashFuction = Hashing.murmur3_32();
 
     /**
      * @param aSolver - decorated ISolver.
