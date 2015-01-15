@@ -63,6 +63,7 @@ public class SATFCFacadeExecutor {
 				//Check for help
 				JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters,TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
 				SATFCFacade.initializeLogging(parameters.fLoggingOptions.logLevel);
+				JCommanderHelper.logCallString(args, SATFCFacadeExecutor.class);
 			}
 			finally
 			{
