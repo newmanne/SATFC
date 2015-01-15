@@ -29,6 +29,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
@@ -130,6 +131,8 @@ public class SATFCFacadeExecutor {
 				if (!errorInstanceFileNames.isEmpty()) {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
 				}
+				log.info("Reporting metrics");
+				SATFCMetrics.report();
 				if (parameters.fCsvOutputFile != null) {
 					log.info("Logging output to csv: {}", parameters.fCsvOutputFile);
 					final CSVWriter csvWriter = new CSVWriter(new BufferedWriter(new FileWriter(parameters.fCsvOutputFile)));
