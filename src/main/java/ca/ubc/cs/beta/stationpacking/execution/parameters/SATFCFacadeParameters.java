@@ -51,6 +51,8 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public String fInstanceFolder;
 	@Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
 	public String fInterferencesFolder;
+	@Parameter(names = "-CSV-OUTPUT", description = "csv output file summarizing results")
+	public String fCsvOutputFile;
 
 	@ParametersDelegate
 	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();

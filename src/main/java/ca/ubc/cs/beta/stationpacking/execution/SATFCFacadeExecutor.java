@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import au.com.bytecode.opencsv.CSVWriter;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
@@ -28,8 +29,10 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -37,10 +40,13 @@ import com.google.common.io.Files;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.
@@ -90,7 +96,7 @@ public class SATFCFacadeExecutor {
 				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
 				log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
 				final List<String> errorInstanceFileNames = Lists.newArrayList();
-				final Map<String, Double> instanceRuntimes = Maps.newHashMap();
+				final Map<String, SATFCResult> instanceToResult = Maps.newHashMap();
 				for (String instanceFileName : instanceFiles)
 				{
 					log.info("Beginning problem {}", instanceFileName);
@@ -118,12 +124,17 @@ public class SATFCFacadeExecutor {
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
-					instanceRuntimes.put(instanceFileName, result.getRuntime());
+					instanceToResult.put(instanceFileName, result);
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
-				log.info("Summary of runtimes: {}", instanceRuntimes);
 				if (!errorInstanceFileNames.isEmpty()) {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
+				}
+				if (parameters.fCsvOutputFile != null) {
+					log.info("Logging output to csv: {}", parameters.fCsvOutputFile);
+					final CSVWriter csvWriter = new CSVWriter(new BufferedWriter(new FileWriter(parameters.fCsvOutputFile)));
+					csvWriter.writeAll(instanceToResult.entrySet().stream().map(result -> new String[]{result.getKey(), Double.toString(result.getValue().getRuntime()), result.getValue().getResult().toString()}).collect(Collectors.toList()));
+					csvWriter.close();
 				}
 			} else {
 				// assume SATFC called normally
