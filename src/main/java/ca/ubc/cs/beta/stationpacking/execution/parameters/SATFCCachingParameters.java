@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
@@ -12,6 +13,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Created by newmanne on 04/12/14.
  */
+@UsageTextField(title="SATFC Caching Parameters",description="Parameters for the SATFC problem cache.")
 public class SATFCCachingParameters extends AbstractOptions {
 
     @Parameter(names = "--useCache", description = "Should the cache be used", required = false, arity = 0)

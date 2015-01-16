@@ -226,38 +226,38 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		
 		ClaspResult claspResult = getSolverResult(fClaspLibrary, result, timedOut, fInterrupt, runtime);
 		
-		log.debug("Post time to clasp result obtained: {} s.",watch.getElapsedTime());
+		log.trace("Post time to clasp result obtained: {} s.",watch.getElapsedTime());
 		
 		timeoutFuture.cancel(true);
-		log.debug("Post time to timeout future cancellation: {} s.",watch.getElapsedTime());
+		log.trace("Post time to timeout future cancellation: {} s.",watch.getElapsedTime());
 		interruptFuture.cancel(true);
-		log.debug("Post time to interrupt future cancellation: {} s.",watch.getElapsedTime());
+		log.trace("Post time to interrupt future cancellation: {} s.",watch.getElapsedTime());
 		
 		
 		HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
-		log.debug("Post time to to assignment obtained: {} s.",watch.getElapsedTime());
+		log.trace("Post time to to assignment obtained: {} s.",watch.getElapsedTime());
 
 		//clears memory
 		fClaspLibrary.destroyFacade(facade);
-		log.debug("Post time to facade destroyed: {} s.",watch.getElapsedTime());
+		log.trace("Post time to facade destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyConfig(config);
-		log.debug("Post time to config destroyed: {} s.",watch.getElapsedTime());
+		log.trace("Post time to config destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyProblem(problem);
-		log.debug("Post time to problem destroyed: {} s.",watch.getElapsedTime());
+		log.trace("Post time to problem destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyResult(result);
-		log.debug("Post time to result destroyed: {} s.",watch.getElapsedTime());
+		log.trace("Post time to result destroyed: {} s.",watch.getElapsedTime());
 		
 		watch.stop();
 		double postTime = watch.getElapsedTime();
 		
-		log.debug("Total post time: {} s.", postTime);
+		log.trace("Total post time: {} s.", postTime);
 		if(postTime > 60)
 		{
 			log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happenned.");
 		}
 		
 		//We only increment
-		log.debug("Incrementing job inde.");
+		log.debug("Incrementing job index.");
 		currentRequestID.incrementAndGet();
 		
 		log.debug("Cancelling suicide future.");
