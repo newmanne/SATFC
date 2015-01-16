@@ -130,6 +130,23 @@ public class SATFCSolverBundle extends ASolverBundle {
             VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
         }
 
+        if (solverOptions.isDecompose())
+        {
+            // Split into components
+            IComponentGrouper aGrouper = new ConstraintGrouper();
+            log.debug("Decorate solver to split the graph into connected components and then merge the results");
+            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
+        }
+
+        if (solverOptions.isUnderconstrained())
+        {
+            //Remove unconstrained stations.
+            log.debug("Decorate solver to first remove underconstrained stations.");
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+        }
+
         if (solverOptions.isPresolve())
         {
             log.debug("Adding neighborhood presolvers.");
@@ -154,23 +171,6 @@ public class SATFCSolverBundle extends ASolverBundle {
                             VHFsolver
                     )
             );
-        }
-
-        if (solverOptions.isDecompose())
-        {
-            // Split into components
-            IComponentGrouper aGrouper = new ConstraintGrouper();
-            log.debug("Decorate solver to split the graph into connected components and then merge the results");
-            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
-            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
-        }
-
-        if (solverOptions.isUnderconstrained())
-        {
-            //Remove unconstrained stations.
-            log.debug("Decorate solver to first remove underconstrained stations.");
-            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
         }
 
         //Save results, if needed.
