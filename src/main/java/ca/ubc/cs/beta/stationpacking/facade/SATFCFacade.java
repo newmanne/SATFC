@@ -155,9 +155,10 @@ public class SATFCFacade implements AutoCloseable{
 									aStationManager,
 									aConstraintManager,
 									aSATFCParameters.getCNFDirectory(),
-									aSATFCParameters.getResultFile());
+									aSATFCParameters.getResultFile(),
+									aSATFCParameters.getOptions());
 						case MIPFC:
-							return new MIPFCSolverBundle(aStationManager, aConstraintManager);
+							return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions());
 						default:
 							throw new IllegalArgumentException("Unrecognized solver choice "+aSATFCParameters.getSolverChoice());
 						}

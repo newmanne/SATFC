@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,8 @@ public class MIPFCSolverBundle extends ASolverBundle {
      */
     public MIPFCSolverBundle(
             IStationManager aStationManager,
-            IConstraintManager aConstraintManager
+            IConstraintManager aConstraintManager,
+            SATFCFacadeParameter.SolverCustomizationOptions options
     		) {
 
         super(aStationManager, aConstraintManager);
@@ -76,33 +78,38 @@ public class MIPFCSolverBundle extends ASolverBundle {
 
         log.debug("Initializing base MIP solvers.");
         ISolver solver = new MIPBasedSolver(getConstraintManager());
-        
-        //Chain pre-solving and main solver.
-        final double UNSATcertifiercutoff = 5;
-        final double SATcertifiercutoff = 5;
 
-        log.debug("Adding neighborhood presolvers.");
-        solver = new SequentialSolversComposite(
-                Arrays.asList(
-                        new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                Arrays.asList(
-                                        new StationSubsetSATCertifier(solver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
-                                        new StationSubsetUNSATCertifier(solver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
-                                )),
-                        solver
-                )
-        );
+        if (options.isPresolve()) 
+        {
+            //Chain pre-solving and main solver.
+            final double UNSATcertifiercutoff = 5;
+            final double SATcertifiercutoff = 5;
+
+            log.debug("Adding neighborhood presolvers.");
+            solver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetUNSATCertifier(solver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
+                                            new StationSubsetSATCertifier(solver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    )),
+                            solver
+                    )
+            );
+
+        }
+        
 
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        // Split into components
-        /*
-         *  NOTE: any decorator placed above this must a) be thread-safe b) be ready to deal with being shutdown at any time 
-         *  */
-        log.debug("Decorate solver to split the graph into connected components and then merge the results");
-        solver = new ConnectedComponentGroupingDecorator(solver, aGrouper, getConstraintManager());
+        if (options.isDecompose()) 
+        {
+        	// Split into components
+            log.debug("Decorate solver to split the graph into connected components and then merge the results");
+            solver = new ConnectedComponentGroupingDecorator(solver, aGrouper, getConstraintManager());
+        }
 
         //Remove unconstrained stations.
 //        log.debug("Decorate solver to first remove underconstrained stations.");
