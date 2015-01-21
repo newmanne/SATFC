@@ -29,8 +29,11 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.metrics.InstanceInfo;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -38,6 +41,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +52,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -97,10 +103,11 @@ public class SATFCFacadeExecutor {
 				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
 				log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
 				final List<String> errorInstanceFileNames = Lists.newArrayList();
-				final Map<String, SATFCResult> instanceToResult = Maps.newHashMap();
+				int index = 0;
 				for (String instanceFileName : instanceFiles)
 				{
 					log.info("Beginning problem {}", instanceFileName);
+					log.info("This is problem {} of {}", ++index, instanceFiles.size());
 					final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
 					try
 					{
@@ -112,9 +119,17 @@ public class SATFCFacadeExecutor {
 						e.printStackTrace();
 						continue;
 					}
+					final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
+
+					final InstanceInfo currentMetric = new InstanceInfo();
+					currentMetric.setName(instanceFileName);
+					currentMetric.setStations(stations);
+					currentMetric.setNumStations(stations.size());
+					SATFCMetrics.getMetrics().add(currentMetric);
+
 					log.info("Solving ...");
 					SATFCResult result = satfc.solve(
-							stationPackingProblemSpecs.getDomains().keySet(),
+							stations,
 							stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
 							stationPackingProblemSpecs.getDomains(),
 							stationPackingProblemSpecs.getPreviousAssignment(),
@@ -125,7 +140,10 @@ public class SATFCFacadeExecutor {
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
-					instanceToResult.put(instanceFileName, result);
+
+					currentMetric.setResult(result.getResult());
+					currentMetric.setRuntime(result.getRuntime());
+
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
 				if (!errorInstanceFileNames.isEmpty()) {
@@ -134,10 +152,9 @@ public class SATFCFacadeExecutor {
 				log.info("Reporting metrics");
 				SATFCMetrics.report();
 				if (parameters.fCsvOutputFile != null) {
-					log.info("Logging output to csv: {}", parameters.fCsvOutputFile);
-					final CSVWriter csvWriter = new CSVWriter(new BufferedWriter(new FileWriter(parameters.fCsvOutputFile)));
-					csvWriter.writeAll(instanceToResult.entrySet().stream().map(result -> new String[]{result.getKey(), Double.toString(result.getValue().getRuntime()), result.getValue().getResult().toString()}).collect(Collectors.toList()));
-					csvWriter.close();
+					log.info("Logging output to file: {}", parameters.fCsvOutputFile);
+					final String json = JSONUtils.toString(SATFCMetrics.getMetrics(), true);
+					FileUtils.write(new File(parameters.fCsvOutputFile), json);
 				}
 			} else {
 				// assume SATFC called normally

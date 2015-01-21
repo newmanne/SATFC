@@ -25,9 +25,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +80,8 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
 		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains);
-
+		SATFCMetrics.getMostRecentOutermostInstanceInfo().setUnderconstrainedStations(underconstrainedStations.stream().map(Station::getID).collect(Collectors.toSet()));
+		
 		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
 		
 		//Remove the nodes from the instance.

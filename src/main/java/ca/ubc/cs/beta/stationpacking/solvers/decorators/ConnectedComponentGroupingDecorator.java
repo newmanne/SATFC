@@ -2,10 +2,14 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.metrics.InstanceInfo;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,17 +56,18 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
 
         // Split into groups
         final Set<Set<Station>> stationComponents = fComponentGrouper.group(aInstance, fConstraintManager);
+        // sort the components in ascending order of size. The idea is that this would decrease runtime if one of the small components was UNSAT
+        final List<Set<Station>> sortedStationComponents = stationComponents.stream().sorted((o1, o2) -> Integer.compare(o1.size(), o2.size())).collect(Collectors.toList());
+        premetrics(sortedStationComponents);
         log.debug("Problem separated in {} groups.", stationComponents.size());
 
         final AtomicInteger idTracker = new AtomicInteger();
-        final Map<Integer, SolverResult> solverResults = Maps.newHashMap();
-        stationComponents.stream()
-            // sort the components in ascending order of size. The idea is that this would decrease runtime if one of the small components was UNSAT
-            .sorted((o1, o2) -> Integer.compare(o1.size(), o2.size()))
+        final Map<Integer, SolverResult> solverResults = Maps.newLinkedHashMap();
+        sortedStationComponents.stream()
             // Note that anyMatch is a short-circuiting operation
             // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
             .anyMatch(stationComponent -> {
-                int id = idTracker.incrementAndGet();
+                int id = idTracker.getAndIncrement();
                 log.debug("Solving component {}...", id);
                 final ImmutableMap<Station, Set<Integer>> subDomains = aInstance.getDomains().entrySet()
                         .stream()
@@ -76,6 +81,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 return !componentResult.getResult().equals(SATResult.SAT);
             });
         watch.stop();
+        postmetrics(solverResults);
         final SolverResult result = SolverHelper.mergeComponentResults(solverResults.values(), watch.getElapsedTime());
         
         if (result.getResult() == SATResult.SAT)
@@ -85,5 +91,27 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         log.debug("\nResult:");
         log.debug(result.toParsableString());
         return result;
+    }
+
+    private void postmetrics(Map<Integer, SolverResult> solverResults) {
+        final InstanceInfo outermostInstance = SATFCMetrics.getMostRecentOutermostInstanceInfo();
+        for (int i = 0; i < solverResults.size(); i++) {
+            final InstanceInfo componentInfo = outermostInstance.getComponents().get(i);
+            componentInfo.setResult(solverResults.get(i).getResult());
+            componentInfo.setRuntime(solverResults.get(i).getRuntime());
+        }
+    }
+
+    private void premetrics(List<Set<Station>> stationComponents) {
+        int i = 1;
+        final InstanceInfo outermostInstance = SATFCMetrics.getMostRecentOutermostInstanceInfo();
+        for (Set<Station> component : stationComponents) {
+            final InstanceInfo instanceInfo = new InstanceInfo();
+            instanceInfo.setName(outermostInstance.getName() + "_component" + Integer.toString(i));
+            instanceInfo.setNumStations(component.size());
+            instanceInfo.setStations(component.stream().map(Station::getID).collect(Collectors.toSet()));
+            outermostInstance.getComponents().add(instanceInfo);
+            i++;
+        }
     }
 }

@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +48,9 @@ import com.google.common.collect.Sets;
  * to their previous assignment values.
  * @author afrechet
  */
+@Slf4j
 public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
-	private static Logger log = LoggerFactory.getLogger(StationSubsetSATCertifier.class);
-	
 	private final ISolver fSolver;
 	private final ITerminationCriterionFactory fTerminationCriterionFactory;
 	

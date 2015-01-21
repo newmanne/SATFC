@@ -21,19 +21,23 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
+import lombok.Data;
+import lombok.experimental.Accessors;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Container for the result returned by a SATFC facade.
  * @author afrechet
  */
+@Data
+@Accessors(prefix="f")
 public class SATFCResult
 {
-	private final HashMap<Integer,Integer> fWitnessAssignment;
+	private final ImmutableMap<Integer,Integer> fWitnessAssignment;
 	private final SATResult fResult;
 	private final double fRuntime;
 	
@@ -46,31 +50,7 @@ public class SATFCResult
 	{
 		fResult = aResult;
 		fRuntime = aRuntime;
-		fWitnessAssignment = new HashMap<Integer,Integer>(aWitnessAssignment);
-	}
-	
-	/**
-	 * @return the satisfiability result.
-	 */
-	public SATResult getResult()
-	{
-		return fResult;
-	}
-	
-	/**
-	 * @return the runtime.
-	 */
-	public double getRuntime()
-	{
-		return fRuntime;
-	}
-	
-	/**
-	 * @return the witness assignment (only non-empty if result is SAT).
-	 */
-	public Map<Integer,Integer> getWitnessAssignment()
-	{
-		return Collections.unmodifiableMap(fWitnessAssignment);
+		fWitnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
 	}
 	
 	@Override

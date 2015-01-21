@@ -31,8 +31,14 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.Getter;
+import lombok.Setter;
+import ca.ubc.cs.beta.stationpacking.metrics.InstanceInfo;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,15 +49,15 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class StationPackingInstance {
 	
-	private final Map<Station,Set<Integer>> fDomains;
-	private final Map<Station,Integer> fPreviousAssignment;
-	
+	private final ImmutableMap<Station,Set<Integer>> fDomains;
+	private final ImmutableMap<Station,Integer> fPreviousAssignment;
+
 	/**
 	 * Create a station packing instance.
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
-		this(aDomains,new HashMap<Station,Integer>());
+		this(aDomains, ImmutableMap.of());
 	}
 	
 	/**
@@ -60,8 +66,6 @@ public class StationPackingInstance {
 	 * @param aPreviousAssignment - a map taking stations to the channels they were assigned to previously.
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
-		
-		//HashMap<Station,Integer> tempPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -69,7 +73,6 @@ public class StationPackingInstance {
 			if(previousChannel != null && !aDomains.get(station).contains(previousChannel))
 			{
 				throw new IllegalArgumentException("Provided previous assignment assigned channel "+previousChannel+" to station "+station+" which is not in its problem domain "+aDomains.get(station)+".");
-				//tempPreviousAssignment.remove(station);
 			}
 			
 			if(aDomains.get(station).isEmpty())
@@ -78,9 +81,8 @@ public class StationPackingInstance {
 			}
 		}
 		
-		fDomains = Collections.unmodifiableMap(new HashMap<Station,Set<Integer>>(aDomains));
-		fPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
-		//fPreviousAssignment = Collections.unmodifiableMap(tempPreviousAssignment);
+		fDomains = ImmutableMap.copyOf(aDomains);
+		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 	}
 	
 	/**
@@ -176,16 +178,16 @@ public class StationPackingInstance {
 	 * An instance's channels is an unmodifiable set backed up by a hash set.
 	 * @return - get the problem instance's channels.
 	 */
-	public Map<Station,Set<Integer>> getDomains(){
-		return Collections.unmodifiableMap(fDomains);
+	public ImmutableMap<Station,Set<Integer>> getDomains(){
+		return fDomains;
 	}
 	
 	/**
 	 * @return a map taking stations to the (valid) channels they were assigned to previously (if any).
 	 */
-	public Map<Station,Integer> getPreviousAssignment()
+	public ImmutableMap<Station,Integer> getPreviousAssignment()
 	{
-		return Collections.unmodifiableMap(fPreviousAssignment);
+		return fPreviousAssignment;
 	}
 	
 	/**
