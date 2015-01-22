@@ -151,10 +151,10 @@ public class SATFCFacadeExecutor {
 				}
 				log.info("Reporting metrics");
 				SATFCMetrics.report();
-				if (parameters.fCsvOutputFile != null) {
-					log.info("Logging output to file: {}", parameters.fCsvOutputFile);
+				if (parameters.fOutputFile != null) {
+					log.info("Logging output to file: {}", parameters.fOutputFile);
 					final String json = JSONUtils.toString(SATFCMetrics.getMetrics(), true);
-					FileUtils.write(new File(parameters.fCsvOutputFile), json);
+					FileUtils.write(new File(parameters.fOutputFile), json);
 				}
 			} else {
 				// assume SATFC called normally
