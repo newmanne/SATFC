@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -130,7 +132,6 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 	@Override
 	public SATSolverResult solve(CNF aCNF, final ITerminationCriterion aTerminationCriterion, long aSeed) 
 	{	
-		
 		Watch watch = Watch.constructAutoStartWatch();
 		
 		final long MY_REQUEST_ID = currentRequestID.incrementAndGet();
@@ -156,6 +157,11 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		
 		final double cutoff = aTerminationCriterion.getRemainingTime();
 		
+		if(cutoff <=0)
+		{
+		    log.debug("All time spent.");
+		    return new SATSolverResult(SATResult.TIMEOUT, preTime, new HashSet<Literal>());
+		}
 		// Launches a timer that will set the interrupt flag of the result object to true after aCutOff seconds. 
 		Future<?> timeoutFuture = fTimerService.schedule(
 		        new Runnable(){
@@ -167,10 +173,11 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
                 				log.trace("Interrupting clasp as we are past cutoff of {} s.",cutoff);
                 				timedOut.set(true);
                 				fClaspLibrary.interrupt(facade);
+                				return;
                             } 
             			    
             			}
-        		    },(long) cutoff, TimeUnit.SECONDS);
+        		    },(long) (cutoff*1000), TimeUnit.MILLISECONDS);
 		
 		// listens for thread interruption every 1 seconds, if the thread is interrupted, interrupt the library and return gracefully
 		//while returning null (free library memory, etc.)
@@ -211,7 +218,6 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		                }
 		            }
 		        }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
-		
 		// Start solving
 		log.debug("Send problem to clasp cutting off after "+cutoff+"s");
 		
@@ -263,7 +269,9 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		log.debug("Cancelling suicide future.");
 		suicideFuture.cancel(true);
 		
-		return new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment);
+		final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment); 
+		log.trace("Returning result: {}.",output);
+		return output;
 	}
 
 	private HashSet<Literal> parseAssignment(int[] assignment)
@@ -320,6 +328,7 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		else if (interrupted.compareAndSet(true, false))
 		{
 			satResult = SATResult.INTERRUPTED;
+			interrupted.set(false);
 		}
 		else 
 		{
