@@ -21,7 +21,7 @@ public class InstanceInfo {
     private int numStations;
     private Set<Integer> stations;
     private String name;
-    private double runtime;
+    private Double runtime;
     private SATResult result;
     private Set<Integer> underconstrainedStations;
     private List<InstanceInfo> components = Lists.newArrayList();

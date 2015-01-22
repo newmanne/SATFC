@@ -51,13 +51,18 @@ public class StationPackingInstance {
 	
 	private final ImmutableMap<Station,Set<Integer>> fDomains;
 	private final ImmutableMap<Station,Integer> fPreviousAssignment;
+	@Getter
+	private final String name;
+	
+	// names are only for tracking metrics, so use this string when you don't care
+	public final static String UNTITLED = "UNTITLED";
 
 	/**
 	 * Create a station packing instance.
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
-		this(aDomains, ImmutableMap.of());
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, String name){
+		this(aDomains, ImmutableMap.of(), name);
 	}
 	
 	/**
@@ -65,7 +70,7 @@ public class StationPackingInstance {
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 * @param aPreviousAssignment - a map taking stations to the channels they were assigned to previously.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, String name){
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -83,6 +88,7 @@ public class StationPackingInstance {
 		
 		fDomains = ImmutableMap.copyOf(aDomains);
 		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
+		this.name = name;
 	}
 	
 	/**
@@ -98,7 +104,7 @@ public class StationPackingInstance {
 		{
 			domains.put(station, aChannels);
 		}
-		return new StationPackingInstance(domains,aPreviousAssignment);
+		return new StationPackingInstance(domains,aPreviousAssignment, StationPackingInstance.UNTITLED);
 	}
 	
 	/**

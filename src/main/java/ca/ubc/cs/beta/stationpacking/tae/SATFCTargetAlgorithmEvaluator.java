@@ -55,6 +55,7 @@ import ca.ubc.cs.beta.aeatk.probleminstance.ProblemInstanceSeedPair;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.AbstractSyncTargetAlgorithmEvaluator;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.TargetAlgorithmEvaluatorRunObserver;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.exceptions.TargetAlgorithmAbortException;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 
@@ -240,7 +241,9 @@ public class SATFCTargetAlgorithmEvaluator extends
 							problem.getCutoff(),
 							problem.getSeed(),
 							fStationConfigFolder + File.separator
-									+ problem.getStationConfigFolder());
+									+ problem.getStationConfigFolder(),
+							StationPackingInstance.UNTITLED		
+							);
 	
 					log.debug("Transforming SATFC facade result to TAE result...");
 					// Transform result to algorithm run result.

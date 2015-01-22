@@ -31,6 +31,7 @@ import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,10 +59,9 @@ import com.google.common.collect.Maps;
  * 
  * @author afrechet
  */
+@Slf4j
 public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecorator {
 
-	private final Logger log = LoggerFactory.getLogger(UnderconstrainedStationRemoverSolverDecorator.class);
-	
 	private final IConstraintManager fConstraintManager;
 	private final IUnderconstrainedStationFinder fUnderconstrainedStationFinder;
 	
@@ -80,7 +80,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
 		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains);
-		SATFCMetrics.getMostRecentOutermostInstanceInfo().setUnderconstrainedStations(underconstrainedStations.stream().map(Station::getID).collect(Collectors.toSet()));
+		SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
 		
 		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
 		
@@ -98,7 +98,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 		{
 			//Solve the reduced instance.
 			log.debug("Solving the sub-instance...");
-			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment());
+			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getName());
 			watch.stop();
 			preTime = watch.getElapsedTime();
 			log.trace("{} s spent on underconstrained pre-solving setup.",preTime);

@@ -184,7 +184,7 @@ public class SATFCFacade implements AutoCloseable{
 			Map<Integer,Set<Integer>> aDomains,
 			Map<Integer,Integer> aPreviousAssignment,
 			double aCutoff, 
-			long aSeed, String aStationConfigFolder)
+			long aSeed, String aStationConfigFolder, String name)
 	{
 		if(aDomains == null || aPreviousAssignment == null || aStationConfigFolder == null)
 		{
@@ -248,7 +248,7 @@ public class SATFCFacade implements AutoCloseable{
 		
 		log.debug("Constructing station packing instance...");
 		//Construct the instance.
-		StationPackingInstance instance = new StationPackingInstance(domains, previousAssignment);
+		StationPackingInstance instance = new StationPackingInstance(domains, previousAssignment, name);
 		
 		log.debug("Getting solver...");
 		//Get solver
@@ -313,7 +313,8 @@ public class SATFCFacade implements AutoCloseable{
 			Map<Integer,Integer> aPreviousAssignment,
 			double aCutoff,
 			long aSeed,
-			String aStationConfigFolder
+			String aStationConfigFolder,
+			String name
 			)
 	{
 		//Check input.
@@ -365,7 +366,7 @@ public class SATFCFacade implements AutoCloseable{
 			aDomains.put(station, domain);
 		}
 		
-		return solve(aDomains,aPreviousAssignment,aCutoff,aSeed,aStationConfigFolder);
+		return solve(aDomains,aPreviousAssignment,aCutoff,aSeed,aStationConfigFolder, name);
 		
 	}
 

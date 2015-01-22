@@ -145,8 +145,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			
 			if(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))
 			{
-				// TODO: this is super frail and would break if you ever moved the presolver decorator's position
-				SATFCMetrics.getMostRecentOutermostInstanceInfo().setSolvedByPresolver(true);
+				SATFCMetrics.postEvent(new SATFCMetrics.SolvedByPresolverEvent(aInstance.getName()));
 				break;
 			}
 		}

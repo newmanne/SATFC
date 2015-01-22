@@ -25,6 +25,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -121,11 +122,7 @@ public class SATFCFacadeExecutor {
 					}
 					final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
 
-					final InstanceInfo currentMetric = new InstanceInfo();
-					currentMetric.setName(instanceFileName);
-					currentMetric.setStations(stations);
-					currentMetric.setNumStations(stations.size());
-					SATFCMetrics.getMetrics().add(currentMetric);
+					SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
 
 					log.info("Solving ...");
 					SATFCResult result = satfc.solve(
@@ -135,14 +132,14 @@ public class SATFCFacadeExecutor {
 							stationPackingProblemSpecs.getPreviousAssignment(),
 							parameters.fInstanceParameters.Cutoff,
 							parameters.fInstanceParameters.Seed,
-							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername());
+							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
+							instanceFileName);
 					log.info("..done!");
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
 
-					currentMetric.setResult(result.getResult());
-					currentMetric.setRuntime(result.getRuntime());
+					SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
 
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
@@ -166,7 +163,8 @@ public class SATFCFacadeExecutor {
 						parameters.fInstanceParameters.getPreviousAssignment(),
 						parameters.fInstanceParameters.Cutoff,
 						parameters.fInstanceParameters.Seed,
-						parameters.fInstanceParameters.fDataFoldername);
+						parameters.fInstanceParameters.fDataFoldername,
+						StationPackingInstance.UNTITLED);
 
 				log.info("..done!");
 

@@ -110,10 +110,6 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
         return fHashFuction.newHasher().putString(hash.toString(), Charsets.UTF_8).hash();
     }
 
-    protected HashCode hash(Map<Station, Set<Integer>> aDomains) {
-        return hash(new StationPackingInstance(aDomains));
-    }
-
     protected abstract void cacheResult(HashCode hash, CacheEntry entry);
 
     protected abstract Optional<CacheEntry> getSolverResultFromCache(HashCode hash);

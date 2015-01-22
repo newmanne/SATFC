@@ -36,6 +36,7 @@ import org.apache.commons.math3.util.Pair;
 import org.junit.Test;
 
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -140,7 +141,7 @@ public class SATFCFacadeTests {
 			InstanceParameters testCase = entry.getKey();
 			Pair<SATResult,Double> expectedResult = entry.getValue();
 			
-			SATFCResult result = facade.solve(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername);
+			SATFCResult result = facade.solve(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername, StationPackingInstance.UNTITLED);
 			
 			assertEquals(expectedResult.getFirst(),result.getResult());
 			if(result.getRuntime() > expectedResult.getSecond())
