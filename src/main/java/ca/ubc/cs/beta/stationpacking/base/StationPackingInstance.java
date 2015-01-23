@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.codec.binary.Hex;
@@ -43,15 +44,15 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class StationPackingInstance {
 	
-	private final Map<Station,Set<Integer>> fDomains;
-	private final Map<Station,Integer> fPreviousAssignment;
+	private final ImmutableMap<Station,Set<Integer>> fDomains;
+	private final ImmutableMap<Station,Integer> fPreviousAssignment;
 	
 	/**
 	 * Create a station packing instance.
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
-		this(aDomains,new HashMap<Station,Integer>());
+		this(aDomains, ImmutableMap.of());
 	}
 	
 	/**
@@ -61,7 +62,6 @@ public class StationPackingInstance {
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
 		
-		//HashMap<Station,Integer> tempPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -69,7 +69,6 @@ public class StationPackingInstance {
 			if(previousChannel != null && !aDomains.get(station).contains(previousChannel))
 			{
 				throw new IllegalArgumentException("Provided previous assignment assigned channel "+previousChannel+" to station "+station+" which is not in its problem domain "+aDomains.get(station)+".");
-				//tempPreviousAssignment.remove(station);
 			}
 			
 			if(aDomains.get(station).isEmpty())
@@ -78,8 +77,8 @@ public class StationPackingInstance {
 			}
 		}
 		
-		fDomains = Collections.unmodifiableMap(new HashMap<Station,Set<Integer>>(aDomains));
-		fPreviousAssignment = new HashMap<Station,Integer>(aPreviousAssignment);
+		fDomains = ImmutableMap.copyOf(aDomains);
+		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 		//fPreviousAssignment = Collections.unmodifiableMap(tempPreviousAssignment);
 	}
 	
@@ -169,7 +168,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's stations.
 	 */
 	public Set<Station> getStations(){
-		return Collections.unmodifiableSet(fDomains.keySet());
+		return fDomains.keySet();
 	}
 	
 	/**
@@ -177,7 +176,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's channels.
 	 */
 	public Map<Station,Set<Integer>> getDomains(){
-		return Collections.unmodifiableMap(fDomains);
+		return fDomains;
 	}
 	
 	/**
@@ -185,7 +184,7 @@ public class StationPackingInstance {
 	 */
 	public Map<Station,Integer> getPreviousAssignment()
 	{
-		return Collections.unmodifiableMap(fPreviousAssignment);
+		return fPreviousAssignment;
 	}
 	
 	/**
