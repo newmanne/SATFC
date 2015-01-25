@@ -26,14 +26,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import com.google.common.collect.ImmutableMap;
+import lombok.Data;
 
 /**
  * Container for the result returned by a SATFC facade.
  * @author afrechet
  */
+@Data
 public class SATFCResult
 {
-	private final HashMap<Integer,Integer> fWitnessAssignment;
+	private final ImmutableMap<Integer,Integer> fWitnessAssignment;
 	private final SATResult fResult;
 	private final double fRuntime;
 	
@@ -46,7 +49,7 @@ public class SATFCResult
 	{
 		fResult = aResult;
 		fRuntime = aRuntime;
-		fWitnessAssignment = new HashMap<Integer,Integer>(aWitnessAssignment);
+		fWitnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
 	}
 	
 	/**

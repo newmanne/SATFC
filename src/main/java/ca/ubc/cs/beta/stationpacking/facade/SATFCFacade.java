@@ -23,12 +23,11 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -325,7 +324,7 @@ public class SATFCFacade implements AutoCloseable{
 		if(aStations.isEmpty())
 		{
 			log.warn("Provided an empty set of stations.");
-			return new SATFCResult(SATResult.SAT, 0.0, new HashMap<Integer,Integer>());
+			return new SATFCResult(SATResult.SAT, 0.0, ImmutableMap.of());
 		}
 		if(aCutoff <=0)
 		{
@@ -348,15 +347,14 @@ public class SATFCFacade implements AutoCloseable{
 		
 		//TODO Change facade to only be given a simple domains map.
 		//Construct the domains map.
-		Map<Integer,Set<Integer>> aDomains = new HashMap<Integer,Set<Integer>>();
+		Map<Integer,Set<Integer>> aDomains = Maps.newLinkedHashMap();
 		
 		for(Integer station : aStations)
 		{
 			Set<Integer> originalDomain = stationManager.getDomain(stationManager.getStationfromID(station));
+			Set<Integer> domain = Sets.intersection(originalDomain, aChannels);
+
 			Set<Integer> reducedDomain = aReducedDomains.get(station);
-			
-			Set<Integer> domain;
-			domain = Sets.intersection(originalDomain, aChannels);
 			if(reducedDomain != null && !reducedDomain.isEmpty())
 			{
 				domain = Sets.intersection(domain, reducedDomain);

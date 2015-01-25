@@ -31,9 +31,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -44,8 +42,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class StationPackingInstance {
 	
-	private final ImmutableMap<Station,Set<Integer>> fDomains;
-	private final ImmutableMap<Station,Integer> fPreviousAssignment;
+	private final ImmutableMap<Station, Set<Integer>> fDomains;
+	private final ImmutableMap<Station, Integer> fPreviousAssignment;
 	
 	/**
 	 * Create a station packing instance.
@@ -79,7 +77,6 @@ public class StationPackingInstance {
 		
 		fDomains = ImmutableMap.copyOf(aDomains);
 		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
-		//fPreviousAssignment = Collections.unmodifiableMap(tempPreviousAssignment);
 	}
 	
 	/**
@@ -115,24 +112,16 @@ public class StationPackingInstance {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		
-		LinkedList<Station> stations = new LinkedList<Station>(fDomains.keySet());
-		Collections.sort(stations);
 		int s=1;
-		for(Station station : stations)
+		for(Station station : getStations())
 		{
-			LinkedList<Integer> channels = new LinkedList<Integer>(fDomains.get(station));
-			Collections.sort(channels);
+			sb.append(station+":"+StringUtils.join(fDomains.get(station),","));
 			
-			sb.append(station+":"+StringUtils.join(channels,","));
-			
-			if(s+1<=stations.size())
+			if(s+1<=getStations().size())
 			{
 				sb.append(";");
 			}
-			
 			s++;
-			
 		}
 		return sb.toString();
 	}
