@@ -30,7 +30,6 @@ public class SATFCFacadeParameter {
 		// caching params
 		private boolean cache = false;
 		private CachingDecoratorFactory cachingDecoratorFactory = null;
-		private String cacheGraphKey = null;
 	}
 
 }

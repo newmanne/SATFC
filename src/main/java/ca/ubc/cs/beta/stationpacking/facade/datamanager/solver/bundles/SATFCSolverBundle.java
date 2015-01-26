@@ -126,8 +126,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         // Check the cache - this is at the component level
         if (solverOptions.isCache()) {
             log.debug("Decorate solver to check the cache at the component level");
-            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver, solverOptions.getCacheGraphKey());
-            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver, solverOptions.getCacheGraphKey());
+            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver);
+            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver);
         }
 
         if (solverOptions.isDecompose())

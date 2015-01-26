@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.database;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -8,7 +9,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -19,6 +23,7 @@ import java.util.stream.IntStream;
  * Also, the memory usage is tied highly to the number of permutations because we need to repeat the SAT and UNSAT caches several times. It's possible to reduce this footprint at the expense of performance.
  * TODO: init method - I propose that a redis key UNSAT-INSTANCES and SAT-INSTANCES just return all the bitvectors. This key can be updated offline by a python script or something
  * TODO: how to go from a match to a result? - the SAT instances should also know their keys
+ * TODO: make this testable
  */
 public class PreCache {
 
@@ -29,11 +34,13 @@ public class PreCache {
 
     final List<PermutableBitSetComparator> comparators;
     private final static int NUM_PERMUTATIONS = 5;
+    private final ICacher cacher;
 
     // the first permutation is the default permutation
     int[][] permutations;
 
-    public PreCache() {
+    public PreCache(ICacher cacher) {
+        this.cacher = cacher;
         comparators = Lists.newArrayListWithCapacity(NUM_PERMUTATIONS);
         for (int i = 0; i < permutations.length; i++) {
             comparators.add(new PermutableBitSetComparator(permutations[i]));
@@ -108,6 +115,7 @@ public class PreCache {
     public static class PreCacheDecorator extends ASolverDecorator {
 
         private final PreCache preCache;
+        ICacher cacher;
 
         /**
          * @param aSolver - decorated ISolver.
@@ -133,6 +141,20 @@ public class PreCache {
             final Optional<String> superset = preCache.findSuperset(aBitSet);
             if (superset.isPresent()) {
                 // yay! problem is SAT! Now let's look it up
+                CacheEntry entry = cacher.getSolverResultFromCache();
+                final ImmutableMap<Integer, Set<Station>> assignment = entry.getSolverResult().getAssignment();
+                final Map<Integer, Set<Station>> reducedAssignment = Maps.newHashMap();
+                for (Integer channel : assignment.keySet()) {
+                    for (Station station : assignment.get(channel)) {
+                        if (aInstance.getStations().contains(station)) {
+                            if (reducedAssignment.get(channel) == null) {
+                                reducedAssignment.put(channel, Sets.newHashSet());
+                            }
+                            reducedAssignment.get(channel).add(station);
+                        }
+                    }
+                }
+                SolverResult result = new SolverResult(SATResult.SAT, watch.getElapsedTime(), reducedAssignment);
             } else {
                 // perhaps we can still find a good place to start a local search by finding a min-hamming distance element in the SAT cache
                 return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);

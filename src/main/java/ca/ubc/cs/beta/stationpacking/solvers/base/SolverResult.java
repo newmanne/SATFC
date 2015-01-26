@@ -29,6 +29,8 @@ import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 
 
@@ -47,7 +49,7 @@ public class SolverResult implements Serializable {
 	private static final long serialVersionUID = 1L;
 	private SATResult fResult;
 	private double fRuntime;
-	private Map<Integer,Set<Station>> fAssignment;
+	private ImmutableMap<Integer,Set<Station>> fAssignment;
 	
 	/**
 	 * @param aResult - solver result satisfiability.
@@ -63,7 +65,7 @@ public class SolverResult implements Serializable {
 		
 		fResult = aResult;
 		fRuntime = aRuntime;
-		fAssignment = new HashMap<Integer,Set<Station>>(aAssignment);
+		fAssignment = ImmutableMap.copyOf(aAssignment);
 	}
 	
 	/**
@@ -84,7 +86,7 @@ public class SolverResult implements Serializable {
 		
 		fResult = aResult;
 		fRuntime = aRuntime;
-		fAssignment = new HashMap<Integer,Set<Station>>();
+		fAssignment = ImmutableMap.of();
 	}
 	
 	/**
@@ -127,9 +129,9 @@ public class SolverResult implements Serializable {
 	/**
 	 * @return the witness assignment.
 	 */
-	public Map<Integer,Set<Station>> getAssignment()
+	public ImmutableMap<Integer,Set<Station>> getAssignment()
 	{
-		return new HashMap<Integer,Set<Station>>(fAssignment); 
+		return fAssignment;
 	}
 	
 	
