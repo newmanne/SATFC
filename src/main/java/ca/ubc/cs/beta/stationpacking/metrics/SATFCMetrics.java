@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SATFCMetrics {
 
+    public final static int BLOCK_SIZE = 500;
+
     @Getter
     private final static MetricRegistry registry = new MetricRegistry();
     
@@ -136,4 +138,7 @@ public class SATFCMetrics {
 
     }
 
+    public static void clear() {
+        metrics.clear();
+    }
 }
