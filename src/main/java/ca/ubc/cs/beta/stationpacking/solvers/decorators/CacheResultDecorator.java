@@ -16,7 +16,6 @@ import java.util.Date;
  */
 public class CacheResultDecorator extends ASolverDecorator {
 
-    private static final double MIN_TIME_TO_CACHE = 1.0;
     private final static ImmutableList<SATResult> fCacheableResults = ImmutableList.of(SATResult.SAT, SATResult.UNSAT, SATResult.TIMEOUT);
     private final ICacher fCacher;
 
@@ -40,7 +39,7 @@ public class CacheResultDecorator extends ASolverDecorator {
 
     private boolean shouldCache(SolverResult result) {
         // No point in caching a killed result or one that we can compute faster than a db lookup
-        return fCacheableResults.contains(result.getResult()) && result.getRuntime() > MIN_TIME_TO_CACHE;
+        return fCacheableResults.contains(result.getResult());
     }
 
 }

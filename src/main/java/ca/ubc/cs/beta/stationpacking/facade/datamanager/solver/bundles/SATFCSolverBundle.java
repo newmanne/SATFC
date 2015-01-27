@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.slf4j.Logger;
@@ -41,9 +42,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.RetrieveFromCacheSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
@@ -121,16 +122,22 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
+        ICacher cacher = null;
         if (solverOptions.isCache()) {
-            // Check the cache - this is at the component level
-        	final ICacher cacher = solverOptions.getCacherFactory().createrCacher();
-//            log.debug("Decorate solver to check the cache at the component level");
-//            UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
-//            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
-            
-        	// note: only UHF solver gets this decorator!
-            final PreCache precache = new PreCache(cacher);
-            UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache);
+        	cacher = solverOptions.getCacherFactory().createrCacher();
+        }
+        
+        if (solverOptions.isCache()) {
+	            // Check the cache - this is at the component level
+	//          log.debug("Decorate solver to check the cache at the component level");
+	//          UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
+	//          VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
+	          
+	      	// note: only UHF solver gets this decorator!
+	//          final PreCache precache = new PreCache(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+	//          UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache);
+	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
             
             
@@ -176,6 +183,13 @@ public class SATFCSolverBundle extends ASolverBundle {
                     )
             );
         }
+        
+        // cache entire instance
+        if (solverOptions.isCache()) {
+	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+        }
+        
 
         //Save results, if needed.
         if (aResultFile != null) {
