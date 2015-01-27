@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface ICacher {
 
     Optional<CacheEntry> getSolverResultFromCache(StationPackingInstance stationPackingInstance);
+    Optional<CacheEntry> getSolverResultFromCache(HashCode hashCode);
     void cacheResult(CacheEntry entry);
 
 }

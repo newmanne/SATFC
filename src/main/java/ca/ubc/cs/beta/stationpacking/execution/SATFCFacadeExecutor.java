@@ -131,8 +131,6 @@ public class SATFCFacadeExecutor {
 				if (!errorInstanceFileNames.isEmpty()) {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
 				}
-				log.info("Reporting metrics");
-				SATFCMetrics.report();
 				if (parameters.fCsvOutputFile != null) {
 					log.info("Logging output to csv: {}", parameters.fCsvOutputFile);
 					final CSVWriter csvWriter = new CSVWriter(new BufferedWriter(new FileWriter(parameters.fCsvOutputFile)));

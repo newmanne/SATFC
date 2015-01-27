@@ -1,12 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.database.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.database.ICacher;
 import ca.ubc.cs.beta.stationpacking.database.StationPackingInstanceHasher;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
 import com.google.common.hash.HashCode;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
@@ -19,17 +22,31 @@ import java.util.Optional;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class RedisCachingSolverDecorator implements ICacher {
+public class RedisCacher implements ICacher {
 
     private final Jedis fJedis;
-
+    private final StationPackingInstanceHasher fHasher;
+    private final String INTEREFERENCE_NAME = "021814SC3M";
+    
     @Override
     public void cacheResult(CacheEntry entry) {
         final String jsonResult = JSONUtils.toString(entry);
-        fJedis.set(getKey(hash), jsonResult);
+        fJedis.set(getKey(fHasher.hash(new StationPackingInstance(entry.getDomains()))), jsonResult);
     }
 
     @Override
+    public Optional<CacheEntry> getSolverResultFromCache(StationPackingInstance aInstance) {
+    	HashCode hash = fHasher.hash(aInstance);
+    	Optional<CacheEntry> cachedResult = getSolverResultFromCache(hash);
+        while (cachedResult.isPresent() && !cachedResult.get().getDomains().equals(aInstance.getDomains())) {
+            log.debug("Hash " + hash + " has a collision, rehashing");
+            hash = fHasher.rehash(hash);
+            cachedResult = getSolverResultFromCache(hash);
+        }
+        return cachedResult;
+    }
+
+    
     public Optional<CacheEntry> getSolverResultFromCache(HashCode hash) {
         final String key = getKey(hash);
         log.info("Asking redis for entry " + key);
@@ -44,13 +61,8 @@ public class RedisCachingSolverDecorator implements ICacher {
         return result;
     }
 
-    while (cachedResult.isPresent() && !cachedResult.get().getDomains().equals(aInstance.getDomains())) {
-        log.debug("Hash " + hash + " has a collision, rehashing");
-        hash = fStationPackingInstanceHasher.rehash(hash);
-        cachedResult = fCacher.getSolverResultFromCache(hash);
+    private String getKey(HashCode hashCode) {
+        return "SATFC:" + INTEREFERENCE_NAME + ":" + hashCode.toString();
     }
 
-    private String getKey(HashCode hashCode) {
-        return "SATFC:" + hashCode.toString();
-    }
 }

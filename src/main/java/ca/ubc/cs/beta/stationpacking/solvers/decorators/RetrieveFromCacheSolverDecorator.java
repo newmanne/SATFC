@@ -1,43 +1,24 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import java.util.Optional;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.database.CacheEntry;
+import ca.ubc.cs.beta.stationpacking.database.ICacher;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.database.*;
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.RatioGauge;
-import com.google.common.hash.HashCode;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Optional;
-
-import static com.codahale.metrics.MetricRegistry.name;
 
 /**
  * Created by newmanne on 11/30/14.
  */
 @Slf4j
-public abstract class RetrieveFromCacheSolverDecorator extends ASolverDecorator {
+public class RetrieveFromCacheSolverDecorator extends ASolverDecorator {
 
     // METRICS
-    private final static Counter cacheHits = SATFCMetrics.getRegistry().counter(name(RetrieveFromCacheSolverDecorator.class, "cache-hits"));
-    private final static Counter cacheMisses = SATFCMetrics.getRegistry().counter(name(RetrieveFromCacheSolverDecorator.class, "cache-misses"));
-    private final static CacheHitRatio cacheHitRatio = SATFCMetrics.getRegistry().register(name(RetrieveFromCacheSolverDecorator.class, "cache-hit-ratio"), new CacheHitRatio(cacheHits, cacheMisses));
-
-    @RequiredArgsConstructor
-    public static class CacheHitRatio extends RatioGauge {
-
-        private final Counter cacheHits;
-        private final Counter cacheMisses;
-
-        @Override
-        protected Ratio getRatio() {
-            return Ratio.of(cacheHits.getCount(), cacheHits.getCount() + cacheMisses.getCount());
-        }
-    }
+    private static long cacheHits;
+    private static long cacheMisses;
 
     private final ICacher fCacher;
 
@@ -56,12 +37,12 @@ public abstract class RetrieveFromCacheSolverDecorator extends ASolverDecorator 
         if (cachedResult.isPresent()) {
             final CacheEntry cacheEntry = cachedResult.get();
             log.info("Cache hit! Result is " + cacheEntry.getSolverResult().getResult());
-            cacheHits.inc();
+            cacheHits++;
             // TODO: think about timeout result stored in cache where you have more time and would rather try anyways
             result = cachedResult.get().getSolverResult();
         } else {
             log.info("Cache miss! Solving");
-            cacheMisses.inc();
+            cacheMisses++;
             result = super.solve(aInstance, aTerminationCriterion, aSeed);
         }
         return result;

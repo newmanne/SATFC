@@ -24,14 +24,17 @@ package ca.ubc.cs.beta.stationpacking.base;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.*;
+
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,7 +78,15 @@ public class StationPackingInstance {
 			}
 		}
 		
-		fDomains = ImmutableMap.copyOf(aDomains);
+		// TODO: this isn't ideal. You could just sort this once at the beginning and then never again...
+		Map<Station, Set<Integer>> domains = Maps.newLinkedHashMap();
+		aDomains.keySet().stream().sorted().forEach(station -> {
+			List<Integer> channels = Lists.newArrayList(aDomains.get(station));
+			Collections.sort(channels);
+			domains.put(station, Sets.newLinkedHashSet(channels));
+		});
+		
+		fDomains = ImmutableMap.copyOf(domains);
 		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 	}
 	
@@ -199,6 +210,12 @@ public class StationPackingInstance {
 		catch (UnsupportedEncodingException e) {
 		    throw new IllegalStateException("Could not encode filename", e);
 		}
+	}
+	
+	public BitSet toBitSet() {
+		final BitSet bitSet = new BitSet();
+		getStations().forEach(station -> bitSet.set(station.getID()));
+		return bitSet;
 	}
 
 

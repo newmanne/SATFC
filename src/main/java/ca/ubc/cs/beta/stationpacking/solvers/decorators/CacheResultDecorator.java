@@ -33,9 +33,9 @@ public class CacheResultDecorator extends ASolverDecorator {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if (shouldCache(result)) {
             final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date());
-            fCacher.cacheResult(hash, cacheEntry);
+            fCacher.cacheResult(cacheEntry);
         }
-        return super.solve(aInstance, aTerminationCriterion, aSeed);
+        return result;
     }
 
     private boolean shouldCache(SolverResult result) {

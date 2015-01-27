@@ -1,9 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import lombok.Data;
-import lombok.experimental.Builder;
+import ca.ubc.cs.beta.stationpacking.database.ICacherFactory;
 
 @Data
 public class SATFCFacadeParameter {
@@ -29,7 +27,7 @@ public class SATFCFacadeParameter {
 		
 		// caching params
 		private boolean cache = false;
-		private CachingDecoratorFactory cachingDecoratorFactory = null;
+		private ICacherFactory cacherFactory = null;
 	}
 
 }

@@ -15,11 +15,12 @@ public class StationPackingInstanceHasher {
     private static final HashFunction fHashFuction = Hashing.murmur3_32();
 
     public HashCode hash(StationPackingInstance aInstance) {
+    	// TODO: if we assume a sorted SPI, no need to call toString() method, better to iterate
         return fHashFuction.newHasher()
                 .putString(aInstance.toString(), Charsets.UTF_8)
                 .hash();
     }
-
+    
     public HashCode rehash(HashCode hash) {
         return fHashFuction.newHasher().putString(hash.toString(), Charsets.UTF_8).hash();
     }

@@ -21,15 +21,18 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import java.util.Arrays;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
+import ca.ubc.cs.beta.stationpacking.database.ICacher;
+import ca.ubc.cs.beta.stationpacking.database.PreCache;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -37,10 +40,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.RedisCachingSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.RetrieveFromCacheSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
@@ -48,11 +51,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -123,13 +121,19 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        // Check the cache - this is at the component level
         if (solverOptions.isCache()) {
-            log.debug("Decorate solver to check the cache at the component level");
-            UHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(UHFsolver);
-            VHFsolver = solverOptions.getCachingDecoratorFactory().createCachingDecorator(VHFsolver);
+            // Check the cache - this is at the component level
+        	final ICacher cacher = solverOptions.getCacherFactory().createrCacher();
+//            log.debug("Decorate solver to check the cache at the component level");
+//            UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
+//            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
+            
+        	// note: only UHF solver gets this decorator!
+            final PreCache precache = new PreCache(cacher);
+            UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache);
         }
-
+            
+            
         if (solverOptions.isDecompose())
         {
             // Split into components
