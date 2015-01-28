@@ -17,12 +17,12 @@ public class SATFCCachingParameters extends AbstractOptions {
     @Parameter(names = "--useCache", description = "Should the cache be used", required = false, arity = 0)
     public boolean useCache = false;
 
-    @Parameter(names = "--redisURL", description = "Redis URL", required = false)
+    @Parameter(names = "--redisHost", description = "Redis Host", required = false)
     public String redisURL = "localhost";
 
     @Parameter(names = "--redisPort", description = "Redis port", required = false)
     public int redisPort = 6379;
-    
+
     public ICacherFactory getCacherFactor() {
     	Preconditions.checkState(useCache);
         Preconditions.checkNotNull(redisPort);
