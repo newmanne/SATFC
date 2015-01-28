@@ -100,6 +100,9 @@ public class SATFCFacadeExecutor {
 			// TODO: actual parameter validation for user friendliness
 			long numSolved = 0;
 			int metricFilePart = 1;
+			if (parameters.fOutputFile != null) {
+				SATFCMetrics.init();
+			}
 			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null)
 			{
 				log.info("Reading instances from {}", parameters.fInstanceFile);
