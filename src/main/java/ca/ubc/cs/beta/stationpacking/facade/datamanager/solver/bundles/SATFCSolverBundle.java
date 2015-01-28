@@ -23,13 +23,17 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.database.ICacher;
-import ca.ubc.cs.beta.stationpacking.database.PreCache;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
+import ca.ubc.cs.beta.stationpacking.cache.SubsetCache;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
@@ -118,11 +122,11 @@ public class SATFCSolverBundle extends ASolverBundle {
          */
 
         ICacher cacher = null;
-        PreCache precache = null;
+        SubsetCache precache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
             final RedisCacher.PreCacheInitData test = cacher.getPreCacheData();
-            precache = new PreCache(test.getSATResults(), test.getUNSATResults());
+            precache = new SubsetCache(test.getSATResults(), test.getUNSATResults());
         }
         
         if (solverOptions.isCache()) {
@@ -133,8 +137,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 	          
 	      	// note: only UHF solver gets this decorator!
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-            UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache, cacher);
-//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+//            UHFsolver = new PreCacheSATDecorator(UHFsolver, precache, cacher);
 //	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
             
@@ -190,7 +193,16 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         // check cache
         if (solverOptions.isCache()) {
-            UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache, cacher);
+            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, precache);
+            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, precache, cacher);
+        }
+
+        //Save CNFs, if needed.
+        if(aCNFDirectory != null)
+        {
+            log.debug("Decorate solver to save CNFs.");
+            UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
+            VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
         }
 
         //Save results, if needed.
@@ -209,7 +221,6 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
-
     }
 
     @Override

@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.database;
+package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import com.google.common.base.Charsets;

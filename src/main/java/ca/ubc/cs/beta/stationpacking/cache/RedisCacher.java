@@ -1,12 +1,7 @@
-package ca.ubc.cs.beta.stationpacking.solvers.decorators;
+package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.database.CacheEntry;
-import ca.ubc.cs.beta.stationpacking.database.ICacher;
-import ca.ubc.cs.beta.stationpacking.database.PreCache;
-import ca.ubc.cs.beta.stationpacking.database.StationPackingInstanceHasher;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
-import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.cache.SubsetCache.PrecacheSupersetEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
@@ -87,7 +82,7 @@ public class RedisCacher implements ICacher {
 	public PreCacheInitData getPreCacheData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
-		List<PreCache.SATBS> SATResults = new ArrayList<>();
+		List<PrecacheSupersetEntry> SATResults = new ArrayList<>();
 		List<BitSet> UNSATResults = new ArrayList<>();
         // TODO: can prefix keys with UHF or something to speed this up
 		final Set<String> keys = fJedis.keys("*");
@@ -97,7 +92,7 @@ public class RedisCacher implements ICacher {
 			if (UHFProblem) {
                 final SATResult result = cacheEntry.getSolverResult().getResult();
                 if (result.equals(SATResult.SAT)) {
-                    SATResults.add(new PreCache.SATBS(key, new StationPackingInstance(cacheEntry.getDomains()).toBitSet()));
+                    SATResults.add(new PrecacheSupersetEntry(key, new StationPackingInstance(cacheEntry.getDomains()).toBitSet()));
                 } else if (result.equals(SATResult.UNSAT)) {
                     UNSATResults.add(new StationPackingInstance(cacheEntry.getDomains()).toBitSet());
                 }
@@ -109,7 +104,7 @@ public class RedisCacher implements ICacher {
 
     @Data
     public static class PreCacheInitData {
-        private final List<PreCache.SATBS> SATResults;
+        private final List<PrecacheSupersetEntry> SATResults;
         private final List<BitSet> UNSATResults;
     }
 

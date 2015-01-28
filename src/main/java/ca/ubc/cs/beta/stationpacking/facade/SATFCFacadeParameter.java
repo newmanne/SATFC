@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
 import lombok.Data;
-import ca.ubc.cs.beta.stationpacking.database.ICacherFactory;
+import ca.ubc.cs.beta.stationpacking.cache.ICacherFactory;
 
 @Data
 public class SATFCFacadeParameter {

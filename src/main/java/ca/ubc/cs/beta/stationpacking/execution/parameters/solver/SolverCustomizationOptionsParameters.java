@@ -2,7 +2,7 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.database.ICacherFactory;
+import ca.ubc.cs.beta.stationpacking.cache.ICacherFactory;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 
