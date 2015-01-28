@@ -122,11 +122,11 @@ public class SATFCSolverBundle extends ASolverBundle {
          */
 
         ICacher cacher = null;
-        SubsetCache precache = null;
+        SubsetCache subsetCache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
             final RedisCacher.PreCacheInitData test = cacher.getPreCacheData();
-            precache = new SubsetCache(test.getSATResults(), test.getUNSATResults());
+            subsetCache = new SubsetCache(test.getSATResults(), test.getUNSATResults());
         }
         
         if (solverOptions.isCache()) {
@@ -137,7 +137,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 	          
 	      	// note: only UHF solver gets this decorator!
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-//            UHFsolver = new PreCacheSATDecorator(UHFsolver, precache, cacher);
+//            UHFsolver = new PreCacheSATDecorator(UHFsolver, subsetCache, cacher);
 //	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
             
@@ -192,10 +192,10 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         // check cache
-        if (solverOptions.isCache()) {
-            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, precache);
-            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, precache, cacher);
-        }
+//        if (solverOptions.isCache()) {
+//            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, subsetCache);
+//            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
+//        }
 
         //Save CNFs, if needed.
         if(aCNFDirectory != null)
