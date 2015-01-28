@@ -41,23 +41,6 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
     // hashing function
     private static final HashFunction fHashFuction = Hashing.murmur3_32();
 
-    // METRICS
-    private final static Counter cacheHits = SATFCMetrics.getRegistry().counter(name(ACachingSolverDecorator.class, "cache-hits"));
-    private final static Counter cacheMisses = SATFCMetrics.getRegistry().counter(name(ACachingSolverDecorator.class, "cache-misses"));
-    private final static CacheHitRatio cacheHitRatio = SATFCMetrics.getRegistry().register(name(ACachingSolverDecorator.class, "cache-hit-ratio"), new CacheHitRatio(cacheHits, cacheMisses));
-
-    @RequiredArgsConstructor
-    public static class CacheHitRatio extends RatioGauge {
-
-        private final Counter cacheHits;
-        private final Counter cacheMisses;
-
-        @Override
-        protected Ratio getRatio() {
-            return Ratio.of(cacheHits.getCount(), cacheHits.getCount() + cacheMisses.getCount());
-        }
-    }
-
     /**
      * @param aSolver - decorated ISolver.
      */
@@ -79,12 +62,10 @@ public abstract class ACachingSolverDecorator extends ASolverDecorator {
         if (cachedResult.isPresent()) {
             final CacheEntry cacheEntry = cachedResult.get();
             log.info("Cache hit! Result is " + cacheEntry.getSolverResult().getResult());
-            cacheHits.inc();
             // TODO: think about timeout result stored in cache where you have more time and would rather try anyways
             result = cachedResult.get().getSolverResult();
         } else {
             log.info("Cache miss! Solving");
-            cacheMisses.inc();
             result = super.solve(aInstance, aTerminationCriterion, aSeed);
             if (shouldCache(result)) {
                 final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date(), fInterferenceName);

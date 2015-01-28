@@ -32,33 +32,24 @@ public class SATFCMetrics {
 
     public final static int BLOCK_SIZE = 500;
 
-    @Getter
-    private final static MetricRegistry registry = new MetricRegistry();
-    
-    private final static MetricHandler metricsHandler;
-    private static final EventBus eventBus;
+    private static MetricHandler metricsHandler;
+    private static final EventBus eventBus = new EventBus();
 
-    static {
-    	eventBus = new EventBus();
-    	metricsHandler = new MetricHandler();
-    	eventBus.register(metricsHandler);
+    public static void init() {
+        metricsHandler = new MetricHandler();
+        eventBus.register(metricsHandler);
     }
 
-    public static void report() {
-        final Slf4jReporter reporter = Slf4jReporter.forRegistry(registry)
-                .outputTo(log)
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .build();
-        reporter.report();
-    }
-    
     public static void postEvent(Object event) {
         eventBus.post(event);
     }
     
     public static Collection<InstanceInfo> getMetrics() {
     	return metricsHandler.getMetrics().values();
+    }
+
+    public static void clear() {
+        metricsHandler.clear();
     }
 
     @Data
@@ -95,6 +86,10 @@ public class SATFCMetrics {
 
     	@Getter
         private final Map<String, InstanceInfo> metrics = Maps.newHashMap();
+
+        public void clear() {
+            metrics.clear();
+        }
 
         @Subscribe
         public void onNewStationPackingInstanceEvent(NewStationPackingInstanceEvent event) {
@@ -138,7 +133,4 @@ public class SATFCMetrics {
 
     }
 
-    public static void clear() {
-        metrics.clear();
-    }
 }
