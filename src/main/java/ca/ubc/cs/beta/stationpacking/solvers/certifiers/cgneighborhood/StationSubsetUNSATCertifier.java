@@ -74,7 +74,7 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
 			toPackDomains.put(station, domains.get(station));
 		}
 		
-		StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment());
+		StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getName());
 		
 		watch.stop();
 		SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, terminationCriterion, aSeed);

@@ -2,6 +2,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.SubsetCache;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -36,10 +38,12 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
         final SolverResult result;
         if (subset.isPresent()) {
             log.info("Found a subset in the UNSAT cache - declaring problem UNSAT");
-            watch.stop();
             result = new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUBSET_CACHE));
         } else {
-            result = super.solve(aInstance, aTerminationCriterion, aSeed);
+            final double preTime = watch.getElapsedTime();
+            final SolverResult decoratorResult = super.solve(aInstance, aTerminationCriterion, aSeed);
+            result = SolverResult.addTime(decoratorResult, preTime);
         }
         return result;
     }

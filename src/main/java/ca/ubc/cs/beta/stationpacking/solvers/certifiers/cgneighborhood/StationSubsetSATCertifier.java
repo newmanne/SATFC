@@ -26,9 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -46,10 +44,9 @@ import com.google.common.collect.Sets;
  * to their previous assignment values.
  * @author afrechet
  */
+@Slf4j
 public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
-	private static Logger log = LoggerFactory.getLogger(StationSubsetSATCertifier.class);
-	
 	private final ISolver fSolver;
 	private final ITerminationCriterionFactory fTerminationCriterionFactory;
 	
@@ -108,7 +105,7 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 			log.debug("Missing station and neighborhood: {} .",aToPackStations);
 		}
 		
-		StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment);
+		StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, aInstance.getName());
 		
 		if(!aTerminationCriterion.hasToStop())
 		{

@@ -34,8 +34,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.NoGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;

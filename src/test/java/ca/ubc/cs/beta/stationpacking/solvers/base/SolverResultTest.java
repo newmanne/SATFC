@@ -1,17 +1,17 @@
 package ca.ubc.cs.beta.stationpacking.solvers.base;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import junit.framework.TestCase;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.Test;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 public class SolverResultTest {
 

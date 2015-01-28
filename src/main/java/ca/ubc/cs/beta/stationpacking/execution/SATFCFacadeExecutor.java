@@ -21,33 +21,31 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
-import au.com.bytecode.opencsv.CSVWriter;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.
@@ -91,16 +89,22 @@ public class SATFCFacadeExecutor {
 			
 			SATFCFacade satfc = satfcBuilder.build();
 			// TODO: actual parameter validation for user friendliness
+			long numSolved = 0;
+			int metricFilePart = 1;
+			if (parameters.fOutputFile != null) {
+				SATFCMetrics.init();
+			}
 			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null)
 			{
 				log.info("Reading instances from {}", parameters.fInstanceFile);
 				final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
 				log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
 				final List<String> errorInstanceFileNames = Lists.newArrayList();
-				final Map<String, SATFCResult> instanceToResult = Maps.newHashMap();
+				int index = 0;
 				for (String instanceFileName : instanceFiles)
 				{
 					log.info("Beginning problem {}", instanceFileName);
+					log.info("This is problem {} of {}", ++index, instanceFiles.size());
 					final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
 					try
 					{
@@ -112,30 +116,41 @@ public class SATFCFacadeExecutor {
 						e.printStackTrace();
 						continue;
 					}
+					final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
+
+					SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
+
 					log.info("Solving ...");
 					SATFCResult result = satfc.solve(
-							stationPackingProblemSpecs.getDomains().keySet(),
+							stations,
 							stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
 							stationPackingProblemSpecs.getDomains(),
 							stationPackingProblemSpecs.getPreviousAssignment(),
 							parameters.fInstanceParameters.Cutoff,
 							parameters.fInstanceParameters.Seed,
-							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername());
+							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
+							instanceFileName);
 					log.info("..done!");
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
 					System.out.println(result.getWitnessAssignment());
-					instanceToResult.put(instanceFileName, result);
+
+					SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
+					numSolved++;
+
+					if (parameters.fOutputFile != null && numSolved % SATFCMetrics.BLOCK_SIZE == 0) {
+						metricFilePart = writeMetrics(log, parameters.fOutputFile, metricFilePart);
+						SATFCMetrics.report();
+					}
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
 				if (!errorInstanceFileNames.isEmpty()) {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
 				}
-				if (parameters.fCsvOutputFile != null) {
-					log.info("Logging output to csv: {}", parameters.fCsvOutputFile);
-					final CSVWriter csvWriter = new CSVWriter(new BufferedWriter(new FileWriter(parameters.fCsvOutputFile)));
-					csvWriter.writeAll(instanceToResult.entrySet().stream().map(result -> new String[]{result.getKey(), Double.toString(result.getValue().getRuntime()), result.getValue().getResult().toString()}).collect(Collectors.toList()));
-					csvWriter.close();
+				// finish up the last chunk that we may not have written
+				if (parameters.fOutputFile != null) {
+					writeMetrics(log, parameters.fOutputFile, metricFilePart);
+					SATFCMetrics.report();
 				}
 			} else {
 				// assume SATFC called normally
@@ -147,7 +162,8 @@ public class SATFCFacadeExecutor {
 						parameters.fInstanceParameters.getPreviousAssignment(),
 						parameters.fInstanceParameters.Cutoff,
 						parameters.fInstanceParameters.Seed,
-						parameters.fInstanceParameters.fDataFoldername);
+						parameters.fInstanceParameters.fDataFoldername,
+						StationPackingInstance.UNTITLED);
 
 				log.info("..done!");
 
@@ -175,6 +191,16 @@ public class SATFCFacadeExecutor {
 			t.printStackTrace();
 			System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
 		}
+	}
+
+	private static int writeMetrics(Logger log, String outputFileBaseName, int metricFilePart) throws IOException {
+		final String outputFileName = outputFileBaseName + "_part_" + Integer.toString(metricFilePart) + ".json";
+		log.info("Logging output to file: {}", outputFileName);
+		final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
+		FileUtils.write(new File(outputFileName), json);
+		SATFCMetrics.clear();
+		metricFilePart++;
+		return metricFilePart;
 	}
 
 }

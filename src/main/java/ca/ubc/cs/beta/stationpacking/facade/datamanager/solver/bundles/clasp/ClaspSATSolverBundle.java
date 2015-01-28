@@ -30,8 +30,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ASolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.NoGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;

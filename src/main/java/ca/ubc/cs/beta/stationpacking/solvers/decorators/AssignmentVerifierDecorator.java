@@ -32,7 +32,7 @@ public class AssignmentVerifierDecorator extends ASolverDecorator
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed)
     {
-        SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
+        final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if(result.getResult().equals(SATResult.SAT))
         {
             log.debug("Independently verifying the veracity of returned assignment");

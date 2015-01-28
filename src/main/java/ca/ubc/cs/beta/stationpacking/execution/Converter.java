@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.Set;
 import lombok.Data;
 import lombok.NonNull;
 
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -467,11 +465,11 @@ public class Converter {
 			final StationPackingInstance instance;
 			if(previousAssignment == null)
 			{
-				instance = new StationPackingInstance(domains);
+				instance = new StationPackingInstance(domains, StationPackingInstance.UNTITLED);
 			}
 			else
 			{
-				instance = new StationPackingInstance(domains,previousAssignment);
+				instance = new StationPackingInstance(domains,previousAssignment, StationPackingInstance.UNTITLED);
 			}
 			
 			switch(outType)

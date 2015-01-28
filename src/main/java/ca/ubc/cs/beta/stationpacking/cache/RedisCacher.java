@@ -34,7 +34,7 @@ public class RedisCacher implements ICacher {
     @Override
     public void cacheResult(CacheEntry entry) {
         final String jsonResult = JSONUtils.toString(entry);
-        fJedis.set(getKey(fHasher.hash(new StationPackingInstance(entry.getDomains()))), jsonResult);
+        fJedis.set(getKey(fHasher.hash(new StationPackingInstance(entry.getDomains(), StationPackingInstance.UNTITLED))), jsonResult);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class RedisCacher implements ICacher {
     }
 
     @Override
-	public PreCacheInitData getPreCacheData() {
+	public SubsetCacheInitData getSubsetCacheData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
 		List<PrecacheSupersetEntry> SATResults = new ArrayList<>();
@@ -92,18 +92,18 @@ public class RedisCacher implements ICacher {
 			if (UHFProblem) {
                 final SATResult result = cacheEntry.getSolverResult().getResult();
                 if (result.equals(SATResult.SAT)) {
-                    SATResults.add(new PrecacheSupersetEntry(key, new StationPackingInstance(cacheEntry.getDomains()).toBitSet()));
+                    SATResults.add(new PrecacheSupersetEntry(key, new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet()));
                 } else if (result.equals(SATResult.UNSAT)) {
-                    UNSATResults.add(new StationPackingInstance(cacheEntry.getDomains()).toBitSet());
+                    UNSATResults.add(new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet());
                 }
             }
         });
         log.info("It took {}s to pull precache data from redis. Found {} applicable results. {} SAT and {} UNSAT", (System.currentTimeMillis() - start) / 1000.0 , SATResults.size() + UNSATResults.size(), SATResults.size(), UNSATResults.size());
-        return new PreCacheInitData(SATResults, UNSATResults);
+        return new SubsetCacheInitData(SATResults, UNSATResults);
 	}
 
     @Data
-    public static class PreCacheInitData {
+    public static class SubsetCacheInitData {
         private final List<PrecacheSupersetEntry> SATResults;
         private final List<BitSet> UNSATResults;
     }

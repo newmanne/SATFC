@@ -27,11 +27,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.collect.ImmutableMap;
 
 
 /**

@@ -27,6 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
+
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -144,6 +147,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			
 			if(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))
 			{
+				SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.PRESOLVER));
 				break;
 			}
 		}
@@ -157,7 +161,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		
 		log.debug("Result:");
 		log.debug(combinedResult.toParsableString());
-		
+
 		return combinedResult;
 		
 	}

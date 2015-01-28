@@ -125,7 +125,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         SubsetCache subsetCache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
-//            final RedisCacher.PreCacheInitData test = cacher.getPreCacheData();
+//            final RedisCacher.PreCacheInitData test = cacher.getSubsetCacheData();
 //            subsetCache = new SubsetCache(test.getSATResults(), test.getUNSATResults());
         }
         
@@ -209,7 +209,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (aResultFile != null) {
             log.debug("Decorate solver to save results.");
             UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
-//            VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
+            VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
         }
 
         //Verify results.
