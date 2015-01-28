@@ -16,30 +16,39 @@ import java.util.Date;
  */
 public class CacheResultDecorator extends ASolverDecorator {
 
-    private final static ImmutableList<SATResult> fCacheableResults = ImmutableList.of(SATResult.SAT, SATResult.UNSAT, SATResult.TIMEOUT);
     private final ICacher fCacher;
+    private final CachingStrategy cachingStrategy;
 
     /**
      * @param aSolver - decorated ISolver.
      */
-    public CacheResultDecorator(ISolver aSolver, ICacher aCacher) {
+    public CacheResultDecorator(ISolver aSolver, ICacher aCacher, CachingStrategy cachingStrategy) {
         super(aSolver);
         fCacher = aCacher;
+        this.cachingStrategy = cachingStrategy;
+    }
+
+    public CacheResultDecorator(ISolver aSolver, ICacher aCacher) {
+        this(aSolver, aCacher, new CachingStrategy() {
+        });
     }
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
-        if (shouldCache(result)) {
+        if (cachingStrategy.shouldCache(result)) {
             final CacheEntry cacheEntry = new CacheEntry(result, aInstance.getDomains(), new Date());
             fCacher.cacheResult(cacheEntry);
         }
         return result;
     }
 
-    private boolean shouldCache(SolverResult result) {
-        // No point in caching a killed result or one that we can compute faster than a db lookup
-        return fCacheableResults.contains(result.getResult());
+    public interface CachingStrategy {
+        final static ImmutableList<SATResult> fCacheableResults = ImmutableList.of(SATResult.SAT, SATResult.UNSAT, SATResult.TIMEOUT);
+
+        default boolean shouldCache(SolverResult result) {
+            return fCacheableResults.contains(result.getResult());
+        }
     }
 
 }

@@ -21,7 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
@@ -122,7 +121,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         PreCache precache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
-            final RedisCacher.PreCacheInitData test = cacher.test();
+            final RedisCacher.PreCacheInitData test = cacher.getPreCacheData();
             precache = new PreCache(test.getSATResults(), test.getUNSATResults());
         }
         
@@ -133,7 +132,8 @@ public class SATFCSolverBundle extends ASolverBundle {
 	//          VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
 	          
 	      	// note: only UHF solver gets this decorator!
-	          UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache, cacher);
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache, cacher);
 //	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
 //	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
@@ -183,11 +183,12 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
         
         // cache entire instance
-//        if (solverOptions.isCache()) {
-//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+        if (solverOptions.isCache()) {
+	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
 //	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-//        }
-//
+        }
+
+        // check cache
         if (solverOptions.isCache()) {
             UHFsolver = new PreCache.PreCacheDecorator(UHFsolver, precache, cacher);
         }
@@ -196,7 +197,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (aResultFile != null) {
             log.debug("Decorate solver to save results.");
             UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
-            VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
+//            VHFsolver = new ResultSaverSolverDecorator(VHFsolver, aResultFile);
         }
 
         //Verify results.

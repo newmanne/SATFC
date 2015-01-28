@@ -84,11 +84,12 @@ public class RedisCacher implements ICacher {
     }
 
     @Override
-	public PreCacheInitData test() {
+	public PreCacheInitData getPreCacheData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
 		List<PreCache.SATBS> SATResults = new ArrayList<>();
 		List<BitSet> UNSATResults = new ArrayList<>();
+        // TODO: can prefix keys with UHF or something to speed this up
 		final Set<String> keys = fJedis.keys("*");
 		keys.forEach(key -> {
 			CacheEntry cacheEntry = getSolverResultByKey(key, false).get();

@@ -15,5 +15,5 @@ public interface ICacher {
     Optional<CacheEntry> getSolverResultByKey(String key);
     void cacheResult(CacheEntry entry);
 
-    RedisCacher.PreCacheInitData test();
+    RedisCacher.PreCacheInitData getPreCacheData();
 }
