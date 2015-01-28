@@ -16,9 +16,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.swing.text.html.Option;
 
 /**
  * Created by newmanne on 1/24/15.
@@ -79,19 +83,23 @@ public class PreCache {
     }
 
 
-    private Optional<BitSet> findSuperset(final BitSet bitSet, Collection<BitSet> cachedBitSets) {
+    private Optional<PrecacheSupersetResult> findSuperset(final BitSet bitSet, Collection<BitSet> cachedBitSets) {
         /*
          * Let A = the instance in question and B = a generic cached instance
          * For every station (ie bit), we want to know that if A has the bit set, then B has the bit set
          * This is exactly logical implication (http://en.wikipedia.org/wiki/Truth_table#Logical_implication) and is equivalent to !a||b at the bit level
          */
         final int length = bitSet.length(); // we only need to check as far as 1's exist in the problem we are looking for
-        return cachedBitSets.stream().filter(cachedBitSet -> {
+        // TODO: this will break if you parallelize
+        final AtomicInteger index = new AtomicInteger();
+        Optional<BitSet> superset = cachedBitSets.stream().filter(cachedBitSet -> {
             for (int i = 0; i < length; i++) {
+                index.incrementAndGet();
                 if (bitSet.get(i) && !cachedBitSet.get(i)) return false;
             }
             return true;
         }).findAny();
+        return superset.isPresent() ? Optional.of(new PrecacheSupersetResult(SATKeys.get(index.get()), superset.get())) : Optional.empty();
     }
 
     private Optional<BitSet> findSubset(final BitSet bitSet, Collection<BitSet> cachedBitSets) {
@@ -112,8 +120,14 @@ public class PreCache {
         return findSubset(aBitSet, smallerThanOrEqualTo(aBitSet));
     }
 
-    public Optional<BitSet> findSuperset(final BitSet aBitSet) {
+    public Optional<PrecacheSupersetResult> findSuperset(final BitSet aBitSet) {
         return findSuperset(aBitSet, largerThanOrEqualTo(aBitSet));
+    }
+
+    @Data
+    public static class PrecacheSupersetResult {
+        final String key;
+        final BitSet superset;
     }
 
     public static class PreCacheDecorator extends ASolverDecorator {
@@ -142,10 +156,10 @@ public class PreCache {
                 return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
             }
             // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
-            final Optional<BitSet> superset = preCache.findSuperset(aBitSet);
-            if (superset.isPresent()) {
+            final Optional<PrecacheSupersetResult> supersetResult = preCache.findSuperset(aBitSet);
+            if (supersetResult.isPresent()) {
                 // yay! problem is SAT! Now let's look it up
-                CacheEntry entry = cacher.getSolverResultFromCache();
+                CacheEntry entry = cacher.getSolverResultByKey(supersetResult.get().getKey()).get();
                 
                 // convert the answer to that problem into an answer for this problem
                 final ImmutableMap<Integer, Set<Station>> assignment = entry.getSolverResult().getAssignment();
