@@ -48,7 +48,7 @@ public class SATFCMetrics {
     }
     
     public static Collection<InstanceInfo> getMetrics() {
-    	return metricsHandler.getMetrics();
+    	return metricsHandler.getMetrics().stream().filter(metric -> !metric.getName().contains("component")).collect(Collectors.toList());
     }
 
     public static void clear() {
