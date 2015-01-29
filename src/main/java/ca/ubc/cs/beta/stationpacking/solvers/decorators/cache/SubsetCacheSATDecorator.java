@@ -48,6 +48,7 @@ public class SubsetCacheSATDecorator extends ASolverDecorator {
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
         final Optional<SubsetCache.PrecacheSupersetEntry> supersetResult = subsetCache.findSuperset(aBitSet);
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         final SolverResult result;
         if (supersetResult.isPresent()) {
             log.info("Found a superset in the SAT cache - declaring result SAT");

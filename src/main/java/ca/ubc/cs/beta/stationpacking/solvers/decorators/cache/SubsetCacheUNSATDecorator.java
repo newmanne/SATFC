@@ -35,6 +35,7 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
 
         // test unsat cache - if any subset of the problem is UNSAT, then the whole problem is UNSAT
         final Optional<BitSet> subset = subsetCache.findSubset(aBitSet);
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUBSET, watch.getElapsedTime()));
         final SolverResult result;
         if (subset.isPresent()) {
             log.info("Found a subset in the UNSAT cache - declaring problem UNSAT");

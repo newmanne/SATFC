@@ -36,7 +36,7 @@ public class SubsetCache {
             final int numPermutations = lines.size();
             permutations = new int[numPermutations][N_STATIONS];
             for (int i = 0; i < lines.size(); i++) {
-                final List<String> numbers = Splitter.on(',').splitToList(lines.get(i));
+                final List<String> numbers = Splitter.on(',').trimResults().splitToList(lines.get(i));
                 for (int j = 0; j < numbers.size(); j++) {
                     permutations[i][j] = Integer.valueOf(numbers.get(j));
                 }
@@ -72,7 +72,7 @@ public class SubsetCache {
                 .collect(toImmutableList());
         // binary search return value is positive if the item is found in the list (the index). If it's in one list, it will be in all the lists, so might as well just work with the first
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
-        if (exactMatchIndexInFirstPermutation > 0) {
+        if (exactMatchIndexInFirstPermutation >= 0) {
             return new BitSetResult(SATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation), exactMatchIndexInFirstPermutation, 0);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());
@@ -89,7 +89,7 @@ public class SubsetCache {
                 .mapToObj(permutationIndex -> Collections.binarySearch(UNSATCache.get(permutationIndex), aBitSet, comparators.get(permutationIndex)))
                 .collect(toImmutableList());
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
-        if (exactMatchIndexInFirstPermutation > 0) {
+        if (exactMatchIndexInFirstPermutation >= 0) {
             return UNSATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());

@@ -125,8 +125,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         SubsetCache subsetCache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
-//            final RedisCacher.PreCacheInitData test = cacher.getSubsetCacheData();
-//            subsetCache = new SubsetCache(test.getSATResults(), test.getUNSATResults());
+            final RedisCacher.SubsetCacheInitData subsetCacheInitData = cacher.getSubsetCacheData();
+            subsetCache = new SubsetCache(subsetCacheInitData.getSATResults(), subsetCacheInitData.getUNSATResults());
         }
         
         if (solverOptions.isCache()) {
@@ -136,8 +136,8 @@ public class SATFCSolverBundle extends ASolverBundle {
 	//          VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
 	          
 	      	// note: only UHF solver gets this decorator!
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-//            UHFsolver = new PreCacheSATDecorator(UHFsolver, subsetCache, cacher);
+//            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
 //	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
             
@@ -185,17 +185,18 @@ public class SATFCSolverBundle extends ASolverBundle {
             );
         }
         
-        // cache entire instance
-        if (solverOptions.isCache()) {
-	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-        }
+//        // cache entire instance
+//        if (solverOptions.isCache()) {
+//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+////	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+//        }
 
         // check cache
-//        if (solverOptions.isCache()) {
-//            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, subsetCache);
-//            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
-//        }
+        if (solverOptions.isCache()) {
+            // note that the UNSAT decorator only needs to be done on the instance level, not on the decomposition level
+            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, subsetCache);
+            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
+        }
 
         //Save CNFs, if needed.
         if(aCNFDirectory != null)

@@ -4,10 +4,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.MetricSet;
-import com.codahale.metrics.Slf4jReporter;
+import com.codahale.metrics.*;
 import com.codahale.metrics.jvm.BufferPoolMetricSet;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
@@ -85,6 +82,11 @@ public class SATFCMetrics {
 
     @Data
     public static class TimingEvent {
+        public final static String FIND_SUPERSET = "find_superset";
+        public final static String FIND_SUBSET = "find_subset";
+        public final static String FIND_UNDERCONSTRAINED_STATIONS = "find_underconstrained_stations";
+        public final static String CONNECTED_COMPONENTS = "split_connected_components";
+
         private final String name;
         private final String timedEvent;
         private final double time;
@@ -164,10 +166,10 @@ public class SATFCMetrics {
     }
 
     // codahale metrics for jvm stuff:
-    @Getter
     private final static MetricRegistry registry = new MetricRegistry();
     // log jvm metrics
     public static void report() {
+        log.info("Reporting jvm metrics");
         final Slf4jReporter reporter = Slf4jReporter.forRegistry(registry)
                                 .outputTo(log)
                                 .convertRatesTo(TimeUnit.SECONDS)

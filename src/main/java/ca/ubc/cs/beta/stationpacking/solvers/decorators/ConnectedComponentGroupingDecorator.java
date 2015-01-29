@@ -56,7 +56,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
 
         // Split into groups
         final Set<Set<Station>> stationComponents = fComponentGrouper.group(aInstance, fConstraintManager);
-        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), "splitIntoComponents", watch.getElapsedTime()));
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.CONNECTED_COMPONENTS, watch.getElapsedTime()));
         log.debug("Problem separated in {} groups.", stationComponents.size());
 
         // sort the components in ascending order of size. The idea is that this would decrease runtime if one of the small components was UNSAT

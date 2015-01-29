@@ -75,7 +75,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
 		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains);
 		SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
-		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), "findUnderconstrainedStatoins", watch.getElapsedTime()));
+		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
 
 
 		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
