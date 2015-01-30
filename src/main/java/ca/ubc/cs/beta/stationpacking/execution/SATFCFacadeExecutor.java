@@ -86,6 +86,9 @@ public class SATFCFacadeExecutor {
 			satfcBuilder.setInitializeLogging(true);
 			satfcBuilder.setSolverChoice(parameters.fSolverChoice);
 			satfcBuilder.setCustomizationOptions(parameters.fSolverOptions.getOptions());
+			if (parameters.fCNFDir != null) {
+				satfcBuilder.setCNFDirectory(parameters.fCNFDir);
+			}
 			
 			SATFCFacade satfc = satfcBuilder.build();
 			// TODO: actual parameter validation for user friendliness

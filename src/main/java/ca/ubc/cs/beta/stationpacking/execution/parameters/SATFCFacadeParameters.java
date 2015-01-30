@@ -52,6 +52,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public String fInterferencesFolder;
 	@Parameter(names = "-OUTPUT-FILE", description = "output file summarizing results")
 	public String fOutputFile;
+	@Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
+	public String fCNFDir;
+
 
 	@ParametersDelegate
 	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();
