@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.Getter;
 
 import org.apache.commons.codec.binary.Hex;
@@ -130,6 +132,7 @@ public class StationPackingInstance {
 	// warning: changing this method will completely mess up hashing!
 	@Override
 	public String toString() {
+		final Watch watch = Watch.constructAutoStartWatch();
 		StringBuilder sb = new StringBuilder();
 		int s=1;
 		for(Station station : getStations())
@@ -142,6 +145,7 @@ public class StationPackingInstance {
 			}
 			s++;
 		}
+		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(getName(), SATFCMetrics.TimingEvent.TO_STRING, watch.getElapsedTime()));
 		return sb.toString();
 	}
 	

@@ -86,6 +86,9 @@ public class SATFCMetrics {
         public final static String FIND_SUBSET = "find_subset";
         public final static String FIND_UNDERCONSTRAINED_STATIONS = "find_underconstrained_stations";
         public final static String CONNECTED_COMPONENTS = "split_connected_components";
+        public final static String HASHING = "hashing";
+        public final static String TO_STRING = "to_string";
+
 
         private final String name;
         private final String timedEvent;
