@@ -134,7 +134,7 @@ public class StationPackingInstance {
 		int s=1;
 		for(Station station : getStations())
 		{
-			sb.append(station+":"+StringUtils.join(fDomains.get(station),","));
+			sb.append(station).append(":").append(StringUtils.join(fDomains.get(station), ","));
 			
 			if(s+1<=getStations().size())
 			{
