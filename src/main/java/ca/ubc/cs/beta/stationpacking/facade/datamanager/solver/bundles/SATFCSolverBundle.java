@@ -26,6 +26,7 @@ import java.util.Arrays;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.RetrieveFromCacheSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import org.slf4j.Logger;
@@ -133,12 +134,11 @@ public class SATFCSolverBundle extends ASolverBundle {
 	            // Check the cache - this is at the component level
 	//          log.debug("Decorate solver to check the cache at the component level");
 	//          UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
-	//          VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
-	          
-	      	// note: only UHF solver gets this decorator!
-//            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
-//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+//            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+//            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
         }
             
             
@@ -185,18 +185,18 @@ public class SATFCSolverBundle extends ASolverBundle {
             );
         }
         
-//        // cache entire instance
-//        if (solverOptions.isCache()) {
-//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-////	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-//        }
-
-        // check cache
+        // cache entire instance
         if (solverOptions.isCache()) {
-            // note that the UNSAT decorator only needs to be done on the instance level, not on the decomposition level
-            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, subsetCache);
-            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
+	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
+
+//        // check cache
+//        if (solverOptions.isCache()) {
+//            // note that the UNSAT decorator only needs to be done on the instance level, not on the decomposition level
+//            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, subsetCache);
+//            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher);
+//        }
 
         //Save CNFs, if needed.
         if(aCNFDirectory != null)
