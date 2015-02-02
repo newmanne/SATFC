@@ -126,8 +126,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         SubsetCache subsetCache = null;
         if (solverOptions.isCache()) {
         	cacher = solverOptions.getCacherFactory().createrCacher();
-            final RedisCacher.SubsetCacheInitData subsetCacheInitData = cacher.getSubsetCacheData();
-            subsetCache = new SubsetCache(subsetCacheInitData.getSATResults(), subsetCacheInitData.getUNSATResults());
+//            final RedisCacher.SubsetCacheInitData subsetCacheInitData = cacher.getSubsetCacheData();
+//            subsetCache = new SubsetCache(subsetCacheInitData.getSATResults(), subsetCacheInitData.getUNSATResults());
         }
         
         if (solverOptions.isCache()) {

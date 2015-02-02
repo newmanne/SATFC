@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.SubsetCache.PrecacheSupersetEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
@@ -13,11 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -32,9 +29,9 @@ public class RedisCacher implements ICacher {
     private final String INTERFERENCE_NAME = "021814SC3M";
     
     @Override
-    public void cacheResult(CacheEntry entry) {
+    public void cacheResult(StationPackingInstance instance, CacheEntry entry) {
         final String jsonResult = JSONUtils.toString(entry);
-        fJedis.set(getKey(fHasher.hash(new StationPackingInstance(entry.getDomains(), StationPackingInstance.UNTITLED))), jsonResult);
+        fJedis.set(getKey(fHasher.hash(instance)), jsonResult);
     }
 
     @Override
@@ -62,6 +59,8 @@ public class RedisCacher implements ICacher {
 	public Optional<CacheEntry> getSolverResultByKey(String key) {
         return getSolverResultByKey(key, true);
     }
+
+
 
     public Optional<CacheEntry> getSolverResultByKey(String key, boolean shouldLog) {
         if (shouldLog) {
