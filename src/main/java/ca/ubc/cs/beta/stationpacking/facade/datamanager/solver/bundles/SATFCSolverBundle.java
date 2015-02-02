@@ -133,12 +133,12 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (solverOptions.isCache()) {
 	            // Check the cache - this is at the component level
 	//          log.debug("Decorate solver to check the cache at the component level");
-	//          UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
 
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+//            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
 //            UHFsolver = new SubsetCacheSATDecorator(UHFsolver, subsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-//            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
+            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
+            UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
         }
             
             
@@ -185,11 +185,11 @@ public class SATFCSolverBundle extends ASolverBundle {
             );
         }
         
-        // cache entire instance
-        if (solverOptions.isCache()) {
-	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-        }
+//        // cache entire instance
+//        if (solverOptions.isCache()) {
+//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+//        }
 
 //        // check cache
 //        if (solverOptions.isCache()) {
