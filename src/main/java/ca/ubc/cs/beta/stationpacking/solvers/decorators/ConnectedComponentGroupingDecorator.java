@@ -38,15 +38,21 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
 
     private final IComponentGrouper fComponentGrouper;
     private final IConstraintManager fConstraintManager;
+    private final boolean fSolveEverything;
 
     /**
-     * @param aSolver           - decorated ISolver.
+     * @param aSolveEverything if true, solve every component, even when you know the problem is logically finished. (Used for caching results)
      * @param aComponentGrouper
      */
-    public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManager) {
+    public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManager, boolean aSolveEverything) {
         super(aSolver);
         fComponentGrouper = aComponentGrouper;
         fConstraintManager = aConstraintManager;
+        fSolveEverything = aSolveEverything;
+    }
+
+    public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManger) {
+        this(aSolver, aComponentGrouper, aConstraintManger, false);
     }
 
     @Override
@@ -89,7 +95,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
                 SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult.getResult(), componentResult.getRuntime()));
                 solverResults.put(id, componentResult);
-                return !componentResult.getResult().equals(SATResult.SAT);
+                return !componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything;
             });
         watch.stop();
         final SolverResult result = SolverHelper.mergeComponentResults(solverResults.values(), watch.getElapsedTime());
