@@ -13,6 +13,8 @@ import com.google.common.collect.Maps;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
+import com.google.common.eventbus.SubscriberExceptionContext;
+import com.google.common.eventbus.SubscriberExceptionHandler;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -32,10 +34,18 @@ public class SATFCMetrics {
     public final static int BLOCK_SIZE = 500;
 
     private static MetricHandler metricsHandler;
-    private static final EventBus eventBus = new EventBus();
+    private static EventBus eventBus;
 
     public static void init() {
         metricsHandler = new MetricHandler();
+        eventBus = new EventBus(new SubscriberExceptionHandler() {
+
+            @Override
+            public void handleException(Throwable exception,
+                                        SubscriberExceptionContext context) {
+                log.error("Could not dispatch event: " + context.getSubscriber() + " to " + context.getSubscriberMethod(), exception);
+            }
+        });
         eventBus.register(metricsHandler);
         registerAll("gc", new GarbageCollectorMetricSet(), registry);
         registerAll("buffers", new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer()), registry);
@@ -86,6 +96,9 @@ public class SATFCMetrics {
         public final static String FIND_SUBSET = "find_subset";
         public final static String FIND_UNDERCONSTRAINED_STATIONS = "find_underconstrained_stations";
         public final static String CONNECTED_COMPONENTS = "split_connected_components";
+        public final static String HASHING = "hashing";
+        public final static String TO_STRING = "to_string";
+
 
         private final String name;
         private final String timedEvent;
