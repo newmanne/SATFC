@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -104,7 +105,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("Cleaning up...");
     
             SolverResult solverResult = new SolverResult(satSolverResult.getResult(), satSolverResult.getRuntime(), aStationAssignment);
-    
+            
             watch.stop();
             double extraTime = watch.getElapsedTime();
             solverResult = SolverResult.addTime(solverResult, extraTime);
@@ -112,6 +113,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("Result:");
             log.debug(solverResult.toParsableString());
     
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CLASP, solverResult.getResult()));
             return solverResult;
         }
     }

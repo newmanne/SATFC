@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.SubsetCache;
+import ca.ubc.cs.beta.stationpacking.cache.SupersetSubsetCache;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -20,11 +20,11 @@ import java.util.Optional;
 */
 @Slf4j
 public class SubsetCacheUNSATDecorator extends ASolverDecorator {
-    private final SubsetCache subsetCache;
+    private final SupersetSubsetCache supersetSubsetCache;
 
-    public SubsetCacheUNSATDecorator(ISolver aSolver, SubsetCache aSubsetCache) {
+    public SubsetCacheUNSATDecorator(ISolver aSolver, SupersetSubsetCache aSupersetSubsetCache) {
         super(aSolver);
-        this.subsetCache = aSubsetCache;
+        this.supersetSubsetCache = aSupersetSubsetCache;
     }
 
     @Override
@@ -34,13 +34,13 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
         final BitSet aBitSet = aInstance.toBitSet();
 
         // test unsat cache - if any subset of the problem is UNSAT, then the whole problem is UNSAT
-        final Optional<BitSet> subset = subsetCache.findSubset(aBitSet);
+        final Optional<BitSet> subset = supersetSubsetCache.findSubset(aBitSet);
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUBSET, watch.getElapsedTime()));
         final SolverResult result;
         if (subset.isPresent()) {
             log.info("Found a subset in the UNSAT cache - declaring problem UNSAT");
             result = new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
-            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUBSET_CACHE));
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUBSET_CACHE, result.getResult()));
         } else {
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratorResult = super.solve(aInstance, aTerminationCriterion, aSeed);

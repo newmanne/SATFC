@@ -18,7 +18,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableLis
  * Created by newmanne on 1/24/15.
  */
 @Slf4j
-public class SubsetCache {
+public class SupersetSubsetCache {
 
     final List<List<BitSet>> UNSATCache;
     final List<List<PrecacheSupersetEntry>> SATCache;
@@ -29,7 +29,7 @@ public class SubsetCache {
     final int[][] permutations;
     final int N_STATIONS = 2173;
 
-    public SubsetCache(List<PrecacheSupersetEntry> SATData, List<BitSet> UNSATData) {
+    public SupersetSubsetCache(List<PrecacheSupersetEntry> SATData, List<BitSet> UNSATData) {
         // init permutation
         try {
             final List<String> lines = Resources.readLines(Resources.getResource("precache_permutations.txt"), Charsets.UTF_8);
@@ -73,10 +73,10 @@ public class SubsetCache {
         // binary search return value is positive if the item is found in the list (the index). If it's in one list, it will be in all the lists, so might as well just work with the first
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
         if (exactMatchIndexInFirstPermutation >= 0) {
-            return new BitSetResult(SATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation), exactMatchIndexInFirstPermutation, 0);
+            return new BitSetResult(SATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation + 1), exactMatchIndexInFirstPermutation, 0);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());
-            log.info("Insertion indices are {}", insertionIndices);
+            log.trace("Insertion indices are {}", insertionIndices);
             final int bestInsertionPoint = Collections.max(insertionIndices);
             final int bestPermutation = insertionIndices.indexOf(bestInsertionPoint);
             return new BitSetResult(SATCache.get(bestPermutation).subList(bestInsertionPoint, SATCache.get(bestPermutation).size()), bestInsertionPoint, bestPermutation);
@@ -90,10 +90,10 @@ public class SubsetCache {
                 .collect(toImmutableList());
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
         if (exactMatchIndexInFirstPermutation >= 0) {
-            return UNSATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation);
+            return UNSATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation + 1);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());
-            log.info("Insertion indices are {}", insertionIndices);
+            log.trace("Insertion indices are {}", insertionIndices);
             final int bestInsertionPoint = Collections.min(insertionIndices);
             final int bestPermutation = insertionIndices.indexOf(bestInsertionPoint);
             return UNSATCache.get(bestPermutation).subList(0, bestInsertionPoint);

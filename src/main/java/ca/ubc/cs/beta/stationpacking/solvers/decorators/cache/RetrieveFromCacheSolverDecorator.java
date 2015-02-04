@@ -38,8 +38,8 @@ public class RetrieveFromCacheSolverDecorator extends ASolverDecorator {
         if (cachedResult.isPresent()) {
             final CacheEntry cacheEntry = cachedResult.get();
             log.info("Cache hit! Result is " + cacheEntry.getSolverResult().getResult());
-            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.CACHE_HIT));
             final SolverResult cachedSolverResult = cacheEntry.getSolverResult();
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.CACHE_HIT, cachedSolverResult.getResult()));
             result = new SolverResult(cachedSolverResult.getResult(), watch.getElapsedTime(), cachedSolverResult.getAssignment());
         } else {
             log.info("Cache miss! Solving");

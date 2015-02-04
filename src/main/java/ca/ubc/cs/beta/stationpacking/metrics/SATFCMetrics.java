@@ -2,7 +2,9 @@ package ca.ubc.cs.beta.stationpacking.metrics;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 
 import com.codahale.metrics.*;
 import com.codahale.metrics.jvm.BufferPoolMetricSet;
@@ -12,9 +14,9 @@ import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-
 import com.google.common.eventbus.SubscriberExceptionContext;
 import com.google.common.eventbus.SubscriberExceptionHandler;
+
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SATFCMetrics {
 
-    public final static int BLOCK_SIZE = 500;
-
-    private static MetricHandler metricsHandler;
+	private static MetricHandler metricsHandler;
     private static EventBus eventBus;
 
     public static void init() {
@@ -57,8 +57,8 @@ public class SATFCMetrics {
         eventBus.post(event);
     }
     
-    public static Collection<InstanceInfo> getMetrics() {
-    	return metricsHandler.getMetrics().stream().filter(metric -> !metric.getName().contains("component")).collect(Collectors.toList());
+    public static InstanceInfo getMetrics() {
+    	return metricsHandler.getMetrics();
     }
 
     public static void clear() {
@@ -98,6 +98,7 @@ public class SATFCMetrics {
         public final static String CONNECTED_COMPONENTS = "split_connected_components";
         public final static String HASHING = "hashing";
         public final static String TO_STRING = "to_string";
+		public final static String BEST_CASE_PARALLEL_SOLVE_TIME = "best_case_parallel_solve_time";
 
 
         private final String name;
@@ -110,10 +111,21 @@ public class SATFCMetrics {
         public final static String PRESOLVER = "presolver";
         public final static String CACHE_HIT = "cache_hit";
         public final static String SUBSET_CACHE = "subset_cache";
+        public final static String SUPERSET_CACHE = "superset_cache";
+        public static final String CLASP = "clasp";
 
         private final String name;
         private final String solvedBy;
+        private final SATResult result;
     }
+    
+    @Data
+    public static class ComponentsSolvedEvent {
+    	private final String name;
+    	private final Collection<SolverResult> solverResults;
+    	private final SATResult result;
+	}
+
 
     public static class MetricHandler {
 
@@ -123,8 +135,8 @@ public class SATFCMetrics {
             metrics.clear();
         }
         
-        public Collection<InstanceInfo> getMetrics() {
-        	return metrics.values();
+        public InstanceInfo getMetrics() {
+        	return metrics.values().iterator().next();
         }
 
         @Subscribe
@@ -164,7 +176,9 @@ public class SATFCMetrics {
 
         @Subscribe
         public void onSolvedByEvent(SolvedByEvent event) {
-            metrics.get(event.getName()).setSolvedBy(event.getSolvedBy());
+            if (event.getResult().equals(SATResult.SAT) || event.getResult().equals(SATResult.UNSAT)) {
+                metrics.get(event.getName()).setSolvedBy(event.getSolvedBy());
+            }
         }
 
         @Subscribe
@@ -174,6 +188,17 @@ public class SATFCMetrics {
                 instanceInfo.setTimingInfo(Maps.newHashMap());
             }
             instanceInfo.getTimingInfo().put(event.getTimedEvent(), event.getTime());
+        }
+        
+        @Subscribe
+        public void onComponentsSolvedEvent(ComponentsSolvedEvent event) {
+        	if (event.getResult().equals(SATResult.SAT)) {
+        		double time = event.getSolverResults().stream().mapToDouble(SolverResult::getRuntime).max().getAsDouble();
+        		SATFCMetrics.postEvent(new TimingEvent(event.getName(), TimingEvent.BEST_CASE_PARALLEL_SOLVE_TIME, time));
+        	} else if (event.getResult().equals(SATResult.UNSAT)) {
+        		double time = event.getSolverResults().stream().mapToDouble(SolverResult::getRuntime).min().getAsDouble();
+        		SATFCMetrics.postEvent(new TimingEvent(event.getName(), TimingEvent.BEST_CASE_PARALLEL_SOLVE_TIME, time));
+        	}
         }
         
     }

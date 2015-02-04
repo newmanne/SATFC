@@ -41,14 +41,14 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
     private final boolean fSolveEverything;
 
     /**
-     * @param aSolveEverything if true, solve every component, even when you know the problem is logically finished. (Used for caching results)
+     * @param aSolveEverythingForCaching if true, solve every component, even when you know the problem is logically finished. (Used for caching results)
      * @param aComponentGrouper
      */
-    public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManager, boolean aSolveEverything) {
+    public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManager, boolean aSolveEverythingForCaching) {
         super(aSolver);
         fComponentGrouper = aComponentGrouper;
         fConstraintManager = aConstraintManager;
-        fSolveEverything = aSolveEverything;
+        fSolveEverything = aSolveEverythingForCaching;
     }
 
     public ConnectedComponentGroupingDecorator(ISolver aSolver, IComponentGrouper aComponentGrouper, IConstraintManager aConstraintManger) {
@@ -85,6 +85,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
 
         final AtomicInteger idTracker = new AtomicInteger();
         final Map<Integer, SolverResult> solverResults = Maps.newLinkedHashMap();
+        watch.stop();
         componentInstances.stream()
             // Note that anyMatch is a short-circuiting operation
             // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
@@ -97,8 +98,9 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 solverResults.put(id, componentResult);
                 return !componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything;
             });
-        watch.stop();
-        final SolverResult result = SolverHelper.mergeComponentResults(solverResults.values(), watch.getElapsedTime());
+        SolverResult result = SolverHelper.mergeComponentResults(solverResults.values());
+        result = SolverResult.addTime(result, watch.getElapsedTime());
+        SATFCMetrics.postEvent(new SATFCMetrics.ComponentsSolvedEvent(aInstance.getName(), solverResults.values(), result.getResult()));
         
         if (result.getResult() == SATResult.SAT)
         {

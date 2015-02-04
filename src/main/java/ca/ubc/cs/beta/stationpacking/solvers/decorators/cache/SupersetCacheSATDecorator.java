@@ -4,7 +4,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.SubsetCache;
+import ca.ubc.cs.beta.stationpacking.cache.SupersetSubsetCache;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -29,14 +29,14 @@ import java.util.Set;
 * Created by newmanne on 28/01/15.
 */
 @Slf4j
-public class SubsetCacheSATDecorator extends ASolverDecorator {
+public class SupersetCacheSATDecorator extends ASolverDecorator {
 
-    private final SubsetCache subsetCache;
+    private final SupersetSubsetCache supersetSubsetCache;
     private final ICacher cacher;
 
-    public SubsetCacheSATDecorator(ISolver aSolver, SubsetCache subsetCache, ICacher cacher) {
+    public SupersetCacheSATDecorator(ISolver aSolver, SupersetSubsetCache supersetSubsetCache, ICacher cacher) {
         super(aSolver);
-        this.subsetCache = subsetCache;
+        this.supersetSubsetCache = supersetSubsetCache;
         this.cacher = cacher;
     }
 
@@ -47,7 +47,7 @@ public class SubsetCacheSATDecorator extends ASolverDecorator {
         final BitSet aBitSet = aInstance.toBitSet();
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
-        final Optional<SubsetCache.PrecacheSupersetEntry> supersetResult = subsetCache.findSuperset(aBitSet);
+        final Optional<SupersetSubsetCache.PrecacheSupersetEntry> supersetResult = supersetSubsetCache.findSuperset(aBitSet);
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         final SolverResult result;
         if (supersetResult.isPresent()) {
@@ -70,7 +70,7 @@ public class SubsetCacheSATDecorator extends ASolverDecorator {
             }
 
             result = new SolverResult(SATResult.SAT, watch.getElapsedTime(), reducedAssignment);
-            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUBSET_CACHE));
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUPERSET_CACHE, result.getResult()));
         } else {
             // perhaps we can still find a good place to start a local search by finding a min-hamming distance element in the SAT cache, but this is still a TODO:
             final double preTime = watch.getElapsedTime();

@@ -92,9 +92,8 @@ public class SATFCFacadeExecutor {
 			
 			SATFCFacade satfc = satfcBuilder.build();
 			// TODO: actual parameter validation for user friendliness
-			long numSolved = 0;
-			int metricFilePart = 1;
-			if (parameters.fOutputFile != null) {
+			final File metricsFile = parameters.fOutputFile != null ? new File(parameters.fOutputFile) : null;
+			if (metricsFile != null) {
 				SATFCMetrics.init();
 			}
 			if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null)
@@ -139,22 +138,18 @@ public class SATFCFacadeExecutor {
 					System.out.println(result.getWitnessAssignment());
 
 					SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
-					numSolved++;
-
-					if (parameters.fOutputFile != null && numSolved % SATFCMetrics.BLOCK_SIZE == 0) {
-						metricFilePart = writeMetrics(log, parameters.fOutputFile, metricFilePart);
+					if (index % 500 == 0) {
 						SATFCMetrics.report();
+					}
+					if (metricsFile != null) {
+						writeMetrics(metricsFile);
 					}
 				}
 				log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
 				if (!errorInstanceFileNames.isEmpty()) {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
 				}
-				// finish up the last chunk that we may not have written
-				if (parameters.fOutputFile != null) {
-					writeMetrics(log, parameters.fOutputFile, metricFilePart);
-					SATFCMetrics.report();
-				}
+				SATFCMetrics.report();
 			} else {
 				// assume SATFC called normally
 				log.info("Solving ...");
@@ -196,14 +191,10 @@ public class SATFCFacadeExecutor {
 		}
 	}
 
-	private static int writeMetrics(Logger log, String outputFileBaseName, int metricFilePart) throws IOException {
-		final String outputFileName = outputFileBaseName + "_part_" + Integer.toString(metricFilePart) + ".json";
-		log.info("Logging output to file: {}", outputFileName);
-		final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
-		FileUtils.write(new File(outputFileName), json);
+	private static void writeMetrics(File metricsFile) throws IOException {
+		final String json = JSONUtils.toString(SATFCMetrics.getMetrics()) + System.lineSeparator();
+		Files.append(json, metricsFile, Charsets.UTF_8);
 		SATFCMetrics.clear();
-		metricFilePart++;
-		return metricFilePart;
 	}
 
 }

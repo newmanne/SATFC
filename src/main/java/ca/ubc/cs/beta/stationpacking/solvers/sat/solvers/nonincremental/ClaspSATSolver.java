@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
@@ -267,7 +268,7 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		log.debug("Cancelling suicide future.");
 		suicideFuture.cancel(true);
 		
-		final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment); 
+		final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment);
 		log.trace("Returning result: {}.",output);
 		return output;
 	}

@@ -1,9 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.SubsetCache.PrecacheSupersetEntry;
+import ca.ubc.cs.beta.stationpacking.cache.SupersetSubsetCache.PrecacheSupersetEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
@@ -31,7 +30,9 @@ public class RedisCacher implements ICacher {
     @Override
     public void cacheResult(StationPackingInstance instance, CacheEntry entry) {
         final String jsonResult = JSONUtils.toString(entry);
-        fJedis.set(getKey(fHasher.hash(instance)), jsonResult);
+        final String key = getKey(fHasher.hash(instance));
+        fJedis.set(key, jsonResult);
+        log.info("Adding result " + instance.getName() + " to cache with key " + key);
     }
 
     @Override
