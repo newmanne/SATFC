@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -45,6 +45,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IdentityBijecti
  * 
  * @author afrechet
  */
+@Slf4j
 public class SATEncoder implements ISATEncoder {
 	
 	private final IConstraintManager fConstraintManager;
@@ -61,7 +62,37 @@ public class SATEncoder implements ISATEncoder {
 		
 		fBijection = aBijection;
 	}
-	
+
+    public CNFEncodedProblem encodeWithAssignment(StationPackingInstance aInstance) {
+        Pair<CNF,ISATDecoder> enconding = encode(aInstance);
+        /**
+         * Generate the starting values of the variables based on the prevoius assignment information: if a station was
+         * assigned to a channel, then the corresponding variable is set to true. Otherwise, false. This might not result
+         * in a file with a value for every variable. Presumably whoever uses this can do something sensible with the rest,
+         * typically random assignment.
+         */
+
+        final Map<Long, Boolean> initialAssignment = new LinkedHashMap<>();
+        aInstance.getDomains().entrySet().forEach(entry -> {
+            final Station station = entry.getKey();
+            if (aInstance.getPreviousAssignment().containsKey(station)) {
+                final Set<Integer> domain = entry.getValue();
+                domain.forEach(channel -> {
+                    long varId = fBijection.map(SATEncoderUtils.SzudzikElegantPairing(station.getID(), channel));
+                    boolean startingValue = aInstance.getPreviousAssignment().get(station).equals(channel);
+                    initialAssignment.put(varId, startingValue);
+                });
+            }
+        });
+        return new CNFEncodedProblem(enconding.getFirst(), enconding.getSecond(), initialAssignment);
+    }
+
+    @Data
+    public static class CNFEncodedProblem {
+        private final CNF cnf;
+        private final ISATDecoder decoder;
+        private final Map<Long, Boolean> initialAssignment;
+    }
 	
 	@Override
 	public Pair<CNF,ISATDecoder> encode(StationPackingInstance aInstance){
@@ -83,7 +114,7 @@ public class SATEncoder implements ISATEncoder {
 		{
 			stationMap.put(station.getID(), station);
 		}
-		
+
 		//Create the decoder
 		ISATDecoder aDecoder = new ISATDecoder() {
 			@Override

@@ -41,10 +41,6 @@ public interface ISATEncoder {
 	 * @return a SAT CNF representation of the problem instance. 
 	 */
 	public Pair<CNF,ISATDecoder> encode(StationPackingInstance aInstance);
-	
-	
-	
-	
 
 	
 	

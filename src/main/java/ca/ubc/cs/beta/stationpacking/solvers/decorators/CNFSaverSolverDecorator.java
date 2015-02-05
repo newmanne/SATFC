@@ -23,7 +23,10 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
+import com.google.common.base.Joiner;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.util.Pair;
 
@@ -73,9 +76,9 @@ public class CNFSaverSolverDecorator extends ASolverDecorator
 	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed)
 	{
 		//Encode instance.
-		ISATEncoder aSATEncoder = new SATCompressor(fConstraintManager);
-		Pair<CNF,ISATDecoder> aEncoding = aSATEncoder.encode(aInstance);
-		CNF aCNF = aEncoding.getKey();
+        SATCompressor aSATEncoder = new SATCompressor(fConstraintManager);
+		SATEncoder.CNFEncodedProblem aEncoding = aSATEncoder.encodeWithAssignment(aInstance);
+		CNF aCNF = aEncoding.getCnf();
 		
 		//Create comments
 		String[] comments = new String[]{
@@ -86,12 +89,19 @@ public class CNFSaverSolverDecorator extends ASolverDecorator
 		
 		
 		//Save instance to file.
-		String aCNFFilename = fCNFDirectory+File.separator+aInstance.getHashString()+".cnf";
+		final String aCNFFilenameBase = fCNFDirectory+File.separator+aInstance.getHashString();
 		try {
+            // write cnf file
 			FileUtils.writeStringToFile(
-					new File(aCNFFilename),
+					new File(aCNFFilenameBase + ".cnf"),
 					aCNF.toDIMACS(comments)
 					);
+            // write previous assignment file
+            FileUtils.writeStringToFile(
+                    new File(aCNFFilenameBase + "_assignment.txt"),
+                    Joiner.on(System.lineSeparator()).join(aEncoding.getInitialAssignment().entrySet().stream()
+                            .map(entry -> entry.getKey() + " " + (entry.getValue() ? 1 : 0)).collect(Collectors.toList()))
+            );
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalStateException("Could not write CNF to file.");

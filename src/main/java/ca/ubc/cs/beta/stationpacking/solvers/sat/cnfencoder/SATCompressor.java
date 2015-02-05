@@ -56,9 +56,11 @@ public class SATCompressor implements ISATEncoder {
 		return aEncoding;
 		
 	}
-	
-	
-	
 
-	
+    public SATEncoder.CNFEncodedProblem encodeWithAssignment(StationPackingInstance aInstance) {
+        SATEncoder aSATEncoder = new SATEncoder(fConstraintManager,new CompressionBijection<Long>());
+        SATEncoder.CNFEncodedProblem aEncoding = aSATEncoder.encodeWithAssignment(aInstance);
+        return aEncoding;
+
+    }
 }
