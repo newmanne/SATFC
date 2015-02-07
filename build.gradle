@@ -128,11 +128,6 @@ version = "1.2-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
-//startScripts.enabled = false
-//run.enabled = false
-//createScript(project, 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor', 'SATFCC')
-
-
 //License.
 license {
 	ext.name = applicationName
