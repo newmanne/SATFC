@@ -24,10 +24,14 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.Arrays;
 
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +118,22 @@ public class SATFCSolverBundle extends ASolverBundle {
         final double UNSATcertifiercutoff = 5;
         final double SATcertifiercutoff = 5;
 
-        ISolver UHFsolver = UHFClaspBasedSolver;
+        ISolver UHFsolver = new ISolver() {
+            @Override
+            public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+                return new SolverResult(SATResult.TIMEOUT, 60.0);
+            }
+
+            @Override
+            public void interrupt() throws UnsupportedOperationException {
+
+            }
+
+            @Override
+            public void notifyShutdown() {
+
+            }
+        };;
         ISolver VHFsolver = VHFClaspBasedSolver;
 
         /**
