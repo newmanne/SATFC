@@ -1,5 +1,5 @@
 /**
- * Copyright 2014, Auctionomics, Alexandre Fréchette, Kevin Leyton-Brown.
+ * Copyright 2014, Auctionomics, Alexandre FrÃ©chette, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -21,22 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.Arrays;
-
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.SupersetSubsetCache;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -45,16 +32,22 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -115,25 +108,9 @@ public class SATFCSolverBundle extends ASolverBundle {
         ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         //Chain pre-solving and main solver.
-        final double UNSATcertifiercutoff = 5;
         final double SATcertifiercutoff = 5;
 
-        ISolver UHFsolver = new ISolver() {
-            @Override
-            public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-                return new SolverResult(SATResult.TIMEOUT, 60.0);
-            }
-
-            @Override
-            public void interrupt() throws UnsupportedOperationException {
-
-            }
-
-            @Override
-            public void notifyShutdown() {
-
-            }
-        };;
+        ISolver UHFsolver = UHFClaspBasedSolver;
         ISolver VHFsolver = VHFClaspBasedSolver;
 
         /**
@@ -143,48 +120,17 @@ public class SATFCSolverBundle extends ASolverBundle {
         ICacher cacher = null;
         SupersetSubsetCache supersetSubsetCache = null;
         if (solverOptions.isCache()) {
-        	cacher = solverOptions.getCacherFactory().createrCacher();
+            cacher = solverOptions.getCacherFactory().createrCacher();
             final RedisCacher.SubsetCacheInitData subsetCacheInitData = cacher.getSubsetCacheData();
             supersetSubsetCache = new SupersetSubsetCache(subsetCacheInitData.getSATResults(), subsetCacheInitData.getUNSATResults());
         }
-        
-        if (solverOptions.isCache()) {
-	            // Check the cache - this is at the component level
-	//          log.debug("Decorate solver to check the cache at the component level");
 
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-//            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-//            VHFsolver = new RetrieveFromCacheSolverDecorator(VHFsolver, cacher);
-//            UHFsolver = new RetrieveFromCacheSolverDecorator(UHFsolver, cacher);
-        }
-            
-            
-        if (solverOptions.isDecompose())
-        {
-            // Split into components
-            IComponentGrouper aGrouper = new ConstraintGrouper();
-            log.debug("Decorate solver to split the graph into connected components and then merge the results");
-            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager(), true);
-            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager(), true);
-        }
-
-        if (solverOptions.isUnderconstrained())
-        {
-            //Remove unconstrained stations.
-            log.debug("Decorate solver to first remove underconstrained stations.");
-            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
-        }
-
-        if (solverOptions.isPresolve())
-        {
+        if (solverOptions.isPresolve()) {
             log.debug("Adding neighborhood presolvers.");
             UHFsolver = new SequentialSolversComposite(
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
-                                            new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
                                             new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
                                     )),
                             UHFsolver
@@ -195,7 +141,6 @@ public class SATFCSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
-                                            new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
                                             new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
                                     )),
                             VHFsolver
@@ -203,22 +148,39 @@ public class SATFCSolverBundle extends ASolverBundle {
             );
         }
 
-//        // cache entire instance
-//        if (solverOptions.isCache()) {
-//	      	UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
-//	      	VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
-//        }
-
-        // check cache
         if (solverOptions.isCache()) {
-            // note that the UNSAT decorator only needs to be done on the instance level, not on the decomposition level
-            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, supersetSubsetCache);
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher);
+            // Check the cache - this is at the component level
+            //          log.debug("Decorate solver to check the cache at the component level");
+
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
+        }
+
+
+        if (solverOptions.isDecompose()) {
+            // Split into components
+            IComponentGrouper aGrouper = new ConstraintGrouper();
+            log.debug("Decorate solver to split the graph into connected components and then merge the results");
+            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager(), true);
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager(), true);
+        }
+
+        if (solverOptions.isUnderconstrained()) {
+            //Remove unconstrained stations.
+            log.debug("Decorate solver to first remove underconstrained stations.");
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+        }
+
+        // cache entire instance
+        if (solverOptions.isCache()) {
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            VHFsolver = new CacheResultDecorator(VHFsolver, cacher);
         }
 
         //Save CNFs, if needed.
-        if(aCNFDirectory != null)
-        {
+        if (aCNFDirectory != null) {
             log.debug("Decorate solver to save CNFs.");
             UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
             VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
