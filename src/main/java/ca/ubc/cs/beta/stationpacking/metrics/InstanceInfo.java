@@ -26,5 +26,6 @@ public class InstanceInfo {
     private List<InstanceInfo> components = Lists.newArrayList();
     private String solvedBy;
     private Map<String, Double> timingInfo;
+    private String cacheResultUsed;
 
 }

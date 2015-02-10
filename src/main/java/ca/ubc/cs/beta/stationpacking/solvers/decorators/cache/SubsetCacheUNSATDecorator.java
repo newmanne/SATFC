@@ -34,13 +34,14 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
         final BitSet aBitSet = aInstance.toBitSet();
 
         // test unsat cache - if any subset of the problem is UNSAT, then the whole problem is UNSAT
-        final Optional<BitSet> subset = supersetSubsetCache.findSubset(aBitSet);
+        final Optional<SupersetSubsetCache.PrecacheEntry> subset = supersetSubsetCache.findSubset(aBitSet);
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUBSET, watch.getElapsedTime()));
         final SolverResult result;
         if (subset.isPresent()) {
             log.info("Found a subset in the UNSAT cache - declaring problem UNSAT");
             result = new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
             SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUBSET_CACHE, result.getResult()));
+            SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), subset.get().getKey()));
         } else {
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratorResult = super.solve(aInstance, aTerminationCriterion, aSeed);

@@ -126,6 +126,12 @@ public class SATFCMetrics {
     	private final SATResult result;
 	}
 
+    @Data
+    public static class JustifiedByCacheEvent {
+        private final String name;
+        private final String key;
+    }
+
 
     public static class MetricHandler {
 
@@ -199,6 +205,11 @@ public class SATFCMetrics {
         		double time = event.getSolverResults().stream().mapToDouble(SolverResult::getRuntime).min().getAsDouble();
         		SATFCMetrics.postEvent(new TimingEvent(event.getName(), TimingEvent.BEST_CASE_PARALLEL_SOLVE_TIME, time));
         	}
+        }
+
+        @Subscribe
+        public void onJustifiedByCacheEvent(JustifiedByCacheEvent event) {
+            metrics.get(event.getName()).setCacheResultUsed(event.getKey());
         }
         
     }

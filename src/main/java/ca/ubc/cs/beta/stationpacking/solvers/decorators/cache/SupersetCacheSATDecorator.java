@@ -47,13 +47,14 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
         final BitSet aBitSet = aInstance.toBitSet();
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
-        final Optional<SupersetSubsetCache.PrecacheSupersetEntry> supersetResult = supersetSubsetCache.findSuperset(aBitSet);
+        final Optional<SupersetSubsetCache.PrecacheEntry> supersetResult = supersetSubsetCache.findSuperset(aBitSet);
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         final SolverResult result;
         if (supersetResult.isPresent()) {
             log.info("Found a superset in the SAT cache - declaring result SAT");
             // yay! problem is SAT! Now let's look it up
-            final CacheEntry entry = cacher.getSolverResultByKey(supersetResult.get().getKey()).get();
+            final String key = supersetResult.get().getKey();
+            final CacheEntry entry = cacher.getSolverResultByKey(key).get();
 
             // convert the answer to that problem into an answer for this problem
             final ImmutableMap<Integer, Set<Station>> assignment = entry.getSolverResult().getAssignment();
@@ -71,8 +72,8 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
             result = new SolverResult(SATResult.SAT, watch.getElapsedTime(), reducedAssignment);
             SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.SUPERSET_CACHE, result.getResult()));
+            SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), key));
         } else {
-            // perhaps we can still find a good place to start a local search by finding a min-hamming distance element in the SAT cache, but this is still a TODO:
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratedResult = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
             result = SolverResult.addTime(decoratedResult, preTime);
