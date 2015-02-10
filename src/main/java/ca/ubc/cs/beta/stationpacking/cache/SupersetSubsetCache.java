@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -110,7 +111,7 @@ public class SupersetSubsetCache {
          */
         final int length = bitSet.length(); // we only need to check as far as 1's exist in the problem we are looking for
         final AtomicInteger index = new AtomicInteger(bitSetResult.getIndex() + bitSetResult.getCachedResults().size()); // start with what's likeliest to be "big"
-        return bitSetResult.getCachedResults().stream().map(PrecacheEntry::getBitSet).filter(cachedBitSet -> {
+        return Lists.reverse(bitSetResult.getCachedResults()).stream().map(PrecacheEntry::getBitSet).filter(cachedBitSet -> {
             index.decrementAndGet();
             for (int i = 0; i < length; i++) {
                 if (bitSet.get(i) && !cachedBitSet.get(i)) {
@@ -127,7 +128,7 @@ public class SupersetSubsetCache {
          * B is a subset of A if for every station (ie bit), if the bit is not set in A, the bit is also not set in B
          * Drawing up a truth table, this corresponds to b||!a for every bit
          */
-        final AtomicInteger index = new AtomicInteger(0);
+        final AtomicInteger index = new AtomicInteger(-1);
         return bitSetResult.getCachedResults().stream().map(PrecacheEntry::getBitSet).filter(cachedBitSet -> {
             index.incrementAndGet();
             for (int i = 0; i < cachedBitSet.length(); i++) {
