@@ -149,6 +149,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         if (solverOptions.isCache()) {
+            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, supersetSubsetCache);
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
         }
 
@@ -168,14 +169,6 @@ public class SATFCSolverBundle extends ASolverBundle {
             log.debug("Decorate solver to first remove underconstrained stations.");
             UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
             VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
-        }
-
-
-        // check cache
-        if (solverOptions.isCache()) {
-            // note that the UNSAT decorator only needs to be done on the instance level, not on the decomposition level
-            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, supersetSubsetCache);
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher);
         }
 
         //Save CNFs, if needed.
