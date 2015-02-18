@@ -21,15 +21,16 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import java.util.Arrays;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.database.CachingDecoratorFactory;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -37,9 +38,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.RedisCachingSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
@@ -48,11 +48,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -154,8 +149,8 @@ public class SATFCSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
-                                            new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
-                                            new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    		new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
+                                            new StationSubsetUNSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
                                     )),
                             UHFsolver
                     )
@@ -165,8 +160,8 @@ public class SATFCSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
-                                            new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
-                                            new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    		new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)),
+                                            new StationSubsetUNSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff))
                                     )),
                             VHFsolver
                     )
