@@ -149,7 +149,6 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         if (solverOptions.isCache()) {
-            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, supersetSubsetCache);
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
         }
 
@@ -177,6 +176,11 @@ public class SATFCSolverBundle extends ASolverBundle {
             log.debug("Decorate solver to save CNFs.");
             UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
             VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
+        }
+
+        if (solverOptions.isCache()) {
+            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, supersetSubsetCache);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, supersetSubsetCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
         }
 
         //Save results, if needed.
