@@ -36,6 +36,11 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    springVersion = "4.1.5.RELEASE"
+    jacksonVersion = "2.5.1"
+}
+
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
@@ -59,9 +64,9 @@ dependencies {
     compile 'ch.qos.logback:logback-access:1.0.13'
     compile 'ch.qos.logback:logback-classic:1.0.13'
     compile 'ch.qos.logback:logback-core:1.0.13'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.4.4'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.4.4'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.4'
+    compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
     compile 'com.beust:jcommander:1.35-patched'
     compile 'commons-collections:commons-collections:3.2.1'
     compile 'net.java.dev.jna:jna:4.0.0'
@@ -70,6 +75,8 @@ dependencies {
 	compile 'io.dropwizard.metrics:metrics-core:3.1.0'
 	compile 'io.dropwizard.metrics:metrics-jvm:3.1.0'
 
+    // Rest template
+    compile "org.springframework:spring-web:$springVersion"
 
     // Test dependencies.
     testCompile 'junit:junit:4.11'

@@ -7,6 +7,7 @@ import ca.ubc.cs.beta.stationpacking.cache.RedisCachingDecoratorFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
+import lombok.Getter;
 
 /**
  * Created by newmanne on 04/12/14.
@@ -16,6 +17,10 @@ public class SATFCCachingParameters extends AbstractOptions {
 
     @Parameter(names = "--useCache", description = "Should the cache be used", required = false, arity = 0)
     public boolean useCache = false;
+
+    @Parameter(names = "--serverURL", description = "base URL for the SATFC server", required = false)
+    @Getter
+    public String serverURL = "http://localhost:8080/satfcserver";
 
     @Parameter(names = "--redisHost", description = "Redis Host", required = false)
     public String redisURL = "localhost";

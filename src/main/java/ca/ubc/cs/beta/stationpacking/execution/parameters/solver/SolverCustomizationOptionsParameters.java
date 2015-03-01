@@ -32,6 +32,7 @@ public class SolverCustomizationOptionsParameters extends AbstractOptions {
             options.setDecompose(decomposition);
             if (cachingParams.useCache) 
             {
+                options.setServerURL(cachingParams.serverURL);
                 options.setCache(true);
                 final ICacherFactory cacherFactory = cachingParams.getCacherFactor();
                 options.setCacherFactory(cacherFactory);

@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.SupersetSubsetCache.PrecacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
@@ -82,8 +82,8 @@ public class RedisCacher implements ICacher {
 	public SubsetCacheInitData getSubsetCacheData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
-		List<PrecacheEntry> SATResults = new ArrayList<>();
-		List<PrecacheEntry> UNSATResults = new ArrayList<>();
+		List<ContainmentCacheEntry> SATResults = new ArrayList<>();
+		List<ContainmentCacheEntry> UNSATResults = new ArrayList<>();
         // TODO: can prefix keys with UHF or something to speed this up
 		final Set<String> keys = fJedis.keys("*");
 		keys.forEach(key -> {
@@ -92,9 +92,9 @@ public class RedisCacher implements ICacher {
 			if (UHFProblem) {
                 final SATResult result = cacheEntry.getSolverResult().getResult();
                 if (result.equals(SATResult.SAT)) {
-                    SATResults.add(new PrecacheEntry(key, new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet()));
+                    SATResults.add(new ContainmentCacheEntry(key, new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet()));
                 } else if (result.equals(SATResult.UNSAT)) {
-                    UNSATResults.add(new PrecacheEntry(key, new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet()));
+                    UNSATResults.add(new ContainmentCacheEntry(key, new StationPackingInstance(cacheEntry.getDomains(), StationPackingInstance.UNTITLED).toBitSet()));
                 }
             }
         });
@@ -104,8 +104,8 @@ public class RedisCacher implements ICacher {
 
     @Data
     public static class SubsetCacheInitData {
-        private final List<PrecacheEntry> SATResults;
-        private final List<PrecacheEntry> UNSATResults;
+        private final List<ContainmentCacheEntry> SATResults;
+        private final List<ContainmentCacheEntry> UNSATResults;
     }
 
 }

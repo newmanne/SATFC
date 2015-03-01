@@ -26,6 +26,7 @@ public class SATFCFacadeParameter {
 		private boolean decompose = true;
 		
 		// caching params
+        private String serverURL;
 		private boolean cache = false;
 		private ICacherFactory cacherFactory = null;
 	}

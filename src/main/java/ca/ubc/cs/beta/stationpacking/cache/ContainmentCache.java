@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.IContainmentCache;
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 
@@ -20,10 +21,10 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableLis
  * // TODO: lots of duplicated code in this file
  */
 @Slf4j
-public class SupersetSubsetCache {
+public class ContainmentCache implements IContainmentCache {
 
-    final List<List<PrecacheEntry>> UNSATCache;
-    final List<List<PrecacheEntry>> SATCache;
+    final List<List<ContainmentCacheEntry>> UNSATCache;
+    final List<List<ContainmentCacheEntry>> SATCache;
 
     final List<PermutableBitSetComparator> comparators;
 
@@ -31,7 +32,7 @@ public class SupersetSubsetCache {
     final int[][] permutations;
     final int N_STATIONS = 2173;
 
-    public SupersetSubsetCache(List<PrecacheEntry> SATData, List<PrecacheEntry> UNSATData) {
+    public ContainmentCache(List<ContainmentCacheEntry> SATData, List<ContainmentCacheEntry> UNSATData) {
         // init permutation
         try {
             final List<String> lines = Resources.readLines(Resources.getResource("precache_permutations.txt"), Charsets.UTF_8);
@@ -56,7 +57,7 @@ public class SupersetSubsetCache {
         // get data from somewhere
         for (int i = 0; i < permutations.length; i++) {
             final PermutableBitSetComparator permutableBitSetComparator = comparators.get(i);
-            final Comparator<PrecacheEntry> comparator = (o1, o2) -> permutableBitSetComparator.compare(o1.getBitSet(), o2.getBitSet());
+            final Comparator<ContainmentCacheEntry> comparator = (o1, o2) -> permutableBitSetComparator.compare(o1.getBitSet(), o2.getBitSet());
             SATData.sort(comparator);
             UNSATData.sort(comparator);
             SATCache.add(new ArrayList<>(SATData));
@@ -71,7 +72,7 @@ public class SupersetSubsetCache {
     private BitSetResult smallSetLargerThanOrEqualTo(BitSet aBitSet) {
         final List<Integer> binarySearchReturn = IntStream
                 .range(0, permutations.length)
-                .mapToObj(permutationIndex -> Collections.binarySearch(SATCache.get(permutationIndex), new PrecacheEntry("", aBitSet), (o1, o2) -> comparators.get(permutationIndex).compare(o1.getBitSet(), o2.getBitSet())))
+                .mapToObj(permutationIndex -> Collections.binarySearch(SATCache.get(permutationIndex), new ContainmentCacheEntry("", aBitSet), (o1, o2) -> comparators.get(permutationIndex).compare(o1.getBitSet(), o2.getBitSet())))
                 .collect(toImmutableList());
         // binary search return value is positive if the item is found in the list (the index). If it's in one list, it will be in all the lists, so might as well just work with the first
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
@@ -89,7 +90,7 @@ public class SupersetSubsetCache {
     private BitSetResult smallSetSmallerThanOrEqualTo(BitSet aBitSet) {
         final List<Integer> binarySearchReturn = IntStream
                 .range(0, permutations.length)
-                .mapToObj(permutationIndex -> Collections.binarySearch(UNSATCache.get(permutationIndex), new PrecacheEntry("", aBitSet), (o1, o2) -> comparators.get(permutationIndex).compare(o1.getBitSet(), o2.getBitSet())))
+                .mapToObj(permutationIndex -> Collections.binarySearch(UNSATCache.get(permutationIndex), new ContainmentCacheEntry("", aBitSet), (o1, o2) -> comparators.get(permutationIndex).compare(o1.getBitSet(), o2.getBitSet())))
                 .collect(toImmutableList());
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
         if (exactMatchIndexInFirstPermutation >= 0) {
@@ -103,7 +104,7 @@ public class SupersetSubsetCache {
         }
     }
 
-    private Optional<PrecacheEntry> findSuperset(final BitSet bitSet, BitSetResult bitSetResult) {
+    private Optional<ContainmentCacheEntry> findSuperset(final BitSet bitSet, BitSetResult bitSetResult) {
         /*
          * Let A = the instance in question and B = a generic cached instance
          * For every station (ie bit), we want to know that if A has the bit set, then B has the bit set
@@ -111,7 +112,7 @@ public class SupersetSubsetCache {
          */
         final int length = bitSet.length(); // we only need to check as far as 1's exist in the problem we are looking for
         final AtomicInteger index = new AtomicInteger(bitSetResult.getIndex() + bitSetResult.getCachedResults().size()); // start with what's likeliest to be "big"
-        return Lists.reverse(bitSetResult.getCachedResults()).stream().map(PrecacheEntry::getBitSet).filter(cachedBitSet -> {
+        return Lists.reverse(bitSetResult.getCachedResults()).stream().map(ContainmentCacheEntry::getBitSet).filter(cachedBitSet -> {
             index.decrementAndGet();
             for (int i = 0; i < length; i++) {
                 if (bitSet.get(i) && !cachedBitSet.get(i)) {
@@ -119,17 +120,17 @@ public class SupersetSubsetCache {
                 }
             }
             return true;
-        }).findAny().map(superset -> new PrecacheEntry(SATCache.get(bitSetResult.getPermutation()).get(index.get()).getKey(), superset));
+        }).findAny().map(superset -> new ContainmentCacheEntry(SATCache.get(bitSetResult.getPermutation()).get(index.get()).getKey(), superset));
     }
 
-    private Optional<PrecacheEntry> findSubset(final BitSet bitSet, BitSetResult bitSetResult) {
+    private Optional<ContainmentCacheEntry> findSubset(final BitSet bitSet, BitSetResult bitSetResult) {
         /*
          * Let A = the instance in question and B = a generic cached instance
          * B is a subset of A if for every station (ie bit), if the bit is not set in A, the bit is also not set in B
          * Drawing up a truth table, this corresponds to b||!a for every bit
          */
         final AtomicInteger index = new AtomicInteger(-1);
-        return bitSetResult.getCachedResults().stream().map(PrecacheEntry::getBitSet).filter(cachedBitSet -> {
+        return bitSetResult.getCachedResults().stream().map(ContainmentCacheEntry::getBitSet).filter(cachedBitSet -> {
             index.incrementAndGet();
             for (int i = 0; i < cachedBitSet.length(); i++) {
                 if (!bitSet.get(i) && cachedBitSet.get(i)) {
@@ -137,26 +138,40 @@ public class SupersetSubsetCache {
                 }
             }
             return true;
-        }).findAny().map(subset -> new PrecacheEntry(UNSATCache.get(bitSetResult.getPermutation()).get(index.get()).getKey(), subset));
+        }).findAny().map(subset -> new ContainmentCacheEntry(UNSATCache.get(bitSetResult.getPermutation()).get(index.get()).getKey(), subset));
     }
 
-    public Optional<PrecacheEntry> findSubset(final BitSet aBitSet) {
-        return findSubset(aBitSet, smallSetSmallerThanOrEqualTo(aBitSet));
+    public ContainmentCacheResult findSubset(final List<Integer> stations) {
+        final BitSet aBitSet = new BitSet();
+        stations.forEach(aBitSet::set);
+        final Optional<ContainmentCacheEntry> subset = findSubset(aBitSet, smallSetSmallerThanOrEqualTo(aBitSet));
+        if (subset.isPresent()) {
+            return new ContainmentCacheResult(Optional.of(subset.get().getKey()));
+        } else {
+            return new ContainmentCacheResult(Optional.<String>empty());
+        }
     }
 
-    public Optional<PrecacheEntry> findSuperset(final BitSet aBitSet) {
-        return findSuperset(aBitSet, smallSetLargerThanOrEqualTo(aBitSet));
+    public ContainmentCacheResult findSuperset(final List<Integer> stations) {
+        final BitSet aBitSet = new BitSet();
+        stations.forEach(aBitSet::set);
+        final Optional<ContainmentCacheEntry> superset = findSuperset(aBitSet, smallSetLargerThanOrEqualTo(aBitSet));
+        if (superset.isPresent()) {
+            return new ContainmentCacheResult(Optional.of(superset.get().getKey()));
+        } else {
+            return new ContainmentCacheResult(Optional.<String>empty());
+        }
     }
 
     @Data
     public static class BitSetResult {
-        private final List<PrecacheEntry> cachedResults;
+        private final List<ContainmentCacheEntry> cachedResults;
         private final int index;
         private final int permutation;
     }
 
     @Data
-    public static class PrecacheEntry {
+    public static class ContainmentCacheEntry {
         final String key;
         final BitSet bitSet;
     }
