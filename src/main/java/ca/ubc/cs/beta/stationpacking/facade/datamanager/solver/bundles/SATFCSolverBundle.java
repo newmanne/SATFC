@@ -29,10 +29,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.IContainmentCache;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.*;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import org.slf4j.Logger;
@@ -133,6 +130,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isCache()) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
         }
 
         if (solverOptions.isDecompose())
@@ -179,6 +177,11 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (solverOptions.isCache()) {
             UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacher);
+        }
+
+        // cache entire instance
+        if (solverOptions.isCache()) {
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
         }
 
         //Save CNFs, if needed.
