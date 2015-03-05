@@ -58,6 +58,8 @@ public interface IStationManager {
 	 * @param aIDs - a collection of station IDs.
 	 * @return the set of stations with provided IDs.
 	 */
-	public HashSet<Station> getStationsfromID(Collection<Integer> aIDs);
+	public Set<Station> getStationsfromID(Collection<Integer> aIDs);
+
+    String getHashCode();
 	
 }

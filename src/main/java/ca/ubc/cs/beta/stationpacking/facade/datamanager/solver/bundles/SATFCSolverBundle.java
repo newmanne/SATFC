@@ -32,6 +32,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.*;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +67,13 @@ public class SATFCSolverBundle extends ASolverBundle {
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
+
+    /**  A problem is eligible to interact with the cache (cache, or be solved by a lookup) IF AND ONLY IF the domain of every station in the problem is exactly its UHF domain cut off at a clearing target */
+     private boolean isCacheable(StationPackingInstance aInstance) {
+        final IStationManager fStationManager = null;
+        final int clearingTarget = aInstance.getAllChannels().stream().max(Integer::compareTo).get(); // max channel in problem
+        return aInstance.getDomains().entrySet().stream().allMatch(e -> Sets.intersection(fStationManager.getDomain(e.getKey()), StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c <= clearingTarget).collect(GuavaCollectors.toImmutableSet())).equals(e.getValue()));
+    }
 
     @Override
     public ISolver getSolver(StationPackingInstance aInstance) {
@@ -215,6 +225,5 @@ public class SATFCSolverBundle extends ASolverBundle {
         fUHFSolver.notifyShutdown();
         fVHFSolver.notifyShutdown();
     }
-
 
 }

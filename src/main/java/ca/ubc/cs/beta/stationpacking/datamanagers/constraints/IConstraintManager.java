@@ -41,7 +41,7 @@ public interface IConstraintManager {
 	 * s and t cannot be both on c
 	 * </p>
 	 */
-	public Set<Station> getCOInterferingStations(Station aStation, int aChannel);
+	Set<Station> getCOInterferingStations(Station aStation, int aChannel);
 	
 	/**
 	 * @param aStation - a (source) station of interest.
@@ -52,14 +52,13 @@ public interface IConstraintManager {
 	 * s cannot be on c at the same time as t is on c+1 for all c in C
 	 * </p> 
 	 */
-	public Set<Station> getADJplusInterferingStations(Station aStation, int aChannel);
+	Set<Station> getADJplusInterferingStations(Station aStation, int aChannel);
 	
 	/**
 	 * @param aAssignment - an assignment of channels to (set of) stations.
 	 * @return true if and only if the assignment satisfies all the constraints represented by the constraint manager.
 	 */
-	public Boolean isSatisfyingAssignment(Map<Integer,Set<Station>> aAssignment);
+	boolean isSatisfyingAssignment(Map<Integer,Set<Station>> aAssignment);
 	
-
-	
+    String getHashCode();
 }

@@ -33,6 +33,7 @@ import java.util.Set;
 
 import au.com.bytecode.opencsv.CSVReader;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import com.google.common.hash.*;
 
 /**
  * In charge of managing collections of stations read from a domain file.
@@ -42,6 +43,7 @@ public class DomainStationManager implements IStationManager{
 
 	private final Map<Integer,Station> fStations = new HashMap<Integer,Station>();
 	private final Map<Station,Set<Integer>> fDomains = new HashMap<Station,Set<Integer>>();
+    private final String fHash;
 	
 	/**
 	 * @param aStationDomainsFilename - domain file from which stations should be read.
@@ -84,13 +86,26 @@ public class DomainStationManager implements IStationManager{
 		{
 			throw new IllegalStateException("There was an exception while reading the station domains file ("+e.getMessage()+").");
 		}
-		
+
+        HashFunction hf = Hashing.murmur3_32();
+        HashCode hc = hf.newHasher()
+                .putObject(fDomains, new Funnel<Map<Station, Set<Integer>>>() {
+                    @Override
+                    public void funnel(Map<Station, Set<Integer>> from, PrimitiveSink into) {
+                        from.keySet().stream().sorted().forEach(s -> {
+                            into.putInt(s.getID());
+                            from.get(s).stream().sorted().forEach(into::putInt);
+                        });
+                    }
+                })
+                .hash();
+        fHash = hc.toString();
 	}
 	
-	public DomainStationManager(Map<Integer, Set<Integer>> domains) {
-		domains.keySet().forEach(stationId -> fStations.put(stationId, new Station(stationId)));
-		domains.entrySet().forEach(entry -> fDomains.put(fStations.get(entry.getKey()), entry.getValue()));
-	}
+//	public DomainStationManager(Map<Integer, Set<Integer>> domains) {
+//		domains.keySet().forEach(stationId -> fStations.put(stationId, new Station(stationId)));
+//		domains.entrySet().forEach(entry -> fDomains.put(fStations.get(entry.getKey()), entry.getValue()));
+//	}
 	
 	@Override
 	public Set<Station> getStations() {
@@ -109,8 +124,8 @@ public class DomainStationManager implements IStationManager{
 	}
 
 	@Override
-	public HashSet<Station> getStationsfromID(Collection<Integer> aIDs) {
-		HashSet<Station> stations = new HashSet<Station>();
+	public Set<Station> getStationsfromID(Collection<Integer> aIDs) {
+		Set<Station> stations = new HashSet<Station>();
 		for(Integer aID : aIDs)
 		{
 			stations.add(getStationfromID(aID));
@@ -143,5 +158,9 @@ public class DomainStationManager implements IStationManager{
 		}
 		return domainsFromID;
 	}
+
+    public String getHashCode() {
+        return fHash;
+    }
 
 }

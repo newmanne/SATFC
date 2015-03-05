@@ -66,16 +66,7 @@ public class SATFCFacade implements AutoCloseable{
 	
 	private volatile static boolean logInitialized = false;
 	private final SolverManager fSolverManager;
-	
-//	/**
-//	 * Construct a SATFC solver facade.
-//	 * @param aClaspLibrary - the location of the compiled jna clasp library to use.
-//	 */
-//	public SATFCFacade(final String aClaspLibrary)
-//	{
-//		this(aClaspLibrary,true);
-//	}
-	
+
 	
 	/**
 	 * Construct a SATFC solver facade, with the option of initializing logging if its not already done.

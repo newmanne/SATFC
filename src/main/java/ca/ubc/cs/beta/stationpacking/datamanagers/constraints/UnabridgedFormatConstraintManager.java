@@ -31,6 +31,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.hash.Funnel;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +62,8 @@ public class UnabridgedFormatConstraintManager implements IConstraintManager{
      * on channel+1 concurrently with subject station.
      */
     private final Map<Station,Map<Integer,Set<Station>>> fADJp1Constraints;
-    
+    private final String fHash;
+
     /**
      * Type of possible constraints.
      * @author afrechet
@@ -242,11 +247,32 @@ public class UnabridgedFormatConstraintManager implements IConstraintManager{
             e.printStackTrace();
             throw new IllegalArgumentException("Could not read interference constraints filename.");
         }
-        
+
+        HashCode hc = computeHash();
+        fHash = hc.toString();
+
+    }
+
+    private HashCode computeHash() {
+        final Funnel<Map<Station, Map<Integer, Set<Station>>>> funnel = (from, into) -> from.keySet().stream().sorted().forEach(s -> {
+            into.putInt(s.getID());
+            from.get(s).keySet().stream().sorted().forEach(c -> {
+                into.putInt(c);
+                from.get(s).get(c).stream().sorted().forEach(s2 -> {
+                    into.putInt(s2.getID());
+                });
+            });
+        });
+
+        HashFunction hf = Hashing.murmur3_32();
+        return hf.newHasher()
+                .putObject(fCOConstraints, funnel)
+                .putObject(fADJp1Constraints, funnel)
+                .hash();
     }
     
     @Override
-    public Boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
+    public boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
         
         Set<Station> allStations = new HashSet<Station>();
         
@@ -293,6 +319,11 @@ public class UnabridgedFormatConstraintManager implements IConstraintManager{
             allStations.addAll(channelStations);
         }
         return true;
+    }
+
+    @Override
+    public String getHashCode() {
+        return fHash;
     }
 
     @Override
