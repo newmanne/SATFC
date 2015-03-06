@@ -87,8 +87,8 @@ public class DomainStationManager implements IStationManager{
 			throw new IllegalStateException("There was an exception while reading the station domains file ("+e.getMessage()+").");
 		}
 
-        HashFunction hf = Hashing.murmur3_32();
-        HashCode hc = hf.newHasher()
+        final HashFunction hf = Hashing.murmur3_32();
+        final HashCode hc = hf.newHasher()
                 .putObject(fDomains, new Funnel<Map<Station, Set<Integer>>>() {
                     @Override
                     public void funnel(Map<Station, Set<Integer>> from, PrimitiveSink into) {

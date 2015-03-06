@@ -89,23 +89,31 @@ dependencies {
 
 //Grab git information.
 import org.ajoberstar.grgit.Grgit
+public boolean isGitAvailable() {
+    def repo
+    try
+    {
+        repo = Grgit.open(project.file('.'))
+        return true
+    }
+    catch(Exception e)
+    {
+        println 'Not building SATFC from a git repository, versioning will be limited.'
+        return false
+    }
+}
+
+
 public String getGitName()
 {
-	def repo
-	try
-	{
-		repo = Grgit.open(project.file('.'))
-	}
-	catch(Exception e)
-	{
-		println 'Not building SATFC from a git repository, versioning will be limited.'
-		return 'nogit'
-	}
-	
-	def branch = repo.branch.current.name
-	def sha = repo.head().abbreviatedId
-	
-	return branch+'-'+sha
+    if (isGitAvailable()) {
+        def repo = Grgit.open(project.file('.'))
+        def branch = repo.branch.current.name
+        def sha = repo.head().abbreviatedId
+        return branch+'-'+sha
+    } else {
+        return 'nogit'
+    }
 }
 
 // Creates scripts for entry points
@@ -189,4 +197,36 @@ publishing {
 		}
 	
 	}
+}
+
+def generatedResources = "$buildDir/generated-resources/main"
+
+sourceSets {
+    main {
+        //let's register an output folder on the main SourceSet:
+        output.dir(generatedResources, builtBy: 'generateMyResources')
+        //it is now a part of the 'main' classpath and will be a part of the jar
+    }
+}
+
+//a task that generates the resources:
+task generateMyResources {
+    doLast {
+        def generatedFolder = new File(generatedResources)
+        if (!generatedFolder.exists()) {
+            generatedFolder.mkdirs()
+        }
+        def generated = new File(generatedResources, "version.properties")
+        if (isGitAvailable()) {
+            def repo = Grgit.open(project.file('.'))
+            generated.text = "buildTime=" + new Date().toString() + System.lineSeparator() +
+                    "sha=" + repo.head().id + System.lineSeparator() +
+                    "branch=" + repo.branch.current.name + System.lineSeparator() +
+                    "committer=" + repo.head().committer.name + System.lineSeparator() +
+                    "commitTime=" + repo.head().date + System.lineSeparator() +
+                    "message=" + repo.head().fullMessage + System.lineSeparator()
+        } else {
+            generated.text = "No git available"
+        }
+    }
 }

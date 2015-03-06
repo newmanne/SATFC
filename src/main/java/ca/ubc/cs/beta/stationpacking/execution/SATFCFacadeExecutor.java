@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.io.Resources;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,11 +70,12 @@ public class SATFCFacadeExecutor {
 				JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters,TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
 				SATFCFacade.initializeLogging(parameters.fLoggingOptions.logLevel);
 				JCommanderHelper.logCallString(args, SATFCFacadeExecutor.class);
-			}
+            }
 			finally
 			{
 				log = LoggerFactory.getLogger(SATFCFacadeExecutor.class);
 			}
+            log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
 			
 			log.info("Initializing facade.");
 			SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
