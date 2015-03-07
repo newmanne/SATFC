@@ -34,6 +34,11 @@ import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import lombok.Getter;
 
 import org.apache.commons.codec.binary.Hex;
@@ -49,15 +54,21 @@ import com.google.common.collect.Sets;
  * Immutable container class representing a station packing instance.
  * @author afrechet
  */
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY, getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+@JsonDeserialize(using = StationPackingInstanceDeserializer.class)
 public class StationPackingInstance {
 	
-	private final ImmutableMap<Station, Set<Integer>> fDomains;
-	private final ImmutableMap<Station, Integer> fPreviousAssignment;
+	private final ImmutableMap<Station, Set<Integer>> domains;
+	private final ImmutableMap<Station, Integer> previousAssignment;
 	@Getter
 	private final String name;
 	
 	// names are only for tracking metrics, so use this string when you don't care
 	public final static String UNTITLED = "UNTITLED";
+
+    public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
+        this(aDomains, ImmutableMap.of(), UNTITLED);
+    }
 
 	/**
 	 * Create a station packing instance.
@@ -89,15 +100,15 @@ public class StationPackingInstance {
 		}
 		
 		// TODO: this isn't ideal. You could just sort this once at the beginning and then never again...
-		Map<Station, Set<Integer>> domains = Maps.newLinkedHashMap();
+		Map<Station, Set<Integer>> tempDomains = Maps.newLinkedHashMap();
 		aDomains.keySet().stream().sorted().forEach(station -> {
 			List<Integer> channels = Lists.newArrayList(aDomains.get(station));
 			Collections.sort(channels);
-			domains.put(station, Sets.newLinkedHashSet(channels));
+			tempDomains.put(station, Sets.newLinkedHashSet(channels));
 		});
 		this.name = name;
-		fDomains = ImmutableMap.copyOf(domains);
-		fPreviousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
+		this.domains = ImmutableMap.copyOf(tempDomains);
+		previousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 	}
 	
 	/**
@@ -122,7 +133,7 @@ public class StationPackingInstance {
 	public Set<Integer> getAllChannels()
 	{
 		Set<Integer> allChannels = new HashSet<Integer>();
-		for(Set<Integer> channels : fDomains.values())
+		for(Set<Integer> channels : domains.values())
 		{
 			allChannels.addAll(channels);
 		}
@@ -137,7 +148,7 @@ public class StationPackingInstance {
 		int s=1;
 		for(Station station : getStations())
 		{
-			sb.append(station).append(":").append(StringUtils.join(fDomains.get(station), ","));
+			sb.append(station).append(":").append(StringUtils.join(domains.get(station), ","));
 			
 			if(s+1<=getStations().size())
 			{
@@ -154,7 +165,7 @@ public class StationPackingInstance {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((fDomains == null) ? 0 : fDomains.hashCode());
+				+ ((domains == null) ? 0 : domains.hashCode());
 		return result;
 	}
 
@@ -167,10 +178,10 @@ public class StationPackingInstance {
 		if (getClass() != obj.getClass())
 			return false;
 		StationPackingInstance other = (StationPackingInstance) obj;
-		if (fDomains == null) {
-			if (other.fDomains != null)
+		if (domains == null) {
+			if (other.domains != null)
 				return false;
-		} else if (!fDomains.equals(other.fDomains))
+		} else if (!domains.equals(other.domains))
 			return false;
 		return true;
 	}
@@ -180,7 +191,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's stations.
 	 */
 	public Set<Station> getStations(){
-		return fDomains.keySet();
+		return domains.keySet();
 	}
 	
 	/**
@@ -188,7 +199,7 @@ public class StationPackingInstance {
 	 * @return - get the problem instance's channels.
 	 */
 	public ImmutableMap<Station,Set<Integer>> getDomains(){
-		return fDomains;
+		return domains;
 	}
 	
 	/**
@@ -196,7 +207,7 @@ public class StationPackingInstance {
 	 */
 	public ImmutableMap<Station,Integer> getPreviousAssignment()
 	{
-		return fPreviousAssignment;
+		return previousAssignment;
 	}
 	
 	/**
@@ -204,7 +215,7 @@ public class StationPackingInstance {
 	 */
 	public String getInfo()
 	{
-		return fDomains.keySet().size()+" stations, "+getAllChannels().size()+" all channels.";
+		return domains.keySet().size()+" stations, "+getAllChannels().size()+" all channels.";
 	}
 	
 	/**
@@ -229,6 +240,5 @@ public class StationPackingInstance {
 		getStations().forEach(station -> bitSet.set(station.getID()));
 		return bitSet;
 	}
-
 
 }

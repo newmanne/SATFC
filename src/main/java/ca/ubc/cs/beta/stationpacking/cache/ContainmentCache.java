@@ -141,9 +141,7 @@ public class ContainmentCache implements IContainmentCache {
         }).findAny().map(subset -> new ContainmentCacheEntry(UNSATCache.get(bitSetResult.getPermutation()).get(index.get()).getKey(), subset));
     }
 
-    public ContainmentCacheResult findSubset(final List<Integer> stations) {
-        final BitSet aBitSet = new BitSet();
-        stations.forEach(aBitSet::set);
+    public ContainmentCacheResult findSubset(final BitSet aBitSet) {
         final Optional<ContainmentCacheEntry> subset = findSubset(aBitSet, smallSetSmallerThanOrEqualTo(aBitSet));
         if (subset.isPresent()) {
             return new ContainmentCacheResult(Optional.of(subset.get().getKey()));
@@ -152,9 +150,7 @@ public class ContainmentCache implements IContainmentCache {
         }
     }
 
-    public ContainmentCacheResult findSuperset(final List<Integer> stations) {
-        final BitSet aBitSet = new BitSet();
-        stations.forEach(aBitSet::set);
+    public ContainmentCacheResult findSuperset(final BitSet aBitSet) {
         final Optional<ContainmentCacheEntry> superset = findSuperset(aBitSet, smallSetLargerThanOrEqualTo(aBitSet));
         if (superset.isPresent()) {
             return new ContainmentCacheResult(Optional.of(superset.get().getKey()));

@@ -21,40 +21,42 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.*;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.Arrays;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.IContainmentCacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.IContainmentCache;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
-import java.util.Arrays;
+import com.google.common.collect.Sets;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -67,27 +69,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
-
-    /**  A problem is eligible to interact with the cache (cache, or be solved by a lookup) IF AND ONLY IF the domain of every station in the problem is exactly its UHF domain cut off at a clearing target */
-     private boolean isCacheable(StationPackingInstance aInstance) {
-        final IStationManager fStationManager = null;
-        final int clearingTarget = aInstance.getAllChannels().stream().max(Integer::compareTo).get(); // max channel in problem
-        return aInstance.getDomains().entrySet().stream().allMatch(e -> Sets.intersection(fStationManager.getDomain(e.getKey()), StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c <= clearingTarget).collect(GuavaCollectors.toImmutableSet())).equals(e.getValue()));
-    }
-
-    @Override
-    public ISolver getSolver(StationPackingInstance aInstance) {
-
-        //Return the right solver based on the channels in the instance.
-
-        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
-            return fVHFSolver;
-        } else {
-            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
-            return fUHFSolver;
-        }
-    }
+    private final IStationManager fStationManager;
 
     /**
      * Create a SATFC solver bundle.
@@ -107,6 +89,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
         super(aStationManager, aConstraintManager);
+        this.fStationManager = aStationManager;
         log.info("Initializing solver with the following solver options {}", solverOptions);
 
         log.debug("SATFC solver bundle.");
@@ -131,16 +114,17 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        ICacher cacher = null;
+        IContainmentCacher cacher = null;
         IContainmentCache containmentCache = null;
         if (solverOptions.isCache()) {
+            // TODO: cacher needs to be a proxy
             cacher = solverOptions.getCacherFactory().createrCacher();
             containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL());
         }
 
         if (solverOptions.isCache()) {
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacher); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new CacheResultDecorator(UHFsolver, aStationManager.getHashCode(), aConstraintManager.getHashCode(), cacher);
         }
 
         if (solverOptions.isDecompose())
@@ -186,12 +170,12 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isCache()) {
             UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacher);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache);
         }
 
         // cache entire instance
         if (solverOptions.isCache()) {
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher);
+            UHFsolver = new CacheResultDecorator(UHFsolver, aStationManager.getHashCode(), aConstraintManager.getHashCode(), cacher);
         }
 
         //Save CNFs, if needed.
@@ -218,6 +202,24 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
+    }
+
+    /**  A problem is eligible to interact with the cache (cache, or be solved by a lookup) IF AND ONLY IF the domain of every station in the problem is exactly its UHF domain cut off at a clearing target */
+    private boolean isCacheable(StationPackingInstance aInstance) {
+        final int clearingTarget = aInstance.getAllChannels().stream().max(Integer::compareTo).get(); // max channel in problem
+        return aInstance.getDomains().entrySet().stream().allMatch(e -> Sets.intersection(fStationManager.getDomain(e.getKey()), StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c <= clearingTarget).collect(GuavaCollectors.toImmutableSet())).equals(e.getValue()));
+    }
+
+    @Override
+    public ISolver getSolver(StationPackingInstance aInstance) {
+        //Return the right solver based on the channels in the instance.
+        if (StationPackingUtils.UHF_CHANNELS.containsAll(aInstance.getAllChannels()) && isCacheable(aInstance)) {
+            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
+            return fUHFSolver;
+        } else {
+            log.debug("Returning clasp configured for VHF (November 2013) with Ilya's station subset pre-solving.");
+            return fVHFSolver;
+        }
     }
 
     @Override

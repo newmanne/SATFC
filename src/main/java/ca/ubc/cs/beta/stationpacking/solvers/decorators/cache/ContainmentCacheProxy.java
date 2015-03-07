@@ -17,30 +17,28 @@ public class ContainmentCacheProxy implements IContainmentCache {
     private final String baseServerURL;
 
     @Override
-    public ContainmentCacheResult findSubset(List<Integer> stations) {
+    public ContainmentCacheResult findSubset(BitSet bitSet) {
         final String interference = "021814SC3M";
         final int clearingTarget = 32;
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/cache")
                 .queryParam("interference", interference)
                 .queryParam("clearingTarget", clearingTarget)
-                .queryParam("query", QueryType.SUPERSET.toString())
-                .queryParam("stations", stations);
+                .queryParam("query", QueryType.SUPERSET.toString());
 
         final ContainmentCacheResult supersetResult = restTemplate.getForObject(builder.build().toUriString(), ContainmentCacheResult.class);
         return supersetResult;
     }
 
     @Override
-    public ContainmentCacheResult findSuperset(List<Integer> stations) {
+    public ContainmentCacheResult findSuperset(BitSet bitSet) {
         final String interference = "021814SC3M";
         final int clearingTarget = 32;
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/cache")
                 .queryParam("interference", interference)
                 .queryParam("clearingTarget", clearingTarget)
-                .queryParam("query", QueryType.SUBSET.toString())
-                .queryParam("bitString", stations);
+                .queryParam("query", QueryType.SUBSET.toString());
 
         final ContainmentCacheResult subsetResult = restTemplate.getForObject(builder.build().toUriString(), ContainmentCacheResult.class);
         return subsetResult;

@@ -2,10 +2,12 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import lombok.Getter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ca.ubc.cs.beta.stationpacking.base.StationDeserializer.StationJacksonModule;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -13,7 +15,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class JSONUtils {
 
     @Getter
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper;
+
+    static {
+        mapper = new ObjectMapper();
+        mapper.registerModule(new GuavaModule());
+        mapper.registerModule(new StationJacksonModule());
+    }
 
     public static <T> T toObject(String jsonString, Class<T> klazz) {
         try {

@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
@@ -37,6 +38,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
  * @author afrechet
  */
 @JsonSerialize(using = ToStringSerializer.class, as=String.class)
+@JsonDeserialize(using = StationDeserializer.class)
 public class Station implements Comparable<Station>, Serializable{
 	
 	/**

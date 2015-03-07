@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.IContainmentCacher;
 import redis.clients.jedis.Jedis;
 
 public class RedisCachingDecoratorFactory implements ICacherFactory {
@@ -11,8 +12,8 @@ public class RedisCachingDecoratorFactory implements ICacherFactory {
 	}
 	
 	@Override
-	public ICacher createrCacher() {
-		return new RedisCacher(fJedis, new StationPackingInstanceHasher());
+	public IContainmentCacher createrCacher() {
+		return new RedisCacher(fJedis);
 	}
 
 }

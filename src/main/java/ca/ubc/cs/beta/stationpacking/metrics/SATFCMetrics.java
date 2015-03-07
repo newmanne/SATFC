@@ -54,7 +54,9 @@ public class SATFCMetrics {
     }
 
     public static void postEvent(Object event) {
-        eventBus.post(event);
+        if (eventBus != null) {
+            eventBus.post(event);
+        }
     }
     
     public static InstanceInfo getMetrics() {

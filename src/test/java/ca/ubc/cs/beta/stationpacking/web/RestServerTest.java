@@ -12,6 +12,6 @@ public class RestServerTest {
     @Test
     public void hmf() {
         final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy("http://localhost:8080/satfcserver");
-        containmentCacheProxy.findSuperset(ImmutableList.of(3, 2));
+//        containmentCacheProxy.findSuperset(ImmutableList.of(3, 2));
     }
 }

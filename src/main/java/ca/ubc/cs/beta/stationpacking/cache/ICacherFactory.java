@@ -1,7 +1,9 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.IContainmentCacher;
+
 public interface ICacherFactory {
 	
-	ICacher createrCacher();
+	IContainmentCacher createrCacher();
 
 }

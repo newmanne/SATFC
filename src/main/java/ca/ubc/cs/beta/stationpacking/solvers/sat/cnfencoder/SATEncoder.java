@@ -21,11 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
