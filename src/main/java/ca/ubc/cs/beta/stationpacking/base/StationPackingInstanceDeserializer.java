@@ -1,0 +1,30 @@
+package ca.ubc.cs.beta.stationpacking.base;
+
+import java.io.IOException;
+import java.util.Set;
+
+import lombok.Data;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.google.common.collect.ImmutableMap;
+
+public class StationPackingInstanceDeserializer extends
+		JsonDeserializer<StationPackingInstance> {
+
+	@Override
+	public StationPackingInstance deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+		Dummy readValueAs = p.readValueAs(Dummy.class);
+		return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment(), readValueAs.getName());
+	}
+	
+	@Data
+	public static class Dummy {
+		private ImmutableMap<Station, Set<Integer>> domains;
+		private ImmutableMap<Station, Integer> previousAssignment;
+		private String name;
+	}
+
+}
