@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,6 +35,11 @@ public interface IContainmentCache {
         private String key;
         private SATResult result;
         private Map<Integer, Set<Station>> assignment;
+    }
+
+    public static interface IContainmentCache2 {
+        ContainmentCacheReply findSubset(ICacher.CacheCoordinate cacheCoordinate);
+        ContainmentCacheReply findSuperset(ICacher.CacheCoordinate cacheCoordinate);
     }
 
 }

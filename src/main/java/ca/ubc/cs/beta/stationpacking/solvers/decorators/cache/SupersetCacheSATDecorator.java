@@ -8,6 +8,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
 * Created by newmanne on 28/01/15.
@@ -15,9 +17,9 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 @Slf4j
 public class SupersetCacheSATDecorator extends ASolverDecorator {
 
-    private final IContainmentCache containmentCache;
+    private final IContainmentCache.IContainmentCache2 containmentCache;
 
-    public SupersetCacheSATDecorator(ISolver aSolver, IContainmentCache containmentCache) {
+    public SupersetCacheSATDecorator(ISolver aSolver, IContainmentCache.IContainmentCache2 containmentCache) {
         super(aSolver);
         this.containmentCache = containmentCache;
     }
@@ -25,13 +27,9 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
-        log.trace("Converting instance to bitset");
-
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
-        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         final SolverResult result;
-
         final IContainmentCache.ContainmentCacheResult superset = containmentCache.findSuperset(aInstance.toBitSet());
 
         if (false) {
