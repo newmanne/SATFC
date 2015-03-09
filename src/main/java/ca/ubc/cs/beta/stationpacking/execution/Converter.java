@@ -52,6 +52,10 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.ParametersDelegate;
 
+/**
+ * In charge of converting different station repacking instance formats to other formats (either a standardized .sprk, or SAT/MIP encodings).
+ * @author afrechet
+ */
 public class Converter {
 	
 	private static Logger log;
@@ -92,6 +96,10 @@ public class Converter {
 		
 	}
 	
+	/**
+	 * @param aInstanceNames - list of instance names, either instance file names (.qstn, .sql, .srpk), folder containing instances or instance lists (.txt, .csv).
+	 * @return a list of proper instance files.
+	 */
 	private static List<String> getInstancesFilenames(List<String> aInstanceNames)
 	{
 		
@@ -163,6 +171,10 @@ public class Converter {
 		return instancesFilenames;
 	}
 	
+	/**
+	 * Station packing problem specs that contains the necessary information to instantiate a station packing problem.
+	 * @author afrechet
+	 */
 	@Data
 	public static class StationPackingProblemSpecs
 	{
@@ -178,6 +190,10 @@ public class Converter {
 		
 		private final Double cutoff;
 		
+		/**
+		 * @param aQuestionInstanceFilename - a question instance filename. The station packing instance format from PowerAuction people and their simulator.
+		 * @return a station packing problem spec from the station packing question. 
+		 */
 		public static StationPackingProblemSpecs fromQuestion(String aQuestionInstanceFilename)
 		{
 			QuestionInstanceParameters.StationPackingQuestion question = new QuestionInstanceParameters.StationPackingQuestion(aQuestionInstanceFilename);
@@ -189,6 +205,11 @@ public class Converter {
 			return new StationPackingProblemSpecs(aQuestionInstanceFilename, domains, question.fPreviousAssignment, question.fData, question.fCutoff);
 		}
 		
+		/**
+		 * @param aSQLInstanceFilename - a sql instance filename. Taken from MYSQLDBTAE additional run data from auction simulator runs.
+		 * @return a station packing problem spec from the SQL instance.
+		 * @throws IOException
+		 */
 		public static StationPackingProblemSpecs fromSQL(String aSQLInstanceFilename) throws IOException
 		{
 		
@@ -281,6 +302,12 @@ public class Converter {
 			return new StationPackingProblemSpecs(aSQLInstanceFilename, stationID_domains, previous_assignmentID, config_foldername, null);
 		}
 		
+		/**
+		 * 
+		 * @param aStationRepackingInstanceFilename - a srpk instance filename.
+		 * @return a station repacking instance taken from the srpk file.
+		 * @throws IOException
+		 */
 		public static StationPackingProblemSpecs fromStationRepackingInstance(String aStationRepackingInstanceFilename) throws IOException
 		{
 			Map<Integer,Set<Integer>> domains = new HashMap<Integer,Set<Integer>>();
@@ -336,7 +363,10 @@ public class Converter {
 		
 	}
 
-	
+	/**
+	 * @param aInstanceFilename - a station repacking instance file.
+	 * @return a station repacking problem spec from the given instance file.
+	 */
 	private static StationPackingProblemSpecs getStationPackingProblemSpecs(String aInstanceFilename)
 	{
 		final String extension = FilenameUtils.getExtension(aInstanceFilename);
