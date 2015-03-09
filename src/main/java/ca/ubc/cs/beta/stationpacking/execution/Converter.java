@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,6 @@ import java.util.Set;
 import lombok.Data;
 import lombok.NonNull;
 
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -389,16 +387,7 @@ public class Converter {
 		{
 		    throw new ParameterException("Must specify at least one instance.");
 		}
-		List<String> instanceFilenames = getInstancesFilenames(parameters.fInstanceNames);
-		List<StationPackingProblemSpecs> specs = new ArrayList<StationPackingProblemSpecs>(instanceFilenames.size());
-		log.debug("Converting instances to specs...");
-		int i =0;
-		for(String instanceFilename : instanceFilenames)
-		{
-		    log.debug("Reading in instance {}/{}.",i++,instanceFilenames.size());
-			specs.add(getStationPackingProblemSpecs(instanceFilename));
-		}
-		
+		List<String> problemFilenames = getInstancesFilenames(parameters.fInstanceNames);
 		
 		/*
 		 * Convert the instances.
@@ -410,11 +399,18 @@ public class Converter {
 		String outputDir = parameters.fOutDirectory != null ? parameters.fOutDirectory : "";
 		
 		OutType outType = parameters.fOutType;
-		int j =0;
-		for(StationPackingProblemSpecs spec : specs)
+		int i =0;
+		for(String problemFilename : problemFilenames)
 		{
+		    if(i%50 == 0)
+		    {
+		        System.gc();
+		    }
+		    log.debug("Reading in instance {}/{}.",i++,problemFilenames.size());
+		    
+		    StationPackingProblemSpecs spec = getStationPackingProblemSpecs(problemFilename);
+		    
 			final String source = spec.getSource();
-			log.debug("[{}/{}] Converting instance {} ...",j++,specs.size(),source);
 			
 			String configFoldername;
 			if(spec.getDataFoldername() != null)
@@ -549,7 +545,7 @@ public class Converter {
 				File cnfFile = new File(aCNFFilename);
                 if(cnfFile.exists())
                 {
-                    throw new IllegalStateException("CNF file already exists with name \""+cnfFile+"\".");
+                    log.warn("CNF file already exists with name \""+cnfFile+"\".");
                 }
                 try {
                     FileUtils.writeStringToFile(cnfFile, cnf.toDIMACS(aComments));
@@ -563,6 +559,7 @@ public class Converter {
 				Pair<IloCplex, Map<IloIntVar, Pair<Station, Integer>>> mipEncoding;
 				try 
 				{
+				    log.debug("Encoding into MIP ...");
 					mipEncoding = MIPBasedSolver.encodeMIP(instance, constraintManager);
 				} catch (IloException e) {
 					e.printStackTrace();
@@ -574,10 +571,11 @@ public class Converter {
 				File mipFile = new File(mipFilename);
                 if(mipFile.exists())
                 {
-                    throw new IllegalStateException("MIP file already exists with name \""+mipFile+"\".");
+                    log.warn("MIP file already exists with name \""+mipFile+"\".");
                 }
                 try 
                 {
+                    log.debug("Saving encoding to file {}",mipFilename);
 					mip.exportModel(mipFilename);
 				} catch (IloException e) {
 					e.printStackTrace();
