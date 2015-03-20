@@ -15,10 +15,10 @@ import com.google.common.collect.ImmutableList;
  */
 public interface ICacher {
 
-    void cacheResult(CacheCoordinate cacheCoordinate, CacheEntry entry);
+    void cacheResult(CacheCoordinate cacheCoordinate, SATCacheEntry entry);
 
     public static interface IContainmentCacher extends ICacher {
-        Optional<CacheEntry> getSolverResultByKey(CacheCoordinate coordinate);
+        Optional<SATCacheEntry> getSolverResultByKey(CacheCoordinate coordinate);
         RedisCacher.SubsetCacheInitData getSubsetCacheData();
     }
 

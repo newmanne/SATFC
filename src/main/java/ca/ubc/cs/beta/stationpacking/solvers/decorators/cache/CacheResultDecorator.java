@@ -4,7 +4,7 @@ import java.util.Date;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.CacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -45,7 +45,7 @@ public class CacheResultDecorator extends ASolverDecorator {
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if (cachingStrategy.shouldCache(result)) {
-        	final CacheEntry cacheEntry = new CacheEntry(result, new Date(), aInstance.getName());
+        	final SATCacheEntry cacheEntry = new SATCacheEntry(result, new Date(), aInstance.getName());
         	// TODO: use an actual CT once we have the API
             cacher.cacheResult(new CacheCoordinate(domainHash, interferenceHash, 42, aInstance), cacheEntry);
         }

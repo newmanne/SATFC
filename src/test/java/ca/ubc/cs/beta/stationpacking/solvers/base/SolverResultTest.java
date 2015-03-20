@@ -2,15 +2,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.base;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.cache.CacheEntry;
-
-import com.beust.jcommander.internal.Maps;
-
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,7 +11,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class SolverResultTest {

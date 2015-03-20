@@ -10,7 +10,7 @@ public class CacherProxy implements ICacher {
 	final RestTemplate restTemplate = new RestTemplate();
 	
 	@Override
-	public void cacheResult(CacheCoordinate cacheCoordinate, CacheEntry entry) {
+	public void cacheResult(CacheCoordinate cacheCoordinate, SATCacheEntry entry) {
 		
 	}
 
