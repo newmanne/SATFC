@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,6 @@ public class SATFCSolverBundle extends ASolverBundle {
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
-    private final IStationManager fStationManager;
 
     /**
      * Create a SATFC solver bundle.
@@ -89,7 +89,6 @@ public class SATFCSolverBundle extends ASolverBundle {
             SATFCFacadeParameter.SolverCustomizationOptions solverOptions
     ) {
         super(aStationManager, aConstraintManager);
-        this.fStationManager = aStationManager;
         log.info("Initializing solver with the following solver options {}", solverOptions);
 
         log.debug("SATFC solver bundle.");
@@ -114,11 +113,9 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        IContainmentCacher cacher = null;
         IContainmentCache containmentCache = null;
+        ICacher cacher = null;
         if (solverOptions.isCache()) {
-            // TODO: cacher needs to be a proxy
-            cacher = solverOptions.getCacherFactory().createrCacher();
             containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL());
         }
 
@@ -204,21 +201,15 @@ public class SATFCSolverBundle extends ASolverBundle {
         fVHFSolver = VHFsolver;
     }
 
-    /**  A problem is eligible to interact with the cache (cache, or be solved by a lookup) IF AND ONLY IF the domain of every station in the problem is exactly its UHF domain cut off at a clearing target */
-    private boolean isCacheable(StationPackingInstance aInstance) {
-        final int clearingTarget = aInstance.getAllChannels().stream().max(Integer::compareTo).get(); // max channel in problem
-        return aInstance.getDomains().entrySet().stream().allMatch(e -> Sets.intersection(fStationManager.getDomain(e.getKey()), StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c <= clearingTarget).collect(GuavaCollectors.toImmutableSet())).equals(e.getValue()));
-    }
-
     @Override
     public ISolver getSolver(StationPackingInstance aInstance) {
         //Return the right solver based on the channels in the instance.
-        if (StationPackingUtils.UHF_CHANNELS.containsAll(aInstance.getAllChannels()) && isCacheable(aInstance)) {
+        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
+            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
+            return fVHFSolver;
+        } else {
             log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
             return fUHFSolver;
-        } else {
-            log.debug("Returning clasp configured for VHF (November 2013) with Ilya's station subset pre-solving.");
-            return fVHFSolver;
         }
     }
 

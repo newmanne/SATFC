@@ -26,7 +26,9 @@ import java.util.HashSet;
 
 public class StationPackingUtils {
 
-	private StationPackingUtils()
+    public final static int N_STATIONS = 2173;
+
+    private StationPackingUtils()
 	{
 		//Cannot construct a utils class.
 	}

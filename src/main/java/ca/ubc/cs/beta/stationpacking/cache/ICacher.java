@@ -3,6 +3,15 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import java.util.List;
 import java.util.Optional;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 
@@ -15,40 +24,44 @@ import com.google.common.collect.ImmutableList;
  */
 public interface ICacher {
 
-    void cacheResult(CacheCoordinate cacheCoordinate, SATCacheEntry entry);
+    void cacheResult(CacheCoordinate cacheCoordinate, CacheEntry.SATCacheEntry entry);
 
-    public static interface IContainmentCacher extends ICacher {
-        Optional<SATCacheEntry> getSolverResultByKey(CacheCoordinate coordinate);
-        RedisCacher.SubsetCacheInitData getSubsetCacheData();
-    }
-
+    /**
+     * This class determines which cache is accessed
+     */
     @Data
     public static class CacheCoordinate {
 
         private final String domainHash;
         private final String interferenceHash;
-        private final int clearingTarget;
-        private final String problem;
 
-        public CacheCoordinate(String domainHash, String interferenceHash, int clearingTarget, StationPackingInstance instance) {
-            this.domainHash = domainHash;
-            this.interferenceHash = interferenceHash;
-            this.clearingTarget = clearingTarget;
-            this.problem = new String(instance.toBitSet().toByteArray());
+        public static CacheCoordinate fromKey(String key) {
+            final List<String> strings = Splitter.on(":").splitToList(key);
+            return new CacheCoordinate(strings.get(2), strings.get(3));
         }
 
-        public String toKey() {
-            return Joiner.on(":").join(ImmutableList.of("SATFC", domainHash, interferenceHash, clearingTarget, problem));
-        }
-
-        public CacheCoordinate(String key) {
-            final List<String> strings = Splitter.on(':').splitToList(key);
-            this.domainHash = strings.get(0);
-            this.interferenceHash = strings.get(1);
-            this.clearingTarget = Integer.parseInt(strings.get(2));
-            this.problem = strings.get(3);
+        public String toKey(SATResult result, StationPackingInstance instance) {
+            Preconditions.checkArgument(result.equals(SATResult.SAT) || result.equals(SATResult.UNSAT));
+            return Joiner.on(":").join(ImmutableList.of("SATFC", result, domainHash, interferenceHash, StationPackingInstanceHasher.hash(instance)));
         }
 
     }
+
+    public static class StationPackingInstanceHasher {
+
+        // hashing function
+        private static final HashFunction fHashFuction = Hashing.murmur3_32();
+
+        public static HashCode hash(StationPackingInstance aInstance) {
+            final Watch watch = Watch.constructAutoStartWatch();
+            final HashCode hash = fHashFuction.newHasher()
+                    .putString(aInstance.toString(), Charsets.UTF_8)
+                    .hash();
+            SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.HASHING, watch.getElapsedTime()));
+            return hash;
+        }
+
+    }
+
 
 }

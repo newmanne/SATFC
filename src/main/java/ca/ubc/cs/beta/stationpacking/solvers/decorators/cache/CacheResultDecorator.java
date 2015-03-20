@@ -46,7 +46,6 @@ public class CacheResultDecorator extends ASolverDecorator {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if (cachingStrategy.shouldCache(result)) {
         	final SATCacheEntry cacheEntry = new SATCacheEntry(result, new Date(), aInstance.getName());
-        	// TODO: use an actual CT once we have the API
             cacher.cacheResult(new CacheCoordinate(domainHash, interferenceHash, 42, aInstance), cacheEntry);
         }
         return result;

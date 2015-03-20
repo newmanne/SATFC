@@ -1,22 +1,26 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.CacheEntry.SATCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.CacheEntry.UNSATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheUNSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheEntry;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.IContainmentCacher;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
+import java.util.Date;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -24,19 +28,28 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class RedisCacher implements IContainmentCacher {
+public class RedisCacher {
 
     private final Jedis fJedis;
 
-    @Override
-    public void cacheResult(CacheCoordinate cacheCoordinate, SATCacheEntry entry) {
+    public void cacheSATResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
+        Preconditions.checkArgument(result.getResult().equals(SATResult.SAT));
+        final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getName(), result.getAssignment());
         final String jsonResult = JSONUtils.toString(entry);
-        final String key = cacheCoordinate.toKey();
-        fJedis.set(key, jsonResult);
+        final String key = cacheCoordinate.toKey(SATResult.SAT, instance);
         log.info("Adding result for " + entry.getName() + " to cache with key " + key);
+        fJedis.set(key, jsonResult);
     }
 
-    public Optional<SATCacheEntry> getSolverResultByKey(String key, boolean shouldLog) {
+    public void cacheUNSATResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance) {
+        final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getName(), instance.getDomains());
+        final String jsonResult = JSONUtils.toString(entry);
+        final String key = cacheCoordinate.toKey(SATResult.UNSAT, instance);
+        log.info("Adding result for " + entry.getName() + " to cache with key " + key);
+        fJedis.set(key, jsonResult);
+    }
+
+    public Optional<SATCacheEntry> getSATSolverResultByKey(String key, boolean shouldLog) {
         if (shouldLog) {
             log.info("Asking redis for entry " + key);
         }
@@ -51,41 +64,78 @@ public class RedisCacher implements IContainmentCacher {
         return result;
     }
 
-    @Override
-    public Optional<SATCacheEntry> getSolverResultByKey(CacheCoordinate coordinate) {
-        return getSolverResultByKey(coordinate.toKey(), true);
+    public Optional<UNSATCacheEntry> getUNSATSolverResultByKey(String key, boolean shouldLog) {
+        if (shouldLog) {
+            log.info("Asking redis for entry " + key);
+        }
+        final String value = fJedis.get(key);
+        final Optional<UNSATCacheEntry> result;
+        if (value != null) {
+            final UNSATCacheEntry cacheEntry = JSONUtils.toObject(value, UNSATCacheEntry.class);
+            result = Optional.of(cacheEntry);
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+
     }
 
-    @Override
     public SubsetCacheInitData getSubsetCacheData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
-        List<ContainmentCacheSATEntry> SATResults = new ArrayList<>();
-        List<ContainmentCacheUNSATEntry> UNSATResults = new ArrayList<>();
-        final Set<String> SATKeys = fJedis.keys("SATFC:SAT:*");
-        SATKeys.forEach(key -> {
-            final SATCacheEntry cacheEntry = getSolverResultByKey(key, false).get();
-            Preconditions.checkState(cacheEntry.getSolverResult().getResult().equals(SATResult.SAT));
-            SATResults.add(new ContainmentCacheSATEntry(cacheEntry.getSolverResult().getAssignment()));
-        });
-        final Set<String> UNSATKeys = fJedis.keys("SATFC:UNSAT:*");
-        UNSATKeys.forEach(key -> {
-            final SATCacheEntry cacheEntry = getSolverResultByKey(key, false).get();
-            Preconditions.checkState(cacheEntry.getSolverResult().getResult().equals(SATResult.UNSAT));
-            UNSATResults.add(new ContainmentCacheUNSATEntry(cacheEntry.getSolverResult().getAssignment()));
-        });
-        log.info("It took {}s to pull precache data from redis. Found {} applicable results. {} SAT and {} UNSAT", (System.currentTimeMillis() - start) / 1000.0, SATResults.size() + UNSATResults.size(), SATResults.size(), UNSATResults.size());
-        return new SubsetCacheInitData(SATResults, UNSATResults);
-    }
 
-    private BitSet keyToBitSet(String key) {
-        return BitSet.valueOf(new CacheCoordinate(key).getProblem().getBytes());
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
+
+        final Set<String> SATKeys = fJedis.keys("SATFC:SAT:*");
+        log.info("Found " + SATKeys.size() + " SAT keys");
+
+        // process SATs
+        final AtomicInteger progressIndex = new AtomicInteger();
+        SATKeys.forEach(key -> {
+            if (progressIndex.get() % 1000 == 0) {
+                log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
+            }
+            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            final SATCacheEntry cacheEntry = getSATSolverResultByKey(key, false).get();
+            final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key);
+            SATResults.put(coordinate, entry);
+            progressIndex.incrementAndGet();
+        });
+        log.info("Finished processing SAT entries");
+        SATResults.keySet().forEach(cacheCoordinate -> {
+            log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
+        });
+
+        // process UNSATs
+        final Set<String> UNSATKeys = fJedis.keys("SATFC:UNSAT:*");
+        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
+
+        progressIndex.set(0);
+        UNSATKeys.forEach(key -> {
+            if (progressIndex.get() % 1000 == 0) {
+                log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
+            }
+            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            final UNSATCacheEntry cacheEntry = getUNSATSolverResultByKey(key, false).get();
+            final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(cacheEntry.getDomains(), key);
+            UNSATResults.put(coordinate, entry);
+            progressIndex.incrementAndGet();
+        });
+        log.info("Finished processing UNSAT entries");
+        UNSATResults.keySet().forEach(cacheCoordinate -> {
+            log.info("Found {} UNSAT entries for cache " + cacheCoordinate, UNSATResults.get(cacheCoordinate).size());
+        });
+
+        log.info("It took {}s to pull precache data from redis", (System.currentTimeMillis() - start) / 1000.0);
+
+        return new SubsetCacheInitData(SATResults, UNSATResults);
     }
 
     @Data
     public static class SubsetCacheInitData {
-        private final List<ContainmentCacheSATEntry> SATResults;
-        private final List<ContainmentCacheUNSATEntry> UNSATResults;
+        private final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults;
+        private final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults;
     }
 
 }

@@ -1,5 +1,13 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.cache.CacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
@@ -11,17 +19,22 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
 * Created by newmanne on 28/01/15.
 */
 @Slf4j
 public class SupersetCacheSATDecorator extends ASolverDecorator {
 
-    private final IContainmentCache.IContainmentCache2 containmentCache;
+    private final ContainmentCacheProxy proxy;
+    private final ICacher.CacheCoordinate coordinate;
 
-    public SupersetCacheSATDecorator(ISolver aSolver, IContainmentCache.IContainmentCache2 containmentCache) {
+    public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy, ICacher.CacheCoordinate coordinate) {
         super(aSolver);
-        this.containmentCache = containmentCache;
+        this.proxy = proxy;
+        this.coordinate = coordinate;
     }
 
     @Override
@@ -30,10 +43,22 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
         final SolverResult result;
-        final IContainmentCache.ContainmentCacheResult superset = containmentCache.findSuperset(aInstance.toBitSet());
-
-        if (false) {
-        	// TODO:!!!
+        final ContainmentCache.ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance, coordinate);
+        if (containmentCacheSATResult.getResult().isPresent()) {
+            final Map<Integer, Set<Station>> assignment = containmentCacheSATResult.getResult().get();
+            log.info("Found a superset in the SAT cache - declaring result SAT");
+            final Map<Integer, Set<Station>> reducedAssignment = Maps.newHashMap();
+            for (Integer channel : assignment.keySet()) {
+                assignment.get(channel).stream().filter(station -> aInstance.getStations().contains(station)).forEach(station -> {
+                    if (reducedAssignment.get(channel) == null) {
+                        reducedAssignment.put(channel, Sets.newHashSet());
+                    }
+                    reducedAssignment.get(channel).add(station);
+                });
+            }
+            result = new SolverResult(SATResult.SAT, watch.getElapsedTime(), reducedAssignment);
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.SUPERSET_CACHE, result.getResult()));
+            SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), key));
         } else {
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratedResult = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
