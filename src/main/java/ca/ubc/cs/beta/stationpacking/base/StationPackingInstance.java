@@ -60,30 +60,28 @@ public class StationPackingInstance {
 	
 	private final ImmutableMap<Station, Set<Integer>> domains;
 	private final ImmutableMap<Station, Integer> previousAssignment;
-	@Getter
-	private final String name;
-	
-	// names are only for tracking metrics, so use this string when you don't care
-	public final static String UNTITLED = "UNTITLED";
-
-    public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
-        this(aDomains, ImmutableMap.of(), UNTITLED);
-    }
+    @Getter
+    private String name = "";
 
 	/**
 	 * Create a station packing instance.
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, String name){
-		this(aDomains, ImmutableMap.of(), name);
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains){
+		this(aDomains, ImmutableMap.of());
 	}
+
+    public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, String name) {
+        this(aDomains, aPreviousAssignment);
+        this.name = name;
+    }
 	
 	/**
 	 * Create a station packing instance.
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 * @param aPreviousAssignment - a map taking stations to the channels they were assigned to previously.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, String name){
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -98,15 +96,14 @@ public class StationPackingInstance {
 				throw new IllegalArgumentException("Domain for station "+station+" is empty.");
 			}
 		}
-		
-		// TODO: this isn't ideal. You could just sort this once at the beginning and then never again...
+
+        // sort everything
 		Map<Station, Set<Integer>> tempDomains = Maps.newLinkedHashMap();
 		aDomains.keySet().stream().sorted().forEach(station -> {
 			List<Integer> channels = Lists.newArrayList(aDomains.get(station));
 			Collections.sort(channels);
 			tempDomains.put(station, Sets.newLinkedHashSet(channels));
 		});
-		this.name = name;
 		this.domains = ImmutableMap.copyOf(tempDomains);
 		previousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 	}
@@ -124,14 +121,14 @@ public class StationPackingInstance {
 		{
 			domains.put(station, aChannels);
 		}
-		return new StationPackingInstance(domains,aPreviousAssignment, StationPackingInstance.UNTITLED);
+		return new StationPackingInstance(domains,aPreviousAssignment);
 	}
 	
 	/**
 	 * @return - all the channels present in the domains.
 	 */
 	public Set<Integer> getAllChannels()
-	{
+    {
 		Set<Integer> allChannels = new HashSet<Integer>();
 		for(Set<Integer> channels : domains.values())
 		{
@@ -143,7 +140,6 @@ public class StationPackingInstance {
 	// warning: changing this method will completely mess up hashing!
 	@Override
 	public String toString() {
-		final Watch watch = Watch.constructAutoStartWatch();
 		StringBuilder sb = new StringBuilder();
 		int s=1;
 		for(Station station : getStations())
@@ -156,7 +152,6 @@ public class StationPackingInstance {
 			}
 			s++;
 		}
-		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(getName(), SATFCMetrics.TimingEvent.TO_STRING, watch.getElapsedTime()));
 		return sb.toString();
 	}
 	
@@ -233,12 +228,6 @@ public class StationPackingInstance {
 		catch (UnsupportedEncodingException e) {
 		    throw new IllegalStateException("Could not encode filename", e);
 		}
-	}
-	
-	public BitSet toBitSet() {
-		final BitSet bitSet = new BitSet();
-		getStations().forEach(station -> bitSet.set(station.getID()));
-		return bitSet;
 	}
 
 }

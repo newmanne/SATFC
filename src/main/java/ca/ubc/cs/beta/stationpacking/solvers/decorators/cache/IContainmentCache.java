@@ -18,28 +18,12 @@ public interface IContainmentCache {
 
     ContainmentCacheResult findSuperset(final BitSet bitSet);
 
-    public enum QueryType {
-        SUPERSET,
-        SUBSET
-    }
-
-    @Data
-    public static class ContainmentCacheResult {
-        private final Optional<String> key;
-    }
-
     @Data
     @AllArgsConstructor
-    public static class ContainmentCacheReply {
+    public static class ContainmentCacheSATReply {
         private boolean valid;
-        private String key;
         private SATResult result;
         private Map<Integer, Set<Station>> assignment;
-    }
-
-    public static interface IContainmentCache2 {
-        ContainmentCacheReply findSubset(ICacher.CacheCoordinate cacheCoordinate);
-        ContainmentCacheReply findSuperset(ICacher.CacheCoordinate cacheCoordinate);
     }
 
 }
