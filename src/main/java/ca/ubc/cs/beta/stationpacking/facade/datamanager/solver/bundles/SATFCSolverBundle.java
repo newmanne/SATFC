@@ -115,8 +115,10 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         IContainmentCache containmentCache = null;
         ICacher cacher = null;
+        ICacher.CacheCoordinate cacheCoordinate = null;
         if (solverOptions.isCache()) {
-            containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL());
+            cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+            containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL(), cacheCoordinate);
         }
 
         if (solverOptions.isCache()) {
