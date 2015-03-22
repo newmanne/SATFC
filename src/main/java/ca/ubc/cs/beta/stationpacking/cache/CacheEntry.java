@@ -12,36 +12,40 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
  * Created by newmanne on 05/12/14.
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class CacheEntry {
 
     private Date cacheDate;
-    private String name;
+    private Map<String, Object> metadata;
 
     @Data
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class SATCacheEntry extends CacheEntry {
         private Map<Integer, Set<Station>> assignment;
 
-        public SATCacheEntry(Date date, String name, Map<Integer, Set<Station>> assignment) {
-            super(date, name);
+        public SATCacheEntry(Date date, Map<String, Object> metadata, Map<Integer, Set<Station>> assignment) {
+            super(date, metadata);
             this.assignment = assignment;
         }
     }
 
     @Data
+    @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     public static class UNSATCacheEntry extends CacheEntry {
         private Map<Station, Set<Integer>> domains;
 
-        public UNSATCacheEntry(Date date, String name, Map<Station, Set<Integer>> domains) {
-            super(date, name);
+        public UNSATCacheEntry(Date date, Map<String, Object> metadata, Map<Station, Set<Integer>> domains) {
+            super(date, metadata);
             this.domains = domains;
         }
     }

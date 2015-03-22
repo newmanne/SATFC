@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +114,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         ICacher.CacheCoordinate cacheCoordinate = null;
         if (solverOptions.isCache()) {
             cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+            cacher = new CacherProxy(solverOptions.getServerURL(), cacheCoordinate);
             containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL(), cacheCoordinate);
         }
 

@@ -19,10 +19,4 @@ public class SATFCCachingParameters extends AbstractOptions {
     @Getter
     public String serverURL = "http://localhost:8080/satfcserver";
 
-    @Parameter(names = "--redisHost", description = "Redis Host", required = false)
-    public String redisURL = "localhost";
-
-    @Parameter(names = "--redisPort", description = "Redis port", required = false)
-    public int redisPort = 6379;
-
 }

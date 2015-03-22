@@ -30,16 +30,6 @@ public class ContainmentCacheProxy {
         private CacheCoordinate coordinate;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ContainmentCacheCacheRequest {
-        private StationPackingInstance instance;
-        private CacheCoordinate coordinate;
-        private SolverResult result;
-
-    }
-
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/cache/query/SAT");
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);

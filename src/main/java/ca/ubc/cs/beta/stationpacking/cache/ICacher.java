@@ -12,12 +12,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import lombok.NoArgsConstructor;
 
 /**
  * Created by newmanne on 1/25/15.
@@ -30,10 +32,12 @@ public interface ICacher {
      * This class determines which cache is accessed
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class CacheCoordinate {
 
-        private final String domainHash;
-        private final String interferenceHash;
+        private String domainHash;
+        private String interferenceHash;
 
         public static CacheCoordinate fromKey(String key) {
             final List<String> strings = Splitter.on(":").splitToList(key);

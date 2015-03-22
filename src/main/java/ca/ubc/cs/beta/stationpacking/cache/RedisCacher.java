@@ -37,11 +37,11 @@ public class RedisCacher {
         Preconditions.checkArgument(result.getResult().equals(SATResult.SAT));
         final String jsonResult;
         if (result.getResult().equals(SATResult.SAT)) {
-            final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getName(), result.getAssignment());
+            final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getMetadata(), result.getAssignment());
             jsonResult = JSONUtils.toString(entry);
         } else {
             Preconditions.checkState(result.getResult().equals(SATResult.UNSAT));
-            final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getName(), instance.getDomains());
+            final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getMetadata(), instance.getDomains());
             jsonResult = JSONUtils.toString(entry);
         }
         final String key = cacheCoordinate.toKey(SATResult.SAT, instance);

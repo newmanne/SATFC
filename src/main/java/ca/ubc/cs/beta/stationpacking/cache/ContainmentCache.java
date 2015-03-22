@@ -223,7 +223,7 @@ public class ContainmentCache {
             final Map<Integer, Integer> stationToChannel = new HashMap<>();
             int j = 0;
             for (int stationId = bitSet.nextSetBit(0); stationId >= 0; stationId = bitSet.nextSetBit(stationId+1)) {
-                stationToChannel.put(stationId, Byte.toUnsignedInt(channels[stationId]));
+                stationToChannel.put(stationId, Byte.toUnsignedInt(channels[j]));
                 j++;
             }
             return stationToChannel;
