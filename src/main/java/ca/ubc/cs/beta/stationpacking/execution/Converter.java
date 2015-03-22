@@ -465,11 +465,11 @@ public class Converter {
 			final StationPackingInstance instance;
 			if(previousAssignment == null)
 			{
-				instance = new StationPackingInstance(domains, StationPackingInstance.UNTITLED);
+				instance = new StationPackingInstance(domains);
 			}
 			else
 			{
-				instance = new StationPackingInstance(domains,previousAssignment, StationPackingInstance.UNTITLED);
+				instance = new StationPackingInstance(domains,previousAssignment);
 			}
 			
 			switch(outType)

@@ -174,7 +174,7 @@ public class SATFCFacade implements AutoCloseable{
 			Map<Integer,Set<Integer>> aDomains,
 			Map<Integer,Integer> aPreviousAssignment,
 			double aCutoff, 
-			long aSeed, String aStationConfigFolder, String name)
+			long aSeed, String aStationConfigFolder, Map<String, Object> metadata)
 	{
 		if(aDomains == null || aPreviousAssignment == null || aStationConfigFolder == null)
 		{
@@ -238,7 +238,7 @@ public class SATFCFacade implements AutoCloseable{
 		
 		log.debug("Constructing station packing instance...");
 		//Construct the instance.
-		StationPackingInstance instance = new StationPackingInstance(domains, previousAssignment, name);
+		StationPackingInstance instance = new StationPackingInstance(domains, previousAssignment, metadata);
 		
 		log.debug("Getting solver...");
 		//Get solver
@@ -285,6 +285,18 @@ public class SATFCFacade implements AutoCloseable{
 	
 	}
 	
+	public SATFCResult solve(Set<Integer> aStations,
+			Set<Integer> aChannels,
+			Map<Integer,Set<Integer>> aReducedDomains,
+			Map<Integer,Integer> aPreviousAssignment,
+			double aCutoff,
+			long aSeed,
+			String aStationConfigFolder
+			) {
+		return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, new HashMap<>());
+	}
+
+	
 	/**
 	 * Solve a station packing problem. The channel domain of a station will be the intersection of the station's original domain (given in data files) with the packing channels,
 	 * and additionally intersected with its reduced domain if available and if non-empty. 
@@ -304,7 +316,7 @@ public class SATFCFacade implements AutoCloseable{
 			double aCutoff,
 			long aSeed,
 			String aStationConfigFolder,
-			String name
+			Map<String, Object> metadata
 			)
 	{
 		//Check input.
@@ -355,7 +367,7 @@ public class SATFCFacade implements AutoCloseable{
 			aDomains.put(station, domain);
 		}
 		
-		return solve(aDomains,aPreviousAssignment,aCutoff,aSeed,aStationConfigFolder, name);
+		return solve(aDomains,aPreviousAssignment,aCutoff,aSeed,aStationConfigFolder, metadata);
 		
 	}
 

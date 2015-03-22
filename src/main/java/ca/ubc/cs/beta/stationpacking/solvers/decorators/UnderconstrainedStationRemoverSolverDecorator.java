@@ -94,7 +94,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 		{
 			//Solve the reduced instance.
 			log.debug("Solving the sub-instance...");
-			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getName());
+			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 			watch.stop();
 			preTime = watch.getElapsedTime();
 			log.trace("{} s spent on underconstrained pre-solving setup.",preTime);

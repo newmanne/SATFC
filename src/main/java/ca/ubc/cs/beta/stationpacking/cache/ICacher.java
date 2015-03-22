@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableList;
  */
 public interface ICacher {
 
-    void cacheResult(CacheCoordinate cacheCoordinate, CacheEntry.SATCacheEntry entry);
+    void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result);
 
     /**
      * This class determines which cache is accessed

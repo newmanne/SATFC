@@ -134,10 +134,10 @@ public class ContainmentCache {
         final Collection<ContainmentCacheUNSATEntry> containmentCacheUNSATEntries = smallSetSmallerThanOrEqualTo(bitSet);
         // TODO: weak subsets on domains
         final Optional<ContainmentCacheUNSATEntry> UNSATSubset = containmentCacheUNSATEntries.stream().filter(entry -> isSubset(entry.getBitSet(), bitSet) && entry.getDomains().equals(aInstance.getDomains())).findAny();
-        if (subset.isPresent()) {
-            return new ContainmentCacheResult(Optional.of(subset.get().getKey()));
+        if (UNSATSubset.isPresent()) {
+            return new ContainmentCacheUNSATResult(UNSATSubset.get().getKey());
         } else {
-            return new ContainmentCacheResult(Optional.<String>empty());
+            return new ContainmentCacheUNSATResult();
         }
     }
 
@@ -167,8 +167,13 @@ public class ContainmentCache {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ContainmentCacheUNSATResult {
-        private boolean valid;
+        private String key;
+        public boolean isValid() {
+            return key != null;
+        }
     }
 
     @Data

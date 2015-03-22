@@ -23,12 +23,11 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.IContainmentCacher;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
@@ -46,7 +45,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorat
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.IContainmentCache;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
@@ -54,10 +52,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-
-import com.google.common.collect.Sets;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -113,7 +108,7 @@ public class SATFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        IContainmentCache containmentCache = null;
+        ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
         ICacher.CacheCoordinate cacheCoordinate = null;
         if (solverOptions.isCache()) {
@@ -122,8 +117,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         }
 
         if (solverOptions.isCache()) {
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new CacheResultDecorator(UHFsolver, aStationManager.getHashCode(), aConstraintManager.getHashCode(), cacher);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
         if (solverOptions.isDecompose())
@@ -169,12 +164,12 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isCache()) {
             UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate);
         }
 
         // cache entire instance
         if (solverOptions.isCache()) {
-            UHFsolver = new CacheResultDecorator(UHFsolver, aStationManager.getHashCode(), aConstraintManager.getHashCode(), cacher);
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
         //Save CNFs, if needed.

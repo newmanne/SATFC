@@ -141,7 +141,7 @@ public class SATFCFacadeTests {
 			InstanceParameters testCase = entry.getKey();
 			Pair<SATResult,Double> expectedResult = entry.getValue();
 			
-			SATFCResult result = facade.solve(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername, StationPackingInstance.UNTITLED);
+			SATFCResult result = facade.solve(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername, new HashMap<>());
 			
 			assertEquals(expectedResult.getFirst(),result.getResult());
 			if(result.getRuntime() > expectedResult.getSecond())

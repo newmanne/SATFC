@@ -28,7 +28,7 @@ public class ConnectedComponentGroupingDecoratorTest {
         final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
         final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager);
 
-        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap(), "test");
+        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
         final Set<Station> componentA = mock(Set.class);
         final Set<Station> componentB = mock(Set.class);
         final Set<Station> componentC = mock(Set.class);
@@ -51,7 +51,7 @@ public class ConnectedComponentGroupingDecoratorTest {
         final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
         final ConnectedComponentGroupingDecorator connectedComponentGroupingDecorator = new ConnectedComponentGroupingDecorator(solver, grouper, constraintManager);
 
-        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap(), "test");
+        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
         final Set<Station> componentA = mock(Set.class);
         final Set<Station> componentB = mock(Set.class);
         final Set<Station> componentC = mock(Set.class);

@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,9 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                     .collect(toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
             final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
             final String name = aInstance.getName() + "_component" + componentIndex;
-            return new StationPackingInstance(subDomains, previousAssignment, name);
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put(StationPackingInstance.NAME_KEY, name);
+            return new StationPackingInstance(subDomains, previousAssignment, metadata);
         }).collect(GuavaCollectors.toImmutableList());
 
         SATFCMetrics.postEvent(new SATFCMetrics.SplitIntoConnectedComponentsEvent(aInstance.getName(), componentInstances));

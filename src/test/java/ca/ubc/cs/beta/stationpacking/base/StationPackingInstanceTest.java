@@ -10,7 +10,7 @@ public class StationPackingInstanceTest extends TestCase {
 
     @Test
     public void testSerialization() {
-        final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(new Station(3), ImmutableSet.of(3, 4, 5)), ImmutableMap.of(new Station(3), 3), "UNTITLED");
+        final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(new Station(3), ImmutableSet.of(3, 4, 5)), ImmutableMap.of(new Station(3), 3));
         System.out.println(JSONUtils.toString(instance));
         assertEquals("{\"domains\":{\"3\":[3,4,5]},\"previousAssignment\":{\"3\":3},\"name\":\"UNTITLED\"}", JSONUtils.toString(instance));
     }

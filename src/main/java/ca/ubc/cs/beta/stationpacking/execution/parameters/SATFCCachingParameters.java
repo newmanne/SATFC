@@ -1,13 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import lombok.Getter;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.cache.ICacherFactory;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCachingDecoratorFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Preconditions;
-import lombok.Getter;
 
 /**
  * Created by newmanne on 04/12/14.
@@ -27,12 +24,5 @@ public class SATFCCachingParameters extends AbstractOptions {
 
     @Parameter(names = "--redisPort", description = "Redis port", required = false)
     public int redisPort = 6379;
-
-    public ICacherFactory getCacherFactor() {
-    	Preconditions.checkState(useCache);
-        Preconditions.checkNotNull(redisPort);
-        Preconditions.checkNotNull(redisURL);
-    	return new RedisCachingDecoratorFactory(redisURL, redisPort);
-    }
 
 }

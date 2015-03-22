@@ -12,6 +12,7 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,22 +33,22 @@ public class RedisCacher {
 
     private final Jedis fJedis;
 
-    public void cacheSATResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
+    public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         Preconditions.checkArgument(result.getResult().equals(SATResult.SAT));
-        final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getName(), result.getAssignment());
-        final String jsonResult = JSONUtils.toString(entry);
+        final String jsonResult;
+        if (result.getResult().equals(SATResult.SAT)) {
+            final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getName(), result.getAssignment());
+            jsonResult = JSONUtils.toString(entry);
+        } else {
+            Preconditions.checkState(result.getResult().equals(SATResult.UNSAT));
+            final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getName(), instance.getDomains());
+            jsonResult = JSONUtils.toString(entry);
+        }
         final String key = cacheCoordinate.toKey(SATResult.SAT, instance);
-        log.info("Adding result for " + entry.getName() + " to cache with key " + key);
+        log.info("Adding result for " + instance.getName() + " to cache with key " + key);
         fJedis.set(key, jsonResult);
     }
 
-    public void cacheUNSATResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance) {
-        final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getName(), instance.getDomains());
-        final String jsonResult = JSONUtils.toString(entry);
-        final String key = cacheCoordinate.toKey(SATResult.UNSAT, instance);
-        log.info("Adding result for " + entry.getName() + " to cache with key " + key);
-        fJedis.set(key, jsonResult);
-    }
 
     public Optional<SATCacheEntry> getSATSolverResultByKey(String key, boolean shouldLog) {
         if (shouldLog) {
@@ -80,7 +81,7 @@ public class RedisCacher {
 
     }
 
-    public SubsetCacheInitData getSubsetCacheData() {
+    public ContainmentCacheInitData getContainmentCacheInitData() {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
 
@@ -129,13 +130,17 @@ public class RedisCacher {
 
         log.info("It took {}s to pull precache data from redis", (System.currentTimeMillis() - start) / 1000.0);
 
-        return new SubsetCacheInitData(SATResults, UNSATResults);
+        return new ContainmentCacheInitData(SATResults, UNSATResults);
     }
 
     @Data
-    public static class SubsetCacheInitData {
+    public static class ContainmentCacheInitData {
         private final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults;
         private final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults;
+
+        public Set<CacheCoordinate> getCaches() {
+            return Sets.union(SATResults.keySet(), UNSATResults.keySet());
+        }
     }
 
 }

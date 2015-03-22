@@ -23,10 +23,13 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.io.Resources;
+
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,6 +128,8 @@ public class SATFCFacadeExecutor {
 					SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
 
 					log.info("Solving ...");
+					Map<String, Object> metadata = new HashMap<>();
+					metadata.put(StationPackingInstance.NAME_KEY, instanceFileName);
 					SATFCResult result = satfc.solve(
 							stations,
 							stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
@@ -133,7 +138,7 @@ public class SATFCFacadeExecutor {
 							parameters.fInstanceParameters.Cutoff,
 							parameters.fInstanceParameters.Seed,
 							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
-							instanceFileName);
+							metadata);
 					log.info("..done!");
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());
@@ -162,8 +167,7 @@ public class SATFCFacadeExecutor {
 						parameters.fInstanceParameters.getPreviousAssignment(),
 						parameters.fInstanceParameters.Cutoff,
 						parameters.fInstanceParameters.Seed,
-						parameters.fInstanceParameters.fDataFoldername,
-						StationPackingInstance.UNTITLED);
+						parameters.fInstanceParameters.fDataFoldername);
 
 				log.info("..done!");
 

@@ -43,9 +43,9 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
         final SolverResult result;
-        final ContainmentCache.ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance, coordinate);
-        if (containmentCacheSATResult.getResult().isPresent()) {
-            final Map<Integer, Set<Station>> assignment = containmentCacheSATResult.getResult().get();
+        final ContainmentCache.ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance);
+        if (containmentCacheSATResult.isValid()) {
+            final Map<Integer, Set<Station>> assignment = containmentCacheSATResult.getResult();
             log.info("Found a superset in the SAT cache - declaring result SAT");
             final Map<Integer, Set<Station>> reducedAssignment = Maps.newHashMap();
             for (Integer channel : assignment.keySet()) {
@@ -58,7 +58,7 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
             }
             result = new SolverResult(SATResult.SAT, watch.getElapsedTime(), reducedAssignment);
             SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.SUPERSET_CACHE, result.getResult()));
-            SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), key));
+            SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), containmentCacheSATResult.getKey()));
         } else {
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratedResult = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);

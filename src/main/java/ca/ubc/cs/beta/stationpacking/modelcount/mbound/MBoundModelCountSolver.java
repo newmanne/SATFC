@@ -93,7 +93,7 @@ public class MBoundModelCountSolver implements IModelCountSolver {
             domains.put(s, channels);
         }
 
-        StationPackingInstance instanceWithHappyChannels = new StationPackingInstance(domains, aInstance.getPreviousAssignment(), aInstance.getName());
+        StationPackingInstance instanceWithHappyChannels = new StationPackingInstance(domains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
         CNF encodedInstance = fSATEncoder.encode(instanceWithHappyChannels).getFirst();
 
@@ -133,7 +133,7 @@ public class MBoundModelCountSolver implements IModelCountSolver {
             domains.put(s, channels);
         }
 
-        StationPackingInstance instanceWithHappyChannels = new StationPackingInstance(domains, aInstance.getPreviousAssignment(), aInstance.getName());
+        StationPackingInstance instanceWithHappyChannels = new StationPackingInstance(domains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
         CNF encodedInstance = fSATEncoder.encode(instanceWithHappyChannels).getFirst();
 

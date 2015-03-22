@@ -1,10 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
-import java.util.Date;
-
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -22,31 +19,28 @@ import com.google.common.collect.ImmutableList;
 public class CacheResultDecorator extends ASolverDecorator {
 
     private final ICacher cacher;
-    private final String domainHash;
-    private final String interferenceHash;
+    private final CacheCoordinate cacheCoordinate;
     private final CachingStrategy cachingStrategy;
 
     /**
      * @param aSolver - decorated ISolver.
      */
-    public CacheResultDecorator(ISolver aSolver, ICacher aCacher, String domainHash, String interferenceHash, CachingStrategy cachingStrategy) {
+    public CacheResultDecorator(ISolver aSolver, ICacher aCacher, CacheCoordinate cacheCoordinate, CachingStrategy cachingStrategy) {
         super(aSolver);
         cacher = aCacher;
-        this.domainHash = domainHash;
-        this.interferenceHash = interferenceHash;
+        this.cacheCoordinate = cacheCoordinate;
         this.cachingStrategy = cachingStrategy;
     }
 
-    public CacheResultDecorator(ISolver aSolver, String domainHash, String interferenceHash, ICacher aCacher) {
-        this(aSolver, aCacher, domainHash, interferenceHash, new CachingStrategy() {});
+    public CacheResultDecorator(ISolver aSolver, ICacher aCacher, CacheCoordinate cacheCoordinate) {
+        this(aSolver, aCacher, cacheCoordinate, new CachingStrategy() {});
     }
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if (cachingStrategy.shouldCache(result)) {
-        	final SATCacheEntry cacheEntry = new SATCacheEntry(result, new Date(), aInstance.getName());
-            cacher.cacheResult(new CacheCoordinate(domainHash, interferenceHash, 42, aInstance), cacheEntry);
+            cacher.cacheResult(cacheCoordinate, aInstance, result);
         }
         return result;
     }

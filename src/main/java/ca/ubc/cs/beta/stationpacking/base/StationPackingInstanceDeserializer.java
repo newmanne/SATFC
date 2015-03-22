@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.base;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import lombok.Data;
@@ -17,14 +18,14 @@ public class StationPackingInstanceDeserializer extends
 	@Override
 	public StationPackingInstance deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
 		Dummy readValueAs = p.readValueAs(Dummy.class);
-		return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment(), readValueAs.getName());
+		return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment());
 	}
 	
 	@Data
 	public static class Dummy {
 		private ImmutableMap<Station, Set<Integer>> domains;
 		private ImmutableMap<Station, Integer> previousAssignment;
-		private String name;
+		private Map<String, Object> metadata;
 	}
 
 }

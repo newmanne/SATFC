@@ -218,7 +218,7 @@ public class EncodedInstanceToCNFConverter {
             
         }
         
-        StationPackingInstance instance = new StationPackingInstance(domains,previous_assignment,"");
+        StationPackingInstance instance = new StationPackingInstance(domains,previous_assignment);
         
         return new Pair<StationPackingInstance,String>(instance,config_foldername);
     }

@@ -241,8 +241,7 @@ public class SATFCTargetAlgorithmEvaluator extends
 							problem.getCutoff(),
 							problem.getSeed(),
 							fStationConfigFolder + File.separator
-									+ problem.getStationConfigFolder(),
-							StationPackingInstance.UNTITLED		
+									+ problem.getStationConfigFolder()
 							);
 	
 					log.debug("Transforming SATFC facade result to TAE result...");

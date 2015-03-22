@@ -58,10 +58,11 @@ import com.google.common.collect.Sets;
 @JsonDeserialize(using = StationPackingInstanceDeserializer.class)
 public class StationPackingInstance {
 	
+	public static final String NAME_KEY = "NAME";
 	private final ImmutableMap<Station, Set<Integer>> domains;
 	private final ImmutableMap<Station, Integer> previousAssignment;
-    @Getter
-    private String name = "";
+	@Getter
+	private final Map<String, Object> metadata;
 
 	/**
 	 * Create a station packing instance.
@@ -71,9 +72,8 @@ public class StationPackingInstance {
 		this(aDomains, ImmutableMap.of());
 	}
 
-    public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, String name) {
-        this(aDomains, aPreviousAssignment);
-        this.name = name;
+    public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment) {
+        this(aDomains, aPreviousAssignment, new HashMap<>());
     }
 	
 	/**
@@ -81,7 +81,8 @@ public class StationPackingInstance {
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 * @param aPreviousAssignment - a map taking stations to the channels they were assigned to previously.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment){
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, Map<String, Object> metadata){
+		this.metadata = new HashMap<>(metadata);
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
@@ -228,6 +229,10 @@ public class StationPackingInstance {
 		catch (UnsupportedEncodingException e) {
 		    throw new IllegalStateException("Could not encode filename", e);
 		}
+	}
+	
+	public String getName() {
+		return (String) metadata.getOrDefault(NAME_KEY, "UNTITLED");
 	}
 
 }
