@@ -11,6 +11,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 import com.google.common.collect.ImmutableList;
+import org.springframework.web.client.ResourceAccessException;
 
 /**
  * Created by newmanne on 1/25/15.
@@ -40,7 +41,7 @@ public class CacheResultDecorator extends ASolverDecorator {
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final SolverResult result = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         if (cachingStrategy.shouldCache(result)) {
-            cacher.cacheResult(cacheCoordinate, aInstance, result);
+                cacher.cacheResult(cacheCoordinate, aInstance, result);
         }
         return result;
     }

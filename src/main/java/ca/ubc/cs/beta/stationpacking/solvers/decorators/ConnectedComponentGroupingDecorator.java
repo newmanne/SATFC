@@ -79,7 +79,8 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                     .collect(toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
             final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
             final String name = aInstance.getName() + "_component" + componentIndex;
-            Map<String, Object> metadata = new HashMap<>();
+            // update name
+            Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
             metadata.put(StationPackingInstance.NAME_KEY, name);
             return new StationPackingInstance(subDomains, previousAssignment, metadata);
         }).collect(GuavaCollectors.toImmutableList());

@@ -2,16 +2,19 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by newmanne on 19/03/15.
  */
 public class CacheUtils {
+
+    private static RestTemplate restTemplate;
 
     public static BitSet toBitSet(StationPackingInstance aInstance) {
         final BitSet bitSet = new BitSet();
@@ -33,6 +36,23 @@ public class CacheUtils {
             });
         });
         return stationToChannel;
+    }
+
+    public static RestTemplate getRestTemplate() {
+        if (restTemplate == null) {
+            restTemplate = new RestTemplate();
+            final MappingJackson2HttpMessageConverter mappingJacksonHttpMessageConverter = new MappingJackson2HttpMessageConverter();
+            final ObjectMapper mapper = JSONUtils.getMapper();
+            // swap out the default message converter
+            for (int i = 0; i < restTemplate.getMessageConverters().size(); i++) {
+                if (restTemplate.getMessageConverters().get(i) instanceof MappingJackson2HttpMessageConverter) {
+                    restTemplate.getMessageConverters().remove(i);
+                    restTemplate.getMessageConverters().add(i, mappingJacksonHttpMessageConverter);
+                }
+                break;
+            }
+        }
+        return restTemplate;
     }
 
 }

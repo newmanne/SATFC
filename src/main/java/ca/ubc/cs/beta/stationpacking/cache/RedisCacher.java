@@ -34,7 +34,6 @@ public class RedisCacher {
     private final Jedis fJedis;
 
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
-        Preconditions.checkArgument(result.getResult().equals(SATResult.SAT));
         final String jsonResult;
         if (result.getResult().equals(SATResult.SAT)) {
             final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getMetadata(), result.getAssignment());

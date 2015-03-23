@@ -126,10 +126,10 @@ public class SATFCFacadeExecutor {
 					final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
 
 					SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
+                    Map<String, Object> metadata = new HashMap<>();
+                    metadata.put(StationPackingInstance.NAME_KEY, instanceFileName);
 
 					log.info("Solving ...");
-					Map<String, Object> metadata = new HashMap<>();
-					metadata.put(StationPackingInstance.NAME_KEY, instanceFileName);
 					SATFCResult result = satfc.solve(
 							stations,
 							stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),

@@ -16,9 +16,13 @@ public class StationPackingInstanceDeserializer extends
 		JsonDeserializer<StationPackingInstance> {
 
 	@Override
-	public StationPackingInstance deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+	public StationPackingInstance deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
 		Dummy readValueAs = p.readValueAs(Dummy.class);
-		return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment());
+        if (readValueAs.getMetadata() != null) {
+            return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment());
+        } else {
+            return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment(), readValueAs.getMetadata());
+        }
 	}
 	
 	@Data

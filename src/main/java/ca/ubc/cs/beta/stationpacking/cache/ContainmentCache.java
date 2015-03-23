@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.IntStream;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
@@ -29,10 +30,10 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableLis
 @Slf4j
 public class ContainmentCache {
 
-    final List<List<ContainmentCacheUNSATEntry>> UNSATCache;
-    final List<List<ContainmentCacheSATEntry>> SATCache;
+    final ImmutableList<ImmutableList<ContainmentCacheUNSATEntry>> UNSATCache;
+    final ImmutableList<ImmutableList<ContainmentCacheSATEntry>> SATCache;
 
-    final List<PermutableBitSetComparator> comparators;
+    final ImmutableList<PermutableBitSetComparator> comparators;
 
     // the first permutation is the default permutation
     final int[][] permutations;
@@ -53,21 +54,25 @@ public class ContainmentCache {
             throw new RuntimeException("Bad permutations!");
         }
 
-        comparators = new ArrayList<>(permutations.length);
+        final ImmutableList.Builder<PermutableBitSetComparator> builder = ImmutableList.builder();
         for (int[] permutation : permutations) {
-            comparators.add(new PermutableBitSetComparator(permutation));
+            builder.add(new PermutableBitSetComparator(permutation));
         }
-        UNSATCache = new ArrayList<>(permutations.length);
-        SATCache = new ArrayList<>(permutations.length);
+        comparators = builder.build();
+
+        final ImmutableList.Builder<ImmutableList<ContainmentCacheSATEntry>> SATCacheBuilder = ImmutableList.builder();
+        final ImmutableList.Builder<ImmutableList<ContainmentCacheUNSATEntry>> UNSATCacheBuilder = ImmutableList.builder();
         for (int i = 0; i < permutations.length; i++) {
             final PermutableBitSetComparator permutableBitSetComparator = comparators.get(i);
             final Comparator<ContainmentCacheSATEntry> SATComparator = (o1, o2) -> permutableBitSetComparator.compare(o1.getBitSet(), o2.getBitSet());
             final Comparator<ContainmentCacheUNSATEntry> UNSATComparator = (o1, o2) -> permutableBitSetComparator.compare(o1.getBitSet(), o2.getBitSet());
             SATData.sort(SATComparator);
             UNSATData.sort(UNSATComparator);
-            SATCache.add(new ArrayList<>(SATData));
-            UNSATCache.add(new ArrayList<>(UNSATData));
+            SATCacheBuilder.add(ImmutableList.copyOf(SATData));
+            UNSATCacheBuilder.add(ImmutableList.copyOf(UNSATData));
         }
+        SATCache = SATCacheBuilder.build();
+        UNSATCache = UNSATCacheBuilder.build();
     }
 
     /**
@@ -164,6 +169,10 @@ public class ContainmentCache {
             return result != null && key != null;
         }
 
+        // return an empty or failed result, that represents an error or that the problem was not solvable via the cache
+        public static ContainmentCacheSATResult failure() {
+            return new ContainmentCacheSATResult();
+        }
     }
 
     @Data
@@ -173,6 +182,11 @@ public class ContainmentCache {
         private String key;
         public boolean isValid() {
             return key != null;
+        }
+
+        // return an empty or failed result, that represents an error or that the problem was not solvable via the cache
+        public static ContainmentCacheUNSATResult failure() {
+            return new ContainmentCacheUNSATResult();
         }
     }
 
