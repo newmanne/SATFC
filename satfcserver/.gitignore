@@ -1,0 +1,11 @@
+local.properties
+.classpath
+*.iml
+.idea/
+.project
+.settings
+target
+rebel.xml
+.gradle/
+build/
+/bin/

@@ -1,0 +1,69 @@
+apply plugin: 'java'
+apply plugin: 'spring-boot'
+
+repositories {
+    //EARG maven repo.
+    maven {
+        url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
+    }
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+version = 1.0
+
+ext {
+    springVersion = "4.1.5.RELEASE"
+    jacksonVersion = "2.5.1"
+}
+
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.2.RELEASE")
+    }
+}
+
+
+jar {
+    baseName = 'SATFCServer'
+    version = '0.1.0'
+}
+
+dependencies {
+    compile project(':satfc')
+
+    // spring
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework.boot:spring-boot-starter-actuator")
+
+    // jackson
+    compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion"
+
+    // logging
+    compile 'org.slf4j:slf4j-api:1.7.7'
+    compile 'org.slf4j:jcl-over-slf4j:1.7.7'
+    compile 'org.slf4j:jul-to-slf4j:1.7.7'
+    compile 'ch.qos.logback:logback-access:1.0.13'
+    compile 'ch.qos.logback:logback-classic:1.0.13'
+    compile 'ch.qos.logback:logback-core:1.0.13'
+
+    // convenience
+    compile 'org.projectlombok:lombok:1.14.8'
+    compile 'com.google.guava:guava:18.0'
+
+    // test
+    testCompile "org.springframework:spring-test:$springVersion"
+    testCompile "junit:junit:4.11"
+    testCompile "org.mockito:mockito-all:1.10.8"
+}

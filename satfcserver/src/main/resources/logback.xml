@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>false</resetJUL>
+    </contextListener>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%t] %p [%c] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>satfcserver.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%t] %p [%c] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="ca.ubc.cs.beta.stationpacking" level="DEBUG"/>
+
+    <logger name="com.mangofactory" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+
+    <root level="info">
+        <appender-ref ref="console"/>
+        <appender-ref ref="FILE" />
+    </root>
+</configuration>
