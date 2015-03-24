@@ -14,7 +14,7 @@ repositories {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-version = 1.0
+version = 0.1
 
 ext {
     springVersion = "4.1.5.RELEASE"
