@@ -1,1 +1,1 @@
-include 'satfc', 'satfcserver'
+include ':satfc', ':satfcserver'

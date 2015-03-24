@@ -13,40 +13,13 @@
 
 // Build script dependencies.
 buildscript {
-
-	repositories { 
-		mavenCentral() 
-	}
 	dependencies { 
 		classpath 'org.ajoberstar:gradle-git:0.12.0' 
 	}
 }
 
-plugins {
-    id "com.github.hierynomus.license" version "0.11.0"
-}
-
-// In this section you declare where to find the dependencies of your project
-repositories {
-    //EARG maven repo.   
-    maven {
-    	url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
-    }
-    mavenLocal()
-    mavenCentral()
-}
-
-ext {
-    springVersion = "4.1.5.RELEASE"
-    jacksonVersion = "2.5.1"
-}
-
-apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
-apply plugin: 'license'
-
-sourceCompatibility = 1.8
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
@@ -145,15 +118,6 @@ jar.baseName = applicationName
 version = "1.2-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 applicationDefaultJvmArgs = ['-Xmx2048m']
-
-//License.
-license {
-	ext.name = applicationName
-    ext.year = Calendar.getInstance().get(Calendar.YEAR)
-    ext.author1 = 'Alexandre Fréchette'
-    ext.author2 = 'Kevin Leyton-Brown'
-    ext.email = 'afrechet@cs.ubc.ca'
-}
 
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()

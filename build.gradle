@@ -1,9 +1,21 @@
-allprojects {
-	apply plugin: 'java'
+subprojects {
 
-	sourceCompatibility = 1.8
+    buildscript {
+        repositories {
+            mavenCentral()
+            jcenter()
+        }
+    }
+
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.8
 	targetCompatibility = 1.8
 
+    ext {
+        springVersion = "4.1.5.RELEASE"
+        jacksonVersion = "2.5.1"
+    }
 
 	repositories {
 	    //EARG maven repo.   
@@ -13,7 +25,7 @@ allprojects {
 	    mavenLocal()
 	    mavenCentral()
 	}
-   	
+
    	task wrapper(type: Wrapper) {
         gradleVersion = '2.3'
     }
