@@ -72,9 +72,11 @@ dependencies {
     compile 'commons-collections:commons-collections:3.2.1'
     compile 'net.java.dev.jna:jna:4.0.0'
     compile 'com.mangosdk:spi:0.2.4'
-	compile 'redis.clients:jedis:2.6.1'
 	compile 'io.dropwizard.metrics:metrics-core:3.1.0'
 	compile 'io.dropwizard.metrics:metrics-jvm:3.1.0'
+    // redis
+    compile 'redis.clients:jedis:2.6.1'
+    compile "org.springframework.data:spring-data-redis:1.5.0.RELEASE"
 
     // Rest template
     compile "org.springframework:spring-web:$springVersion"

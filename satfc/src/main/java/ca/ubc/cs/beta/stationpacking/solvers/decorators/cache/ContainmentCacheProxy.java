@@ -36,7 +36,7 @@ public class ContainmentCacheProxy {
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance) {
-        final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/cache/query/SAT");
+        final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache/query/SAT");
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
         try {
             log.warn(JSONUtils.toString(instance));
@@ -48,7 +48,7 @@ public class ContainmentCacheProxy {
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance) {
-        final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/cache/query/UNSAT");
+        final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache/query/UNSAT");
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
         try {
             return restTemplate.postForObject(builder.build().toUriString(), request, ContainmentCacheUNSATResult.class);

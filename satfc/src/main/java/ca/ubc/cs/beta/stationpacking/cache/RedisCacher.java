@@ -14,9 +14,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Date;
 import java.util.Optional;
@@ -28,10 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Interfaces with redis to store and retrieve CacheEntry's
  */
 @Slf4j
-@RequiredArgsConstructor
 public class RedisCacher {
 
-    private final Jedis fJedis;
+    private final StringRedisTemplate redisTemplate;
+
+    public RedisCacher(StringRedisTemplate template) {
+        this.redisTemplate = template;
+    }
 
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         final String jsonResult;
@@ -45,7 +47,7 @@ public class RedisCacher {
         }
         final String key = cacheCoordinate.toKey(SATResult.SAT, instance);
         log.info("Adding result for " + instance.getName() + " to cache with key " + key);
-        fJedis.set(key, jsonResult);
+        redisTemplate.boundValueOps(key).set(jsonResult);
     }
 
 
@@ -53,7 +55,7 @@ public class RedisCacher {
         if (shouldLog) {
             log.info("Asking redis for entry " + key);
         }
-        final String value = fJedis.get(key);
+        final String value = redisTemplate.boundValueOps(key).get();
         final Optional<SATCacheEntry> result;
         if (value != null) {
             final SATCacheEntry cacheEntry = JSONUtils.toObject(value, SATCacheEntry.class);
@@ -68,7 +70,7 @@ public class RedisCacher {
         if (shouldLog) {
             log.info("Asking redis for entry " + key);
         }
-        final String value = fJedis.get(key);
+        final String value = redisTemplate.boundValueOps(key).get();
         final Optional<UNSATCacheEntry> result;
         if (value != null) {
             final UNSATCacheEntry cacheEntry = JSONUtils.toObject(value, UNSATCacheEntry.class);
@@ -87,7 +89,7 @@ public class RedisCacher {
         final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
         final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
 
-        final Set<String> SATKeys = fJedis.keys("SATFC:SAT:*");
+        final Set<String> SATKeys = redisTemplate.keys("SATFC:SAT:*");
         log.info("Found " + SATKeys.size() + " SAT keys");
 
         // process SATs
@@ -108,7 +110,7 @@ public class RedisCacher {
         });
 
         // process UNSATs
-        final Set<String> UNSATKeys = fJedis.keys("SATFC:UNSAT:*");
+        final Set<String> UNSATKeys = redisTemplate.keys("SATFC:UNSAT:*");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         progressIndex.set(0);
