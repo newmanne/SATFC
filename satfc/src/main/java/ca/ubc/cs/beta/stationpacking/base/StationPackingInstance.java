@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import lombok.Getter;
 
+import lombok.NonNull;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,7 +60,8 @@ import com.google.common.collect.Sets;
 public class StationPackingInstance {
 	
 	public static final String NAME_KEY = "NAME";
-	private final ImmutableMap<Station, Set<Integer>> domains;
+    public static final String CACHE_DATE_KEY = "CACHE_DATE";
+    private final ImmutableMap<Station, Set<Integer>> domains;
 	private final ImmutableMap<Station, Integer> previousAssignment;
 	@Getter
 	private final Map<String, Object> metadata;
@@ -81,7 +83,7 @@ public class StationPackingInstance {
 	 * @param aDomains - a map taking each station to its domain of packable channels.
 	 * @param aPreviousAssignment - a map taking stations to the channels they were assigned to previously.
 	 */
-	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, Map<String, Object> metadata){
+	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, @NonNull Map<String, Object> metadata){
 		this.metadata = new HashMap<>(metadata);
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())

@@ -1,11 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.CacheEntry.SATCacheEntry;
-import ca.ubc.cs.beta.stationpacking.cache.CacheEntry.UNSATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.SATCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.UNSATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
@@ -18,9 +18,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.*;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -37,12 +40,14 @@ public class RedisCacher {
 
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         final String jsonResult;
+        final Map<String, Object> metadata = instance.getMetadata();
+        metadata.put(StationPackingInstance.CACHE_DATE_KEY, new Date());
         if (result.getResult().equals(SATResult.SAT)) {
-            final SATCacheEntry entry = new SATCacheEntry(new Date(), instance.getMetadata(), result.getAssignment());
+            final SATCacheEntry entry = new SATCacheEntry(metadata, result.getAssignment());
             jsonResult = JSONUtils.toString(entry);
         } else {
             Preconditions.checkState(result.getResult().equals(SATResult.UNSAT));
-            final UNSATCacheEntry entry = new UNSATCacheEntry(new Date(), instance.getMetadata(), instance.getDomains());
+            final UNSATCacheEntry entry = new UNSATCacheEntry(metadata, instance.getDomains());
             jsonResult = JSONUtils.toString(entry);
         }
         final String key = cacheCoordinate.toKey(SATResult.SAT, instance);

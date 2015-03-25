@@ -1,14 +1,16 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -19,6 +21,7 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
@@ -67,5 +70,20 @@ public interface ICacher {
 
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SATCacheEntry {
+        private Map<String, Object> metadata;
+        private Map<Integer, Set<Station>> assignment;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UNSATCacheEntry {
+        private Map<String, Object> metadata;
+        Map<Station, Set<Integer>> domains;
+    }
 
 }

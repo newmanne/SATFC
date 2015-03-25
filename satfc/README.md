@@ -20,7 +20,7 @@ Command line usage, starting from a stand-alone SATFC directory:
 ./bin/SATFC -DATA-FOLDERNAME <interference constraints folder> -DOMAINS <station domains map>
 ```
 
-To build SATFC from source, starting from the SATFC project directory:
+To build SATFC from source, starting from the root SATFC project directory:
 ```
-./gradlew installApp
+./gradlew :satfc:installDist
 ```

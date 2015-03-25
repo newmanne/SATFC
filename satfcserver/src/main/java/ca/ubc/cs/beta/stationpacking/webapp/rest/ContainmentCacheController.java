@@ -7,11 +7,12 @@ import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy.ContainmentCacheRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-@RestController
+@Controller
 @Slf4j
 @RequestMapping("/v1/cache")
 public class ContainmentCacheController extends AbstractController {
@@ -28,6 +29,7 @@ public class ContainmentCacheController extends AbstractController {
     public ContainmentCache.ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest instance
     ) {
+        log.error("HERE");
         final Optional<ContainmentCache> cache = containmentCache.locate(instance.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance.getInstance());

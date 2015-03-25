@@ -126,8 +126,6 @@ public class SATFCFacadeExecutor {
 					final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
 
 					SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
-                    Map<String, Object> metadata = new HashMap<>();
-                    metadata.put(StationPackingInstance.NAME_KEY, instanceFileName);
 
 					log.info("Solving ...");
 					SATFCResult result = satfc.solve(
@@ -138,7 +136,7 @@ public class SATFCFacadeExecutor {
 							parameters.fInstanceParameters.Cutoff,
 							parameters.fInstanceParameters.Seed,
 							parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
-							metadata);
+							instanceFileName);
 					log.info("..done!");
 					System.out.println(result.getResult());
 					System.out.println(result.getRuntime());

@@ -14,10 +14,12 @@
 // Build script dependencies.
 buildscript {
 	dependencies { 
-		classpath 'org.ajoberstar:gradle-git:0.12.0' 
+		classpath 'org.ajoberstar:gradle-git:0.12.0'
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
 	}
 }
 
+apply plugin: 'license'
 apply plugin: 'application'
 apply plugin: 'maven-publish'
 
@@ -60,7 +62,15 @@ dependencies {
     
     //Local dependencies
     compile files('libs/cplex.jar')
-    
+}
+
+//License.
+license {
+    ext.name = applicationName
+    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+    ext.author1 = 'Alexandre Fréchette'
+    ext.author2 = 'Kevin Leyton-Brown'
+    ext.email = 'afrechet@cs.ubc.ca'
 }
 
 //Grab git information.
@@ -69,7 +79,7 @@ public boolean isGitAvailable() {
     def repo
     try
     {
-        repo = Grgit.open(project.file('.'))
+        repo = Grgit.open(project.file('..'))
         return true
     }
     catch(Exception e)
@@ -83,7 +93,7 @@ public boolean isGitAvailable() {
 public String getGitName()
 {
     if (isGitAvailable()) {
-        def repo = Grgit.open(project.file('.'))
+        def repo = Grgit.open(project.file('..'))
         def branch = repo.branch.current.name
         def sha = repo.head().abbreviatedId
         return branch+'-'+sha
@@ -185,7 +195,7 @@ task generateMyResources {
         }
         def generated = new File(generatedResources, "version.properties")
         if (isGitAvailable()) {
-            def repo = Grgit.open(project.file('.'))
+            def repo = Grgit.open(project.file('..'))
             generated.text = "buildTime=" + new Date().toString() + System.lineSeparator() +
                     "sha=" + repo.head().id + System.lineSeparator() +
                     "branch=" + repo.branch.current.name + System.lineSeparator() +
@@ -195,5 +205,11 @@ task generateMyResources {
         } else {
             generated.text = "No git available"
         }
+    }
+}
+
+run {
+    if ( project.hasProperty('args') ) {
+        args project.args.split('\\s+')
     }
 }

@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.Arrays;
 
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverCustomizationOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +83,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             IConstraintManager aConstraintManager,
             String aCNFDirectory,
             String aResultFile,
-            SATFCFacadeParameter.SolverCustomizationOptions solverOptions
+            SolverCustomizationOptions solverOptions
     ) {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options {}", solverOptions);

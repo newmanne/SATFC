@@ -19,9 +19,9 @@ public class StationPackingInstanceDeserializer extends
 	public StationPackingInstance deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
 		Dummy readValueAs = p.readValueAs(Dummy.class);
         if (readValueAs.getMetadata() != null) {
-            return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment());
-        } else {
             return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment(), readValueAs.getMetadata());
+        } else {
+            return new StationPackingInstance(readValueAs.getDomains(), readValueAs.getPreviousAssignment());
         }
 	}
 	

@@ -38,25 +38,13 @@ public class ContainmentCacheProxy {
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache/query/SAT");
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
-        try {
-            log.warn(JSONUtils.toString(instance));
-            return restTemplate.postForObject(builder.build().toUriString(), request, ContainmentCacheSATResult.class);
-        } catch (ResourceAccessException e) {
-            log.warn("Could not communicate successfully with the cache. Skipping the cache solving", e);
-            return ContainmentCacheSATResult.failure();
-        }
+        return restTemplate.postForObject(builder.build().toUriString(), request, ContainmentCacheSATResult.class);
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache/query/UNSAT");
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
-        try {
-            return restTemplate.postForObject(builder.build().toUriString(), request, ContainmentCacheUNSATResult.class);
-        } catch (ResourceAccessException e) {
-            log.warn("Could not communicate successfully with the cache. Skipping the cache solving", e);
-            return ContainmentCacheUNSATResult.failure();
-        }
-
+        return restTemplate.postForObject(builder.build().toUriString(), request, ContainmentCacheUNSATResult.class);
     }
 
 }

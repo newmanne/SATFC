@@ -2,25 +2,22 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.IntStream;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import com.google.common.primitives.Ints;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.IntStream;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
 
@@ -137,13 +134,16 @@ public class ContainmentCache {
     public ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance) {
         final BitSet bitSet = CacheUtils.toBitSet(aInstance);
         final Collection<ContainmentCacheUNSATEntry> containmentCacheUNSATEntries = smallSetSmallerThanOrEqualTo(bitSet);
-        // TODO: weak subsets on domains
-        final Optional<ContainmentCacheUNSATEntry> UNSATSubset = containmentCacheUNSATEntries.stream().filter(entry -> isSubset(entry.getBitSet(), bitSet) && entry.getDomains().equals(aInstance.getDomains())).findAny();
+        final Optional<ContainmentCacheUNSATEntry> UNSATSubset = containmentCacheUNSATEntries.stream().filter(entry -> isSubset(entry.getBitSet(), bitSet) && domainIsSubset(aInstance.getDomains(), entry.getDomains())).findAny();
         if (UNSATSubset.isPresent()) {
             return new ContainmentCacheUNSATResult(UNSATSubset.get().getKey());
         } else {
             return new ContainmentCacheUNSATResult();
         }
+    }
+
+    private boolean domainIsSubset(ImmutableMap<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
+        return a.entrySet().stream().allMatch(entry -> b.get(entry.getKey()).containsAll(entry.getValue()));
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {

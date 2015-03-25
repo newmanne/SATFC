@@ -34,12 +34,7 @@ public class CacherProxy implements ICacher {
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache");
         final ContainmentCacheCacheRequest request = new ContainmentCacheCacheRequest(instance, coordinate, result);
-        try {
-            restTemplate.postForLocation(builder.build().toUriString(), request);
-        } catch (ResourceAccessException e) {
-            log.warn("Unable to cache problem. Caching will be skipped", e);
-        }
-
+        restTemplate.postForLocation(builder.build().toUriString(), request);
     }
 
     @Data

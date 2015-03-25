@@ -26,8 +26,8 @@ subprojects {
 	    mavenCentral()
 	}
 
-   	task wrapper(type: Wrapper) {
-        gradleVersion = '2.3'
-    }
+}
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
 }
