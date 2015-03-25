@@ -1,3 +1,24 @@
+/**
+ * Copyright 2015, Auctionomics, Alexandre Fréchette, Kevin Leyton-Brown.
+ *
+ * This file is part of satfc.
+ *
+ * satfc is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * satfc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with satfc.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * For questions, contact us at:
+ * afrechet@cs.ubc.ca
+ */
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -39,6 +60,7 @@ public class RedisCacher {
     }
 
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
+        Preconditions.checkState(result.getResult().equals(SATResult.UNSAT) || result.getResult().equals(SATResult.SAT), "Result must be SAT or UNSAT in order to cache");
         final String jsonResult;
         final Map<String, Object> metadata = instance.getMetadata();
         metadata.put(StationPackingInstance.CACHE_DATE_KEY, new Date());
@@ -46,11 +68,10 @@ public class RedisCacher {
             final SATCacheEntry entry = new SATCacheEntry(metadata, result.getAssignment());
             jsonResult = JSONUtils.toString(entry);
         } else {
-            Preconditions.checkState(result.getResult().equals(SATResult.UNSAT));
             final UNSATCacheEntry entry = new UNSATCacheEntry(metadata, instance.getDomains());
             jsonResult = JSONUtils.toString(entry);
         }
-        final String key = cacheCoordinate.toKey(SATResult.SAT, instance);
+        final String key = cacheCoordinate.toKey(result.getResult(), instance);
         log.info("Adding result for " + instance.getName() + " to cache with key " + key);
         redisTemplate.boundValueOps(key).set(jsonResult);
     }
@@ -109,7 +130,7 @@ public class RedisCacher {
             SATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
-        log.info("Finished processing SAT entries");
+        log.info("Finished processing {} SAT entries", progressIndex.get());
         SATResults.keySet().forEach(cacheCoordinate -> {
             log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
         });
@@ -129,7 +150,7 @@ public class RedisCacher {
             UNSATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
-        log.info("Finished processing UNSAT entries");
+        log.info("Finished processing {} UNSAT entries", progressIndex.get());
         UNSATResults.keySet().forEach(cacheCoordinate -> {
             log.info("Found {} UNSAT entries for cache " + cacheCoordinate, UNSATResults.get(cacheCoordinate).size());
         });

@@ -10,8 +10,6 @@ buildscript {
 apply plugin: 'spring-boot'
 apply plugin: 'license'
 
-
-
 jar {
     baseName = 'SATFCServer'
     version = '0.1.0'
