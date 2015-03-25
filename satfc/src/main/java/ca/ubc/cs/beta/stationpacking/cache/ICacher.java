@@ -21,29 +21,26 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.*;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by newmanne on 1/25/15.
@@ -85,7 +82,6 @@ public interface ICacher {
             final HashCode hash = fHashFuction.newHasher()
                     .putString(aInstance.toString(), Charsets.UTF_8)
                     .hash();
-            SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.HASHING, watch.getElapsedTime()));
             return hash;
         }
 

@@ -61,6 +61,7 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
         final SolverResult result;
         final ContainmentCache.ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance);
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         if (containmentCacheSATResult.isValid()) {
             final Map<Integer, Set<Station>> assignment = containmentCacheSATResult.getResult();
             log.info("Found a superset in the SAT cache - declaring result SAT");

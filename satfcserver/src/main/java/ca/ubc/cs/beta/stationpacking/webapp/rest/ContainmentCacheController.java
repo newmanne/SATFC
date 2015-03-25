@@ -33,6 +33,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+import static ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.*;
+
 @Controller
 @Slf4j
 @RequestMapping("/v1/cache")
@@ -47,28 +49,28 @@ public class ContainmentCacheController extends AbstractController {
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
     @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT)
     @ResponseBody
-    public ContainmentCache.ContainmentCacheSATResult lookupSAT(
+    public ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest instance
     ) {
         final Optional<ContainmentCache> cache = containmentCache.locate(instance.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance.getInstance());
         } else {
-            return new ContainmentCache.ContainmentCacheSATResult();
+            return ContainmentCacheSATResult.failure();
         }
     }
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
     @RequestMapping(value = "/query/UNSAT", method = RequestMethod.POST, produces = JSON_CONTENT)
     @ResponseBody
-    public ContainmentCache.ContainmentCacheUNSATResult lookupUNSAT(
+    public ContainmentCacheUNSATResult lookupUNSAT(
             @RequestBody final ContainmentCacheRequest instance
     ) {
         final Optional<ContainmentCache> cache = containmentCache.locate(instance.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveUNSATBySubset(instance.getInstance());
         } else {
-            return new ContainmentCache.ContainmentCacheUNSATResult();
+            return ContainmentCacheUNSATResult.failure();
         }
     }
 
@@ -78,12 +80,6 @@ public class ContainmentCacheController extends AbstractController {
             @RequestBody final ContainmentCacheCacheRequest request
     ) {
         cacher.cacheResult(request.getCoordinate(), request.getInstance(), request.getResult());
-    }
-
-    @RequestMapping(method = RequestMethod.GET)
-    @ResponseBody
-    public String temp() {
-        return "H";
     }
 
 }
