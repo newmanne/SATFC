@@ -72,6 +72,7 @@ license {
     ext.author2 = 'Kevin Leyton-Brown'
     ext.email = 'afrechet@cs.ubc.ca'
     exclude "*.txt"
+    header project.file('../LICENSE')
 }
 
 //Grab git information.
