@@ -132,7 +132,7 @@ To take advantage of the specific distribution of encountered feasibility checki
 
 \subsection{Setting Up \& Building \SATFC}
 
-The releases folder in \SATFC's repository should contain a compiled, ready-to-go compressed version of \SATFC. Packaged with \SATFC are its source code, necessary libraries as well as a copy of \clasp. 
+The releases folder in root of \SATFC's repository should contain a compiled, ready-to-go compressed version of \SATFC. Packaged with \SATFC are its source code, necessary libraries as well as a copy of \clasp. 
 
 \SATFC uses the Gradle build system for dependency resolution. To compile from source and build your own command-line executable version of \SATFC, execute the following:
 \begin{lstlisting}[style=Bash]
@@ -267,7 +267,9 @@ Even though \SATFC is built using gradle, native components such as \clasp are n
 
 \subsection{\SATFCServer}
 
-There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and use them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose. You can then start \SATFCServer by running
+There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and use them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose.
+
+A ready-to-go \SATFC server can be found in the releases folder of \SATFC's root directory. You can start it by running
 \begin{lstlisting}[style=Bash]
 > java -jar <server.jar> --redis.host <redishost> --redis.port <redisport>
 \end{lstlisting}
