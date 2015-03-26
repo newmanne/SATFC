@@ -10,10 +10,10 @@ Questions, bug reports and feature suggestions should be directed to Alexandre F
 ## Installation
 Clone the repository.
 
-A stand-alone, ready-to-go release can be found in `fcc-station-packing/releases/`.
+A stand-alone, ready-to-go release can be found in `satfc/releases/`.
 
 ## Usage
-Please consult the manual `SATFC-manual.pdf` located in `fcc-station-packing/manual/` or packaged with any stand-alone release.
+Please consult the manual `SATFC-manual.pdf` located in `satfc/manual/` or packaged with any stand-alone release.
 
 Command line usage, starting from a stand-alone SATFC directory:
 ```
