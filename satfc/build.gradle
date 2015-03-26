@@ -127,7 +127,7 @@ def createScript(project, mainClass, name) {
 //Project properties.
 applicationName = 'SATFC'
 jar.baseName = applicationName
-version = "1.2-"+getGitName()
+version = "1.5-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
