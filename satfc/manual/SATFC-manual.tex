@@ -267,7 +267,7 @@ Even though \SATFC is built using gradle, native components such as \clasp are n
 
 \subsection{\SATFCServer}
 
-There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and uses them to solve future problems. It is intended for long term, heavy users of \SATFC. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose. You can then start \SATFCServer by running
+There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and uses them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose. You can then start \SATFCServer by running
 \begin{lstlisting}[style=Bash]
 > java -jar <server.jar> --redis.host <redishost> --redis.port <redisport>
 \end{lstlisting}
