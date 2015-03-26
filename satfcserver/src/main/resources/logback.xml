@@ -41,8 +41,7 @@
         </encoder>
     </appender>
 
-    <logger name="ca.ubc.cs.beta.stationpacking" level="DEBUG"/>
-
+    <logger name="ca.ubc.cs.beta.stationpacking" level="INFO"/>
     <logger name="com.mangofactory" level="WARN"/>
     <logger name="org.springframework" level="WARN"/>
 

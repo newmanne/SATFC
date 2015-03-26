@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,7 @@ public class ContainmentCacheSATResult {
     private String key;
 
     /** true if a solution was found */
+    @JsonIgnore
     public boolean isValid() {
         return result != null && key != null;
     }

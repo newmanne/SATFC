@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,7 @@ public class ContainmentCacheUNSATResult {
     private String key;
 
     /** true if a solution was found */
+    @JsonIgnore
     public boolean isValid() {
         return key != null;
     }
