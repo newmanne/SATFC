@@ -21,19 +21,18 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
-import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.*;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.health.RedisHealthIndicator;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -86,13 +85,19 @@ public class Application {
 
     @Bean
     ICacheLocator containmentCache() {
-        // TODO: doing this during bringing up the context is probably a terrible idea and hard to debug
-        final ContainmentCacheInitData subsetCacheData = cacher().getContainmentCacheInitData();
-        final ConcurrentMap<ICacher.CacheCoordinate, ContainmentCache> caches = new ConcurrentHashMap<>();
-        subsetCacheData.getCaches().forEach(cacheCoordinate -> {
-            caches.put(cacheCoordinate, new ContainmentCache(subsetCacheData.getSATResults().get(cacheCoordinate), subsetCacheData.getUNSATResults().get(cacheCoordinate)));
-        });
-        return coordinate -> Optional.ofNullable(caches.get(coordinate));
+        return new CacheLocator(cacher());
+    }
+
+    public static class InitData implements ApplicationListener<ContextRefreshedEvent> {
+
+        @Autowired
+        RedisCacher cacher;
+
+        @Override
+        public void onApplicationEvent(ContextRefreshedEvent event) {
+            log.warn("THIS IS REAL");
+            final ContainmentCacheInitData subsetCacheData = cacher.getContainmentCacheInitData();
+        }
     }
 
 
