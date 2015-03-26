@@ -286,7 +286,7 @@ To build \SATFCServer from source, you can run
 \begin{lstlisting}[style=Bash]
 > ./gradlew :satfcserver:bootRepackage
 \end{lstlisting}
-which will create a jar file in \texttt{<SATFC repository>satfcserver/build/lib/}
+which will create a jar file in \texttt{<SATFC repository>satfcserver/build/libs/}
 
 \paragraph{Modifications to running \SATFC}
 Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---usecache ---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
