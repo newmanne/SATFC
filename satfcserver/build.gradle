@@ -1,30 +1,13 @@
-version = 0.1
-
 buildscript {
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.2.RELEASE")
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
+        classpath 'org.ajoberstar:gradle-git:0.12.0'
     }
 }
 
 apply plugin: 'spring-boot'
 apply plugin: 'license'
-
-jar {
-    baseName = 'SATFCServer'
-    version = '0.1.0'
-}
-
-//License.
-license {
-    ext.name = applicationName
-    ext.year = Calendar.getInstance().get(Calendar.YEAR)
-    ext.author1 = 'Alexandre Fréchette'
-    ext.author2 = 'Kevin Leyton-Brown'
-    ext.email = 'afrechet@cs.ubc.ca'
-    exclude "*.txt"
-    header project.file('../LICENSE')
-}
 
 dependencies {
     compile project(':satfc')
@@ -55,4 +38,53 @@ dependencies {
     testCompile "org.springframework:spring-test:$springVersion"
     testCompile "junit:junit:4.11"
     testCompile "org.mockito:mockito-all:1.10.8"
+}
+
+// TODO: remove these duplications
+//License.
+license {
+    ext.name = applicationName
+    ext.year = Calendar.getInstance().get(Calendar.YEAR)
+    ext.author1 = 'Alexandre Fréchette'
+    ext.author2 = 'Kevin Leyton-Brown'
+    ext.email = 'afrechet@cs.ubc.ca'
+    exclude "*.txt"
+    header project.file('../LICENSE')
+}
+
+
+//Grab git information.
+import org.ajoberstar.grgit.Grgit
+public boolean isGitAvailable() {
+    def repo
+    try
+    {
+        repo = Grgit.open(project.file('..'))
+        return true
+    }
+    catch(Exception e)
+    {
+        println 'Not building SATFC from a git repository, versioning will be limited.'
+        return false
+    }
+}
+
+
+public String getGitName()
+{
+    if (isGitAvailable()) {
+        def repo = Grgit.open(project.file('..'))
+        def branch = repo.branch.current.name
+        def sha = repo.head().abbreviatedId
+        return branch+'-'+sha
+    } else {
+        return 'nogit'
+    }
+}
+//Project properties.
+applicationName = 'SATFCServer'
+
+jar {
+    baseName = applicationName
+    version = "1.3-"+getGitName()
 }
