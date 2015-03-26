@@ -27,9 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
-
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -38,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics.SolvedByEvent;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.SolverHelper;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;

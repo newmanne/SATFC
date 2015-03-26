@@ -21,6 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
+import java.util.Map;
+import java.util.Set;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
@@ -32,12 +36,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
-import java.util.Set;
 
 /**
 * Created by newmanne on 28/01/15.
@@ -46,12 +47,10 @@ import java.util.Set;
 public class SupersetCacheSATDecorator extends ASolverDecorator {
 
     private final ContainmentCacheProxy proxy;
-    private final ICacher.CacheCoordinate coordinate;
 
     public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy, ICacher.CacheCoordinate coordinate) {
         super(aSolver);
         this.proxy = proxy;
-        this.coordinate = coordinate;
     }
 
     @Override

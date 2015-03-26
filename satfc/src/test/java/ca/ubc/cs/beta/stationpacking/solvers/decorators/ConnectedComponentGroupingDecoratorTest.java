@@ -21,6 +21,17 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Set;
+
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -29,17 +40,14 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.junit.Test;
-
-import java.util.Set;
-
-import static org.mockito.Mockito.*;
 
 public class ConnectedComponentGroupingDecoratorTest {
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSplitIntoComponents() {
         // should test that solve is called # components times on the decorator for a SAT problem
         final long seed = 0;
@@ -63,6 +71,7 @@ public class ConnectedComponentGroupingDecoratorTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testEarlyStopping() {
         // should test that if a problem has 3 UNSAT components, then the code examines only 1 component
         final long seed = 0;

@@ -21,8 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.web;
 
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 /**

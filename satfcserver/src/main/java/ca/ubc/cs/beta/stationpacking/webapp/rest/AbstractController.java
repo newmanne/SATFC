@@ -21,17 +21,18 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
-import ca.ubc.cs.beta.stationpacking.webapp.model.ErrorResponse;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
+
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.List;
+import ca.ubc.cs.beta.stationpacking.webapp.model.ErrorResponse;
 
 @Slf4j
 public abstract class AbstractController {

@@ -21,10 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-
 import java.util.Map;
 import java.util.Set;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * Created by newmanne on 1/8/15.

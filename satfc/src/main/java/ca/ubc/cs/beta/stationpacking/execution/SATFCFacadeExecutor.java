@@ -26,9 +26,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.facade.*;
-import com.google.common.io.Resources;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +33,9 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
@@ -44,6 +44,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import com.google.common.io.Resources;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.

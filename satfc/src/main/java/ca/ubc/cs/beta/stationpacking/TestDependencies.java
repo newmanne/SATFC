@@ -33,7 +33,7 @@ public class TestDependencies {
 		SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
 		SATFCFacade facade = builder.build();
 		TargetAlgorithmEvaluator tae = new SATFCTargetAlgorithmEvaluator(facade, "/Users/afrechet/Documents/git/fcc-station-packing/src/test/resources/data/021814SC3M");
-
+		tae.close();
 	}
 
 }

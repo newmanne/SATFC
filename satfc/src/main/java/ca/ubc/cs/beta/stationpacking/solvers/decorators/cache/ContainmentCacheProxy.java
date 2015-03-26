@@ -21,18 +21,20 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
-import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 
 /**
  * Created by newmanne on 01/03/15.

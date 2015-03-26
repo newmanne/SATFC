@@ -1,16 +1,17 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import lombok.Data;
-
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
+import lombok.Data;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 
 /**
 * Created by newmanne on 25/03/15.

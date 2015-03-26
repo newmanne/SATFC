@@ -25,20 +25,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
-import com.google.common.base.Joiner;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+
+import com.google.common.base.Joiner;
 
 /**
  * Solver decorator that saves CNFs on solve query. 

@@ -21,11 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.base;
 
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import junit.framework.TestCase;
-import org.junit.Test;
 
 public class StationPackingInstanceTest extends TestCase {
 

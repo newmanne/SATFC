@@ -21,27 +21,24 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import ca.ubc.cs.beta.stationpacking.cache.*;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import redis.clients.jedis.JedisShardInfo;
 
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import redis.clients.jedis.JedisShardInfo;
+import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Created by newmanne on 23/03/15.
@@ -87,18 +84,5 @@ public class Application {
     ICacheLocator containmentCache() {
         return new CacheLocator(cacher());
     }
-
-    public static class InitData implements ApplicationListener<ContextRefreshedEvent> {
-
-        @Autowired
-        RedisCacher cacher;
-
-        @Override
-        public void onApplicationEvent(ContextRefreshedEvent event) {
-            log.warn("THIS IS REAL");
-            final ContainmentCacheInitData subsetCacheData = cacher.getContainmentCacheInitData();
-        }
-    }
-
 
 }

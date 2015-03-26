@@ -21,12 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.base;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import lombok.Data;
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +29,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
+import lombok.Data;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 
 /**
  * Created by newmanne on 01/12/14.

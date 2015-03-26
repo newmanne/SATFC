@@ -21,6 +21,20 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.IntStream;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -29,19 +43,13 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntr
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.IntStream;
-
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
 
 /**
  * Created by newmanne on 1/24/15.

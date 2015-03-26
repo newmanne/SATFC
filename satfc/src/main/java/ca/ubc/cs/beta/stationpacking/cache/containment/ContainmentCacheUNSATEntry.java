@@ -1,12 +1,12 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import lombok.Data;
-
 import java.util.BitSet;
 import java.util.Map;
 import java.util.Set;
+
+import lombok.Data;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 /**
 * Created by newmanne on 25/03/15.

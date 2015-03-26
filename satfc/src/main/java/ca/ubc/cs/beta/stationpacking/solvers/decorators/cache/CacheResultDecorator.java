@@ -32,7 +32,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 import com.google.common.collect.ImmutableList;
-import org.springframework.web.client.ResourceAccessException;
 
 /**
  * Created by newmanne on 1/25/15.

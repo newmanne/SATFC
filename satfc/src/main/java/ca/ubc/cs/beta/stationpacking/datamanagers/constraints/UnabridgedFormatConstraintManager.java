@@ -216,10 +216,6 @@ public class UnabridgedFormatConstraintManager extends AConstraintManager {
 
         HashCode hc = computeHash();
         fHash = hc.toString();
-                    log.debug("Station {} is assigned to multiple channels.");
-                        log.debug("Station {} and {} share channel {} on which they CO interfere.",station1,station2,channel);
-                            log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.",station1,channel,station2,channelp1);
-
     }
 
 }

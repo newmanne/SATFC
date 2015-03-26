@@ -21,14 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.base;
 
+import java.io.IOException;
+
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-
-import java.io.IOException;
 
 /**
  * Created by newmanne on 06/03/15.

@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
 import com.google.common.base.Charsets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
@@ -16,7 +16,6 @@ public class StationPackingInstanceHasher {
     private static final HashFunction fHashFuction = Hashing.murmur3_32();
 
     public static HashCode hash(StationPackingInstance aInstance) {
-        final Watch watch = Watch.constructAutoStartWatch();
         final HashCode hash = fHashFuction.newHasher()
                 .putString(aInstance.toString(), Charsets.UTF_8)
                 .hash();

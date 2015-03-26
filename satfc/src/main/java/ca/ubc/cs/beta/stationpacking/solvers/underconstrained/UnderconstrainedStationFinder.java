@@ -28,11 +28,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
-
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+
+import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 1/8/15.

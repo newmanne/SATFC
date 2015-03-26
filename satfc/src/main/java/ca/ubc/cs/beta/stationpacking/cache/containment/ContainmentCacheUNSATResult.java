@@ -1,6 +1,5 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
