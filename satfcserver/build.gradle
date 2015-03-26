@@ -9,6 +9,8 @@ buildscript {
 apply plugin: 'spring-boot'
 apply plugin: 'license'
 
+    ext.author2 = 'Neil Newman'
+    ext.author3 = 'Kevin Leyton-Brown'
 dependencies {
     compile project(':satfc')
 

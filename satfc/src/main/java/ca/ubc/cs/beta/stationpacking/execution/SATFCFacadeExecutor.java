@@ -73,7 +73,14 @@ public class SATFCFacadeExecutor {
 			{
 				log = LoggerFactory.getLogger(SATFCFacadeExecutor.class);
 			}
-            log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
+			try
+			{
+				log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
+			}
+			catch(IllegalArgumentException | IOException e)
+			{
+				log.error("Could not log version info.");
+			}
 			
 			log.info("Initializing facade.");
 			SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();

@@ -68,7 +68,8 @@ license {
     ext.name = applicationName
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     ext.author1 = 'Alexandre Fréchette'
-    ext.author2 = 'Kevin Leyton-Brown'
+    ext.author2 = 'Neil Newman'
+    ext.author3 = 'Kevin Leyton-Brown'
     ext.email = 'afrechet@cs.ubc.ca'
     exclude "*.txt"
     header project.file('../LICENSE')
@@ -126,7 +127,7 @@ def createScript(project, mainClass, name) {
 //Project properties.
 applicationName = 'SATFC'
 jar.baseName = applicationName
-version = "1.-"+getGitName()
+version = "1.5-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 applicationDefaultJvmArgs = ['-Xmx2048m']
 
