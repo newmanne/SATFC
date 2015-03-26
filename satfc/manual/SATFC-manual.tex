@@ -267,7 +267,7 @@ Even though \SATFC is built using gradle, native components such as \clasp are n
 
 \subsection{\SATFCServer}
 
-There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and uses them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose. You can then start \SATFCServer by running
+There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and use them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose. You can then start \SATFCServer by running
 \begin{lstlisting}[style=Bash]
 > java -jar <server.jar> --redis.host <redishost> --redis.port <redisport>
 \end{lstlisting}
@@ -277,10 +277,10 @@ INFO [ca.ubc.cs.beta.stationpacking.webapp.Application] Started Application in 3
 \end{lstlisting}
 The command line parameters are summarized below:
 \begin{itemize}
-\item \texttt{--redis.host} The port that the server runs on. Defaults to localhost
-\item \texttt{--redis.port} The port that the server runs on. Defaults to 6379
-\item \texttt{--server.port} The port that the server runs on. Defaults to 8080
-\item \texttt{--logging.level.ca.ubc.cs.beta.stationpacking} The logging level for SATFC classes. Defaults to INFO
+\item \texttt{---redis.host} The port that the server runs on. Defaults to localhost
+\item \texttt{---redis.port} The port that the server runs on. Defaults to 6379
+\item \texttt{---server.port} The port that the server runs on. Defaults to 8080
+\item \texttt{---logging.level.ca.ubc.cs.beta.stationpacking} The logging level for SATFC classes. Defaults to INFO
 \end{itemize}
 To build \SATFCServer from source, you can run 
 \begin{lstlisting}[style=Bash]
@@ -289,7 +289,7 @@ To build \SATFCServer from source, you can run
 which will create a jar file in \texttt{<SATFC repository>satfcserver/build/lib/}
 
 \paragraph{Modifications to running \SATFC}
-Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{--usecache --serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
+Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---usecache ---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
 
 \begin{minted}{java}
 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder();
