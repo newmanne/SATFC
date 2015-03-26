@@ -26,6 +26,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,7 +54,7 @@ public class ContainmentCacheController extends AbstractController {
     RedisCacher cacher;
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
-    @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT)
+    @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT, consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest request
@@ -70,7 +71,7 @@ public class ContainmentCacheController extends AbstractController {
     }
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
-    @RequestMapping(value = "/query/UNSAT", method = RequestMethod.POST, produces = JSON_CONTENT)
+    @RequestMapping(value = "/query/UNSAT", method = RequestMethod.POST, produces = JSON_CONTENT, consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ContainmentCacheUNSATResult lookupUNSAT(
             @RequestBody final ContainmentCacheRequest request
@@ -86,7 +87,7 @@ public class ContainmentCacheController extends AbstractController {
         }
     }
 
-    @RequestMapping(method = RequestMethod.POST)
+    @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public void cache(
             @RequestBody final ContainmentCacheCacheRequest request
