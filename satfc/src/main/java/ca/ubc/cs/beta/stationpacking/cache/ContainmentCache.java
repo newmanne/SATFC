@@ -21,21 +21,20 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import ca.ubc.cs.beta.models.fastrf.utils.Hash;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -55,17 +54,17 @@ public class ContainmentCache {
 
     final ImmutableList<PermutableBitSetComparator> comparators;
 
-    // the first permutation is the default permutation
+    // A list of permutations of the numbers {1... N_STATIONS}
     final int[][] permutations;
 
     public ContainmentCache(List<ContainmentCacheSATEntry> SATData, List<ContainmentCacheUNSATEntry> UNSATData) {
-        // init permutation
         permutations = initPermutation();
 
         comparators = Arrays.stream(permutations)
                 .map(PermutableBitSetComparator::new)
                 .collect(toImmutableList());
 
+        // Sort and store the data according to each comparator
         final ImmutableList.Builder<ImmutableList<ContainmentCacheSATEntry>> SATCacheBuilder = ImmutableList.builder();
         final ImmutableList.Builder<ImmutableList<ContainmentCacheUNSATEntry>> UNSATCacheBuilder = ImmutableList.builder();
         for (int i = 0; i < permutations.length; i++) {
@@ -81,26 +80,32 @@ public class ContainmentCache {
         UNSATCache = UNSATCacheBuilder.build();
     }
 
+    // Read the permutations in from disk
     private int[][] initPermutation() {
         final int[][] permutationsTemp;
         try {
             final List<String> lines = Resources.readLines(Resources.getResource("precache_permutations.txt"), Charsets.UTF_8);
             final int numPermutations = lines.size();
+            log.debug("Read " + numPermutations + " permutations");
             permutationsTemp = new int[numPermutations][StationPackingUtils.N_STATIONS];
             for (int i = 0; i < lines.size(); i++) {
                 final List<String> numbers = Splitter.on(',').trimResults().splitToList(lines.get(i));
+                Preconditions.checkState(numbers.size() == StationPackingUtils.N_STATIONS, "Each permutation must have length equal to N_STATIONS");
                 for (int j = 0; j < numbers.size(); j++) {
                     permutationsTemp[i][j] = Integer.valueOf(numbers.get(j));
                 }
             }
             return permutationsTemp;
         } catch (IOException e) {
-            throw new RuntimeException("Bad permutations!");
+            throw new RuntimeException("Couldn't read from permutations file!", e);
         }
     }
 
     /**
-     * Return a collection of bitsets that are larger than the given bitset according to the permutation of bits where this is the smallest.
+     * Return a collection of entries that are potential supersets of the query
+     * In order for an entry be a superset of a the query, a necessary condition is that is larger (in unsigned integer representation) than the query
+     * We find the set of all entries larger than the query according to every permutation, and return the smallest such set so that we have the fewest entries to search further
+     * This initial filtering can be performed efficiently using binary search
      * If we find an exact match, we return that much only
      */
     private Collection<ContainmentCacheSATEntry> smallSetLargerThanOrEqualTo(BitSet aBitSet) {
@@ -112,43 +117,56 @@ public class ContainmentCache {
         // binary search return value is positive if the item is found in the list (the index). If it's in one list, it will be in all the lists, so might as well just work with the first
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
         if (exactMatchIndexInFirstPermutation >= 0) {
+            log.debug("Found an exact match in the SAT cache!");
             return SATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation + 1);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());
-            log.trace("Insertion indices are {}", insertionIndices);
+            log.debug("No exact match found. Insertion indices for the various permutations are {}", insertionIndices);
             final int bestInsertionPoint = Collections.max(insertionIndices);
             final int bestPermutation = insertionIndices.indexOf(bestInsertionPoint);
             final List<ContainmentCacheSATEntry> potentialSupersets = SATCache.get(bestPermutation).subList(bestInsertionPoint, SATCache.get(bestPermutation).size());
+            log.debug("Returning a list of " + potentialSupersets.size() + " entries to search through");
             // reverse the list so the bigger things are seen first as they are most likely to be supersets
             return Lists.reverse(potentialSupersets);
         }
     }
 
+    /**
+     * Return a collection of entries that are potential subsets of the query
+     * In order for an entry be a subset of a the query, a necessary condition is that is smaller (in unsigned integer representation) than the query
+     * We find the set of all entries smaller than the query according to every permutation, and return the smallest such set so that we have the fewest entries to search further
+     * This initial filtering can be performed efficiently using binary search
+     * If we find an exact match, we return that much only
+     */
     private Collection<ContainmentCacheUNSATEntry> smallSetSmallerThanOrEqualTo(BitSet aBitSet) {
         final ContainmentCacheUNSATEntry fakeEntry = new ContainmentCacheUNSATEntry(aBitSet); // need to wrap this for comparator
         final List<Integer> binarySearchReturn = IntStream
                 .range(0, permutations.length)
                 .mapToObj(permutationIndex -> Collections.binarySearch(UNSATCache.get(permutationIndex), fakeEntry, (o1, o2) -> comparators.get(permutationIndex).compare(o1.getBitSet(), o2.getBitSet())))
                 .collect(toImmutableList());
+        // binary search return value is positive if the item is found in the list (the index). If it's in one list, it will be in all the lists, so might as well just work with the first
         final Integer exactMatchIndexInFirstPermutation = binarySearchReturn.get(0);
         if (exactMatchIndexInFirstPermutation >= 0) {
+            log.debug("Found an exact match in the UNSAT cache!");
             return UNSATCache.get(0).subList(exactMatchIndexInFirstPermutation, exactMatchIndexInFirstPermutation + 1);
         } else {
             final List<Integer> insertionIndices = binarySearchReturn.stream().map(i -> -(i + 1)).collect(toImmutableList());
-            log.trace("Insertion indices are {}", insertionIndices);
+            log.debug("No exact match found. Insertion indices for the various permutations are {}", insertionIndices);
             final int bestInsertionPoint = Collections.min(insertionIndices);
             final int bestPermutation = insertionIndices.indexOf(bestInsertionPoint);
-            return UNSATCache.get(bestPermutation).subList(0, bestInsertionPoint);
+            final ImmutableList<ContainmentCacheUNSATEntry> potentialSubsets = UNSATCache.get(bestPermutation).subList(0, bestInsertionPoint);
+            log.debug("Returning a list of " + potentialSubsets.size() + " entries to search through");
+            return potentialSubsets;
         }
     }
 
     // true if a is a superset of b
-    private boolean isSupersetOrEqualTo(final BitSet a, final BitSet b) {
+    private boolean isSupersetOrEqualToByStations(final BitSet a, final BitSet b) {
         return b.stream().allMatch(a::get);
     }
 
     // true if a is a subset of b
-    private boolean isSubsetOrEqualTo(final BitSet a, final BitSet b) {
+    private boolean isSubsetOrEqualToByStations(final BitSet a, final BitSet b) {
         return a.stream().allMatch(b::get);
     }
 
@@ -158,14 +176,22 @@ public class ContainmentCache {
         // try to narrow down the entries we have to search by only looking at subsets
         final Collection<ContainmentCacheUNSATEntry> containmentCacheUNSATEntries = smallSetSmallerThanOrEqualTo(bitSet);
         return containmentCacheUNSATEntries.stream()
-                .filter(entry -> isSubsetOrEqualTo(bitSet, entry.getBitSet()) && domainIsSubsetOrEqualTo(aInstance.getDomains(), entry.getDomains()))
+                /*
+                 * The entry's stations should be a subset of the query's stations (so as to be less constrained)
+                 * and each station in the entry must have larger than or equal to the corresponding station domain in the target (so as to be less constrained)
+                 */
+                .filter(entry -> isSubsetOrEqualToByStations(entry.getBitSet(), bitSet) && isSupersetOrEqualToByDomains(entry.getDomains(), aInstance.getDomains()))
                 .map(entry -> new ContainmentCacheUNSATResult(entry.getKey()))
                 .findAny()
                 .orElse(ContainmentCacheUNSATResult.failure());
     }
 
-    private boolean domainIsSubsetOrEqualTo(ImmutableMap<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
-        return a.entrySet().stream().allMatch(entry -> b.get(entry.getKey()).containsAll(entry.getValue()));
+    // true if a's domain is a superset of b's domain
+    private boolean isSupersetOrEqualToByDomains(Map<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
+        return b.entrySet().stream().allMatch(entry -> {
+            final Set<Integer> integers = a.get(entry.getKey());
+            return integers != null && integers.containsAll(entry.getValue());
+        });
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
@@ -174,128 +200,21 @@ public class ContainmentCache {
         // try to narrow down the entries we have to search by only looking at supersets
         final Collection<ContainmentCacheSATEntry> containmentCacheSATEntries = smallSetLargerThanOrEqualTo(bitSet);
         return containmentCacheSATEntries.stream()
-                .filter(entry -> isSupersetOrEqualTo(entry.getBitSet(), bitSet) && entry.isSolutionTo(aInstance))
+                /**
+                 * The entry must contain at least every station in the query in order to provide a solution (hence superset)
+                 * The entry should also be a solution to the problem, which it will be as long as the solution can project onto the query's domains since they come from the set of interference constraints
+                 */
+                .filter(entry -> isSupersetOrEqualToByStations(entry.getBitSet(), bitSet) && entry.isSolutionTo(aInstance))
                 .map(entry -> new ContainmentCacheSATResult(entry.getAssignmentChannelToStation(), entry.getKey()))
                 .findAny()
                 .orElse(ContainmentCacheSATResult.failure());
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ContainmentCacheSATResult {
-
-        private Map<Integer, Set<Station>> result;
-        // the redis key of the problem whose solution "solves" this problem
-        private String key;
-
-        /** true if a solution was found */
-        public boolean isValid() {
-            return result != null && key != null;
-        }
-
-        // return an empty or failed result, that represents an error or that the problem was not solvable via the cache
-        public static ContainmentCacheSATResult failure() {
-            return new ContainmentCacheSATResult();
-        }
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ContainmentCacheUNSATResult {
-        // the redis key of the problem whose solution "solves" this problem
-        private String key;
-
-        /** true if a solution was found */
-        public boolean isValid() {
-            return key != null;
-        }
-
-        // return an empty or failed result, that represents an error or that the problem was not solvable via the cache
-        public static ContainmentCacheUNSATResult failure() {
-            return new ContainmentCacheUNSATResult();
-        }
-    }
-
-    @Data
-    public static class ContainmentCacheSATEntry {
-        byte[] channels;
-        BitSet bitSet;
-        String key;
-
-        // fake constructor
-        public ContainmentCacheSATEntry(BitSet bitSet) {
-            this.bitSet = bitSet;
-        }
-
-        public ContainmentCacheSATEntry(Map<Integer, Set<Station>> answer, String key) {
-            this.bitSet = CacheUtils.toBitSet(answer);
-            final Map<Station, Integer> stationToChannel = CacheUtils.stationToChannelFromChannelToStation(answer);
-            this.key = key;
-            final int numStations = this.bitSet.cardinality();
-            channels = new byte[numStations];
-            int j = 0;
-            for (int stationId = bitSet.nextSetBit(0); stationId >= 0; stationId = bitSet.nextSetBit(stationId+1)) {
-                channels[j] = stationToChannel.get(new Station(stationId)).byteValue();
-                j++;
-            }
-        }
-
-        // aInstance is already known to be a subset of this entry
-        public boolean isSolutionTo(StationPackingInstance aInstance) {
-            final ImmutableMap<Station, Set<Integer>> domains = aInstance.getDomains();
-            final Map<Integer, Integer> stationToChannel = getAssignment();
-            return domains.entrySet().stream().allMatch(entry -> entry.getValue().contains(stationToChannel.get(entry.getKey().getID())));
-        }
-
-        @SuppressWarnings("unchecked")
-        public Map<Integer, Set<Station>> getAssignmentChannelToStation() {
-            final Map<Integer, Integer> stationToChannel = getAssignment();
-            final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
-            stationToChannel.entrySet().forEach(entry -> {
-                channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
-            });
-            // safe conversion because of SetMultimap
-            return (Map<Integer, Set<Station>>) (Map<?, ?>) channelAssignment.asMap();
-        }
-
-        public Map<Integer,Integer> getAssignment() {
-            final Map<Integer, Integer> stationToChannel = new HashMap<>();
-            int j = 0;
-            for (int stationId = bitSet.nextSetBit(0); stationId >= 0; stationId = bitSet.nextSetBit(stationId+1)) {
-                stationToChannel.put(stationId, Byte.toUnsignedInt(channels[j]));
-                j++;
-            }
-            return stationToChannel;
-        }
-    }
-
-    @Data
-    public static class ContainmentCacheUNSATEntry {
-        final BitSet bitSet;
-        Map<Station, Set<Integer>> domains;
-        String key;
-
-        // "fake" constructor used for comparator purposes only
-        public ContainmentCacheUNSATEntry(BitSet bitSet) {
-            this.bitSet = bitSet;
-        }
-
-        public ContainmentCacheUNSATEntry(final Map<Station, Set<Integer>> domains, final String key) {
-            this.key = key;
-            this.domains = domains;
-            this.bitSet = new BitSet(StationPackingUtils.N_STATIONS);
-            domains.keySet().forEach(station -> bitSet.set(station.getID()));
-        }
-
     }
 
     /**
      * A comparator that compares bitsets according to an ordering specified by permutation such that the least
      * significant digit is the first number in the permutation)
      */
-    public static class PermutableBitSetComparator implements Comparator<BitSet> {
+    private static class PermutableBitSetComparator implements Comparator<BitSet> {
 
         final int[] permutation;
 

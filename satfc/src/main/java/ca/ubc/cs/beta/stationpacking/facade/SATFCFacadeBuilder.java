@@ -27,7 +27,6 @@ import java.net.URL;
 
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverCustomizationOptions;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -40,7 +39,7 @@ public class SATFCFacadeBuilder {
 	private String fCNFDirectory;
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
-	private SATFCFacadeParameter.SolverCustomizationOptions fCustomizationOptions;
+	private SolverCustomizationOptions fCustomizationOptions;
 
 	/**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.

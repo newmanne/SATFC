@@ -21,10 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy.ContainmentCacheCacheRequest;
 import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy.ContainmentCacheRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +35,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
-
-import static ca.ubc.cs.beta.stationpacking.cache.ContainmentCache.*;
 
 @Controller
 @Slf4j
@@ -50,11 +51,14 @@ public class ContainmentCacheController extends AbstractController {
     @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT)
     @ResponseBody
     public ContainmentCacheSATResult lookupSAT(
-            @RequestBody final ContainmentCacheRequest instance
+            @RequestBody final ContainmentCacheRequest request
     ) {
-        final Optional<ContainmentCache> cache = containmentCache.locate(instance.getCoordinate());
+        final StationPackingInstance instance = request.getInstance();
+        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+        log.info("Querying the SAT cache for entry " + description);
+        final Optional<ContainmentCache> cache = containmentCache.locate(request.getCoordinate());
         if (cache.isPresent()) {
-            return cache.get().proveSATBySuperset(instance.getInstance());
+            return cache.get().proveSATBySuperset(instance);
         } else {
             return ContainmentCacheSATResult.failure();
         }
@@ -64,11 +68,14 @@ public class ContainmentCacheController extends AbstractController {
     @RequestMapping(value = "/query/UNSAT", method = RequestMethod.POST, produces = JSON_CONTENT)
     @ResponseBody
     public ContainmentCacheUNSATResult lookupUNSAT(
-            @RequestBody final ContainmentCacheRequest instance
+            @RequestBody final ContainmentCacheRequest request
     ) {
-        final Optional<ContainmentCache> cache = containmentCache.locate(instance.getCoordinate());
+        final StationPackingInstance instance = request.getInstance();
+        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+        log.info("Querying the UNSAT cache for entry " + description);
+        final Optional<ContainmentCache> cache = containmentCache.locate(request.getCoordinate());
         if (cache.isPresent()) {
-            return cache.get().proveUNSATBySubset(instance.getInstance());
+            return cache.get().proveUNSATBySubset(instance);
         } else {
             return ContainmentCacheUNSATResult.failure();
         }

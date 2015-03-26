@@ -24,7 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.Arrays;
 
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverCustomizationOptions;
+import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,6 @@ import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -129,8 +128,8 @@ public class SATFCSolverBundle extends ASolverBundle {
             // Split into components
             IComponentGrouper aGrouper = new ConstraintGrouper();
             log.debug("Decorate solver to split the graph into connected components and then merge the results");
-            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager(), true);
-            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager(), true);
+            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
 
         if (solverOptions.isUnderconstrained())

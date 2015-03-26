@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,10 +54,8 @@ import com.google.common.collect.Maps;
 /**
  * Created by newmanne on 28/11/14.
  */
-
+@Slf4j
 public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
-
-    private static Logger log = LoggerFactory.getLogger(ConnectedComponentGroupingDecorator.class);
 
     private final IComponentGrouper fComponentGrouper;
     private final IConstraintManager fConstraintManager;

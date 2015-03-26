@@ -23,25 +23,19 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.facade.*;
 import com.google.common.io.Resources;
 
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
@@ -82,8 +76,7 @@ public class SATFCFacadeExecutor {
 			
 			log.info("Initializing facade.");
 			SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
-			
-			String library = parameters.fClaspLibrary;
+            String library = parameters.fClaspLibrary;
 			if(library != null)
 			{
 				satfcBuilder.setLibrary(parameters.fClaspLibrary);

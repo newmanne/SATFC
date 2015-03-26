@@ -86,6 +86,7 @@ public class Application {
 
     @Bean
     ICacheLocator containmentCache() {
+        // TODO: doing this during bringing up the context is probably a terrible idea and hard to debug
         final ContainmentCacheInitData subsetCacheData = cacher().getContainmentCacheInitData();
         final ConcurrentMap<ICacher.CacheCoordinate, ContainmentCache> caches = new ConcurrentHashMap<>();
         subsetCacheData.getCaches().forEach(cacheCoordinate -> {

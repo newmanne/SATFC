@@ -23,8 +23,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -60,11 +60,12 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
         // test sat cache - supersets of the problem that are SAT directly correspond to solutions to the current problem!
         final SolverResult result;
-        final ContainmentCache.ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance);
+        log.debug("Sending query to cache");
+        final ContainmentCacheSATResult containmentCacheSATResult = proxy.proveSATBySuperset(aInstance);
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_SUPERSET, watch.getElapsedTime()));
         if (containmentCacheSATResult.isValid()) {
             final Map<Integer, Set<Station>> assignment = containmentCacheSATResult.getResult();
-            log.info("Found a superset in the SAT cache - declaring result SAT");
+            log.debug("Found a superset in the SAT cache - declaring result SAT because of " + containmentCacheSATResult.getKey());
             final Map<Integer, Set<Station>> reducedAssignment = Maps.newHashMap();
             for (Integer channel : assignment.keySet()) {
                 assignment.get(channel).stream().filter(station -> aInstance.getStations().contains(station)).forEach(station -> {
@@ -78,6 +79,7 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
             SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.SUPERSET_CACHE, result.getResult()));
             SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), containmentCacheSATResult.getKey()));
         } else {
+            log.debug("Cache query unsuccessful");
             final double preTime = watch.getElapsedTime();
             final SolverResult decoratedResult = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
             result = SolverResult.addTime(decoratedResult, preTime);

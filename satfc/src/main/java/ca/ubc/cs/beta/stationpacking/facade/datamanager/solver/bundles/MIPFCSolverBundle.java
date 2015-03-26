@@ -23,7 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ public class MIPFCSolverBundle extends ASolverBundle {
     public MIPFCSolverBundle(
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
-            SATFCFacadeParameter.SolverCustomizationOptions options
+            SolverCustomizationOptions options
     		) {
 
         super(aStationManager, aConstraintManager);

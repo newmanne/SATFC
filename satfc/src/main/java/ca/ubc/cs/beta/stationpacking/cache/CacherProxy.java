@@ -58,6 +58,9 @@ public class CacherProxy implements ICacher {
         restTemplate.postForLocation(builder.build().toUriString(), request);
     }
 
+    /**
+     * Object used to represent a request to cache an instance
+     */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

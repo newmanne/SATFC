@@ -39,16 +39,5 @@ public class SATFCFacadeParameter {
 		MIPFC;
 	}
 
-	@Data
-	public static class SolverCustomizationOptions {
-		private boolean presolve = true;
-		private boolean underconstrained = true;
-		private boolean decompose = true;
-		
-		// caching params
-        private String serverURL;
-		private boolean cache = false;
-	}
-
 }
 

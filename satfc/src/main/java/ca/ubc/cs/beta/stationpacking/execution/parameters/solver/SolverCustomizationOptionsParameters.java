@@ -24,8 +24,8 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 
+import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
@@ -45,15 +45,14 @@ public class SolverCustomizationOptionsParameters extends AbstractOptions {
         @ParametersDelegate
         private SATFCCachingParameters cachingParams = new SATFCCachingParameters();
 
-        public SATFCFacadeParameter.SolverCustomizationOptions getOptions() {
-            SATFCFacadeParameter.SolverCustomizationOptions options = new SATFCFacadeParameter.SolverCustomizationOptions();
+        public SolverCustomizationOptions getOptions() {
+            SolverCustomizationOptions options = new SolverCustomizationOptions();
             options.setPresolve(presolve);
             options.setUnderconstrained(underconstrained);
             options.setDecompose(decomposition);
-            if (cachingParams.useCache) 
+            if (cachingParams.useCache)
             {
                 options.setServerURL(cachingParams.serverURL);
-                options.setCache(true);
             }
             return options;
         }
