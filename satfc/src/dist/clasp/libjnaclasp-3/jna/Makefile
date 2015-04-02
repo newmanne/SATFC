@@ -16,13 +16,10 @@ OBJECTS	     := $(filter-out $(PROJECT_ROOT)/build/jna/app/main.o, $(wildcard $(
 
 -include $(FLAGS)
 
-$(TARGET): jna_clasp.o jna_incclasp.o
-	$(CXX) $(WARNFLAGS) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) jna_clasp.o jna_incclasp.o $(LIBS) $(LDLIBS) --shared -o $(TARGET)
+$(TARGET): jna_clasp.o
+	$(CXX) $(WARNFLAGS) $(CXXFLAGS) $(LDFLAGS) $(OBJECTS) jna_clasp.o $(LIBS) $(LDLIBS) --shared -o $(TARGET)
 
 jna_clasp.o: jna_clasp.cpp
-	$(CXX) $(INCLUDES) $(WARNFLAGS) $(CXXFLAGS) -c $< -o $@
-
-jna_incclasp.o: jna_incclasp.cpp
 	$(CXX) $(INCLUDES) $(WARNFLAGS) $(CXXFLAGS) -c $< -o $@
 
 clean:
