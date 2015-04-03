@@ -10,6 +10,25 @@
 
 using namespace Clasp;
 namespace JNA {
+
+	enum Result_State { r_UNSAT=0, r_SAT=1, r_UNKNOWN=3 };
+
+	class JNAProblem {
+		public:
+			JNAProblem();
+			~JNAProblem();
+
+			int getResultState();
+			int* getAsssignment();
+
+		private:
+			int[] assignment;
+			Result_State state;
+			Clasp::ClaspFacade* facade;
+			Clasp::Cli::ClaspCliConfig* config;
+			ConfigKey configKey;
+	};
+
 }
 
 // class JNAConfig { // : public ProgramOptions::AppOptions {
@@ -121,7 +140,9 @@ namespace JNA {
 // JNA Library
 extern "C" {
 
-	void doThing(const char* params, const char* problem);
+	void* initProblem(const char* params, const char* problem);
+	int* solveProblem(void* problem, double timeoutTime);
+	void destroyProblem(void* problem);
 
 	// // Configuration of clasp
 	// void* createConfig(const char* _params, int _params_strlen, int _maxArgs);

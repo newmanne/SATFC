@@ -11,6 +11,29 @@
 //#include "program_opts/composite_value_parser.h"
 
 namespace JNA {
+
+	JNAProblem(Clasp::ClaspFacade* facade_,  Clasp::Cli::ClaspCliConfig* config_, ConfigKey key_) {
+		state = r_UNKNOWN;
+		facade = facade_;
+		config = config_;
+		key = key_;
+	}
+
+	~JNAProblem() {
+		delete[] assignment;
+		delete facade;
+		config->releaseConfig(configKey);
+		delete config;
+	}
+
+	int getResultState() {
+		return state;
+	}
+
+	int* getAssignment() {
+		return assignment;
+	}
+
 }
 
 // JNAConfig
@@ -173,24 +196,13 @@ namespace JNA {
 
 using namespace JNA;
 
-void printModel(const Clasp::SymbolTable& symTab, const Clasp::Model& model) {
-	std::cout << "Model " << model.num << ": \n";
-	// Print each named atom that is true w.r.t the current model.
-	for (Clasp::SymbolTable::const_iterator it = symTab.begin(); it != symTab.end(); ++it) {
-		if (model.isTrue(it->second.lit) && !it->second.name.empty()) {
-			std::cout << it->second.name.c_str() << " ";
-		}
-	}
-	std::cout << std::endl;
-}
-
 class ModelPrinter : public Clasp::EventHandler {
 public:
-	ModelPrinter() {}
+	ModelPrinter() {};
+	
 	bool onModel(const Clasp::Solver& s, const Clasp::Model& m) {
-		printModel(s.symbolTable(), m);
 		const Clasp::SymbolTable& index = s.symbolTable();
-		delete[] assignment_
+		delete[] assignment_;
 		assignment_ = new int[index.size()];
 		assignment_[0] = index.size();
 		int i = 1;
@@ -200,32 +212,58 @@ public:
 			i++;
 		}
 		return true;
-	}
-	int* assignment_;
+	};
+private:
+	JNAProblem* problem;
 };
 
 
-int* doThing(const char* params, const char* problem) {
-	std::cout << params << std::endl;
+void* initProblem(const char* params, const char* problem) {
+	// Init the configuration
 	Clasp::Cli::ClaspCliConfig* config = new Clasp::Cli::ClaspCliConfig();
 	Clasp::Cli::ConfigKey key = config->allocConfig();
-	config->appendConfig(key, "sue and bob", params);
+	config->appendConfig(key, "SATFC-Config", params);
+	config->init(0, key);
+
+	// Init the facade
 	Clasp::ClaspFacade* facade = new Clasp::ClaspFacade();
-	std::istringstream istr (problem);
-	// TODO: no idea if its actually using my config :(
-	facade->startSat(*config).parseProgram(istr);
+	std::istringstream problemAsStream (problem);
+	// Parse the problem
+	facade->startSat(*config).parseProgram(problemAsStream);
 	if (facade->prepare()) {
-		ModelPrinter printer;
-		Clasp::ClaspFacade::Result result = facade->solve(&printer);
-		std::cout << result.sat() << std::endl;
-		return printer.assignment_
+		JNAProblem jnaProblem = new JNAProblem(facade);
+		return jnaProblem;
 	} else {
 		std::cout << "error in prepare" << std::endl;	
 	}
-	
-	std::cout << "done" << std::endl;
 	return 0;
 }
+
+int* solveProblem(void* problem, double timeoutTime) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(_problem);
+	ModelPrinter printer;
+	Clasp::ClaspFacade::AsyncResult asyncResult = facade->solveAsync(&printer);
+	if (asyncResult.waitFor(timeoutTime)) {
+		// The problem was solved
+		Clasp::ClaspFacade::Result result = asyncResult.get();
+		std::cout << "SAT: " << result.sat() << std::endl;
+		return printer.assignment_;
+	} else {
+		// Timed out
+		if (asyncResult.cancel()) {
+			// successful abort
+		} else {
+			// abort not successful?
+		}
+	} 
+	return 0;
+}
+
+void destroyProblem(void* problem) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(_problem);
+	delete jnaProblem;
+}
+
 
 // void* createConfig(const char* _params, int _params_strlen, int _maxArgs)
 // {

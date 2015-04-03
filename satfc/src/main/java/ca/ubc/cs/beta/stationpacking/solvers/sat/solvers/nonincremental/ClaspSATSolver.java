@@ -219,7 +219,8 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		// Start solving
 		log.debug("Send problem to clasp cutting off after "+cutoff+"s");
 		
-		fClaspLibrary.jnasolve(facade, problem, config, result);
+		fClaspLibrary.
+                jnasolve(facade, problem, config, result);
 		log.debug("Came back from clasp.");
 		
 		watch.stop();
@@ -272,21 +273,21 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		return output;
 	}
 
-	private HashSet<Literal> parseAssignment(int[] assignment)
-	{
-		HashSet<Literal> set = new HashSet<Literal>();
-		for (int i = 1; i < assignment[0]; i++)
-		{
-			int intLit = assignment[i];
-			int var = Math.abs(intLit);
-			boolean sign = intLit > 0;
-			Literal aLit = new Literal(var, sign);
-			set.add(aLit);
-		}
-		return set;
-	}
-	
-	@Override
+    private HashSet<Literal> parseAssignment(int[] assignment)
+    {
+        HashSet<Literal> set = new HashSet<Literal>();
+        for (int i = 1; i < assignment[0]; i++)
+        {
+            int intLit = assignment[i];
+            int var = Math.abs(intLit);
+            boolean sign = intLit > 0;
+            Literal aLit = new Literal(var, sign);
+            set.add(aLit);
+        }
+        return set;
+    }
+
+    @Override
 	public void notifyShutdown() 
 	{
 	    //No shutdown necessary.

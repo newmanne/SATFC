@@ -3,7 +3,7 @@
 -include PROJECT_ROOT
 
 TARGET       := libjnaclasp.so
-FLAGS        := $(PROJECT_ROOT)/build/jna/FLAGS
+FLAGS        := $(PROJECT_ROOT)/build/jna_mt/FLAGS
 SOURCE_DIR   := "./"
 INCLUDE_DIR  := "./"
 OUT_DIR      := "./"

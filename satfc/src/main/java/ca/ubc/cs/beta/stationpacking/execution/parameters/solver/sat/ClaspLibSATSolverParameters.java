@@ -43,6 +43,7 @@ public class ClaspLibSATSolverParameters extends AbstractOptions implements ISAT
 	 * Clasp configuration - 11/13 - all data.
 	 */
 	public final static String ALL_CONFIG_11_13 =      "--eq=0 --trans-ext=weight --sat-prepro=0 --sign-def=2 --del-max=10000 --strengthen=local,1 --del-init-r=800,20000 --loops=no --reverse-arcs=3 --heuristic=Vsids --del-cfl=F,100 --restarts=L,256 --del-algo=basic,0 --deletion=3,66,3.0 --del-grow=1.0,100.0,F,128 --update-act --del-glue=4,0 --update-lbd=2 --init-watches=2 --vsids-decay=70 --otfs=2 --del-on-restart=50 --contraction=120 --counter-restarts=3 --local-restarts --lookahead=atom,1 --save-progress=180 --counter-bump=180";
+
 	/**
 	 * Clasp configuration - 09/13 - UHF data.
 	 */
