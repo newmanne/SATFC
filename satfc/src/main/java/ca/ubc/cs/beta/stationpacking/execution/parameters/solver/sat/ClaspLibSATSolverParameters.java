@@ -61,6 +61,12 @@ public class ClaspLibSATSolverParameters extends AbstractOptions implements ISAT
 	 */
 	public final static String HVHF_CONFIG_09_13 =     "--backprop --eq=0 --trans-ext=all --sat-prepro=0 --sign-def=0 --del-max=100000 --strengthen=local,1 --del-init-r=500,6000 --loops=common --init-watches=0 --heuristic=Vsids --del-cfl=F,500 --restarts=D,100,0.8,100 --del-algo=inp_sort,1 --deletion=2,75,3.0 --update-act --del-glue=4,0 --update-lbd=0 --reverse-arcs=3 --vsids-decay=96 --otfs=2 --del-on-restart=0 --contraction=500 --local-restarts --lookahead=no --save-progress=50";
 
+    /*
+	 * Clasp configuration - 09/13 HVHF data adapted for clasp3 (by removing parameters until it worked)
+     */
+    public final static String HVHF_CONFIG_09_13_MODIFIED =     "--backprop --eq=0 --trans-ext=all --sat-prepro=0 --sign-def=0 --del-max=100000 --strengthen=local,1 --loops=common --init-watches=0 --heuristic=Vsids --del-cfl=F,500 --restarts=D,100,0.8,100 --update-act --del-glue=4,0 --update-lbd=0 --reverse-arcs=3 --vsids-decay=96 --otfs=2 --del-on-restart=0 --contraction=500 --local-restarts --lookahead=no --save-progress=50";
+
+
     public final static String UHF_CONFIG_04_15 =      "--sat-prepro=0 --init-watches=0 --rand-freq=0.02 --sign-def=2 --del-init=5.0,10,2500 --vsids-decay=92 --strengthen=local,2 --lookahead=hybrid,1 --otfs=1 --reverse-arcs=3 --save-progress=180 --del-glue=2,0 --del-cfl=L,2000 --restarts=F,1600 --local-restarts --update-lbd=3 --heuristic=Vsids --deletion=ipSort,75,2 --contraction=100 --del-grow=1.1,20.0 --del-on-restart=50 --del-max=32767";
 
 
