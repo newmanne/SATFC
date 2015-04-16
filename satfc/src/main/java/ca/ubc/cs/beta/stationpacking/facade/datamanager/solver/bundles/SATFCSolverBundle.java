@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,10 +94,11 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         log.debug("Initializing base configured clasp solvers.");
 
-        AbstractCompressedSATSolver aUHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+        AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
-        AbstractCompressedSATSolver aHVHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13);
+        // TODO: use an appropriate config?
+        AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         //Chain pre-solving and main solver.
@@ -108,7 +110,6 @@ public class SATFCSolverBundle extends ASolverBundle {
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
-
         ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
         ICacher.CacheCoordinate cacheCoordinate = null;

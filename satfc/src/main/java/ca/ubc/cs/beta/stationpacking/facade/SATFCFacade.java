@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +104,7 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         try {
-            new ClaspSATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         } catch (UnsatisfiedLinkError e) {
 
             log.error("\n--------------------------------------------------------\n" +

@@ -23,26 +23,23 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
+import com.google.common.collect.ImmutableSet;
 
 public class SATSolverResult implements Serializable {
 
+	private final SATResult fResult;
+	private final double fRuntime;
+	private final ImmutableSet<Literal> fAssignment;
 	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private SATResult fResult;
-	private double fRuntime;
-	private HashSet<Literal> fAssignment;
-	
-	public SATSolverResult(SATResult aResult, double aRuntime, HashSet<Literal> aAssignment)
+	public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment)
 	{
 		fResult = aResult;
 		fRuntime = aRuntime;
-		fAssignment = new HashSet<Literal>(aAssignment);
+		fAssignment = ImmutableSet.copyOf(aAssignment);
 	}
 	
 	public SATResult getResult(){
@@ -54,11 +51,9 @@ public class SATSolverResult implements Serializable {
 		return fRuntime;
 	}
 	
-	public HashSet<Literal> getAssignment()
-	{
-		return new HashSet<Literal>(fAssignment); 
+	public ImmutableSet<Literal> getAssignment() {
+		return fAssignment;
 	}
-	
 	
 	@Override
 	public String toString()

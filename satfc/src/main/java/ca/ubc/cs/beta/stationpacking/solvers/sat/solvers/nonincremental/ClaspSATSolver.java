@@ -141,51 +141,51 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		int seed = (new Random(aSeed)).nextInt();
 		String params = fParameters+" --seed="+seed;
 		Pointer config = fClaspLibrary.createConfig(params, params.length(), fMaxArgs);
-		
+
 		// create the problem
 		Pointer problem = fClaspLibrary.createProblem(aCNF.toDIMACS(null));
 		final Pointer result = fClaspLibrary.createResult();
 		final AtomicBoolean timedOut = new AtomicBoolean(false);
-		
+
 		watch.stop();
 		double preTime = watch.getElapsedTime();
-		
+
 		watch.reset();
 		watch.start();
-		
+
 		final double cutoff = aTerminationCriterion.getRemainingTime();
-		
+
 		if(cutoff <=0)
 		{
 		    log.debug("All time spent.");
 		    return new SATSolverResult(SATResult.TIMEOUT, preTime, new HashSet<Literal>());
 		}
-		// Launches a timer that will set the interrupt flag of the result object to true after aCutOff seconds. 
+		// Launches a timer that will set the interrupt flag of the result object to true after aCutOff seconds.
 		Future<?> timeoutFuture = fTimerService.schedule(
 		        new Runnable(){
             			@Override
             			public void run() {
-            			    
+
                             if(MY_REQUEST_ID == currentRequestID.get())
                             {
                 				log.trace("Interrupting clasp as we are past cutoff of {} s.",cutoff);
                 				timedOut.set(true);
                 				fClaspLibrary.interrupt(facade);
                 				return;
-                            } 
-            			    
+                            }
+
             			}
         		    },(long) (cutoff*1000), TimeUnit.MILLISECONDS);
-		
+
 		// listens for thread interruption every 1 seconds, if the thread is interrupted, interrupt the library and return gracefully
 		//while returning null (free library memory, etc.)
-		
+
 		final int SCHEDULING_FREQUENCY_IN_SECONDS = 1;
 		Future<?> interruptFuture = fTimerService.schedule(
 		        new Runnable(){
         			@Override
-        			public void run() 
-        			{       			    
+        			public void run()
+        			{
             			    if(MY_REQUEST_ID == currentRequestID.get())
             			    {
                 				if (fInterrupt.get())
@@ -200,12 +200,12 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
             			    }
         			}
         		},SCHEDULING_FREQUENCY_IN_SECONDS,TimeUnit.SECONDS);
-		
+
 		//launches a suicide SATFC time that just kills everything if it finishes and we're still on the same job.
 		final int SUICIDE_GRACE_IN_SECONDS = 5*60;
 		Future<?> suicideFuture = fTimerService.schedule(
 		        new Runnable(){
-		            
+
 		            @Override
 		            public void run()
 		            {
@@ -218,27 +218,27 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		        }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
 		// Start solving
 		log.debug("Send problem to clasp cutting off after "+cutoff+"s");
-		
+
 		fClaspLibrary.
                 jnasolve(facade, problem, config, result);
 		log.debug("Came back from clasp.");
-		
+
 		watch.stop();
 		double runtime = watch.getElapsedTime();
 		watch.reset();
 		watch.start();
-		
-		
+
+
 		ClaspResult claspResult = getSolverResult(fClaspLibrary, result, timedOut, fInterrupt, runtime);
-		
+
 		log.trace("Post time to clasp result obtained: {} s.",watch.getElapsedTime());
-		
+
 		timeoutFuture.cancel(true);
 		log.trace("Post time to timeout future cancellation: {} s.",watch.getElapsedTime());
 		interruptFuture.cancel(true);
 		log.trace("Post time to interrupt future cancellation: {} s.",watch.getElapsedTime());
-		
-		
+
+
 		HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
 		log.trace("Post time to to assignment obtained: {} s.",watch.getElapsedTime());
 
@@ -251,23 +251,23 @@ public class ClaspSATSolver extends AbstractCompressedSATSolver
 		log.trace("Post time to problem destroyed: {} s.",watch.getElapsedTime());
 		fClaspLibrary.destroyResult(result);
 		log.trace("Post time to result destroyed: {} s.",watch.getElapsedTime());
-		
+
 		watch.stop();
 		double postTime = watch.getElapsedTime();
-		
+
 		log.trace("Total post time: {} s.", postTime);
 		if(postTime > 60)
 		{
 			log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happenned.");
 		}
-		
+
 		//We only increment
 		log.debug("Incrementing job index.");
 		currentRequestID.incrementAndGet();
-		
+
 		log.debug("Cancelling suicide future.");
 		suicideFuture.cancel(true);
-		
+
 		final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime()+preTime+postTime, assignment);
 		log.trace("Returning result: {}.",output);
 		return output;

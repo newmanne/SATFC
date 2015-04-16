@@ -11,22 +11,28 @@
 using namespace Clasp;
 namespace JNA {
 
-	enum Result_State { r_UNSAT=0, r_SAT=1, r_UNKNOWN=3 };
+	enum Result_State { r_UNSAT=0, r_SAT=1, r_TIMEOUT=2, r_INTERRUPTED=3, r_UNKNOWN=5 };
 
-	class JNAProblem {
+	class JNAProblem : public Clasp::EventHandler {
 		public:
 			JNAProblem();
 			~JNAProblem();
 
 			int getResultState();
-			int* getAsssignment();
+			int* getAssignment();
+			Clasp::ClaspFacade* getFacade();
+			void setFacade(Clasp::ClaspFacade* facade_);
+			void setConfig(Clasp::Cli::ClaspCliConfig* config_);
+			void setConfigKey(Clasp::Cli::ConfigKey key_);
+			void setResultState(Result_State state_);
 
+			bool onModel(const Clasp::Solver& s, const Clasp::Model& m);
 		private:
-			int[] assignment;
+			int* assignment;
 			Result_State state;
 			Clasp::ClaspFacade* facade;
 			Clasp::Cli::ClaspCliConfig* config;
-			ConfigKey configKey;
+			Clasp::Cli::ConfigKey configKey;
 	};
 
 }
@@ -140,9 +146,19 @@ namespace JNA {
 // JNA Library
 extern "C" {
 
+	// Returns a pointer to the facade
 	void* initProblem(const char* params, const char* problem);
-	int* solveProblem(void* problem, double timeoutTime);
+	
+	void solveProblem(void* problem, double timeoutTime);
+	
+	// Cleans up
 	void destroyProblem(void* problem);
+
+	bool interrupt(void* problem);
+
+	int getResultState(void* problem);
+
+	int* getResultAssignment(void* problem);
 
 	// // Configuration of clasp
 	// void* createConfig(const char* _params, int _params_strlen, int _maxArgs);
