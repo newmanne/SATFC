@@ -96,8 +96,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
-        // TODO: use an appropriate config?
-        AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
+        AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13);
         ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         //Chain pre-solving and main solver.
@@ -204,10 +203,10 @@ public class SATFCSolverBundle extends ASolverBundle {
     public ISolver getSolver(StationPackingInstance aInstance) {
         //Return the right solver based on the channels in the instance.
         if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
+            log.debug("Returning clasp configured for VHF");
             return fVHFSolver;
         } else {
-            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
+            log.debug("Returning clasp configured for UHF");
             return fUHFSolver;
         }
     }

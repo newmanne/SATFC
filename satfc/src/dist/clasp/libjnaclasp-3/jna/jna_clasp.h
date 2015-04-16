@@ -38,10 +38,10 @@ namespace JNA {
 			void setConfigState(Config_State configState);
 			void setConfigErrorMessage(std::string message);
 
-			// interrupt the clasp facade
+			// Interrupt the clasp facade: should return false
 			bool interrupt();
 
-			// EventHandler functions
+			// EventHandler functions - onModel is where we can pick up the assignment variables
 			bool onModel(const Clasp::Solver& s, const Clasp::Model& m);
 		private:
 			int* assignment_;

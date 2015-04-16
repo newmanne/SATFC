@@ -47,6 +47,10 @@ namespace JNA {
 		configState_ = configState;
 	}
 
+	void JNAProblem::setFacade(Clasp::ClaspFacade* facade) {
+		facade_ = facade;
+	}
+
 	void JNAProblem::setConfigErrorMessage(std::string message) {
 		configErrorMessage_ = message;
 	}
@@ -76,13 +80,12 @@ namespace JNA {
 	}
 
 	bool JNAProblem::interrupt() {
-		return facade_->terminate(9); // SIGCANCEL is defined as 9 in clasp_facade.cpp. Should return false
+		return facade_->terminate(9); // SIGCANCEL is defined as 9 in clasp_facade.cpp
 	}
 
 	bool JNAProblem::onModel(const Clasp::Solver& s, const Clasp::Model& m) {
 		const Clasp::SymbolTable& index = s.symbolTable();
 		delete[] assignment_;
-		assignment_ = NULL;
 		assignment_ = new int[index.size()];
 		assignment_[0] = index.size();
 		int i = 1;
