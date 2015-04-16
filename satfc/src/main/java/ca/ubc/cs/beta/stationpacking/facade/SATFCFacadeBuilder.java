@@ -58,7 +58,7 @@ public class SATFCFacadeBuilder {
 	 * Some autodetection magic to find clasp library.
 	 * @return the path to the detected clasp library, null if none found.
 	 */
-	private String findSATFCLibrary()
+	public static String findSATFCLibrary()
 	{
 		String relativeLibPath = "clasp"+File.separator+"jna"+File.separator+"libjnaclasp";
 		

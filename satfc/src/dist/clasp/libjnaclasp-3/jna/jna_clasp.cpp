@@ -6,66 +6,89 @@
 #include <clasp/solver.h>
 #include <clasp/enumerator.h>
 
-
 namespace JNA {
 
 	JNAProblem::JNAProblem() {
-		state = r_UNKNOWN;
-		assignment = NULL;
-		facade = NULL;
-		config = NULL;
+		resultState_ = r_UNKNOWN;
+		configState_ = c_UNCONFIGURED;
+		assignment_ = NULL;
+		facade_ = NULL;
+		config_ = NULL;
+		configAllocated_ = false;
 	}
 
 	JNAProblem::~JNAProblem() {
-		delete[] assignment;
-		assignment = NULL;
-		delete facade;
-		facade = NULL;
-		if (config != NULL) {
-			config->releaseConfig(configKey);	
+		delete[] assignment_;
+		assignment_ = NULL;
+		delete facade_;
+		facade_ = NULL;
+		if (config_ != NULL && configAllocated_) {
+			config_->releaseConfig(configKey_);	
+			configAllocated_ = false;
 		}
-		delete config;
-		config = NULL;
+		delete config_;
+		config_ = NULL;
 	}
 
-	void JNAProblem::setFacade(Clasp::ClaspFacade* facade_) {
-		facade = facade_;
+	void JNAProblem::setConfigKey(Clasp::Cli::ConfigKey configKey) {
+		configKey_ = configKey;
+		configAllocated_ = true;
 	}
 
-	void JNAProblem::setConfig(Clasp::Cli::ClaspCliConfig* config_) {
-		config = config_;
+	void JNAProblem::setConfig(Clasp::Cli::ClaspCliConfig* config) {
+		config_ = config;
 	}
 
-	void JNAProblem::setConfigKey(Clasp::Cli::ConfigKey key_) {
-		configKey = key_;
+	void JNAProblem::setResultState(Result_State resultState) {
+		resultState_ = resultState;
 	}
 
-	void JNAProblem::setResultState(Result_State state_) {
-		state = state_;
+	void JNAProblem::setConfigState(Config_State configState) {
+		configState_ = configState;
 	}
 
-	int JNAProblem::getResultState() {
-		return state;
+	void JNAProblem::setConfigErrorMessage(std::string message) {
+		configErrorMessage_ = message;
+	}
+
+	Result_State JNAProblem::getResultState() {
+		return resultState_;
+	}
+
+	Config_State JNAProblem::getConfigState() {
+		return configState_;
 	}
 
 	int* JNAProblem::getAssignment() {
-		return assignment;
+		return assignment_;
 	}
 
 	Clasp::ClaspFacade* JNAProblem::getFacade() {
-		return facade;
+		return facade_;
+	}
+
+	Clasp::Cli::ClaspCliConfig* JNAProblem::getConfig() {
+		return config_;
+	}
+
+	std::string JNAProblem::getConfigErrorMessage() {
+		return configErrorMessage_;
+	}
+
+	bool JNAProblem::interrupt() {
+		return facade_->terminate(9); // SIGCANCEL is defined as 9 in clasp_facade.cpp. Should return false
 	}
 
 	bool JNAProblem::onModel(const Clasp::Solver& s, const Clasp::Model& m) {
 		const Clasp::SymbolTable& index = s.symbolTable();
-		delete[] assignment;
-		assignment = NULL;
-		assignment = new int[index.size()];
-		assignment[0] = index.size();
+		delete[] assignment_;
+		assignment_ = NULL;
+		assignment_ = new int[index.size()];
+		assignment_[0] = index.size();
 		int i = 1;
 		for (Var v = 1; v < index.size(); ++v)
 		{
-			assignment[i] = (s.value(v) == value_false ? -1:1)*v;
+			assignment_[i] = (s.value(v) == value_false ? -1:1)*v;
 			i++;
 		}
 		return true;
@@ -77,75 +100,82 @@ namespace JNA {
 
 using namespace JNA;
 
-void* initProblem(const char* params, const char* problem) {
+void* initConfig(const char* params) {
 	JNAProblem* jnaProblem = new JNAProblem();
-
 	// Init the configuration
 	Clasp::Cli::ClaspCliConfig* config = new Clasp::Cli::ClaspCliConfig();
 	jnaProblem->setConfig(config);
 	Clasp::Cli::ConfigKey key = config->allocConfig();
-	std::cout << "Config key is " << key << std::endl;		
 	jnaProblem->setConfigKey(key);
-	config->appendConfig(key, "SATFC-Config", params);
-	config->init(0, key);
+	try {
+		config->appendConfig(key, "SATFC-Config", params);	
+		config->init(0, key);	
+		jnaProblem->setConfigState(c_CONFIGURED);
+	} catch (std::exception& e) {
+		jnaProblem->setConfigState(c_ERROR);
+		jnaProblem->setConfigErrorMessage("Error while parsing configuration: " + std::string(e.what()));
+	}
+	return jnaProblem;
+}
+
+void initProblem(void* jnaProblemPointer, const char* problem) {
+	JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
 
 	// Init the facade
 	Clasp::ClaspFacade* facade = new Clasp::ClaspFacade();
 	jnaProblem->setFacade(facade);
 	std::istringstream problemAsStream (problem);
 	// Parse the problem
-	facade->startSat(*config).parseProgram(problemAsStream);
-	if (!facade->prepare()) {
-		// TODO: should probably convey this to java
-		std::cout << "error in prepare" << std::endl;		
-	} 
-	return jnaProblem;
+	facade->startSat(*jnaProblem->getConfig()).parseProgram(problemAsStream);
+	facade->prepare();
 }
 
-void solveProblem(void* problem, double timeoutTime) {
-	JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(problem);
+void solveProblem(void* jnaProblemPointer, double timeoutTime) {
+	JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
 	Clasp::ClaspFacade* facade = jnaProblem->getFacade();
 
 	// Start the solve, passing in the event handler (which JNAProblem implements)
 	Clasp::ClaspFacade::AsyncResult asyncResult = facade->solveAsync(jnaProblem);
-	if (asyncResult.waitFor(timeoutTime)) {
-		// The problem was solved
+	if (asyncResult.waitFor(timeoutTime)) { // returns true immediately when the problem is solved. Otherwise returns false (and continues solving the problem)
 		Clasp::ClaspFacade::Result result = asyncResult.get();
 		if (result.sat()) {
 			jnaProblem->setResultState(r_SAT);
 		} else if (result.unsat()) {
 			jnaProblem->setResultState(r_UNSAT);
-		} else {
-			std::cout << "result was neither sat or unsat?" << std::endl;		
-			// TODO: what now? I don't think you can reach here...
-		}
-	} else {
+		} else if (result.interrupted()) {
+			jnaProblem->setResultState(r_INTERRUPTED);
+		} 
+	} else if (asyncResult.cancel()) { // times up - try to shut down the problem
 		jnaProblem->setResultState(r_TIMEOUT);
-		if (!asyncResult.cancel()) {
-			// TODO: what now?
-			std::cout << "error in cancel" << std::endl;		
-			// abort not successful? No idea what to do here
-		}
 	} 
 }
 
-void destroyProblem(void* problem) {
-	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(problem);
+void destroyProblem(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
 	delete jnaProblem;
 }
 
-bool interrupt(void* problem) {
-	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(problem);
-	// TODO:
-	return false;
+bool interrupt(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
+	return jnaProblem->interrupt();
 }
 
-int getResultState(void* problem) {
-	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(problem);
+int getResultState(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
 	return jnaProblem->getResultState();
 }
 
-int* getResultAssignment(void* problem) {
-	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(problem);
+int* getResultAssignment(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
 	return jnaProblem->getAssignment();
+}
+
+int getConfigState(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
+	return jnaProblem->getConfigState();	
+}
+
+const char* getConfigErrorMessage(void* jnaProblemPointer) {
+	JNA::JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
+	return jnaProblem->getConfigErrorMessage().c_str();
 }

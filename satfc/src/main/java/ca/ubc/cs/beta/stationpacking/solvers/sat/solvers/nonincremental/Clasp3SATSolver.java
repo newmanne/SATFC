@@ -1,5 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import java.util.HashSet;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -10,21 +19,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
 import com.google.common.collect.ImmutableSet;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashSet;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class Clasp3SATSolver extends AbstractCompressedSATSolver {
@@ -40,7 +39,17 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         if (parameters.contains("--seed")) {
             throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!");
         }
-        // TODO: can validate params here with a better design...?
+        // make sure the configuration is valid
+        String params = fParameters + " --seed=1";
+        Pointer jnaProblem = fClaspLibrary.initConfig(params);
+        try {
+            int status = fClaspLibrary.getConfigState(jnaProblem);
+            if (status == 2) {
+                throw new IllegalArgumentException(fClaspLibrary.getConfigErrorMessage(jnaProblem));
+            }
+        } finally {
+            fClaspLibrary.destroyProblem(jnaProblem);
+        }
     }
 
     /**
@@ -48,16 +57,6 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
      * this matches the id when they started.
      */
     private final AtomicLong currentRequestID = new AtomicLong(1);
-
-    @RequiredArgsConstructor
-    public class AutoClosingProblem implements AutoCloseable {
-        @Getter
-        private final Pointer problem;
-        @Override
-        public void close() {
-            fClaspLibrary.destroyProblem(problem);
-        }
-    }
 
     /*
      * (non-Javadoc)
@@ -73,8 +72,9 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         final String params = fParameters + " --seed=" + seed;
         Pointer problem = null;
         try  {
-            // create the problem
-            problem = fClaspLibrary.initProblem(params, aCNF.toDIMACS(null));
+            // create the problem - config params have already been validated in the constructor, so this should work
+            problem = fClaspLibrary.initConfig(params);
+            fClaspLibrary.initProblem(problem, aCNF.toDIMACS(null));
 
             watch.stop();
             double preTime = watch.getElapsedTime();
@@ -97,6 +97,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                             System.exit(AEATKReturnValues.OH_THE_HUMANITY_EXCEPTION);
                         }
                     }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
+
             // Start solving
             log.debug("Send problem to clasp cutting off after " + cutoff + "s");
 
@@ -142,8 +143,8 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
     @Override
     public void interrupt() throws UnsupportedOperationException {
-        // TODO:
-        fClaspLibrary.interrupt(null);
+        // the code for this to occur is there in the fClaspLibrary, but there are synchronization concerns on the java side (keeping a reference to the problem currently being solved, making sure the reference is valid / not destroyed when you interrupt, etc.) that need to be considered before this truly works.
+        throw new RuntimeException("Interrupt not yet implemented");
     }
 
     @Override

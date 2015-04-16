@@ -9,15 +9,21 @@ import com.sun.jna.ptr.IntByReference;
 */
 public interface Clasp3Library extends Library {
 
-    Pointer initProblem(final String params, final String problem);
+    Pointer initConfig(final String params);
 
-    void solveProblem(Pointer problem, double timeoutTime);
+    void initProblem(Pointer jnaProblemPointer, final String problemString);
 
-    void destroyProblem(Pointer problem);
+    void solveProblem(Pointer jnaProblemPointer, double timeoutTime);
 
-    boolean interrupt(Pointer problem);
+    void destroyProblem(Pointer jnaProblemPointer);
 
-    int getResultState(Pointer problem);
+    boolean interrupt(Pointer jnaProblemPointer);
 
-    IntByReference getResultAssignment(Pointer problem);
+    int getResultState(Pointer jnaProblemPointer);
+
+    int getConfigState(Pointer jnaProblemPointer);
+
+    IntByReference getResultAssignment(Pointer jnaProblemPointer);
+
+    String getConfigErrorMessage(Pointer jnaProblemPointer);
 }

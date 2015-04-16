@@ -1,5 +1,17 @@
 package ca.ubc.cs.beta.stationpacking;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.math3.util.Pair;
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
@@ -16,18 +28,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.ClaspLibrary;
+
 import com.google.common.collect.Lists;
-import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.math3.util.Pair;
-import org.junit.Test;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 01/04/15.
@@ -81,7 +86,7 @@ public class TestNative {
         final IConstraintManager manager = new ChannelSpecificConstraintManager(stationManager, interferenceFileName);
         log.info("Done loading constraints and domains");
         ISATEncoder fSATEncoder = new SATCompressor(manager);
-        List<String> list = Lists.newArrayList("2469-2483_738374684548899781_63.srpk","2469-2483_4035838900442478427_45.srpk");
+        List<String> list = Lists.newArrayList("2469-2483_4310537143272356051_107.srpk");
         for (String problem : list) {
             final String instanceFile = instanceFileS + problem;
             Converter.StationPackingProblemSpecs specs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(instanceFile);
@@ -90,61 +95,69 @@ public class TestNative {
             ISATDecoder decoder = aEncoding.getValue();
             CNF aCNF = aEncoding.getKey();
             log.info("Done loading problem");
-            for (int i = 0; i < 2; i++) {
-                // check if the configuration is valid.
-                final Pointer pRef1 = claspLibrary2.initProblem("--seed=1 " + ClaspLibSATSolverParameters.UHF_CONFIG_04_15, aCNF.toDIMACS(null));
-                claspLibrary2.solveProblem(pRef1, 60.0);
-                int resultState = claspLibrary2.getResultState(pRef1);
-                if (resultState == 1) {
-                    log.info("Result retunred");
-                    final IntByReference pRef = claspLibrary2.getResultAssignment(pRef1);
-                    int size = pRef.getValue();
-                    int[] assignment = pRef.getPointer().getIntArray(0, size);
-                    HashMap<Long, Boolean> aLitteralChecker = new HashMap<Long, Boolean>();
-                    Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
-                    for (Literal aLiteral : parseAssignment(assignment)) {
-                        boolean aSign = aLiteral.getSign();
-                        long aVariable = aLiteral.getVariable();
+            final Pointer pRef1 = claspLibrary2.initConfig("--seed=1 " + ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
+            claspLibrary2.initProblem(pRef1, aCNF.toDIMACS(null));
+//            new Thread(() -> {
+//                try {
+//                    Thread.sleep(2000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                log.info("I'M INTERRUPTING CLASP");
+//                boolean interrupt = claspLibrary2.interrupt(pRef1);
+//                log.info("CLASP interrupted " + interrupt);
+//            }).run();
+            claspLibrary2.solveProblem(pRef1, 2.0);
+            final int resultState = claspLibrary2.getResultState(pRef1);
+            if (resultState == 1) {
+                log.info("Result retunred");
+                final IntByReference pRef = claspLibrary2.getResultAssignment(pRef1);
+                int size = pRef.getValue();
+                int[] assignment = pRef.getPointer().getIntArray(0, size);
+                HashMap<Long, Boolean> aLitteralChecker = new HashMap<Long, Boolean>();
+                Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
+                for (Literal aLiteral : parseAssignment(assignment)) {
+                    boolean aSign = aLiteral.getSign();
+                    long aVariable = aLiteral.getVariable();
 
-                        //Do some quick verifications of the assignment.
-                        if (aLitteralChecker.containsKey(aVariable)) {
-                            log.warn("A variable was presenlst twice in a SAT assignment.");
-                            if (!aLitteralChecker.get(aVariable).equals(aSign)) {
-                                throw new IllegalStateException("SAT assignment from TAE wrapper assigns a variable to true AND false.");
-                            }
-                        } else {
-                            aLitteralChecker.put(aVariable, aSign);
+                    //Do some quick verifications of the assignment.
+                    if (aLitteralChecker.containsKey(aVariable)) {
+                        log.warn("A variable was presenlst twice in a SAT assignment.");
+                        if (!aLitteralChecker.get(aVariable).equals(aSign)) {
+                            throw new IllegalStateException("SAT assignment from TAE wrapper assigns a variable to true AND false.");
                         }
-
-                        //If the litteral is positive, then we keep it as it is an assigned station to a channel.
-                        if (aSign) {
-                            Pair<Station, Integer> aStationChannelPair = decoder.decode(aVariable);
-                            Station aStation = aStationChannelPair.getKey();
-                            Integer aChannel = aStationChannelPair.getValue();
-
-                            if (!instance.getStations().contains(aStation) || !instance.getDomains().get(aStation).contains(aChannel)) {
-                                throw new IllegalStateException("A decoded station and channel from a component SAT assignment is not in that component's problem instance. (" + aStation + ", channel:" + aChannel + ")");
-                            }
-
-                            if (!aStationAssignment.containsKey(aChannel)) {
-                                aStationAssignment.put(aChannel, new HashSet<Station>());
-                            }
-                            aStationAssignment.get(aChannel).add(aStation);
-                        }
-                    }
-                    SolverResult solverResult = new SolverResult(SATResult.SAT, 1.0, aStationAssignment);
-                    final boolean correct = manager.isSatisfyingAssignment(solverResult.getAssignment());
-                    if (!correct) {
-                        log.error("GAAHHAHAHA NOT CORRECT!");
                     } else {
-                        log.info("Result is correct");
+                        aLitteralChecker.put(aVariable, aSign);
                     }
-                    log.info(solverResult.toString());
-                } else {
-                    log.info("UNSAT?");
+
+                    //If the litteral is positive, then we keep it as it is an assigned station to a channel.
+                    if (aSign) {
+                        Pair<Station, Integer> aStationChannelPair = decoder.decode(aVariable);
+                        Station aStation = aStationChannelPair.getKey();
+                        Integer aChannel = aStationChannelPair.getValue();
+
+                        if (!instance.getStations().contains(aStation) || !instance.getDomains().get(aStation).contains(aChannel)) {
+                            throw new IllegalStateException("A decoded station and channel from a component SAT assignment is not in that component's problem instance. (" + aStation + ", channel:" + aChannel + ")");
+                        }
+
+                        if (!aStationAssignment.containsKey(aChannel)) {
+                            aStationAssignment.put(aChannel, new HashSet<Station>());
+                        }
+                        aStationAssignment.get(aChannel).add(aStation);
+                    }
                 }
-                claspLibrary2.destroyProblem(pRef1);
+                SolverResult solverResult = new SolverResult(SATResult.SAT, 1.0, aStationAssignment);
+                final boolean correct = manager.isSatisfyingAssignment(solverResult.getAssignment());
+                if (!correct) {
+                    log.error("GAAHHAHAHA NOT CORRECT!");
+                } else {
+                    log.info("Result is correct");
+                }
+                log.info(solverResult.toString());
+            } else {
+                log.info(""+resultState);
             }
+            claspLibrary2.destroyProblem(pRef1);
         }
     }
 }

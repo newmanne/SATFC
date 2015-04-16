@@ -22,11 +22,11 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
+
 import com.google.common.collect.ImmutableSet;
 
 public class SATSolverResult implements Serializable {

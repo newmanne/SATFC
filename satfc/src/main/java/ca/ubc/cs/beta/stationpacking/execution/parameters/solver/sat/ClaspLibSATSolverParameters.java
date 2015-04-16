@@ -24,7 +24,7 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 
 import com.beust.jcommander.Parameter;
 
@@ -79,7 +79,7 @@ public class ClaspLibSATSolverParameters extends AbstractOptions implements ISAT
 	
 	@Override
 	public AbstractCompressedSATSolver getSATSolver() {
-		return new ClaspSATSolver(Library, Configuration);
+		return new Clasp3SATSolver(Library, Configuration);
 	}
 
 }
