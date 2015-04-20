@@ -23,7 +23,7 @@ package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
 import java.util.Optional;
 
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCacheBundle;
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy.ContainmentCacheCacheRequest;
-import ca.ubc.cs.beta.stationpacking.cache.ContainmentCache;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
@@ -63,7 +62,7 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the SAT cache for entry " + description);
-        final Optional<IContainmentCacheBundle> cache = containmentCacheLocator.locate(request.getCoordinate());
+        final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance);
         } else {
@@ -80,7 +79,7 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the UNSAT cache for entry " + description);
-        final Optional<IContainmentCacheBundle> cache = containmentCacheLocator.locate(request.getCoordinate());
+        final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveUNSATBySubset(instance);
         } else {
@@ -93,7 +92,16 @@ public class ContainmentCacheController extends AbstractController {
     public void cache(
             @RequestBody final ContainmentCacheCacheRequest request
     ) {
-        cacher.cacheResult(request.getCoordinate(), request.getInstance(), request.getResult());
+        // add to redis
+        final String key = cacher.cacheResult(request.getCoordinate(), request.getInstance(), request.getResult());
+
+        // add to our in memory cache
+        if (!containmentCacheLocator.locate(request.getCoordinate()).isPresent()) {
+            // might need to create a new cache
+            containmentCacheLocator.addCache(request.getCoordinate());
+        }
+        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate()).get();
+        cache.add(request.getInstance(), request.getResult(), key);
     }
 
 }

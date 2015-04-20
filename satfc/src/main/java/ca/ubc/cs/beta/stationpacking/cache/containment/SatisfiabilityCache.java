@@ -3,7 +3,9 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCache;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCacheBundle;
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import lombok.RequiredArgsConstructor;
 
@@ -18,7 +20,7 @@ import java.util.stream.StreamSupport;
  */
 // TODO: better name
 @RequiredArgsConstructor
-public class ContainmentCacheBundle implements IContainmentCacheBundle {
+public class SatisfiabilityCache implements ISatisfiabilityCache {
 
     final IContainmentCache<Station, ContainmentCacheSATEntry> SATCache;
     final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache;
@@ -57,6 +59,17 @@ public class ContainmentCacheBundle implements IContainmentCacheBundle {
                 .map(entry -> new ContainmentCacheUNSATResult(entry.getKey()))
                 .findAny()
                 .orElse(ContainmentCacheUNSATResult.failure());
+    }
+
+    @Override
+    public void add(StationPackingInstance aInstance, SolverResult result, String key) {
+        if (result.getResult().equals(SATResult.SAT)) {
+            SATCache.add(new ContainmentCacheSATEntry(result.getAssignment(), key));
+        } else if (result.getResult().equals(SATResult.UNSAT)) {
+            UNSATCache.add(new ContainmentCacheUNSATEntry(aInstance.getDomains(), key));
+        } else {
+            throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+        }
     }
 
     // true if a's domain is a superset of b's domain

@@ -60,7 +60,7 @@ public class RedisCacher {
         this.redisTemplate = template;
     }
 
-    public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
+    public String cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         Preconditions.checkState(result.getResult().equals(SATResult.UNSAT) || result.getResult().equals(SATResult.SAT), "Result must be SAT or UNSAT in order to cache");
         final String jsonResult;
         final Map<String, Object> metadata = instance.getMetadata();
@@ -75,6 +75,7 @@ public class RedisCacher {
         final String key = cacheCoordinate.toKey(result.getResult(), instance);
         log.info("Adding result for " + instance.getName() + " to cache with key " + key);
         redisTemplate.boundValueOps(key).set(jsonResult);
+        return key;
     }
 
 

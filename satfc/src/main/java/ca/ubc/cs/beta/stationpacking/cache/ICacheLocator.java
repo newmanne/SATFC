@@ -23,7 +23,7 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.Optional;
 
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCacheBundle;
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import net.jcip.annotations.ThreadSafe;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 
@@ -33,6 +33,7 @@ import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 @ThreadSafe
 public interface ICacheLocator {
 
-    Optional<IContainmentCacheBundle> locate(CacheCoordinate coordinate);
+    Optional<ISatisfiabilityCache> locate(CacheCoordinate coordinate);
+    void addCache(CacheCoordinate coordinate);
 
 }
