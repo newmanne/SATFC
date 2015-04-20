@@ -22,7 +22,6 @@ apply plugin: 'maven-publish'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
-
     //All the product dependencies.
     compile 'org.slf4j:slf4j-api:1.7.7'
     compile 'ca.ubc.cs.beta:aeatk:2.08.01-development-de3ee6617d5c'

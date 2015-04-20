@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
 import java.util.Optional;
 
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCacheBundle;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +49,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCachePr
 public class ContainmentCacheController extends AbstractController {
 
     @Autowired
-    ICacheLocator containmentCache;
+    ICacheLocator containmentCacheLocator;
 
     @Autowired
     RedisCacher cacher;
@@ -62,7 +63,7 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the SAT cache for entry " + description);
-        final Optional<ContainmentCache> cache = containmentCache.locate(request.getCoordinate());
+        final Optional<IContainmentCacheBundle> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance);
         } else {
@@ -79,7 +80,7 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the UNSAT cache for entry " + description);
-        final Optional<ContainmentCache> cache = containmentCache.locate(request.getCoordinate());
+        final Optional<IContainmentCacheBundle> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveUNSATBySubset(instance);
         } else {
