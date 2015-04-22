@@ -146,39 +146,38 @@ public class SolverResult implements Serializable {
 	 */
 	public String toParsableString()
 	{
-		String aOutput = fResult.toString()+","+fRuntime+",";
+        final StringBuilder aOutput = new StringBuilder();
+		aOutput.append(fResult.toString()).append(",").append(fRuntime).append(",");
 		
 		Iterator<Integer> aChannelIterator = fAssignment.keySet().iterator();
 		while(aChannelIterator.hasNext())
 		{
 			Integer aChannel = aChannelIterator.next();
-			
-			aOutput += aChannel+"-";
+
+            aOutput.append(aChannel).append("-");
 			
 			Iterator<Station> aAssignedStationIterator = fAssignment.get(aChannel).iterator();
 			
 			while(aAssignedStationIterator.hasNext())
 			{
 				Station aAssignedStation = aAssignedStationIterator.next();
-				
-				aOutput += aAssignedStation.getID();
+
+                aOutput.append(aAssignedStation.getID());
 				
 				if(aAssignedStationIterator.hasNext())
 				{
-					aOutput += "_";
+                    aOutput.append("_");
 				}
 				
 			}
 			
 			if(aChannelIterator.hasNext())
 			{
-				aOutput +=";";
+                aOutput.append(";");
 			}
-			
 		}
-		
-		
-		return aOutput;
+
+		return aOutput.toString();
 	}
 
 }
