@@ -92,16 +92,21 @@ public class ContainmentCacheController extends AbstractController {
     public void cache(
             @RequestBody final ContainmentCacheCacheRequest request
     ) {
+        final StationPackingInstance instance = request.getInstance();
+        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+        log.info("Adding entry to the cache " + description);
+
         // add to redis
-        final String key = cacher.cacheResult(request.getCoordinate(), request.getInstance(), request.getResult());
+        final String key = cacher.cacheResult(request.getCoordinate(), instance, request.getResult());
 
         // add to our in memory cache
         if (!containmentCacheLocator.locate(request.getCoordinate()).isPresent()) {
+            log.info("Could not find an in memory containment cache to add problem to. Creating new containment cache");
             // might need to create a new cache
             containmentCacheLocator.addCache(request.getCoordinate());
         }
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate()).get();
-        cache.add(request.getInstance(), request.getResult(), key);
+        cache.add(instance, request.getResult(), key);
     }
 
 }

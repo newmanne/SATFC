@@ -24,17 +24,10 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.IntStream;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.IContainmentCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.bitset.SimpleBitSetCache;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.decorators.ThreadSafeContainmentCacheDecorator;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.collect.ImmutableList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,8 +37,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
-
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
 
 /**
  * Created by newmanne on 25/03/15.
@@ -81,30 +72,12 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         try {
             // Perform this check to make sure that no one added a cache already when you were waiting to acquire the lock
             if (caches.get(coordinate) == null) {
+                log.info("Adding a new empty containment cache for coordinate: " + coordinate);
                 caches.put(coordinate, cacheFactory.create(ImmutableList.of(), ImmutableList.of()));
             }
         } finally {
             readWriteLock.writeLock().unlock();
         }
-    }
-
-    public interface ISatisfiabilityCacheFactory {
-        ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries);
-    }
-
-    public static class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
-
-        final Set<Station> universe = IntStream.rangeClosed(1, StationPackingUtils.N_STATIONS).mapToObj(Station::new).collect(toImmutableSet());
-
-        @Override
-        public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries) {
-            final IContainmentCache<Station, ContainmentCacheSATEntry> SATCache = ThreadSafeContainmentCacheDecorator.makeThreadSafe(new SimpleBitSetCache<>(universe));
-            SATCache.addAll(SATEntries);
-            final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = ThreadSafeContainmentCacheDecorator.makeThreadSafe(new SimpleBitSetCache<>(universe));
-            UNSATCache.addAll(UNSATEntries);
-            return new SatisfiabilityCache(SATCache, UNSATCache);
-        }
-
     }
 
     // We want this to happen after the context has been brought up (so the error messages aren't horrific)
