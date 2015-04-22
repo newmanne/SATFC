@@ -21,17 +21,16 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
 
-import java.util.Collections;
-import java.util.HashMap;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import com.google.common.collect.*;
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 
 @Slf4j
 /**
@@ -58,17 +57,13 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             final Station station = domainEntry.getKey();
             final Set<Integer> domain = domainEntry.getValue();
 
+            // If a station interferes with another station on a channel, call that channel a bad channel
             for (Integer domainChannel : domain) {
-                for (Station coNeighbour : fConstraintManager.getCOInterferingStations(station, domainChannel)) {
-                    if (domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel)) {
+                final Set<Station> interferingStations = Sets.union(fConstraintManager.getCOInterferingStations(station, domainChannel), fConstraintManager.getADJplusInterferingStations(station, domainChannel));
+                for (Station interferingStation: interferingStations) {
+                    if (domains.keySet().contains(interferingStation) && domains.get(interferingStation).contains(domainChannel)) {
                         badChannels.put(station, domainChannel);
-                        badChannels.put(coNeighbour, domainChannel);
-                    }
-                }
-                for (Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel)) {
-                    if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel + 1)) {
-                        badChannels.put(station, domainChannel);
-                        badChannels.put(adjNeighbour, domainChannel);
+                        badChannels.put(interferingStation, domainChannel);
                     }
                 }
             }
