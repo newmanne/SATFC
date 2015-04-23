@@ -59,11 +59,16 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
             // If a station interferes with another station on a channel, call that channel a bad channel
             for (Integer domainChannel : domain) {
-                final Set<Station> interferingStations = Sets.union(fConstraintManager.getCOInterferingStations(station, domainChannel), fConstraintManager.getADJplusInterferingStations(station, domainChannel));
-                for (Station interferingStation: interferingStations) {
-                    if (domains.keySet().contains(interferingStation) && domains.get(interferingStation).contains(domainChannel)) {
+                for (Station coNeighbour: fConstraintManager.getCOInterferingStations(station, domainChannel)) {
+                    if (domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel)) {
                         badChannels.put(station, domainChannel);
-                        badChannels.put(interferingStation, domainChannel);
+                        badChannels.put(coNeighbour, domainChannel);
+                    }
+                }
+                for (Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel)) {
+                    if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel)) {
+                        badChannels.put(station, domainChannel);
+                        badChannels.put(adjNeighbour, domainChannel + 1);
                     }
                 }
             }
