@@ -67,7 +67,7 @@ public class Application {
 
     @Bean
     RedisConnectionFactory redisConnectionFactory() {
-        log.info(redisURL + redisPort);
+        log.info("Using the following redis information: host " + redisURL + ", port: " + redisPort);
         return new JedisConnectionFactory(new JedisShardInfo(redisURL, redisPort));
     }
 
