@@ -51,7 +51,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
@@ -93,10 +93,10 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         log.debug("Initializing base configured clasp solvers.");
 
-        AbstractCompressedSATSolver aUHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+        AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
-        AbstractCompressedSATSolver aHVHFClaspSATsolver = new ClaspSATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13);
+        AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
         ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         //Chain pre-solving and main solver.
@@ -108,7 +108,6 @@ public class SATFCSolverBundle extends ASolverBundle {
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
-
         ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
         ICacher.CacheCoordinate cacheCoordinate = null;
@@ -204,10 +203,10 @@ public class SATFCSolverBundle extends ASolverBundle {
     public ISolver getSolver(StationPackingInstance aInstance) {
         //Return the right solver based on the channels in the instance.
         if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF (September 2013) with Ilya's station subset pre-solving.");
+            log.debug("Returning clasp configured for VHF");
             return fVHFSolver;
         } else {
-            log.debug("Returning clasp configured for UHF (November 2013) with Ilya's station subset pre-solving.");
+            log.debug("Returning clasp configured for UHF");
             return fUHFSolver;
         }
     }

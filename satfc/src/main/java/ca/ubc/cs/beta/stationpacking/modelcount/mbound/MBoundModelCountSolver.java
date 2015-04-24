@@ -46,7 +46,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.ISATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 
 import com.google.common.collect.Lists;
 
@@ -267,7 +267,7 @@ public class MBoundModelCountSolver implements IModelCountSolver {
         
         // Get SAT solver.
         String claspLibraryPath = "/home/tqichen/codespace/SATFC/SATsolvers/clasp/jna/libjnaclasp.so";
-        ISATSolver satSolver = new ClaspSATSolver(claspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+        ISATSolver satSolver = new Clasp3SATSolver(claspLibraryPath, ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
 
         // Get SAT encoder.
         ISATEncoder satEncoder = new SATCompressor(bundle.getConstraintManager());

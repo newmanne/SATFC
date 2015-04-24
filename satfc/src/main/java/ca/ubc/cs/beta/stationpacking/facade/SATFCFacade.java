@@ -46,7 +46,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolv
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
@@ -103,7 +103,7 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         try {
-            new ClaspSATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.ALL_CONFIG_11_13);
+            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
         } catch (UnsatisfiedLinkError e) {
 
             log.error("\n--------------------------------------------------------\n" +
