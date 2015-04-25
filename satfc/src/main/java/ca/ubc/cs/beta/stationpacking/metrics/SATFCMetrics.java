@@ -23,12 +23,14 @@ package ca.ubc.cs.beta.stationpacking.metrics;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -150,6 +152,13 @@ public class SATFCMetrics {
         private final String key;
     }
 
+    @Data
+    public static class CNFFileCreatedEvent {
+        @Getter
+        public static Map<String, String> index = new HashMap<>();
+        private final String instanceName;
+        private final String cnfFile;
+    }
 
     public static class MetricHandler {
 
@@ -217,6 +226,11 @@ public class SATFCMetrics {
         @Subscribe
         public void onJustifiedByCacheEvent(JustifiedByCacheEvent event) {
             metrics.get(event.getName()).setCacheResultUsed(event.getKey());
+        }
+
+        @Subscribe
+        public void onCNFFileCreatedEvent(CNFFileCreatedEvent event) {
+            CNFFileCreatedEvent.getIndex().put(event.getInstanceName(), event.getCnfFile());
         }
         
     }
