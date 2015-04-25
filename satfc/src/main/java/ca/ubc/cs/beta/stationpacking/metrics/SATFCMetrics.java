@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.metrics;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +31,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +55,8 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.eventbus.SubscriberExceptionContext;
 import com.google.common.eventbus.SubscriberExceptionHandler;
+import org.apache.commons.io.FileUtils;
+
 /**
  * Created by newmanne on 15/01/15.
  */
@@ -158,6 +165,16 @@ public class SATFCMetrics {
         public static Map<String, String> index = new HashMap<>();
         private final String instanceName;
         private final String cnfFile;
+        public static void writeIndex(final String fileName) {
+            if (!index.isEmpty()) {
+                final String decompIndexString = JSONUtils.toString(index) + System.lineSeparator();
+                try {
+                    Files.write(decompIndexString, new File(fileName), Charsets.UTF_8);
+                } catch (IOException e) {
+                    log.error("Error writing CNF index to file", e);
+                }
+            }
+        }
     }
 
     public static class MetricHandler {

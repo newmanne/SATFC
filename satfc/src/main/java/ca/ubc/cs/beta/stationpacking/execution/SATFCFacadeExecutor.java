@@ -156,6 +156,7 @@ public class SATFCFacadeExecutor {
 					log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
 				}
 				SATFCMetrics.report();
+                SATFCMetrics.CNFFileCreatedEvent.writeIndex("CNFIndex.json"); // write CNFs to file if necessary
 			} else {
 				// assume SATFC called normally
 				log.info("Solving ...");
