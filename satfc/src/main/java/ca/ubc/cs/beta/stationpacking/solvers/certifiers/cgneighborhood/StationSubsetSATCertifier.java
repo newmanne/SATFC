@@ -104,8 +104,10 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		{
 			log.debug("Missing station and neighborhood: {} .",aToPackStations);
 		}
-		
-		StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, aInstance.getMetadata());
+
+        Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
+        metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + "_StationSubsetSATCertifier");
+        StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, aInstance.getMetadata());
 		
 		if(!aTerminationCriterion.hasToStop())
 		{
