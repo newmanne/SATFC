@@ -21,11 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.Arrays;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -33,7 +28,6 @@ import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
@@ -41,6 +35,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecora
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.mip.MIPBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -90,7 +88,6 @@ public class MIPFCSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
-                                            new StationSubsetUNSATCertifier(solver, new CPUTimeTerminationCriterionFactory(UNSATcertifiercutoff)),
                                             new StationSubsetSATCertifier(solver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
                                     )),
                             solver

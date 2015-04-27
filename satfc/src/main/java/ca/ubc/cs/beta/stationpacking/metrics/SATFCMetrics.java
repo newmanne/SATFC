@@ -21,14 +21,24 @@
  */
 package ca.ubc.cs.beta.stationpacking.metrics;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.*;
+import com.google.common.io.Files;
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -43,11 +53,12 @@ import com.codahale.metrics.jvm.BufferPoolMetricSet;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
-import com.google.common.collect.Maps;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.eventbus.SubscriberExceptionContext;
 import com.google.common.eventbus.SubscriberExceptionHandler;
+import org.apache.commons.io.FileUtils;
+
 /**
  * Created by newmanne on 15/01/15.
  */
@@ -150,6 +161,23 @@ public class SATFCMetrics {
         private final String key;
     }
 
+    @Data
+    public static class CNFFileCreatedEvent {
+        // SRPK to CNF should be a 1:1 mapping
+        @Getter
+        private static final Map<String, String> srpkToCnfIndex = new HashMap<>();
+        private final String instanceName;
+        private final String cnfFile;
+        public static void writeIndex(final String indexFileName) {
+            if (!srpkToCnfIndex.isEmpty()) {
+                try {
+                    FileUtils.writeLines(new File(indexFileName), srpkToCnfIndex.entrySet().stream().map(entry -> Joiner.on(',').join(Lists.newArrayList(entry.getKey(), entry.getValue()))).collect(GuavaCollectors.toImmutableList()));
+                } catch (IOException e) {
+                    log.error("Error writing cnf / srpk indices to file", e);
+                }
+            }
+        }
+    }
 
     public static class MetricHandler {
 
@@ -217,6 +245,11 @@ public class SATFCMetrics {
         @Subscribe
         public void onJustifiedByCacheEvent(JustifiedByCacheEvent event) {
             metrics.get(event.getName()).setCacheResultUsed(event.getKey());
+        }
+
+        @Subscribe
+        public void onCNFFileCreatedEvent(CNFFileCreatedEvent event) {
+            CNFFileCreatedEvent.getSrpkToCnfIndex().put(event.getInstanceName(), event.getCnfFile());
         }
         
     }
