@@ -39,7 +39,7 @@ public class CNFSolverBundle extends ASolverBundle {
         // save the cnf for each component
         cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver, getConstraintManager(), aCNFDirectory);
         IComponentGrouper aGrouper = new ConstraintGrouper();
-        cnfOnlySolver = new ConnectedComponentGroupingDecorator(cnfOnlySolver, aGrouper, getConstraintManager());
+        cnfOnlySolver = new ConnectedComponentGroupingDecorator(cnfOnlySolver, aGrouper, getConstraintManager(), true);
 
         cnfOnlySolver = new SequentialSolversComposite(
                 Arrays.asList(
