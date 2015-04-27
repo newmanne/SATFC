@@ -23,4 +23,4 @@ local.properties
 manual/*.pdf
 *.iml
 .idea/*
-satfc/manual/_minted-SATFC-manual/
+manual/_minted-SATFC-manual/*

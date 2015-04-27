@@ -17,7 +17,6 @@ allprojects {
         }
     }
 
-
     ext {
         springVersion = "4.1.5.RELEASE"
         jacksonVersion = "2.5.1"
@@ -53,6 +52,22 @@ subprojects {
     apply plugin: 'application'
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
+
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        classifier = 'javadoc'
+        from javadoc.destinationDir
+    }
+
+    test {
+        testLogging.showStandardStreams = true
+        testLogging.showStackTraces = true
+    }
+
 }
 
 task wrapper(type: Wrapper) {
