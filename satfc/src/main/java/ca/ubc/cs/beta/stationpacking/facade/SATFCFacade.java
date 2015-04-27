@@ -100,7 +100,7 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         try {
-            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
+            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
         } catch (UnsatisfiedLinkError e) {
 
             log.error("\n--------------------------------------------------------\n" +

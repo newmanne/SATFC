@@ -54,7 +54,7 @@ public class Clasp3SATSolverTest {
     @Test(timeout = 3000)
     public void testTimeout() {
         final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary();
-        final String parameters = ClaspLibSATSolverParameters.UHF_CONFIG_04_15;
+        final String parameters = ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1;
         final Clasp3SATSolver clasp3SATSolver = new Clasp3SATSolver(libraryPath, parameters);
         final ITerminationCriterion terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         clasp3SATSolver.solve(hardCNF, terminationCriterion, 1);
