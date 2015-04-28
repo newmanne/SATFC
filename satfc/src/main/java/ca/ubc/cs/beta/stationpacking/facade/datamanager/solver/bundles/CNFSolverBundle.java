@@ -26,8 +26,6 @@ import java.util.Map;
 public class CNFSolverBundle extends ASolverBundle {
 
     private ISolver cnfOnlySolver;
-    public static Map<String, String> decompositionHashes = new HashMap<>();
-    // TODO: need this in the CNFSaver SATFCFacadeExecutor.decompositionHashes.put(aInstance.getName(), aCNFFilename); - probably with event bus
 
     public CNFSolverBundle(
             IStationManager aStationManager,
