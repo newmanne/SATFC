@@ -151,11 +151,10 @@ public class SATFCFacadeExecutor {
                         if (instanceFileName == null) {
                             break;
                         }
-                        log.info("Beginning problem {}; this is the {} problem I am solving and there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
+                        log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
                         final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
                         try
                         {
-                            // TODO: detect extension and use the appropriate converter. For now I'm just assuming sprk
                             stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
                         } catch (IOException e) {
                             log.warn("Error parsing file {}", instanceFileName);

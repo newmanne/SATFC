@@ -111,7 +111,7 @@ for filename in filenames:
 
                 #Write problem to file.
                 problem_name = '%s_%s_%d_%d.srpk' % (dirname,instancename,sequence_id,p)
-                problem_filename = os.path.join(outdir,band,problem_name)
+                problem_filename = os.path.join(outdir,band,'srpks',problem_name)
                 with open(problem_filename,'w') as problemfile:
                     writer = csv.writer(problemfile)
                     writer.writerow(['INTERFERENCE',interference_data])
