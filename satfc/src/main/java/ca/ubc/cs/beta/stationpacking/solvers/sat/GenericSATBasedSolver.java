@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,8 +134,11 @@ public class GenericSATBasedSolver implements ISolver {
     
             log.debug("Result:");
             log.debug(solverResult.toParsableString());
-    
-            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CLASP, solverResult.getResult()));
+
+            // super hacky way of making sure that solved by clasp doesn't interfere with solved by solved by presolver
+            if (!aInstance.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
+                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CLASP, solverResult.getResult()));
+            }
             return solverResult;
         }
     }
