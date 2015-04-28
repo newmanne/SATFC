@@ -13,5 +13,7 @@ args = parser.parse_args()
 r = redis.StrictRedis(host=args.host, port=args.port)
 remaining_jobs = r.llen(args.qname)
 processing_jobs = r.llen(args.qname+'_PROCESSING')
+timeouts = r.llen(args.qname+'_TIMEOUTS')
 print "There are %d jobs in the queue" % remaining_jobs
 print "There are %d jobs in the processing queue" % processing_jobs
+print "There are %d timeouts" % timeouts
