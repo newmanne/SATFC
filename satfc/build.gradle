@@ -93,7 +93,7 @@ public String getEARGMavenRepo()
 {
 	Properties properties = new Properties()
 	def propertyFilename = 'local.properties'
-	def propertyFile = project.rootProject.file('local.properties')
+	def propertyFile = project.rootProject.file(propertyFilename)
 	if(!propertyFile.exists()) {
 		println 'Necessary file '+propertyFilename+' was not present, creating an empty version of it!'
 		propertyFile.createNewFile()
