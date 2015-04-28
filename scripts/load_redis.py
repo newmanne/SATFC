@@ -14,4 +14,4 @@ args = parser.parse_args()
 r = redis.StrictRedis(host=args.host, port=args.port)
 with open(args.srpkfile, 'r') as srpkfile:
     lines = [line.strip() for line in srpkfile.readlines()]
-    r.rpush(args.qname, lines)
+    r.rpush(args.qname, *lines)
