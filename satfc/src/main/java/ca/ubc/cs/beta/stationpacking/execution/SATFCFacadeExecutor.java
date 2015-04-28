@@ -23,6 +23,8 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -54,38 +56,6 @@ import redis.clients.jedis.Jedis;
  */
 public class SATFCFacadeExecutor {
 
-    public interface NextFileGetter {
-        // return null when
-        String getNextFile();
-    }
-
-//    public static class FileNextFileGetter implements NextFileGetter {
-//
-//        public FileNextFileGetter() {
-//
-//        }
-//
-//        @Override
-//        public String getNextFile() {
-//            return null;
-//        }
-//
-//    }
-//
-//    public static class RedisNextFileGetter implements NextFileGetter {
-//
-//        private final Jedis jedis;
-//
-//        public RedisNextFileGetter(final String host, final String port, final String qname) {
-//
-//        }
-//
-//
-//        @Override
-//        public String getNextFile() {
-//            return null;
-//        }
-//    }
 
 
 	/**
@@ -95,130 +65,176 @@ public class SATFCFacadeExecutor {
 		
 		//Parse the command line arguments in a parameter object.
 		Logger log = null ;
-		try 
-		{
-			SATFCFacadeParameters parameters = new SATFCFacadeParameters();
-			try 
-			{
-				//Check for help
-				JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters,TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
-				SATFCFacade.initializeLogging(parameters.fLoggingOptions.logLevel);
-				JCommanderHelper.logCallString(args, SATFCFacadeExecutor.class);
+		try {
+            SATFCFacadeParameters parameters = new SATFCFacadeParameters();
+            try {
+                //Check for help
+                JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters, TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
+                SATFCFacade.initializeLogging(parameters.fLoggingOptions.logLevel);
+                JCommanderHelper.logCallString(args, SATFCFacadeExecutor.class);
+            } finally {
+                log = LoggerFactory.getLogger(SATFCFacadeExecutor.class);
             }
-			finally
-			{
-				log = LoggerFactory.getLogger(SATFCFacadeExecutor.class);
-			}
-			try
-			{
-				log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
-			}
-			catch(IllegalArgumentException | IOException e)
-			{
-				log.error("Could not log version info.");
-			}
-			
-			log.info("Initializing facade.");
-			SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
+            try {
+                log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
+            } catch (IllegalArgumentException | IOException e) {
+                log.error("Could not log version info.");
+            }
+
+            log.info("Initializing facade.");
+            SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
             String library = parameters.fClaspLibrary;
-			if(library != null)
-			{
-				satfcBuilder.setLibrary(parameters.fClaspLibrary);
-			}
-			satfcBuilder.setInitializeLogging(true);
-			satfcBuilder.setSolverChoice(parameters.fSolverChoice);
-			satfcBuilder.setCustomizationOptions(parameters.fSolverOptions.getOptions());
-			if (parameters.fCNFDir != null) {
-				satfcBuilder.setCNFDirectory(parameters.fCNFDir);
-			}
-			
-			SATFCFacade satfc = satfcBuilder.build();
-			// TODO: actual parameter validation for user friendliness
-			final File metricsFile = parameters.fOutputFile != null ? new File(parameters.fOutputFile) : null;
-			if (metricsFile != null) {
-				SATFCMetrics.init();
-			}
-			if ((parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null)
-                || (parameters.fRedisHost != null &&  parameters.fRedisPort != null && parameters.fRedisQueue != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null))
-			{
-                if (parameters.fRedisHost != null &&  parameters.fRedisPort != null && parameters.fRedisQueue != null) {
-                    log.info("Reading instances from {}:{} on queue {}", parameters.fRedisHost, parameters.fRedisPort, parameters.fRedisQueue);
-                    Jedis jedis = new Jedis(parameters.fRedisHost, parameters.fRedisPort);
-                    final List<String> errorInstanceFileNames = Lists.newArrayList();
-                    int index = 0;
-                    while (true) {
-                        index++;
-                        final String instanceFileName = jedis.rpoplpush(parameters.fRedisQueue, parameters.fRedisQueue + "_PROCESSING");
-                        if (instanceFileName == null) {
-                            break;
-                        }
-                        log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
-                        final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
-                        try
-                        {
-                            stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
-                        } catch (IOException e) {
-                            log.warn("Error parsing file {}", instanceFileName);
-                            errorInstanceFileNames.add(instanceFileName);
-                            e.printStackTrace();
-                            continue;
-                        }
-                        final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
+            if (library != null) {
+                satfcBuilder.setLibrary(parameters.fClaspLibrary);
+            }
+            satfcBuilder.setInitializeLogging(true);
+            satfcBuilder.setSolverChoice(parameters.fSolverChoice);
+            satfcBuilder.setCustomizationOptions(parameters.fSolverOptions.getOptions());
+            if (parameters.fCNFDir != null) {
+                satfcBuilder.setCNFDirectory(parameters.fCNFDir);
+            }
 
-                        SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
-
-                        log.info("Solving ...");
-                        SATFCResult result = satfc.solve(
-                                stations,
-                                stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
-                                stationPackingProblemSpecs.getDomains(),
-                                stationPackingProblemSpecs.getPreviousAssignment(),
-                                parameters.fInstanceParameters.Cutoff,
-                                parameters.fInstanceParameters.Seed,
-                                parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
-                                instanceFileName);
-                        log.info("..done!");
-                        System.out.println(result.getResult());
-                        System.out.println(result.getRuntime());
-                        System.out.println(result.getWitnessAssignment());
-
-                        SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
-                        if (!(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))) {
-                            jedis.rpush(parameters.fRedisQueue+"_TIMEOUTS", instanceFileName);
-                        }
-                        jedis.lrem(parameters.fRedisQueue + "_PROCESSING", 1, instanceFileName);
-                        if (index % 500 == 0) {
-                            SATFCMetrics.report();
-                        }
-                        if (metricsFile != null) {
-                            writeMetrics(metricsFile);
-                        }
+            SATFCFacade satfc = satfcBuilder.build();
+            final File metricsFile = parameters.fOutputFile != null ? new File(parameters.fOutputFile) : null;
+            if (metricsFile != null) {
+                SATFCMetrics.init();
+            }
+            // TODO: reduce the repeated code here between the file reader and the redis reader
+            if (parameters.fInstanceFile != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null) {
+                // Read instances from a file
+                log.info("Reading instances from {}", parameters.fInstanceFile);
+                final List<String> instanceFiles = Files.readLines(new File(parameters.fInstanceFile), Charsets.UTF_8);
+                log.info("Read {} instances form {}", instanceFiles.size(), parameters.fInstanceFile);
+                final List<String> errorInstanceFileNames = new ArrayList<>();
+                int index = 0;
+                for (String instanceFileName : instanceFiles)
+                {
+                    log.info("Beginning problem {}", instanceFileName);
+                    log.info("This is problem {} of {}", ++index, instanceFiles.size());
+                    final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
+                    try
+                    {
+                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
+                    } catch (IOException e) {
+                        log.warn("Error parsing file {}", instanceFileName);
+                        errorInstanceFileNames.add(instanceFileName);
+                        e.printStackTrace();
+                        continue;
                     }
-                    log.info("Finished all of the problems in {}!", parameters.fRedisQueue);
-                    if (!errorInstanceFileNames.isEmpty()) {
-                        log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
+                    final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
+
+                    SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
+
+                    log.info("Solving ...");
+                    SATFCResult result = satfc.solve(
+                            stations,
+                            stationPackingProblemSpecs.getDomains().values().stream().reduce(Sets.newHashSet(), Sets::union),
+                            stationPackingProblemSpecs.getDomains(),
+                            stationPackingProblemSpecs.getPreviousAssignment(),
+                            parameters.fInstanceParameters.Cutoff,
+                            parameters.fInstanceParameters.Seed,
+                            parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
+                            instanceFileName);
+                    log.info("..done!");
+                    System.out.println(result.getResult());
+                    System.out.println(result.getRuntime());
+                    System.out.println(result.getWitnessAssignment());
+
+                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
+                    if (index % 500 == 0) {
+                        SATFCMetrics.report();
                     }
-                    SATFCMetrics.report();
-                    SATFCMetrics.CNFFileCreatedEvent.writeIndex(parameters.fOutputFile + "_CNF_Index.csv"); // write CNFs to file if necessary
+                    if (metricsFile != null) {
+                        writeMetrics(metricsFile);
+                    }
                 }
-			} else {
-				// assume SATFC called normally
-				log.info("Solving ...");
-				SATFCResult result = satfc.solve(
-						parameters.fInstanceParameters.getPackingStationIDs(),
-						parameters.fInstanceParameters.getPackingChannels(),
-						parameters.fInstanceParameters.getDomains(),
-						parameters.fInstanceParameters.getPreviousAssignment(),
-						parameters.fInstanceParameters.Cutoff,
-						parameters.fInstanceParameters.Seed,
-						parameters.fInstanceParameters.fDataFoldername);
+                log.info("Finished all of the problems in {}!", parameters.fInstanceFile);
+                if (!errorInstanceFileNames.isEmpty()) {
+                    log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
+                }
+                SATFCMetrics.report();
+                SATFCMetrics.CNFFileCreatedEvent.writeIndex(parameters.fOutputFile + "_CNF_Index.csv"); // write CNFs to file if necessary
+            } else if (parameters.fRedisHost != null && parameters.fRedisPort != null && parameters.fRedisQueue != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null) {
+               // Read instances from a redis queue
+                log.info("Reading instances from {}:{} on queue {}", parameters.fRedisHost, parameters.fRedisPort, parameters.fRedisQueue);
+                Jedis jedis = new Jedis(parameters.fRedisHost, parameters.fRedisPort);
+                final List<String> errorInstanceFileNames = Lists.newArrayList();
+                int index = 0;
+                while (true) {
+                    index++;
+                    final String instanceFileName = jedis.rpoplpush(parameters.fRedisQueue, parameters.fRedisQueue + "_PROCESSING");
+                    if (instanceFileName == null) {
+                        break;
+                    }
+                    log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
+                    final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
+                    try {
+                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
+                    } catch (IOException e) {
+                        log.warn("Error parsing file " + instanceFileName, e);
+                        errorInstanceFileNames.add(instanceFileName);
+                        e.printStackTrace();
+                        continue;
+                    }
+                    final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
 
-				log.info("..done!");
+                    SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
 
-				System.out.println(result.getResult());
-				System.out.println(result.getRuntime());
-				System.out.println(result.getWitnessAssignment());
-			}
+                    log.info("Solving ...");
+                    SATFCResult result = satfc.solve(
+                            stations,
+                            stationPackingProblemSpecs.getDomains().values().stream().reduce(new HashSet<>(), Sets::union),
+                            stationPackingProblemSpecs.getDomains(),
+                            stationPackingProblemSpecs.getPreviousAssignment(),
+                            parameters.fInstanceParameters.Cutoff,
+                            parameters.fInstanceParameters.Seed,
+                            parameters.fInterferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
+                            instanceFileName);
+                    log.info("..done!");
+                    System.out.println(result.getResult());
+                    System.out.println(result.getRuntime());
+                    System.out.println(result.getWitnessAssignment());
+
+                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
+
+                    if (!(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))) {
+                        jedis.rpush(parameters.fRedisQueue + "_TIMEOUTS", instanceFileName);
+                    }
+                    jedis.lrem(parameters.fRedisQueue + "_PROCESSING", 1, instanceFileName);
+
+                    if (index % 500 == 0) {
+                        SATFCMetrics.report();
+                    }
+                    if (metricsFile != null) {
+                        writeMetrics(metricsFile);
+                    }
+                }
+                log.info("Finished all of the problems in {}!", parameters.fRedisQueue);
+                if (!errorInstanceFileNames.isEmpty()) {
+                    log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
+                }
+                SATFCMetrics.report();
+                SATFCMetrics.CNFFileCreatedEvent.writeIndex(parameters.fOutputFile + "_CNF_Index.csv"); // write CNFs to file if necessary
+            } else if (parameters.fInstanceParameters.fDataFoldername != null) {
+                // Assume SATFC called the retro way
+                log.info("Solving ...");
+                SATFCResult result = satfc.solve(
+                        parameters.fInstanceParameters.getPackingStationIDs(),
+                        parameters.fInstanceParameters.getPackingChannels(),
+                        parameters.fInstanceParameters.getDomains(),
+                        parameters.fInstanceParameters.getPreviousAssignment(),
+                        parameters.fInstanceParameters.Cutoff,
+                        parameters.fInstanceParameters.Seed,
+                        parameters.fInstanceParameters.fDataFoldername);
+
+                log.info("..done!");
+
+                System.out.println(result.getResult());
+                System.out.println(result.getRuntime());
+                System.out.println(result.getWitnessAssignment());
+            } else {
+                throw new IllegalArgumentException("Invalid parameters provided to SATFC, please consult the manual");
+            }
 		} catch (ParameterException e)
 		{
 			log.error("Invalid parameter argument detected ({}).",e.getMessage());

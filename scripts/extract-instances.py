@@ -12,27 +12,21 @@ UHF_Channels = (14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,3
 parser = argparse.ArgumentParser()
 parser.add_argument('--instancedir', type=str, help='Directory containing the question files')
 parser.add_argument('--outdir', type=str, help='Directory to write the srpks to')
-parser.add_argument('--min_channel', type=int, help='Lowest expected channel', default=1)
-parser.add_argument('--max_channel', type=int, help='Highest expected channel', default=51)
 args = parser.parse_args()
 
 instancedir = args.instancedir
 outdir = args.outdir
 dirname = os.path.basename(os.path.normpath(os.path.abspath(instancedir)))
 band_counter = Counter()
-
-def check_domain(domain):
-	for channel in domain:
-		if channel > args.max_channel or channel < args.min_channel:
-			raise ValueError('Channel %d not in the expected range of [%d, %d]' % (channel, args.min_channel, args.max_channel))
+highest_channel = -1
 
 def get_band(problem):
 	max_channel = max(max(problem.values(), key=max))
 	min_channel = min(min(problem.values(), key=min))
 	if (min_channel in LVHF_Channels or min_channel in HVHF_Channels) and (max_channel in LVHF_Channels or max_channel in HVHF_Channels):
-		return "VHF"
+		return "VHF", max_channel
 	else:
-		return "UHF"
+		return "UHF", max_channel
 
 print 'Looking in "%s" for all the csv problems lists...' % instancedir
 
@@ -88,7 +82,6 @@ for filename in filenames:
                 station = int(row[0])
                 previous_channel = int(row[1])
                 domain = [int(r) for r in row[2:]]
-                check_domain(domain)
                 previous_assignment[station] = previous_channel
                 current_problem[station] = domain
 
@@ -102,11 +95,11 @@ for filename in filenames:
             else:
                 station = int(row[0])
                 domain = [int(r) for r in row[1:]]
-				
 
                 problem = dict(current_problem)
                 problem[station] = domain
-                band = get_band(problem)
+                band, problem_highest_channel = get_band(problem)
+                highest_channel = max(highest_channel, problem_highest_channel)
                 band_counter[band] += 1
 
                 #Write problem to file.
@@ -123,4 +116,5 @@ for filename in filenames:
 
     print '... %d problems extracted.' % p
 print band_counter
+print "This auction has a highest channel of %d" % highest_channel
 print 'DONE'
