@@ -11,5 +11,5 @@ parser.add_argument('--port', type=int, help="redis port")
 args = parser.parse_args()
 
 r = redis.StrictRedis(host=args.host, port=args.port)
-r.del(args.qname)
-r.del(args.qname+'_PROCESSING')
+r.delete(args.qname)
+r.delete(args.qname+'_PROCESSING')
