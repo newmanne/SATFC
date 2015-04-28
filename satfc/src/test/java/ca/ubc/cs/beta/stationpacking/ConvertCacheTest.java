@@ -21,6 +21,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -72,6 +73,7 @@ public class ConvertCacheTest {
 
     }
 
+    @Ignore
     @Test
     public void drive() {
         Jedis jedisOldCache = new Jedis("cersei");
