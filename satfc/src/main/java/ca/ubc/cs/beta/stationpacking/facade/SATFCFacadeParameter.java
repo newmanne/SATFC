@@ -38,7 +38,8 @@ public class SATFCFacadeParameter {
 		SATFC,
 		MIPFC,
         CNF,
-        CACHING_SOLVER
+        CACHING_SOLVER,
+        CACHE_EVERYTHING
 	}
 
 }

@@ -151,6 +151,8 @@ public class SATFCFacade implements AutoCloseable {
                                 return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFDirectory());
                             case CACHING_SOLVER:
                                 return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions().getServerURL());
+                            case CACHE_EVERYTHING:
+                                return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getOptions());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }
