@@ -52,10 +52,13 @@ dependencies {
     // Rest template
     compile "org.springframework:spring-web:$springVersion"
 
+    // Containment cache
+    compile 'ca.ubc.cs.beta:ContainmentCache:0.9'
+
     // Test dependencies.
     testCompile 'junit:junit:4.11'
     testCompile 'org.mockito:mockito-all:1.10.8'
-    
+
     //Local dependencies
     compile files('libs/cplex.jar')
 }
