@@ -21,11 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
@@ -53,9 +49,11 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
  */
 public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
+	public static final int FEW_MISSING_STATIONS = 10;
 	private static final int MAX_MISSING_STATIONS=20;
 	private static final int MAX_TO_PACK=100;
-	
+	private static final int MAX_NEIGHBOR_DISTANCE = 25;
+
 	private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
 	
 	private final IConstraintManager fConstraintManager;
@@ -94,7 +92,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 				missingStations.add(station);
 			}
 		}
-		if(missingStations.size()<10)
+		if(missingStations.size()< FEW_MISSING_STATIONS)
 		{
 			log.debug("Stations {} are not part of previous assignment.",missingStations);
 		}
@@ -111,44 +109,39 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			watch.stop();
 			return new SolverResult(SATResult.TIMEOUT,watch.getElapsedTime());
 		}
-		
+
 		log.debug("Building constraint graph.");
-		NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex = new NeighborIndex<Station,DefaultEdge>(ConstraintGrouper.getConstraintGraph(aInstance, fConstraintManager));
-		
-		HashSet<Station> topackStations = new HashSet<Station>();
-		for(Station missingStation : missingStations)
-		{
-			topackStations.add(missingStation);
-			topackStations.addAll(aConstraintGraphNeighborIndex.neighborsOf(missingStation));
-		}
-		
-		//Check if there are too many stations to make this procedure worthwhile.
-		if(topackStations.size()>MAX_TO_PACK)
-		{
-			log.debug("Neighborhood to pack is too large ({}).",topackStations.size());
-			
-			watch.stop();
-			return new SolverResult(SATResult.TIMEOUT,watch.getElapsedTime());
-		}
-		
+		NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex =
+				new NeighborIndex<Station, DefaultEdge>(ConstraintGrouper.getConstraintGraph(aInstance, fConstraintManager));
+
+		// Iterate through successive layers of neighbors
+		int neighborLayer = 1;
 		List<SolverResult> results = new LinkedList<SolverResult>();
-		for(int i=0;i<fCertifiers.size() && !aTerminationCriterion.hasToStop(); i++)
-		{
-			log.debug("Trying constraint graph neighborhood certifier {}.",i+1);
-			
-			IStationSubsetCertifier certifier = fCertifiers.get(i);
-			
-			watch.stop();
-			SolverResult result = certifier.certify(aInstance, topackStations, aTerminationCriterion, aSeed);
-			watch.start();
-			
-			results.add(result);
-			
-			if(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))
-			{
-				SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SolvedByEvent.PRESOLVER, result.getResult()));
-				break;
+		HashSet<Station> toPackStations = new HashSet<>();
+		toPackStations.addAll(missingStations);
+
+		while (neighborLayer < MAX_NEIGHBOR_DISTANCE && !aTerminationCriterion.hasToStop()) {
+
+			// Add the next layer of neighbors to the stations to repack.
+			log.debug("Adding level {} of neighbors.", neighborLayer);
+			for (Station unpackedStation : toPackStations) {
+				Set<Station> neighborStations = aConstraintGraphNeighborIndex.neighborsOf(unpackedStation);
+				toPackStations.addAll(neighborStations);
 			}
+
+			//Check if there are too many stations to make this procedure worthwhile.
+			if (toPackStations.size() > MAX_TO_PACK) {
+				log.debug("Neighborhood to pack is too large ({}).", toPackStations.size());
+
+				watch.stop();
+				return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+			}
+
+			boolean solved = runCertifiersOnInstance(aInstance, aTerminationCriterion, aSeed, watch, results, toPackStations);
+			if (solved)
+				break;
+
+			neighborLayer++;
 		}
 		
 		SolverResult combinedResult = SolverHelper.combineResults(results);
@@ -163,6 +156,28 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
 		return combinedResult;
 		
+	}
+
+	private boolean runCertifiersOnInstance(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, Watch watch, List<SolverResult> results, HashSet<Station> toPackStations)
+	{
+		for (int i = 0; i < fCertifiers.size() && !aTerminationCriterion.hasToStop(); i++) {
+            log.debug("Trying constraint graph neighborhood certifier {}.", i + 1);
+
+            IStationSubsetCertifier certifier = fCertifiers.get(i);
+
+            watch.stop();
+            SolverResult result = certifier.certify(aInstance, toPackStations, aTerminationCriterion, aSeed);
+            watch.start();
+
+            results.add(result);
+
+            if (result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT)) {
+                SATFCMetrics.postEvent(new SolvedByEvent(aInstance.getName(), SolvedByEvent.PRESOLVER, result.getResult()));
+                return true;
+            }
+        }
+
+		return false;
 	}
 
 	@Override

@@ -95,5 +95,14 @@ public class ConstraintGrouper implements IComponentGrouper{
 		
 		return aConstraintGraph;
 	}
+
+	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(
+			StationPackingInstance aInstance,
+			IConstraintManager aConstraintManager,
+			SimpleGraph<Station,DefaultEdge> aPreviousGraph,
+			Set<Station> aStationsToExclude)
+	{
+		return null;
+	}
 }
 
