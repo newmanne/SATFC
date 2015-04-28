@@ -34,9 +34,9 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         // convert instance to bit set representation
         final BitSet bitSet = CacheUtils.toBitSet(aInstance);
         // try to narrow down the entries we have to search by only looking at supersets
-        final Iterable<ContainmentCacheSATEntry> iterable = SATCache.getSupersets(new ContainmentCacheSATEntry(bitSet));
         try {
             SATCache.getReadLock().lock();
+            final Iterable<ContainmentCacheSATEntry> iterable = SATCache.getSupersets(new ContainmentCacheSATEntry(bitSet));
             return StreamSupport.stream(iterable.spliterator(), false)
                     /**
                      * The entry must contain at least every station in the query in order to provide a solution (hence superset)
