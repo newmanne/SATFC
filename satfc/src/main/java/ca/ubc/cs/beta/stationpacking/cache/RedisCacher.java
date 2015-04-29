@@ -21,15 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanCursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -117,7 +117,12 @@ public class RedisCacher {
         final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
         final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
 
-        final Set<String> SATKeys = redisTemplate.keys("SATFC:SAT:*");
+
+        final Cursor<byte[]> SATScan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().match("SATFC:SAT:*").build());
+        final Set<String> SATKeys = new HashSet<>();
+        while (SATScan.hasNext()) {
+            SATKeys.add(new String(SATScan.next()));
+        }
         log.info("Found " + SATKeys.size() + " SAT keys");
 
         // process SATs
@@ -138,7 +143,11 @@ public class RedisCacher {
         });
 
         // process UNSATs
-        final Set<String> UNSATKeys = redisTemplate.keys("SATFC:UNSAT:*");
+        final Set<String> UNSATKeys = new HashSet<>();
+        final Cursor<byte[]> UNSATScan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().match("SATFC:UNSAT:*").build());
+        while (UNSATScan.hasNext()) {
+            UNSATKeys.add(new String(UNSATScan.next()));
+        }
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         progressIndex.set(0);
