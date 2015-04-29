@@ -13,6 +13,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 
@@ -38,7 +39,7 @@ public class CNFSolverBundle extends ASolverBundle {
         cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver, getConstraintManager(), aCNFDirectory);
         IComponentGrouper aGrouper = new ConstraintGrouper();
         cnfOnlySolver = new ConnectedComponentGroupingDecorator(cnfOnlySolver, aGrouper, getConstraintManager(), true);
-
+        cnfOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cnfOnlySolver, aConstraintManager);
         cnfOnlySolver = new SequentialSolversComposite(
                 Arrays.asList(
                         new ConstraintGraphNeighborhoodPresolver(aConstraintManager,

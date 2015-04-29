@@ -57,8 +57,10 @@ import redis.clients.jedis.Jedis;
 public class SATFCFacadeExecutor {
 
 
+    public static final String TIMEOUTS_QUEUE = "_TIMEOUTS";
+    public static final String PROCESSING_QUEUE = "_PROCESSING";
 
-	/**
+    /**
 	 * @param args - parameters satisfying {@link SATFCFacadeParameters}.
 	 */
 	public static void main(String[] args) {
@@ -158,7 +160,7 @@ public class SATFCFacadeExecutor {
                // Read instances from a redis queue
                 log.info("Reading instances from {}:{} on queue {}", parameters.fRedisHost, parameters.fRedisPort, parameters.fRedisQueue);
                 Jedis jedis = new Jedis(parameters.fRedisHost, parameters.fRedisPort);
-                final List<String> errorInstanceFileNames = Lists.newArrayList();
+                final List<String> errorInstanceFileNames = new ArrayList<>();
                 int index = 0;
                 while (true) {
                     index++;
@@ -180,7 +182,7 @@ public class SATFCFacadeExecutor {
 
                     SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
 
-                    log.info("Solving ...");
+                    log.info("Solving ...");''
                     SATFCResult result = satfc.solve(
                             stations,
                             stationPackingProblemSpecs.getDomains().values().stream().reduce(new HashSet<>(), Sets::union),
@@ -198,9 +200,13 @@ public class SATFCFacadeExecutor {
                     SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
 
                     if (!(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))) {
-                        jedis.rpush(parameters.fRedisQueue + "_TIMEOUTS", instanceFileName);
+                        log.info("Adding problem " + instanceFileName + " to the timeout queue");
+                        jedis.rpush(parameters.fRedisQueue + TIMEOUTS_QUEUE, instanceFileName);
                     }
-                    jedis.lrem(parameters.fRedisQueue + "_PROCESSING", 1, instanceFileName);
+                    final long numDeleted = jedis.lrem(parameters.fRedisQueue + PROCESSING_QUEUE, 1, instanceFileName);
+                    if (numDeleted != 1) {
+                        log.error("Couldn't delete problem " + instanceFileName + " from the processing queue!");
+                    }
 
                     if (index % 500 == 0) {
                         SATFCMetrics.report();

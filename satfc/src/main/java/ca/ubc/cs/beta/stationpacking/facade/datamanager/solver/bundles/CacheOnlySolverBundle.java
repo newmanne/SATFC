@@ -18,6 +18,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 /**
  * Created by newmanne on 27/04/15.
  */
+// TODO: this will only solve components if it can't solve the full instance. Should probably take a config
 public class CacheOnlySolverBundle extends ASolverBundle {
 
     private ISolver cacheOnlySolver;
@@ -27,10 +28,10 @@ public class CacheOnlySolverBundle extends ASolverBundle {
 
         ICacher.CacheCoordinate cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
         ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+        IComponentGrouper aGrouper = new ConstraintGrouper();
 
         cacheOnlySolver = new CNFSolverBundle.VoidSolver();
         cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
-        IComponentGrouper aGrouper = new ConstraintGrouper();
         cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager());
         cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager);
         cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
