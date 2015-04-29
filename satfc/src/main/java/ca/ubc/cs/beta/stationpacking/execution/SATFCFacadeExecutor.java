@@ -182,7 +182,7 @@ public class SATFCFacadeExecutor {
 
                     SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
 
-                    log.info("Solving ...");''
+                    log.info("Solving ...");
                     SATFCResult result = satfc.solve(
                             stations,
                             stationPackingProblemSpecs.getDomains().values().stream().reduce(new HashSet<>(), Sets::union),
