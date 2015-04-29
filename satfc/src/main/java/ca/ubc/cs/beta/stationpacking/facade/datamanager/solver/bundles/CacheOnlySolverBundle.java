@@ -18,12 +18,15 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 /**
  * Created by newmanne on 27/04/15.
  */
-// TODO: this will only solve components if it can't solve the full instance. Should probably take a config
+
+/**
+ * This bundle is to evaluate the cache performance (without any additional solvers. It does not add anything to the cache.
+ */
 public class CacheOnlySolverBundle extends ASolverBundle {
 
     private ISolver cacheOnlySolver;
 
-    public CacheOnlySolverBundle(IStationManager aStationManager, IConstraintManager aConstraintManager, String serverURL) {
+    public CacheOnlySolverBundle(IStationManager aStationManager, IConstraintManager aConstraintManager, String serverURL, boolean components) {
         super(aStationManager, aConstraintManager);
 
         ICacher.CacheCoordinate cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
@@ -32,10 +35,12 @@ public class CacheOnlySolverBundle extends ASolverBundle {
 
         cacheOnlySolver = new CNFSolverBundle.VoidSolver();
         cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
-        cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager());
+        cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager(), components);
         cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager);
-        cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
-        cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
+        if (!components) {
+            cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
+            cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
+        }
         cacheOnlySolver = new AssignmentVerifierDecorator(cacheOnlySolver, getConstraintManager());
     }
 

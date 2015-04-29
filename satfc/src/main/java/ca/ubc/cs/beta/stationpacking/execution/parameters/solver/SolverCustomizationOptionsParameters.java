@@ -42,6 +42,7 @@ public class SolverCustomizationOptionsParameters extends AbstractOptions {
         private boolean underconstrained = true;
         @Parameter(names = "--decomposition", description = "connected component decomposition", arity = 1)
         private boolean decomposition = true;
+
         @ParametersDelegate
         private SATFCCachingParameters cachingParams = new SATFCCachingParameters();
 

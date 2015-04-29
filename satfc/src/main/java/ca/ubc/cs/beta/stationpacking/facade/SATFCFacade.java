@@ -149,8 +149,9 @@ public class SATFCFacade implements AutoCloseable {
                                 return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions());
                             case CNF:
                                 return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFDirectory());
-                            case CACHING_SOLVER:
-                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions().getServerURL());
+                            case CACHING_SOLVER_FULL_INSTANCES:
+                            case CACHING_SOLVER_COMPONENTS:
+                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions().getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case CACHE_EVERYTHING:
                                 return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getOptions());
                             default:
