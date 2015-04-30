@@ -173,10 +173,10 @@ public class SATFCFacadeExecutor {
                     log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
                     final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
                     try {
-                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(instanceFileName);
+                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(fullPathToInstanceFile);
                     } catch (IOException e) {
-                        log.warn("Error parsing file " + instanceFileName, e);
-                        errorInstanceFileNames.add(instanceFileName);
+                        log.warn("Error parsing file " + fullPathToInstanceFile, e);
+                        errorInstanceFileNames.add(fullPathToInstanceFile);
                         e.printStackTrace();
                         continue;
                     }
@@ -203,11 +203,11 @@ public class SATFCFacadeExecutor {
 
                     if (!(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))) {
                         log.info("Adding problem " + instanceFileName + " to the timeout queue");
-                        jedis.rpush(parameters.fRedisQueue + TIMEOUTS_QUEUE, instanceFileName);
+                        jedis.rpush(parameters.fRedisQueue + TIMEOUTS_QUEUE, fullPathToInstanceFile);
                     }
-                    final long numDeleted = jedis.lrem(parameters.fRedisQueue + PROCESSING_QUEUE, 1, instanceFileName);
+                    final long numDeleted = jedis.lrem(parameters.fRedisQueue + PROCESSING_QUEUE, 1, fullPathToInstanceFile);
                     if (numDeleted != 1) {
-                        log.error("Couldn't delete problem " + instanceFileName + " from the processing queue!");
+                        log.error("Couldn't delete problem " + fullPathToInstanceFile + " from the processing queue!");
                     }
 
                     if (index % 500 == 0) {
