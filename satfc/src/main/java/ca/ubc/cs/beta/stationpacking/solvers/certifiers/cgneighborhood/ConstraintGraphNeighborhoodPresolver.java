@@ -158,7 +158,9 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		
 	}
 
-	private boolean runCertifiersOnInstance(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, Watch watch, List<SolverResult> results, HashSet<Station> toPackStations)
+	private boolean runCertifiersOnInstance(
+			StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed,
+			Watch watch, List<SolverResult> results, HashSet<Station> toPackStations)
 	{
 		for (int i = 0; i < fCertifiers.size() && !aTerminationCriterion.hasToStop(); i++) {
             log.debug("Trying constraint graph neighborhood certifier {}.", i + 1);
