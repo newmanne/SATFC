@@ -3,9 +3,9 @@ import redis
 import argparse
 
 def metrics(r, qname):
-	remaining_jobs = r.llen(args.qname)
-	processing_jobs = r.llen(args.qname+'_PROCESSING')
-	timeouts = r.llen(args.qname+'_TIMEOUTS')
+	remaining_jobs = r.llen(qname)
+	processing_jobs = r.llen(qname+'_PROCESSING')
+	timeouts = r.llen(qname+'_TIMEOUTS')
 	print "There are %d jobs in the queue" % remaining_jobs
 	print "There are %d jobs in the processing queue" % processing_jobs
 	print "There are %d timeouts" % timeouts
