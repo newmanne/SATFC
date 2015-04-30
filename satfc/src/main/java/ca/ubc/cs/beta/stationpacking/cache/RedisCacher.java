@@ -117,13 +117,21 @@ public class RedisCacher {
         final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
         final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
 
-
-        final Cursor<byte[]> SATScan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().match("SATFC:SAT:*").build());
         final Set<String> SATKeys = new HashSet<>();
-        while (SATScan.hasNext()) {
-            SATKeys.add(new String(SATScan.next()));
-        }
+        final Set<String> UNSATKeys = new HashSet<>();
+
+        final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
+        scan.forEachRemaining(k -> {
+            final String key = new String(k);
+            if (key.startsWith("SATFC:SAT:")) {
+                SATKeys.add(key);
+            } else if (key.startsWith("SATFC:UNSAT:")) {
+                UNSATKeys.add(key);
+            }
+        });
+
         log.info("Found " + SATKeys.size() + " SAT keys");
+        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         // process SATs
         final AtomicInteger progressIndex = new AtomicInteger();
@@ -141,14 +149,6 @@ public class RedisCacher {
         SATResults.keySet().forEach(cacheCoordinate -> {
             log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
         });
-
-        // process UNSATs
-        final Set<String> UNSATKeys = new HashSet<>();
-        final Cursor<byte[]> UNSATScan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().match("SATFC:UNSAT:*").build());
-        while (UNSATScan.hasNext()) {
-            UNSATKeys.add(new String(UNSATScan.next()));
-        }
-        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         progressIndex.set(0);
         UNSATKeys.forEach(key -> {

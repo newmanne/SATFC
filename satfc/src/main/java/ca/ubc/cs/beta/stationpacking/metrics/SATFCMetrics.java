@@ -39,6 +39,7 @@ import com.google.common.collect.*;
 import com.google.common.io.Files;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -165,18 +166,12 @@ public class SATFCMetrics {
     public static class CNFFileCreatedEvent {
         // SRPK to CNF should be a 1:1 mapping
         @Getter
-        private static final Map<String, String> srpkToCnfIndex = new HashMap<>();
+        private static File indexFile;
+        public static void setIndexFile(File aFile) {
+            indexFile = aFile;
+        }
         private final String instanceName;
         private final String cnfFile;
-        public static void writeIndex(final String indexFileName) {
-            if (!srpkToCnfIndex.isEmpty()) {
-                try {
-                    FileUtils.writeLines(new File(indexFileName), srpkToCnfIndex.entrySet().stream().map(entry -> Joiner.on(',').join(Lists.newArrayList(entry.getKey(), entry.getValue()))).collect(GuavaCollectors.toImmutableList()));
-                } catch (IOException e) {
-                    log.error("Error writing cnf / srpk indices to file", e);
-                }
-            }
-        }
     }
 
     public static class MetricHandler {
@@ -249,7 +244,11 @@ public class SATFCMetrics {
 
         @Subscribe
         public void onCNFFileCreatedEvent(CNFFileCreatedEvent event) {
-            CNFFileCreatedEvent.getSrpkToCnfIndex().put(event.getInstanceName(), event.getCnfFile());
+            try {
+                Files.append(event.getInstanceName()+","+event.getCnfFile(),CNFFileCreatedEvent.getIndexFile(), Charsets.UTF_8);
+            } catch (IOException e) {
+                log.error("Error writing cnf / srpk indices to file", e);
+            }
         }
         
     }

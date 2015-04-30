@@ -94,6 +94,8 @@ public class SATFCFacadeExecutor {
             satfcBuilder.setCustomizationOptions(parameters.fSolverOptions.getOptions());
             if (parameters.fCNFDir != null) {
                 satfcBuilder.setCNFDirectory(parameters.fCNFDir);
+                // TODO: this is pretty brittle
+                SATFCMetrics.CNFFileCreatedEvent.setIndexFile(new File(parameters.fOutputFile + "_CNF_Index.csv"));
             }
 
             SATFCFacade satfc = satfcBuilder.build();
@@ -155,8 +157,7 @@ public class SATFCFacadeExecutor {
                     log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
                 }
                 SATFCMetrics.report();
-                SATFCMetrics.CNFFileCreatedEvent.writeIndex(parameters.fOutputFile + "_CNF_Index.csv"); // write CNFs to file if necessary
-            } else if (parameters.fRedisHost != null && parameters.fRedisPort != null && parameters.fRedisQueue != null && parameters.fInterferencesFolder != null && parameters.fInstanceFolder != null) {
+            } else if (parameters.fRedisHost != null && parameters.fRedisPort != null && parameters.fRedisQueue != null && parameters.fInterferencesFolder != null) {
                // Read instances from a redis queue
                 log.info("Reading instances from {}:{} on queue {}", parameters.fRedisHost, parameters.fRedisPort, parameters.fRedisQueue);
                 Jedis jedis = new Jedis(parameters.fRedisHost, parameters.fRedisPort);
@@ -164,14 +165,15 @@ public class SATFCFacadeExecutor {
                 int index = 0;
                 while (true) {
                     index++;
-                    final String instanceFileName = jedis.rpoplpush(parameters.fRedisQueue, parameters.fRedisQueue + "_PROCESSING");
-                    if (instanceFileName == null) {
+                    final String fullPathToInstanceFile = jedis.rpoplpush(parameters.fRedisQueue, parameters.fRedisQueue + PROCESSING_QUEUE);
+                    if (fullPathToInstanceFile == null) {
                         break;
                     }
+                    final String instanceFileName = new File(fullPathToInstanceFile).getName();
                     log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, jedis.llen(parameters.fRedisQueue));
                     final Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
                     try {
-                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(parameters.fInstanceFolder + File.separator + instanceFileName);
+                        stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(instanceFileName);
                     } catch (IOException e) {
                         log.warn("Error parsing file " + instanceFileName, e);
                         errorInstanceFileNames.add(instanceFileName);
@@ -220,7 +222,6 @@ public class SATFCFacadeExecutor {
                     log.error("The following files were not processed correctly: {}", errorInstanceFileNames);
                 }
                 SATFCMetrics.report();
-                SATFCMetrics.CNFFileCreatedEvent.writeIndex(parameters.fOutputFile + "_CNF_Index.csv"); // write CNFs to file if necessary
             } else if (parameters.fInstanceParameters.fDataFoldername != null) {
                 // Assume SATFC called the retro way
                 log.info("Solving ...");
