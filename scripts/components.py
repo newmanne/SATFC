@@ -43,7 +43,7 @@ for srpk, srpk_rows in srpk_to_rows.items():
 	result = "SAT"
 	for r in srpk_rows:
 		java_exec_runtime += float(r[6])
-		if java_exec_runtime > 60.0:
+		if java_exec_runtime > 60.0 or r[5] == 'TIMEOUT':
 			result = "TIMEOUT"
 			break
 		elif r[5] == "UNSAT":
@@ -54,7 +54,7 @@ for srpk, srpk_rows in srpk_to_rows.items():
 	java_exec_row[6] = java_exec_runtime
 	java_exec.append(java_exec_row)
 
-with open(args.output + "_java_exec.csv", 'w') as out:
+with open(args.output, 'w') as out:
 	writer = csv.writer(out)
 	writer.writerows([header])
 	writer.writerows(java_exec)
