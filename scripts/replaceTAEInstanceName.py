@@ -20,7 +20,7 @@ with open(args.input, 'r') as data:
         reader = csv.reader(data)
         for i, row in enumerate(reader):
                 if i > 0:
-            	        cnf_name = row[4] #os.path.split(row[4])[-1] # extract just cnf name, not full path
+            	        cnf_name = os.sep.join(row[4].split(os.sep)[-2:]) # extract just cnf name, not full path
 			for srpk_name in mapping[cnf_name]:
 				new_row = row			
         			new_row[4] = srpk_name.replace('.srpk', '').replace('_StationSubsetSATCertifier', '')
