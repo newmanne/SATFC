@@ -23,6 +23,8 @@ public class ConstraintGraphNeighborhoodPresolverTest {
         gStationPackingInstance = mock(StationPackingInstance.class);
         gTerminationCriterion = mock(ITerminationCriterion.class);
         gSeed = 17;
+        // generate graphs from files
+
     }
 
     @After
