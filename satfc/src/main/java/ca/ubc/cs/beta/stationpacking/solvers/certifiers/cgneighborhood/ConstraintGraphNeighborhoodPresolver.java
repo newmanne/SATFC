@@ -51,8 +51,6 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
 	public static final int FEW_MISSING_STATIONS = 10;
 	private static final int MAX_MISSING_STATIONS=20;
-	private static final int MAX_TO_PACK=100;
-	private static final int MAX_NEIGHBOR_DISTANCE = 25;
 
 	private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
 	
@@ -120,21 +118,13 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		HashSet<Station> toPackStations = new HashSet<>();
 		toPackStations.addAll(missingStations);
 
-		while (neighborLayer < MAX_NEIGHBOR_DISTANCE && !aTerminationCriterion.hasToStop()) {
+		while (!aTerminationCriterion.hasToStop()) {
 
 			// Add the next layer of neighbors to the stations to repack.
 			log.debug("Adding level {} of neighbors.", neighborLayer);
 			for (Station unpackedStation : toPackStations) {
 				Set<Station> neighborStations = aConstraintGraphNeighborIndex.neighborsOf(unpackedStation);
 				toPackStations.addAll(neighborStations);
-			}
-
-			//Check if there are too many stations to make this procedure worthwhile.
-			if (toPackStations.size() > MAX_TO_PACK) {
-				log.debug("Neighborhood to pack is too large ({}).", toPackStations.size());
-
-				watch.stop();
-				return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
 			}
 
 			boolean solved = runCertifiersOnInstance(aInstance, aTerminationCriterion, aSeed, watch, results, toPackStations);
