@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -47,7 +48,8 @@ import com.google.common.collect.Sets;
 @Slf4j
 public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
-	private final ISolver fSolver;
+    public static final String STATION_SUBSET_SATCERTIFIER = "_StationSubsetSATCertifier";
+    private final ISolver fSolver;
 	private final ITerminationCriterionFactory fTerminationCriterionFactory;
 	
 	public StationSubsetSATCertifier(ISolver aSolver, ITerminationCriterionFactory aTerminationCriterionFactory)
@@ -104,8 +106,10 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		{
 			log.debug("Missing station and neighborhood: {} .",aToPackStations);
 		}
-		
-		StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, aInstance.getMetadata());
+
+        Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
+        metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_SATCERTIFIER);
+        StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
 		
 		if(!aTerminationCriterion.hasToStop())
 		{
@@ -121,8 +125,8 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 				
 				watch.stop();
 				double extraTime = watch.getElapsedTime();
-				
-				return SolverResult.addTime(SATboundResult, extraTime);
+                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, SATboundResult.getResult()));
+                return SolverResult.addTime(SATboundResult, extraTime);
 			}
 			else
 			{

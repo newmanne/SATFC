@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import org.apache.commons.io.FileUtils;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -89,9 +90,10 @@ public class CNFSaverSolverDecorator extends ASolverDecorator
 		//Save instance to file.
 		final String aCNFFilenameBase = fCNFDirectory+File.separator+aInstance.getHashString();
 		try {
+            final String aCNFFilename = aCNFFilenameBase + ".cnf";
             // write cnf file
 			FileUtils.writeStringToFile(
-					new File(aCNFFilenameBase + ".cnf"),
+					new File(aCNFFilename),
 					aCNF.toDIMACS(comments)
 					);
             // write previous assignment file
@@ -100,6 +102,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator
                     Joiner.on(System.lineSeparator()).join(aEncoding.getInitialAssignment().entrySet().stream()
                             .map(entry -> entry.getKey() + " " + (entry.getValue() ? 1 : 0)).collect(Collectors.toList()))
             );
+            SATFCMetrics.postEvent(new SATFCMetrics.CNFFileCreatedEvent(aInstance.getName(), aCNFFilename));
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalStateException("Could not write CNF to file.");

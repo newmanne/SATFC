@@ -28,6 +28,9 @@ allprojects {
         maven {
             url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
         }
+        maven {
+            url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/snapshots/'
+        }
         mavenLocal()
         mavenCentral()
     }

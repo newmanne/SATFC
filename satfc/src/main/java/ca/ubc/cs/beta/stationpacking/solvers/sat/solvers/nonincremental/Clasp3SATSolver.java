@@ -124,7 +124,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            log.debug("Incrementing job index.");
+            log.debug("Incrementing job srpkToCnfIndex.");
             currentRequestID.incrementAndGet();
 
             log.debug("Cancelling suicide future.");

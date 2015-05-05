@@ -54,6 +54,7 @@ import com.google.common.io.Resources;
 /**
  * Created by newmanne on 1/24/15.
  */
+@Deprecated // we aren't using this anymore
 @Slf4j
 public class ContainmentCache {
 

@@ -25,6 +25,8 @@ import java.util.BitSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import containmentcache.ICacheEntry;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
@@ -33,7 +35,7 @@ import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 * Created by newmanne on 25/03/15.
 */
 @Data
-public class ContainmentCacheUNSATEntry {
+public class ContainmentCacheUNSATEntry implements ICacheEntry<Station> {
     final BitSet bitSet;
     Map<Station, Set<Integer>> domains;
     String key;
@@ -49,5 +51,11 @@ public class ContainmentCacheUNSATEntry {
         this.bitSet = new BitSet(StationPackingUtils.N_STATIONS);
         domains.keySet().forEach(station -> bitSet.set(station.getID()));
     }
+
+    @Override
+    public Set<Station> getElements() {
+        return bitSet.stream().mapToObj(Station::new).collect(GuavaCollectors.toImmutableSet());
+    }
+
 
 }

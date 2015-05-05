@@ -22,7 +22,6 @@ apply plugin: 'maven-publish'
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
-
     //All the product dependencies.
     compile 'org.slf4j:slf4j-api:1.7.7'
     compile 'ca.ubc.cs.beta:aeatk:2.08.01-development-de3ee6617d5c'
@@ -53,10 +52,13 @@ dependencies {
     // Rest template
     compile "org.springframework:spring-web:$springVersion"
 
+    // Containment cache
+    compile 'ca.ubc.cs.beta:ContainmentCache:0.9'
+
     // Test dependencies.
     testCompile 'junit:junit:4.11'
     testCompile 'org.mockito:mockito-all:1.10.8'
-    
+
     //Local dependencies
     compile files('libs/cplex.jar')
 }

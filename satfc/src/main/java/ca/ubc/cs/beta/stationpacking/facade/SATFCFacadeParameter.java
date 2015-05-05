@@ -36,7 +36,11 @@ public class SATFCFacadeParameter {
 	public static enum SolverChoice
 	{
 		SATFC,
-		MIPFC;
+		MIPFC,
+        CNF,
+        CACHING_SOLVER_FULL_INSTANCES,
+        CACHING_SOLVER_COMPONENTS,
+        CACHE_EVERYTHING
 	}
 
 }
