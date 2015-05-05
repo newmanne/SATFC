@@ -1,7 +1,6 @@
-package ca.ubc.cs.beta.stationpacking.test;
+package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
