@@ -116,22 +116,29 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		int neighborLayer = 1;
 		List<SolverResult> results = new LinkedList<SolverResult>();
 		HashSet<Station> toPackStations = new HashSet<>();
+		HashSet<Station> currentNeighbors = new HashSet<>();
 		toPackStations.addAll(missingStations);
+		boolean foundSAT = false;
 
-		while (!aTerminationCriterion.hasToStop()) {
-
+		// Keep expanding neighbors until either a SAT result is found or we are forced to stop 
+		while (!aTerminationCriterion.hasToStop() && !foundSAT) {
+			
 			// Add the next layer of neighbors to the stations to repack.
 			log.debug("Adding level {} of neighbors.", neighborLayer);
 			for (Station unpackedStation : toPackStations) {
 				Set<Station> neighborStations = aConstraintGraphNeighborIndex.neighborsOf(unpackedStation);
-				toPackStations.addAll(neighborStations);
+				currentNeighbors.addAll(neighborStations);
 			}
-
-			boolean solved = runCertifiersOnInstance(aInstance, aTerminationCriterion, aSeed, watch, results, toPackStations);
-			if (solved)
+			
+			// Only run the solver if new neighbors were actually added to the stations to pack,
+			//   unless it's the first layer (in this case we have one or more disconnected components) 
+			if (toPackStations.addAll(currentNeighbors) || neighborLayer == 1) {
+				foundSAT = runCertifiersOnInstance(aInstance, aTerminationCriterion, aSeed, watch, results, toPackStations);
+				neighborLayer++;
+			}
+			else {
 				break;
-
-			neighborLayer++;
+			}
 		}
 		
 		SolverResult combinedResult = SolverHelper.combineResults(results);
@@ -165,7 +172,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
             if (result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT)) {
                 SATFCMetrics.postEvent(new SolvedByEvent(aInstance.getName(), SolvedByEvent.PRESOLVER, result.getResult()));
-                return true;
+                return result.getResult().equals(SATResult.SAT);
             }
         }
 

@@ -8,27 +8,52 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.IStationS
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.jgrapht.alg.ConnectivityInspector;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
+
 /**
- * Returns SAT when all the stations in the instance of a station packing problem are contained in the "toPackStations"
- *  parameter (i.e. when the group of neighbors around a starting point has extended to every station in the instance).
+ * Returns SAT when (and only when) all the stations in the instance of a station packing problem are contained in the
+ *  "toPackStations" parameter (i.e. when the group of neighbors around a starting point has extended to include every
+ *  station in the instance).
  * @author pcernek
  */
 public class StationWholeSetSATCertifier implements IStationSubsetCertifier {
 
     private int numberOfTimesCalled;
+    
+    private final Map <		ConnectivityInspector<Station, DefaultEdge> ,
+    				     	SimpleGraph<Station,DefaultEdge>  				> inspectorGraphMap;
+    private final Set<Station> startingStations;
 
-    public StationWholeSetSATCertifier() {
+    public StationWholeSetSATCertifier(List<SimpleGraph<Station, DefaultEdge>> graphs, Set<Station> startingStations) {
         this.numberOfTimesCalled = 0;
+        this.inspectorGraphMap = new HashMap<>();
+        for (SimpleGraph<Station, DefaultEdge> graph : graphs) {
+        	this.inspectorGraphMap.put(new ConnectivityInspector<>(graph), graph);
+        }
+        this.startingStations = startingStations;
     }
 
     @Override
     public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
         numberOfTimesCalled ++;
-        if (aToPackStations.containsAll(aInstance.getStations()))
-            return new SolverResult(SATResult.SAT, 0, new HashMap<>());
-        // Otherwise we return TIMEOUT rather than UNSAT in keeping with the behavior of StationSubsetSATCertifier
+        boolean allNeighborsIncluded = true;
+        for(Station station: startingStations) {
+        	for (ConnectivityInspector<Station, DefaultEdge> inspector: inspectorGraphMap.keySet()) {
+        		if (inspectorGraphMap.get(inspector).containsVertex(station)) {
+        			allNeighborsIncluded &= aToPackStations.containsAll(inspector.connectedSetOf(station));
+        		}
+        	}
+        }
+        if (allNeighborsIncluded)
+        	return new SolverResult(SATResult.SAT, 0, new HashMap<>());
+        
+        // We return TIMEOUT rather than UNSAT in keeping with the behavior of StationSubsetSATCertifier
         return new SolverResult(SATResult.TIMEOUT, 0);
     }
 

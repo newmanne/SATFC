@@ -6,14 +6,11 @@ import org.jgrapht.graph.SimpleGraph;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * <p>
@@ -75,7 +72,7 @@ public class SimpleGraphBuilder implements IStationGraphBuilder {
             while ((line = reader.readLine()) != null) {
 
                 // Filter out comment lines.
-                if (line.startsWith("//"))
+                if (line.startsWith("//") || line.isEmpty())
                     continue;
 
                 // Make stations from current line.

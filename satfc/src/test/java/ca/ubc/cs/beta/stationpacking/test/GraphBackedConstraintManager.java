@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -17,6 +18,9 @@ public class GraphBackedConstraintManager implements IConstraintManager {
 
     private final NeighborIndex<Station, DefaultEdge> coInterferingStationNeighborIndex;
     private final NeighborIndex<Station, DefaultEdge> adjInterferingStationNeighborIndex;
+    
+    private final SimpleGraph<Station, DefaultEdge> coInterferenceGraph;
+    private final SimpleGraph<Station, DefaultEdge> adjInterferenceGraph;
 
     /**
      * Creates a constraint manager backed by the given interference graphs.
@@ -26,20 +30,29 @@ public class GraphBackedConstraintManager implements IConstraintManager {
     public GraphBackedConstraintManager(SimpleGraph<Station, DefaultEdge> coInterferingStationGraph,
                                         SimpleGraph<Station, DefaultEdge> adjInterferingStationGraph) {
 
-        coInterferingStationNeighborIndex = new NeighborIndex<>(coInterferingStationGraph);
+    	coInterferenceGraph = coInterferingStationGraph;
+    	adjInterferenceGraph = adjInterferingStationGraph;
+    	
+    	coInterferingStationNeighborIndex = new NeighborIndex<>(coInterferingStationGraph);
         adjInterferingStationNeighborIndex = new NeighborIndex<>(adjInterferingStationGraph);
 
     }
 
     @Override
     public Set<Station> getCOInterferingStations(Station aStation, int aChannel) {
-        return this.coInterferingStationNeighborIndex.neighborsOf(aStation);
+    	if (this.coInterferenceGraph.containsVertex(aStation)) {
+    		return this.coInterferingStationNeighborIndex.neighborsOf(aStation);
+    	}
+    	return Collections.emptySet();
     }
 
 
     @Override
     public Set<Station> getADJplusInterferingStations(Station aStation, int aChannel) {
-        return this.adjInterferingStationNeighborIndex.neighborsOf(aStation);
+    	if (this.adjInterferenceGraph.containsVertex(aStation)) {
+    		return this.adjInterferingStationNeighborIndex.neighborsOf(aStation);
+    	}
+    	return Collections.emptySet();
     }
 
     @Override
