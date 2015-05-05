@@ -12,15 +12,23 @@ import java.util.Set;
 
 /**
  * Returns SAT when all the stations in the instance of a station packing problem are contained in the "toPackStations"
- *  parameter.
+ *  parameter (i.e. when the group of neighbors around a starting point has extended to every station in the instance).
  * @author pcernek
  */
-public class SupersetSATCertifier implements IStationSubsetCertifier {
+public class StationWholeSetSATCertifier implements IStationSubsetCertifier {
+
+    private int numberOfTimesCalled;
+
+    public StationWholeSetSATCertifier() {
+        this.numberOfTimesCalled = 0;
+    }
 
     @Override
     public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        numberOfTimesCalled ++;
         if (aToPackStations.containsAll(aInstance.getStations()))
             return new SolverResult(SATResult.SAT, 0, new HashMap<>());
+        // Otherwise we return TIMEOUT rather than UNSAT in keeping with the behavior of StationSubsetSATCertifier
         return new SolverResult(SATResult.TIMEOUT, 0);
     }
 
@@ -32,5 +40,9 @@ public class SupersetSATCertifier implements IStationSubsetCertifier {
     @Override
     public void notifyShutdown() {
         throw new UnsupportedOperationException();
+    }
+
+    public int getNumberOfTimesCalled() {
+        return numberOfTimesCalled;
     }
 }
