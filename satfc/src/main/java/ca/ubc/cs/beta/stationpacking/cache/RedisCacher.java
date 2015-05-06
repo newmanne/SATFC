@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,9 +44,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -133,9 +131,11 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
+        Set<String> subset = ImmutableSet.copyOf(Iterables.limit(SATKeys, 1000));
+
         // process SATs
         final AtomicInteger progressIndex = new AtomicInteger();
-        SATKeys.forEach(key -> {
+        subset.forEach(key -> {
             if (progressIndex.get() % 1000 == 0) {
                 log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
             }
@@ -150,8 +150,10 @@ public class RedisCacher {
             log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
         });
 
+        Set<String> unsatsubset = ImmutableSet.copyOf(Iterables.limit(UNSATKeys, 2));
+
         progressIndex.set(0);
-        UNSATKeys.forEach(key -> {
+        unsatsubset.forEach(key -> {
             if (progressIndex.get() % 1000 == 0) {
                 log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
             }

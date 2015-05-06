@@ -51,6 +51,16 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         }
     }
 
+    public Iterable<ContainmentCacheSATEntry> assignmentSuperset(final ContainmentCacheSATEntry e) {
+        // try to narrow down the entries we have to search by only looking at supersets
+        try {
+            SATCache.getReadLock().lock();
+            return SATCache.getSupersets(e);
+        } finally {
+            SATCache.getReadLock().unlock();
+        }
+    }
+
     @Override
     public ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance) {
         // convert instance to bit set representation
