@@ -42,7 +42,7 @@ import java.util.stream.Stream;
  *
  * @author pcernek
  */
-public class SimpleGraphBuilder implements IStationGraphBuilder {
+public class SimpleStationGraphParser implements IStationGraphFileParser {
 
     private final SimpleGraph<Station, DefaultEdge> stationGraph;
 
@@ -55,7 +55,7 @@ public class SimpleGraphBuilder implements IStationGraphBuilder {
      * @throws IOException - if an error occurs when trying to read from the graph file, either due to
      * a bad file path or due to a graph file whose contents are malformed.
      */
-    public SimpleGraphBuilder(Path graphFilePath) throws IOException {
+    public SimpleStationGraphParser(Path graphFilePath) throws IOException {
         this.stationGraph = parseGraphFile(graphFilePath);
     }
 

@@ -11,7 +11,7 @@ import org.jgrapht.graph.SimpleGraph;
  * </p>
  * @author pcernek
  */
-public interface IStationGraphBuilder {
+public interface IStationGraphFileParser {
 
     /**
      * Provide a graph of stations that represents the interference constraints between them.
