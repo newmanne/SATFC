@@ -37,6 +37,14 @@ public class GraphBackedConstraintManager implements IConstraintManager {
 
     }
 
+    /**
+     * Returns the set of all stations neighboring the given station in the underlying graph representing interference 
+     * 	constraints between stations on the same channel.
+     * @param aStation -the station for which to return the set of CO-interfering stations.
+     * @param aChannel - this parameter is ignored, since the constraint graph has been defined explicitly in the construction
+     * 			of this constraint manager. It is retained for compatibility with the interface.
+     * @return the set of stations which, if they were on the same channel as the given station, would interfere with it.
+     */
     @Override
     public Set<Station> getCOInterferingStations(Station aStation, int aChannel) {
     	if (this.coInterferenceGraph.containsVertex(aStation)) {
@@ -45,7 +53,15 @@ public class GraphBackedConstraintManager implements IConstraintManager {
     	return Collections.emptySet();
     }
 
-
+    /**
+     * Returns the set of all stations neighboring the given station in the underlying graph representing interference 
+     * 	constraints between stations on adjacent channels.
+     * @param aStation -the station for which to return the set of ADJ-interfering stations.
+     * @param aChannel - this parameter is ignored, since the constraint graph has been defined explicitly in the construction
+     * 			of this constraint manager. It is retained for compatibility with the interface.
+     * @return the set of stations which, if they were on a channel adjacent to the channel of the given station,
+     * 	 would interfere with it.
+     */
     @Override
     public Set<Station> getADJplusInterferingStations(Station aStation, int aChannel) {
     	if (this.adjInterferenceGraph.containsVertex(aStation)) {
