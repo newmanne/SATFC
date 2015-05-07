@@ -32,7 +32,7 @@ allprojects {
         mavenCentral()
     }
 
-
+    apply plugin: 'eclipse'
     apply plugin: 'license'
 
     license {

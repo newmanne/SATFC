@@ -53,7 +53,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
 	public static final int A_FEW_MISSING_STATIONS = 10;
 	// TODO: This arbitrary constant needs to be validated empirically.
-	private static final int MAX_MISSING_STATIONS =20;
+	public static final int MAX_MISSING_STATIONS = 20;
 
 	private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
 	

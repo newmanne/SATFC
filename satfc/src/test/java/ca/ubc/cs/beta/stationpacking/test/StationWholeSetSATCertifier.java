@@ -53,7 +53,7 @@ public class StationWholeSetSATCertifier implements IStationSubsetCertifier {
         if (allNeighborsIncluded)
         	return new SolverResult(SATResult.SAT, 0, new HashMap<>());
         
-        // We return TIMEOUT rather than UNSAT in keeping with the behavior of StationSubsetSATCertifier
+        // We return TIMEOUT rather than UNSAT in keeping with the behavior of {@link: StationSubsetSATCertifier}
         return new SolverResult(SATResult.TIMEOUT, 0);
     }
 
