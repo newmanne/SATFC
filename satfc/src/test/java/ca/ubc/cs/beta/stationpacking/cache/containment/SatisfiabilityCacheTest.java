@@ -12,6 +12,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import redis.clients.jedis.JedisShardInfo;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -36,9 +37,11 @@ public class SatisfiabilityCacheTest {
             final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
             final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
             ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-            System.out.println("first entry: "+SATEntries.get(0));
+            System.out.println("first entry: "+SATEntries.get(0).getKey());
             Iterable<ContainmentCacheSATEntry> supersets = cache.assignmentSuperset(SATEntries.get(0));
-            supersets.forEach();
+            supersets.forEach(set -> System.out.println(set.getKey()));
+
         });
     }
 }
+

@@ -131,7 +131,7 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        Set<String> subset = ImmutableSet.copyOf(Iterables.limit(SATKeys, 1000));
+        Set<String> subset = ImmutableSet.copyOf(Iterables.limit(SATKeys, 18000));
 
         // process SATs
         final AtomicInteger progressIndex = new AtomicInteger();
