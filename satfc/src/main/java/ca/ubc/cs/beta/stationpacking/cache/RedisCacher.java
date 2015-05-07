@@ -131,11 +131,9 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        Set<String> subset = ImmutableSet.copyOf(Iterables.limit(SATKeys, 18000));
-
         // process SATs
         final AtomicInteger progressIndex = new AtomicInteger();
-        subset.forEach(key -> {
+        SATKeys.forEach(key -> {
             if (progressIndex.get() % 1000 == 0) {
                 log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
             }
@@ -150,10 +148,8 @@ public class RedisCacher {
             log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
         });
 
-        Set<String> unsatsubset = ImmutableSet.copyOf(Iterables.limit(UNSATKeys, 2));
-
         progressIndex.set(0);
-        unsatsubset.forEach(key -> {
+        UNSATKeys.forEach(key -> {
             if (progressIndex.get() % 1000 == 0) {
                 log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
             }
@@ -181,6 +177,10 @@ public class RedisCacher {
         public Set<CacheCoordinate> getCaches() {
             return Sets.union(SATResults.keySet(), UNSATResults.keySet());
         }
+    }
+
+    public void removeKeys(Collection<String> keys){
+        redisTemplate.delete(keys);
     }
 
 }

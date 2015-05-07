@@ -2,6 +2,9 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -9,11 +12,12 @@ import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import redis.clients.jedis.JedisShardInfo;
 
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.StreamSupport;
 
 /**
@@ -51,6 +55,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         }
     }
 
+    @Override
     public Iterable<ContainmentCacheSATEntry> assignmentSuperset(final ContainmentCacheSATEntry e) {
         // try to narrow down the entries we have to search by only looking at supersets
         try {
@@ -92,6 +97,37 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         } else {
             throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
         }
+    }
+
+    @Override
+    public void filter(String redisURL, int redisPort){
+
+        final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
+        final RedisConnectionFactory redisCon = new JedisConnectionFactory(new JedisShardInfo(redisURL, redisPort));
+        final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
+        final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
+        List<String> prunable = new ArrayList<>();
+
+        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
+            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
+            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+
+            SATEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheSATEntry> supersets = cache.assignmentSuperset(cacheEntry);
+                Optional<ContainmentCacheSATEntry> foundSuperset =
+                        StreamSupport.stream(supersets.spliterator(), false)
+                                .filter(entry -> entry.isSupersetOf(cacheEntry))
+                                .findFirst();
+                if (foundSuperset.isPresent()) {
+                    prunable.add(cacheEntry.getKey());
+                }
+            });
+        });
+
+        //remove prunables from redis
+        cacher.removeKeys(prunable);
+
     }
 
     // true if a's domain is a superset of b's domain

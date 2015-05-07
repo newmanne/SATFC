@@ -25,6 +25,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import containmentcache.ICacheEntry;
@@ -95,5 +96,30 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     @Override
     public Set<Station> getElements() {
         return bitSet.stream().mapToObj(Station::new).collect(GuavaCollectors.toImmutableSet());
+    }
+
+    /*
+     * returns true if this SAT entry is strictly a superset of the @cacheEntry
+     * SAT entry with same key is not considered as a superset
+     */
+    public boolean isSupersetOf(ContainmentCacheSATEntry cacheEntry) {
+        // skip checking against itself
+        if (!this.getKey().equals(cacheEntry.getKey())) {
+
+            Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
+            Map<Integer, Set<Station>> superset = this.getAssignmentChannelToStation();
+            if (superset.keySet().containsAll(subset.keySet())) {
+                if (StreamSupport.stream(subset.keySet().spliterator(), false)
+                        .filter(channel -> !superset.get(channel).containsAll(subset.get(channel)))
+                        .findFirst()
+                        .isPresent()) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

@@ -14,4 +14,5 @@ public interface ISatisfiabilityCache {
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
     void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
     Iterable<ContainmentCacheSATEntry> assignmentSuperset(final ContainmentCacheSATEntry e);
+    void filter(String redisURL, int redisPort);
 }
