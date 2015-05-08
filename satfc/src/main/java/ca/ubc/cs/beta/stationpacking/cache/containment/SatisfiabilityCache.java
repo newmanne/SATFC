@@ -120,6 +120,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                                 .filter(entry -> entry.isSupersetOf(cacheEntry))
                                 .findFirst();
                 if (foundSuperset.isPresent()) {
+                    SATCache.remove(cacheEntry);
                     prunable.add(cacheEntry.getKey());
                 }
             });

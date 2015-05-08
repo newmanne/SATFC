@@ -179,6 +179,9 @@ public class RedisCacher {
         }
     }
 
+    /**
+     * @param keys list of keys to remove from redis all together
+     */
     public void removeKeys(Collection<String> keys){
         redisTemplate.delete(keys);
     }
