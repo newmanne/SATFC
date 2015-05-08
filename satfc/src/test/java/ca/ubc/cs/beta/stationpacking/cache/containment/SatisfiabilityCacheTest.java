@@ -23,13 +23,21 @@ import java.util.stream.StreamSupport;
 public class SatisfiabilityCacheTest {
     private String redisURL = "localhost";
     private int redisPort = 6379;
+    private final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
     private final RedisConnectionFactory redisCon = (RedisConnectionFactory)new JedisConnectionFactory(new JedisShardInfo(redisURL, redisPort));
     private final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
+    final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
 
     @Test
-    public void filterTest()
+    public void filterSATTest()
     {
-        cacher.filter();
+        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
+            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
+            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+            List<String> prunables = cache.filterSAT();
+            cacher.deleteByKeys(prunables);
+        });
     }
 
 }

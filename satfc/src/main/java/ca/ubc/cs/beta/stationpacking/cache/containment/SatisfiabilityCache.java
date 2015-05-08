@@ -10,7 +10,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
-import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
+import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -26,12 +26,12 @@ import java.util.stream.StreamSupport;
 public class SatisfiabilityCache implements ISatisfiabilityCache {
 
     public SatisfiabilityCache(IContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,IContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
-        SATCache = (BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheSATEntry>) aSATCache;
-        UNSATCache = (BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheUNSATEntry>) aUNSATCache;
+        SATCache = (BufferedThreadSafeCacheDecorator<Station, ContainmentCacheSATEntry>) aSATCache;
+        UNSATCache = (BufferedThreadSafeCacheDecorator<Station, ContainmentCacheUNSATEntry>) aUNSATCache;
     }
 
-    final BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheSATEntry> SATCache;
-    final BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheUNSATEntry> UNSATCache;
+    final BufferedThreadSafeCacheDecorator<Station, ContainmentCacheSATEntry> SATCache;
+    final BufferedThreadSafeCacheDecorator<Station, ContainmentCacheUNSATEntry> UNSATCache;
 
     @Override
     public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
@@ -99,13 +99,23 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         }
     }
 
-//    @Override
-    public void filter(){
+    // true if a's domain is a superset of b's domain
+    private boolean isSupersetOrEqualToByDomains(Map<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
+        return b.entrySet().stream().allMatch(entry -> {
+            final Set<Integer> integers = a.get(entry.getKey());
+            return integers != null && integers.containsAll(entry.getValue());
+        });
+    }
+
+    /**
+     * removes redundant entries from this Satisfiability cache
+     * @return list of prunable keys for removing the entries from Redis
+     */
+    @Override
+    public List<String> filterSAT(){
         List<String> prunable = new ArrayList<>();
-
-        IContainmentCache sat = (IContainmentCache)SATCache;
-
-        sat.getSets().forEach(cacheEntry -> {
+        Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
+        satEntries.forEach(cacheEntry -> {
             Iterable<ContainmentCacheSATEntry> supersets = this.getSupersetBySATEntry(cacheEntry);
             Optional<ContainmentCacheSATEntry> foundSuperset =
                     StreamSupport.stream(supersets.spliterator(), false)
@@ -119,14 +129,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                 }
             }
         });
-    }
 
-    // true if a's domain is a superset of b's domain
-    private boolean isSupersetOrEqualToByDomains(Map<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
-        return b.entrySet().stream().allMatch(entry -> {
-            final Set<Integer> integers = a.get(entry.getKey());
-            return integers != null && integers.containsAll(entry.getValue());
-        });
+        return prunable;
     }
 
 }

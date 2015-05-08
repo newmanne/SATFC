@@ -6,7 +6,8 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
+
+import java.util.List;
 
 /**
  * Created by newmanne on 19/04/15.
@@ -16,4 +17,5 @@ public interface ISatisfiabilityCache {
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
     void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
     Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e);
+    List<String> filterSAT();
 }

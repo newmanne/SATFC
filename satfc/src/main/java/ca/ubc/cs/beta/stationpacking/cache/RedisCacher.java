@@ -180,42 +180,13 @@ public class RedisCacher {
         }
     }
 
+
     /**
-     * removes SAT entries that is subset of some other cache entry
+     * Removes the cache entries with key in keys
+     * @param keys list of keys
      */
-    public void filter(){
-
-        final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
-        final RedisCacher.ContainmentCacheInitData containmentCacheInitData = this.getContainmentCacheInitData();
-        List<String> prunable = new ArrayList<>();
-
-        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
-            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
-            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
-            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-
-            SATEntries.forEach(cacheEntry -> {
-                Iterable<ContainmentCacheSATEntry> supersets = cache.getSupersetBySATEntry(cacheEntry);
-                Optional<ContainmentCacheSATEntry> foundSuperset =
-                        StreamSupport.stream(supersets.spliterator(), false)
-                                .filter(entry -> entry.isSupersetOf(cacheEntry))
-                                .findFirst();
-                if (foundSuperset.isPresent()) {
-                    prunable.add(cacheEntry.getKey());
-                    if(prunable.size() % 2000 == 0){
-                        System.out.println("Found " + prunable.size() + "prunables");
-                    }
-                }
-            });
-        });
-
-        System.out.println("Deleting prunables at Redis server");
-        //remove prunables from redis
-        redisTemplate.delete(prunable);
-    }
-
-    public void delete(Collection<String> key){
-        redisTemplate.delete(key);
+    public void deleteByKeys(Collection<String> keys){
+        redisTemplate.delete(keys);
     }
 
 }
