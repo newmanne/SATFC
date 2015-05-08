@@ -23,13 +23,14 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanCursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -180,10 +181,41 @@ public class RedisCacher {
     }
 
     /**
-     * @param keys list of keys to remove from redis all together
+     * removes SAT entries that is subset of some other cache entry
      */
-    public void removeKeys(Collection<String> keys){
-        redisTemplate.delete(keys);
+    public void filter(){
+
+        final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
+        final RedisCacher.ContainmentCacheInitData containmentCacheInitData = this.getContainmentCacheInitData();
+        List<String> prunable = new ArrayList<>();
+
+        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
+            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
+            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+
+            SATEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheSATEntry> supersets = cache.getSupersetBySATEntry(cacheEntry);
+                Optional<ContainmentCacheSATEntry> foundSuperset =
+                        StreamSupport.stream(supersets.spliterator(), false)
+                                .filter(entry -> entry.isSupersetOf(cacheEntry))
+                                .findFirst();
+                if (foundSuperset.isPresent()) {
+                    prunable.add(cacheEntry.getKey());
+                    if(prunable.size() % 2000 == 0){
+                        System.out.println("Found " + prunable.size() + "prunables");
+                    }
+                }
+            });
+        });
+
+        System.out.println("Deleting prunables at Redis server");
+        //remove prunables from redis
+        redisTemplate.delete(prunable);
+    }
+
+    public void delete(Collection<String> key){
+        redisTemplate.delete(key);
     }
 
 }

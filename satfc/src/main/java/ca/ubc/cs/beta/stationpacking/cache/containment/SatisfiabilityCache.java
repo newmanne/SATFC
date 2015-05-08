@@ -56,7 +56,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     }
 
     @Override
-    public Iterable<ContainmentCacheSATEntry> assignmentSuperset(final ContainmentCacheSATEntry e) {
+    public Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e) {
         // try to narrow down the entries we have to search by only looking at supersets
         try {
             SATCache.getReadLock().lock();
@@ -99,36 +99,26 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         }
     }
 
-    @Override
-    public void filter(String redisURL, int redisPort){
-
-        final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
-        final RedisConnectionFactory redisCon = new JedisConnectionFactory(new JedisShardInfo(redisURL, redisPort));
-        final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
-        final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
+//    @Override
+    public void filter(){
         List<String> prunable = new ArrayList<>();
 
-        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
-            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
-            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
-            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+        IContainmentCache sat = (IContainmentCache)SATCache;
 
-            SATEntries.forEach(cacheEntry -> {
-                Iterable<ContainmentCacheSATEntry> supersets = cache.assignmentSuperset(cacheEntry);
-                Optional<ContainmentCacheSATEntry> foundSuperset =
-                        StreamSupport.stream(supersets.spliterator(), false)
-                                .filter(entry -> entry.isSupersetOf(cacheEntry))
-                                .findFirst();
-                if (foundSuperset.isPresent()) {
-                    SATCache.remove(cacheEntry);
-                    prunable.add(cacheEntry.getKey());
+        sat.getSets().forEach(cacheEntry -> {
+            Iterable<ContainmentCacheSATEntry> supersets = this.getSupersetBySATEntry(cacheEntry);
+            Optional<ContainmentCacheSATEntry> foundSuperset =
+                    StreamSupport.stream(supersets.spliterator(), false)
+                            .filter(entry -> entry.isSupersetOf(cacheEntry))
+                            .findFirst();
+            if (foundSuperset.isPresent()) {
+                SATCache.remove(cacheEntry);
+                prunable.add(cacheEntry.getKey());
+                if (prunable.size() % 2000 == 0) {
+                    System.out.println("Found " + prunable.size() + "prunables");
                 }
-            });
+            }
         });
-
-        //remove prunables from redis
-        cacher.removeKeys(prunable);
-
     }
 
     // true if a's domain is a superset of b's domain
