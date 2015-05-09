@@ -56,17 +56,6 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     }
 
     @Override
-    public Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e) {
-        // try to narrow down the entries we have to search by only looking at supersets
-        try {
-            SATCache.getReadLock().lock();
-            return SATCache.getSupersets(e);
-        } finally {
-            SATCache.getReadLock().unlock();
-        }
-    }
-
-    @Override
     public ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance) {
         // convert instance to bit set representation
         final BitSet bitSet = CacheUtils.toBitSet(aInstance);
@@ -107,29 +96,80 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         });
     }
 
+    @Override
+    public Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e) {
+        // try to narrow down the entries we have to search by only looking at supersets
+        try {
+            SATCache.getReadLock().lock();
+            return SATCache.getSupersets(e);
+        } finally {
+            SATCache.getReadLock().unlock();
+        }
+    }
+
+    @Override
+    public Iterable<ContainmentCacheUNSATEntry> getSubsetByUNSATEntry(final ContainmentCacheUNSATEntry e) {
+        // try to narrow down the entries we have to search by only looking at supersets
+        try {
+            UNSATCache.getReadLock().lock();
+            return UNSATCache.getSubsets(e);
+        } finally {
+            UNSATCache.getReadLock().unlock();
+        }
+    }
+
     /**
      * removes redundant entries from this Satisfiability cache
      * @return list of prunable keys for removing the entries from Redis
      */
     @Override
     public List<String> filterSAT(){
-        List<String> prunable = new ArrayList<>();
+        List<String> prunableKeys = new ArrayList<>();
+        List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
+
         satEntries.forEach(cacheEntry -> {
             Iterable<ContainmentCacheSATEntry> supersets = this.getSupersetBySATEntry(cacheEntry);
             Optional<ContainmentCacheSATEntry> foundSuperset =
                     StreamSupport.stream(supersets.spliterator(), false)
                             .filter(entry -> entry.isSupersetOf(cacheEntry))
-                            .findFirst();
+                            .findAny();
             if (foundSuperset.isPresent()) {
-                SATCache.remove(cacheEntry);
-                prunable.add(cacheEntry.getKey());
-                if (prunable.size() % 2000 == 0) {
-                    System.out.println("Found " + prunable.size() + "prunables");
+                prunableEntries.add(cacheEntry);
+                prunableKeys.add(cacheEntry.getKey());
+                if (prunableKeys.size() % 2000 == 0) {
+                    System.out.println("Found " + prunableKeys.size() + " prunables");
                 }
             }
         });
 
+        prunableEntries.forEach(entry -> SATCache.remove(entry));
+        return prunableKeys;
+    }
+
+    /**
+     * removes redundant entries from this Satisfiability cache
+     * @return list of prunable keys for removing the entries from Redis
+     */
+    @Override
+    public List<String> filterUNSAT(){
+        List<String> prunable = new ArrayList<>();
+        List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
+        Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
+
+        unsatEntries.forEach(cacheEntry -> {
+            Iterable<ContainmentCacheUNSATEntry> subsets = this.getSubsetByUNSATEntry(cacheEntry);
+            Optional<ContainmentCacheUNSATEntry> foundSubsets =
+                    StreamSupport.stream(subsets.spliterator(), false)
+                            .filter(entry -> entry.isSubsetOf(cacheEntry))
+                            .findAny();
+            if (foundSubsets.isPresent()) {
+                prunable.add(cacheEntry.getKey());
+                System.out.println(cacheEntry.getKey() + " is super set of UNSAT: " + foundSubsets.get().getKey());
+            }
+        });
+
+        prunableEntries.forEach(entry -> UNSATCache.remove(entry));
         return prunable;
     }
 

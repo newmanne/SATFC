@@ -28,15 +28,29 @@ public class SatisfiabilityCacheTest {
     private final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
     final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
 
+//    @Test
+//    public void filterSATTest()
+//    {
+//        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
+//            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
+//            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
+//            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+//            List<String> prunables = cache.filterSAT();
+//            cacher.deleteByKeys(prunables);
+//        });
+//    }
+
     @Test
-    public void filterSATTest()
+    public void filterUNSATTest()
     {
         containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
             final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
             final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
             ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-            List<String> prunables = cache.filterSAT();
-            cacher.deleteByKeys(prunables);
+            List<String> prunables = cache.filterUNSAT();
+            System.out.println(prunables.size());
+            System.out.println(prunables);
+            //cacher.deleteByKeys(prunables);
         });
     }
 

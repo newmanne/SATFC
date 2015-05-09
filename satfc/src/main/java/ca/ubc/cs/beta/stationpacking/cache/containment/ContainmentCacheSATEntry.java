@@ -111,15 +111,18 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
             if (superset.keySet().containsAll(subset.keySet())) {
                 if (StreamSupport.stream(subset.keySet().spliterator(), false)
                         .filter(channel -> !superset.get(channel).containsAll(subset.get(channel)))
-                        .findFirst()
+                        .findAny()
                         .isPresent()) {
                     return false;
                 }
             }
 
             return true;
-        }
 
-        return false;
+        } else {
+
+            return false;
+
+        }
     }
 }

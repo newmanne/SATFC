@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 
@@ -17,5 +18,7 @@ public interface ISatisfiabilityCache {
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
     void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
     Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e);
+    Iterable<ContainmentCacheUNSATEntry> getSubsetByUNSATEntry(ContainmentCacheUNSATEntry e);
     List<String> filterSAT();
+    List<String> filterUNSAT();
 }
