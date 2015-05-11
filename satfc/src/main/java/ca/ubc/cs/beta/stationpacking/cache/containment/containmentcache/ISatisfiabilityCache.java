@@ -17,8 +17,6 @@ public interface ISatisfiabilityCache {
     ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance);
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
     void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
-    Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e);
-    Iterable<ContainmentCacheUNSATEntry> getSubsetByUNSATEntry(ContainmentCacheUNSATEntry e);
     List<ContainmentCacheSATEntry> filterSAT();
     List<ContainmentCacheUNSATEntry> filterUNSAT();
 }

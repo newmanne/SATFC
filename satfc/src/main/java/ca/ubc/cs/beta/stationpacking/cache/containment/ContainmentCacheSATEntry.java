@@ -99,13 +99,12 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     }
 
     /*
-     * returns true if this SAT entry is strictly a superset of the @cacheEntry
+     * returns true if this SAT entry is strictly a superset of the cacheEntry
      * SAT entry with same key is not considered as a superset
      */
     public boolean isSupersetOf(ContainmentCacheSATEntry cacheEntry) {
         // skip checking against itself
         if (!this.getKey().equals(cacheEntry.getKey())) {
-
             Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
             Map<Integer, Set<Station>> superset = this.getAssignmentChannelToStation();
             if (superset.keySet().containsAll(subset.keySet())) {

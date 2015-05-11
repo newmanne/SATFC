@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.Test;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -23,6 +24,7 @@ public class SatisfiabilityCacheTest {
     private final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
     final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
 
+    @Ignore
     @Test
     public void filterSATTest()
     {
@@ -35,6 +37,7 @@ public class SatisfiabilityCacheTest {
         });
     }
 
+    @Ignore
     @Test
     public void filterUNSATTest()
     {

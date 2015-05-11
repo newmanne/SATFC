@@ -8,6 +8,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.stream.StreamSupport;
@@ -15,6 +16,7 @@ import java.util.stream.StreamSupport;
 /**
  * Created by newmanne on 19/04/15.
  */
+@Slf4j
 public class SatisfiabilityCache implements ISatisfiabilityCache {
 
     public SatisfiabilityCache(IContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,IContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
@@ -88,31 +90,9 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         });
     }
 
-    @Override
-    public Iterable<ContainmentCacheSATEntry> getSupersetBySATEntry(final ContainmentCacheSATEntry e) {
-        // try to narrow down the entries we have to search by only looking at supersets
-        try {
-            SATCache.getReadLock().lock();
-            return SATCache.getSupersets(e);
-        } finally {
-            SATCache.getReadLock().unlock();
-        }
-    }
-
-    @Override
-    public Iterable<ContainmentCacheUNSATEntry> getSubsetByUNSATEntry(final ContainmentCacheUNSATEntry e) {
-        // try to narrow down the entries we have to search by only looking at supersets
-        try {
-            UNSATCache.getReadLock().lock();
-            return UNSATCache.getSubsets(e);
-        } finally {
-            UNSATCache.getReadLock().unlock();
-        }
-    }
-
     /**
-     * removes redundant entries from this Satisfiability cache
-     * @return list of prunable keys for removing the entries from Redis
+     * removes redundant SAT entries from this SATCache
+     * @return list of cache entries to be removed
      */
     @Override
     public List<ContainmentCacheSATEntry> filterSAT(){
@@ -120,7 +100,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
         satEntries.forEach(cacheEntry -> {
-            Iterable<ContainmentCacheSATEntry> supersets = this.getSupersetBySATEntry(cacheEntry);
+            Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
             Optional<ContainmentCacheSATEntry> foundSuperset =
                     StreamSupport.stream(supersets.spliterator(), false)
                             .filter(entry -> entry.isSupersetOf(cacheEntry))
@@ -128,7 +108,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
             if (foundSuperset.isPresent()) {
                 prunableEntries.add(cacheEntry);
                 if (prunableEntries.size() % 2000 == 0) {
-                    System.out.println("Found " + prunableEntries.size() + " prunables");
+                    log.info("Found " + prunableEntries.size() + " prunables");
                 }
             }
         });
@@ -138,8 +118,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     }
 
     /**
-     * removes redundant entries from this Satisfiability cache
-     * @return list of prunable keys for removing the entries from Redis
+     * removes redundant UNSAT entries from this UNSATCache
+     * @return list of cache entries to be removed
      */
     @Override
     public List<ContainmentCacheUNSATEntry> filterUNSAT(){
@@ -147,7 +127,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
         unsatEntries.forEach(cacheEntry -> {
-            Iterable<ContainmentCacheUNSATEntry> subsets = this.getSubsetByUNSATEntry(cacheEntry);
+            Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
             // For two UNSAT problems P and Q, if Q has less stations to pack,
             // and each station has more candidate channels, then Q is less restrictive than P
             Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
