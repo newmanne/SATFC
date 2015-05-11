@@ -112,13 +112,13 @@ public class Assignment {
 
 	private static ImmutableMap<Station, Integer> toStationChannelMap(Map<Integer, Set<Station>> channelStationMap )
 	{
-		Map<Station, Integer> stationIntegerMap = new HashMap<>();
+		ImmutableMap.Builder<Station, Integer> mapBuilder = new ImmutableMap.Builder<>();
 		for (Integer channel: channelStationMap.keySet()) {
 			for (Station station: channelStationMap.get(channel)) {
-				stationIntegerMap.put(station, channel);
+				mapBuilder.put(station, channel);
 			}
 		}
-		return ImmutableMap.copyOf(stationIntegerMap);
+		return mapBuilder.build();
 	}
 
 	private static ImmutableMap<Integer, ImmutableSet<Station>> toChannelStationMap(
@@ -135,9 +135,7 @@ public class Assignment {
 		Map<Integer, Set<Station>> tempMapWithMutableSets = new HashMap<>();
 		for (Station station: stationIntegerMap.keySet()) {
 			Integer channel = stationIntegerMap.get(station);
-			if (!tempMapWithMutableSets.containsKey(channel)) {
-				tempMapWithMutableSets.put(channel, new HashSet<Station>());
-			}
+			tempMapWithMutableSets.computeIfAbsent(channel, c -> new HashSet<>());
 			tempMapWithMutableSets.get(channel).add(station);
 		}
 		return tempMapWithMutableSets;
