@@ -1,9 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.solvers.base;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -48,21 +45,30 @@ public class Assignment {
 	}
 	
 	/**
-	 * Returns an immutable set of stations that have been assigned a given channel.
+	 * Returns an immutable set of stations that have been assigned a given channel, or an empty set if
+	 *  the channel is not contained in this assignment.
 	 * @param channel - a channel for which we want to know which stations have been assigned to it.
-	 * @return -the set of stations assigned to that channel.
+	 * @return -the set of stations assigned to that channel, if the channel is contained in this assignment;
+	 * 	otherwise, an empty set.
 	 */
 	public Set<Station> getStationsOnChannel(int channel) {
-		return this.channelStationMap.get(channel);
+		if (this.channelStationMap.keySet().contains(channel)) {
+			return this.channelStationMap.get(channel);
+		}
+		return Collections.emptySet();
 	}
 	
 	/**
 	 * Returns the channel to which a given station was assigned.
 	 * @param station - the station for which we want to know the channel to which it was assigned.
+	 * @throws IllegalArgumentException - if the given station is not contained in this assignment.
 	 * @return - the channel to which the given station was assigned.
 	 */
 	public Integer getChannelOfStation(Station station) {
-		return this.stationChannelMap.get(station);
+		if (this.stationChannelMap.keySet().contains(station)) {
+			return this.stationChannelMap.get(station);
+		}
+		throw new IllegalArgumentException("Station " + station + " is not contained in this assignment.");
 	}
 
 	/**
@@ -87,7 +93,7 @@ public class Assignment {
 
 	/**
 	 * Constructs an Assignment object from the given mapping of stations to channels.
-	 * @param stationIntegerMap - the mapping from stations to integers to convert into an Assignment. 
+	 * @param stationChannelMap - the mapping from stations to integers to convert into an Assignment.
 	 * @return - an Assignment object corresponding to the given map.
 	 */
 	public static Assignment fromStationChannelMap(Map<Station, Integer> stationChannelMap) {
