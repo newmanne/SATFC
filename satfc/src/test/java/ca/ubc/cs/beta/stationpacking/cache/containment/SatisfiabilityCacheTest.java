@@ -1,21 +1,16 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import com.google.common.collect.ImmutableList;
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import redis.clients.jedis.JedisShardInfo;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.*;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by emily404 on 15-05-05.
@@ -28,17 +23,17 @@ public class SatisfiabilityCacheTest {
     private final RedisCacher cacher = new RedisCacher(new StringRedisTemplate(redisCon));
     final RedisCacher.ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
 
-//    @Test
-//    public void filterSATTest()
-//    {
-//        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
-//            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
-//            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
-//            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-//            List<String> prunables = cache.filterSAT();
-//            cacher.deleteByKeys(prunables);
-//        });
-//    }
+    @Test
+    public void filterSATTest()
+    {
+        containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
+            final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
+            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+            List<ContainmentCacheSATEntry> prunables = cache.filterSAT();
+            cacher.deleteSATCollection(prunables);
+        });
+    }
 
     @Test
     public void filterUNSATTest()
@@ -47,10 +42,8 @@ public class SatisfiabilityCacheTest {
             final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
             final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
             ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-            List<String> prunables = cache.filterUNSAT();
-            System.out.println(prunables.size());
-            System.out.println(prunables);
-            //cacher.deleteByKeys(prunables);
+            List<ContainmentCacheUNSATEntry> prunables = cache.filterUNSAT();
+            cacher.deleteUNSATCollection(prunables);
         });
     }
 

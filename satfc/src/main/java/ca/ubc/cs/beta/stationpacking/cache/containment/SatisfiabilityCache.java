@@ -2,20 +2,12 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
-import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import redis.clients.jedis.JedisShardInfo;
 
 import java.util.*;
 import java.util.stream.StreamSupport;
@@ -123,8 +115,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      * @return list of prunable keys for removing the entries from Redis
      */
     @Override
-    public List<String> filterSAT(){
-        List<String> prunableKeys = new ArrayList<>();
+    public List<ContainmentCacheSATEntry> filterSAT(){
         List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
@@ -136,15 +127,14 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                             .findAny();
             if (foundSuperset.isPresent()) {
                 prunableEntries.add(cacheEntry);
-                prunableKeys.add(cacheEntry.getKey());
-                if (prunableKeys.size() % 2000 == 0) {
-                    System.out.println("Found " + prunableKeys.size() + " prunables");
+                if (prunableEntries.size() % 2000 == 0) {
+                    System.out.println("Found " + prunableEntries.size() + " prunables");
                 }
             }
         });
 
         prunableEntries.forEach(entry -> SATCache.remove(entry));
-        return prunableKeys;
+        return prunableEntries;
     }
 
     /**
@@ -152,25 +142,25 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      * @return list of prunable keys for removing the entries from Redis
      */
     @Override
-    public List<String> filterUNSAT(){
-        List<String> prunable = new ArrayList<>();
+    public List<ContainmentCacheUNSATEntry> filterUNSAT(){
         List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
         unsatEntries.forEach(cacheEntry -> {
             Iterable<ContainmentCacheUNSATEntry> subsets = this.getSubsetByUNSATEntry(cacheEntry);
-            Optional<ContainmentCacheUNSATEntry> foundSubsets =
+            // For two UNSAT problems P and Q, if Q has less stations to pack,
+            // and each station has more candidate channels, then Q is less restrictive than P
+            Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
                     StreamSupport.stream(subsets.spliterator(), false)
-                            .filter(entry -> entry.isSubsetOf(cacheEntry))
+                            .filter(entry -> entry.isLessRestrictive(cacheEntry))
                             .findAny();
-            if (foundSubsets.isPresent()) {
-                prunable.add(cacheEntry.getKey());
-                System.out.println(cacheEntry.getKey() + " is super set of UNSAT: " + foundSubsets.get().getKey());
+            if (lessRestrictiveUNSAT.isPresent()) {
+                prunableEntries.add(cacheEntry);
             }
         });
 
         prunableEntries.forEach(entry -> UNSATCache.remove(entry));
-        return prunable;
+        return prunableEntries;
     }
 
 }

@@ -23,9 +23,6 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.StreamSupport;
-
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -182,10 +179,22 @@ public class RedisCacher {
 
 
     /**
-     * Removes the cache entries with key in keys
-     * @param keys list of keys
+     * Removes the cache entries in Redis
+     * @param collection collection of SAT entries
      */
-    public void deleteByKeys(Collection<String> keys){
+    public void deleteSATCollection(List<ContainmentCacheSATEntry> collection){
+        List<String> keys = new ArrayList<>();
+        collection.forEach(entry -> keys.add(entry.getKey()));
+        redisTemplate.delete(keys);
+    }
+
+    /**
+     * Removes the cache entries in Redis
+     * @param collection collection of UNSAT entries
+     */
+    public void deleteUNSATCollection(List<ContainmentCacheUNSATEntry> collection){
+        List<String> keys = new ArrayList<>();
+        collection.forEach(entry -> keys.add(entry.getKey()));
         redisTemplate.delete(keys);
     }
 

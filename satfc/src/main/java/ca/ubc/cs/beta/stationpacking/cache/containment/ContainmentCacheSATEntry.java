@@ -109,20 +109,13 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
             Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
             Map<Integer, Set<Station>> superset = this.getAssignmentChannelToStation();
             if (superset.keySet().containsAll(subset.keySet())) {
-                if (StreamSupport.stream(subset.keySet().spliterator(), false)
-                        .filter(channel -> !superset.get(channel).containsAll(subset.get(channel)))
-                        .findAny()
-                        .isPresent()) {
-                    return false;
-                }
+                return StreamSupport.stream(subset.keySet().spliterator(), false)
+                        .allMatch(channel -> superset.get(channel).containsAll(subset.get(channel)));
+            } else {
+                return false;
             }
-
-            return true;
-
         } else {
-
             return false;
-
         }
     }
 }
