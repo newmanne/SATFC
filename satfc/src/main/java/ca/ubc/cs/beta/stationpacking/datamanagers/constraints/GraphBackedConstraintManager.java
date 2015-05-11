@@ -18,8 +18,8 @@ public class GraphBackedConstraintManager implements IConstraintManager {
     private final NeighborIndex<Station, DefaultEdge> coInterferingStationNeighborIndex;
     private final NeighborIndex<Station, DefaultEdge> adjInterferingStationNeighborIndex;
     
-    private final SimpleGraph<Station, DefaultEdge> coInterferenceGraph;
-    private final SimpleGraph<Station, DefaultEdge> adjInterferenceGraph;
+    private final SimpleGraph<Station, DefaultEdge> coInterferingStationGraph;
+    private final SimpleGraph<Station, DefaultEdge> adjInterferingStationGraph;
 
     /**
      * Creates a constraint manager backed by the given interference graphs.
@@ -29,11 +29,11 @@ public class GraphBackedConstraintManager implements IConstraintManager {
     public GraphBackedConstraintManager(SimpleGraph<Station, DefaultEdge> coInterferingStationGraph,
                                         SimpleGraph<Station, DefaultEdge> adjInterferingStationGraph) {
 
-    	coInterferenceGraph = coInterferingStationGraph;
-    	adjInterferenceGraph = adjInterferingStationGraph;
+        this.coInterferingStationGraph = coInterferingStationGraph;
+        this.adjInterferingStationGraph = adjInterferingStationGraph;
     	
-    	coInterferingStationNeighborIndex = new NeighborIndex<>(coInterferingStationGraph);
-        adjInterferingStationNeighborIndex = new NeighborIndex<>(adjInterferingStationGraph);
+    	this.coInterferingStationNeighborIndex = new NeighborIndex<>(coInterferingStationGraph);
+        this.adjInterferingStationNeighborIndex = new NeighborIndex<>(adjInterferingStationGraph);
 
     }
 
@@ -47,7 +47,7 @@ public class GraphBackedConstraintManager implements IConstraintManager {
      */
     @Override
     public Set<Station> getCOInterferingStations(Station aStation, int aChannel) {
-    	if (this.coInterferenceGraph.containsVertex(aStation)) {
+    	if (this.coInterferingStationGraph.containsVertex(aStation)) {
     		return this.coInterferingStationNeighborIndex.neighborsOf(aStation);
     	}
     	return Collections.emptySet();
@@ -64,7 +64,7 @@ public class GraphBackedConstraintManager implements IConstraintManager {
      */
     @Override
     public Set<Station> getADJplusInterferingStations(Station aStation, int aChannel) {
-    	if (this.adjInterferenceGraph.containsVertex(aStation)) {
+    	if (this.adjInterferingStationGraph.containsVertex(aStation)) {
     		return this.adjInterferingStationNeighborIndex.neighborsOf(aStation);
     	}
     	return Collections.emptySet();
