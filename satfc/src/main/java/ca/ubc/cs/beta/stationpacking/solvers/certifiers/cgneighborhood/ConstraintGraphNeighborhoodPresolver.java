@@ -45,8 +45,18 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * Pre-solve by applying a sequence of station subsets certifiers based on 
- * the neighborhood of stations missing from a problem instance's previous assignment. 
+ * the neighborhood of stations missing from a problem instance's previous assignment.
+ *
+ * If an UNSAT result is found for the immediate local neighborhood of the missing stations, the search
+ *  is expanded to include the neighbors' neighbors. This is iterated until any of the following conditions is met:
+ *  <ol>
+ *      <li>A SAT result is found</li>
+ *      <li>The expanded neighborhood contains all the stations connected (directly or indirectly) to the original
+ *      	missing stations</li>
+ *      <li>The search times out</li>
+ *  </ol>
  * @author afrechet
+ * @author pcernek
  *
  */
 public class ConstraintGraphNeighborhoodPresolver implements ISolver {
