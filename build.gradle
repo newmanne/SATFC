@@ -35,7 +35,6 @@ allprojects {
         mavenCentral()
     }
 
-
     apply plugin: 'license'
 
     license {
