@@ -55,6 +55,13 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
 	public String fCNFDir;
 
+    @Parameter(names = "-REDIS-QUEUE", description = "The queue to take redis jobs from")
+    public String fRedisQueue;
+    @Parameter(names = "-REDIS-PORT", description = "Redis port (for problem queue)")
+    public Integer fRedisPort;
+    @Parameter(names = "-REDIS-HOST", description = "Redis host (for problem queue)")
+    public String fRedisHost;
+
 
 	@ParametersDelegate
 	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();

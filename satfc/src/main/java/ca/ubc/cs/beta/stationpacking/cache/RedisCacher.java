@@ -21,15 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanCursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -60,7 +60,7 @@ public class RedisCacher {
         this.redisTemplate = template;
     }
 
-    public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
+    public String cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         Preconditions.checkState(result.getResult().equals(SATResult.UNSAT) || result.getResult().equals(SATResult.SAT), "Result must be SAT or UNSAT in order to cache");
         final String jsonResult;
         final Map<String, Object> metadata = instance.getMetadata();
@@ -75,6 +75,7 @@ public class RedisCacher {
         final String key = cacheCoordinate.toKey(result.getResult(), instance);
         log.info("Adding result for " + instance.getName() + " to cache with key " + key);
         redisTemplate.boundValueOps(key).set(jsonResult);
+        return key;
     }
 
 
@@ -116,8 +117,21 @@ public class RedisCacher {
         final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
         final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
 
-        final Set<String> SATKeys = redisTemplate.keys("SATFC:SAT:*");
+        final Set<String> SATKeys = new HashSet<>();
+        final Set<String> UNSATKeys = new HashSet<>();
+
+        final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
+        scan.forEachRemaining(k -> {
+            final String key = new String(k);
+            if (key.startsWith("SATFC:SAT:")) {
+                SATKeys.add(key);
+            } else if (key.startsWith("SATFC:UNSAT:")) {
+                UNSATKeys.add(key);
+            }
+        });
+
         log.info("Found " + SATKeys.size() + " SAT keys");
+        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         // process SATs
         final AtomicInteger progressIndex = new AtomicInteger();
@@ -135,10 +149,6 @@ public class RedisCacher {
         SATResults.keySet().forEach(cacheCoordinate -> {
             log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
         });
-
-        // process UNSATs
-        final Set<String> UNSATKeys = redisTemplate.keys("SATFC:UNSAT:*");
-        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
         progressIndex.set(0);
         UNSATKeys.forEach(key -> {

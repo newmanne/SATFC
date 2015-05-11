@@ -93,7 +93,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         log.debug("Initializing base configured clasp solvers.");
 
-        AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15);
+        AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
         ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
 
         AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
@@ -119,6 +119,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (solverOptions.isCache()) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
@@ -168,11 +169,6 @@ public class SATFCSolverBundle extends ASolverBundle {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate);
         }
 
-        // cache entire instance
-        if (solverOptions.isCache()) {
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
-        }
-
         //Save CNFs, if needed.
         if(aCNFDirectory != null)
         {
@@ -194,6 +190,11 @@ public class SATFCSolverBundle extends ASolverBundle {
          */
         UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
+
+        // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
+        if (solverOptions.isCache()) {
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
+        }
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
