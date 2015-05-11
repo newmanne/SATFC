@@ -24,7 +24,7 @@ public class Assignment {
 	/**
 	 * This constructor is private to force use of the class's static maker methods. 
 	 * This makes the Assignment class more agnostic to its underlying implementation.
-	 * @param channelToStationMap - a mapping from channels to sets of stations, representing an assignment of stations to channels.
+	 * @param stationChannelMap - a mapping from channels to sets of stations, representing an assignment of stations to channels.
 	 */
 	private Assignment(Map<Station, Integer> stationChannelMap) {
 		this.channelStationMap = toChannelStationMap(stationChannelMap);
@@ -147,5 +147,24 @@ public class Assignment {
 		}
 		return tempMapWithImmutableSets;
 	}
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+
+		Assignment that = (Assignment) o;
+
+		return channelStationMap.equals(that.channelStationMap);
+
+	}
+
+	@Override
+	public int hashCode() {
+		return channelStationMap.hashCode();
+	}
 }
