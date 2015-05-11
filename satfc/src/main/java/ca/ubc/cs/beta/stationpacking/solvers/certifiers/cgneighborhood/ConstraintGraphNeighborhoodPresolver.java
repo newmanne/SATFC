@@ -116,7 +116,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	{
 		log.debug("Building constraint graph.");
 		NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex =
-				new NeighborIndex<Station, DefaultEdge>(ConstraintGrouper.getConstraintGraph(aInstance, fConstraintManager));
+				new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(aInstance, fConstraintManager));
 		return aConstraintGraphNeighborIndex;
 	}
 
@@ -139,7 +139,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			Collection<Station> missingStations,
 			NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex)
 		{
-		List<SolverResult> results = new LinkedList<SolverResult>();
+		List<SolverResult> results = new LinkedList<>();
 		
 		int neighborLayer = 1;
 		HashSet<Station> toPackStations = new HashSet<>();
@@ -193,14 +193,14 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	{
 		
 		Map<Station,Integer> previousAssignment = aInstance.getPreviousAssignment();
-		Collection<Station> missingStations = new HashSet<Station>();
-		
+		Collection<Station> missingStations = new HashSet<>();
+
 		for (Station station : aInstance.getStations()) {
 			if (!previousAssignment.containsKey(station)) {
 				missingStations.add(station);
 			}
 		}
-		
+
 		return missingStations;
 	}
 
