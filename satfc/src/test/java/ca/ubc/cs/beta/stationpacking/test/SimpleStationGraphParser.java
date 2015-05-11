@@ -4,7 +4,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,34 +66,31 @@ public class SimpleStationGraphParser implements IStationGraphFileParser {
     private SimpleGraph<Station, DefaultEdge> parseGraphFile(Path graphPath) throws IOException {
         SimpleGraph<Station, DefaultEdge> stationGraph = new SimpleGraph<>(DefaultEdge.class);
 
-        try (BufferedReader reader = Files.newBufferedReader(graphPath)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
+        for (String line: Files.readAllLines(graphPath)) {
 
-                // Filter out comment lines.
-                if (line.startsWith("//") || line.isEmpty())
-                    continue;
-
-                // Make stations from current line.
-                List<Station> currentStations = Stream.of(line.split(" "))  // stations on the same line are space-separated
-                        .map(intString -> new Integer(intString))
-                        .map(stationNumber -> new Station(stationNumber))
-                        .collect(Collectors.toList());
-
-                // Make sure line contains no more than two stations.
-                if (currentStations.size() <= 2) {
-
-                    for(Station station: currentStations)
-                        stationGraph.addVertex(station);
-
-                    if (currentStations.size() == 2)
-                        stationGraph.addEdge(currentStations.get(0), currentStations.get(1));
-                }
-                else {
-                    throw new IOException("Graph file is malformed, each line should contain no more than two integers");
-                }
-
+            // Filter out comment lines.
+            if (line.startsWith("//") || line.isEmpty()) {
+                continue;
             }
+
+            // Make stations from current line.
+            List<Station> currentStations = Stream.of(line.split(" "))  // stations on the same line are space-separated
+                    .map(Integer::new)
+                    .map(Station::new)
+                    .collect(Collectors.toList());
+
+            // Make sure line contains no more than two stations.
+            if (currentStations.size() <= 2) {
+
+                currentStations.forEach(stationGraph::addVertex);
+
+                if (currentStations.size() == 2)
+                    stationGraph.addEdge(currentStations.get(0), currentStations.get(1));
+            }
+            else {
+                throw new IOException("Graph file is malformed, each line should contain no more than two integers");
+            }
+
         }
 
         return stationGraph;
