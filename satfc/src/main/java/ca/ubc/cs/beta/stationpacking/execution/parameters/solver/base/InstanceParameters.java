@@ -148,7 +148,7 @@ public class InstanceParameters extends AbstractOptions {
 	@Override
 	public String toString()
 	{
-		return "("+getDomains().toString()+","+getPreviousAssignment().toString()+","+Cutoff+","+Seed+","+fDataFoldername+")";
+		return "("+fDomains+","+getPreviousAssignment().toString()+","+Cutoff+","+Seed+","+fDataFoldername+")";
 	}
 	
 

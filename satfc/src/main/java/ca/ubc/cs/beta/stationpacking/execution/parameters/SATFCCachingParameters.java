@@ -33,6 +33,6 @@ import com.beust.jcommander.Parameter;
 public class SATFCCachingParameters extends AbstractOptions {
 
     @Parameter(names = "--serverURL", description = "base URL for the SATFC server", required = false)
-    public String serverURL = "http://localhost:8080/satfcserver";
+    public String serverURL;
 
 }

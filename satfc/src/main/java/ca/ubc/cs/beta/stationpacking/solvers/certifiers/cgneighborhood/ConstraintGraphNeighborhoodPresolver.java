@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
 import java.util.*;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -233,17 +234,13 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
             results.add(result);
 
-            if (isConclusive(result)) {
-                SATFCMetrics.postEvent(new SolvedByEvent(aInstance.getName(), SolvedByEvent.PRESOLVER, result.getResult()));
+            if (result.getResult().isConclusive()) {
+                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, result.getResult()));
                 return result.getResult().equals(SATResult.SAT);
             }
         }
 
 		return false;
-	}
-
-	private boolean isConclusive(SolverResult result) {
-		return result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT);
 	}
 
 	@Override
