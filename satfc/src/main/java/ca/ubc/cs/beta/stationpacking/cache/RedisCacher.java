@@ -21,14 +21,17 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanCursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.math3.util.Pair;
 
@@ -49,7 +48,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IdentityBijecti
  * 
  * @author afrechet
  */
-@Slf4j
 public class SATEncoder implements ISATEncoder {
 	
 	private final IConstraintManager fConstraintManager;
@@ -256,10 +254,5 @@ public class SATEncoder implements ISATEncoder {
 		
 		return aCNF;
 	}
-	
-	
-
-	
-	
 	
 }

@@ -1,19 +1,22 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.util.Arrays;
+
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -23,14 +26,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
 
 /**
  * Created by newmanne on 28/04/15.
  */
-@Slf4j
 public class CacheEverythingBundle extends ASolverBundle {
 
     ISolver solver;
@@ -39,7 +38,7 @@ public class CacheEverythingBundle extends ASolverBundle {
             String aClaspLibraryPath,
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
-            SolverCustomizationOptions solverOptions
+            String serverURL
     ) {
         super(aStationManager, aConstraintManager);
 
@@ -51,8 +50,8 @@ public class CacheEverythingBundle extends ASolverBundle {
         solver = UHFClaspBasedSolver;
 
         ICacher.CacheCoordinate cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
-        CacherProxy cacher = new CacherProxy(solverOptions.getServerURL(), cacheCoordinate);
-        ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL(), cacheCoordinate);
+        CacherProxy cacher = new CacherProxy(serverURL, cacheCoordinate);
+        ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
 
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager());

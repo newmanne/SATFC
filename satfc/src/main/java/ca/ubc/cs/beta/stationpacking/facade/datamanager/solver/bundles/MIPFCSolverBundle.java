@@ -21,10 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.util.Arrays;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -35,10 +39,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecora
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.mip.MIPBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -63,7 +63,8 @@ public class MIPFCSolverBundle extends ASolverBundle {
     public MIPFCSolverBundle(
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
-            SolverCustomizationOptions options
+            boolean presolve,
+            boolean decompose
     		) {
 
         super(aStationManager, aConstraintManager);
@@ -77,10 +78,9 @@ public class MIPFCSolverBundle extends ASolverBundle {
         log.debug("Initializing base MIP solvers.");
         ISolver solver = new MIPBasedSolver(getConstraintManager());
 
-        if (options.isPresolve()) 
+        if (presolve) 
         {
             //Chain pre-solving and main solver.
-            final double UNSATcertifiercutoff = 5;
             final double SATcertifiercutoff = 5;
 
             log.debug("Adding neighborhood presolvers.");
@@ -101,7 +101,7 @@ public class MIPFCSolverBundle extends ASolverBundle {
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
 
-        if (options.isDecompose()) 
+        if (decompose) 
         {
         	// Split into components
             log.debug("Decorate solver to split the graph into connected components and then merge the results");

@@ -1,5 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
+import java.util.BitSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.StreamSupport;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
@@ -8,13 +13,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
-import lombok.RequiredArgsConstructor;
-
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by newmanne on 19/04/15.

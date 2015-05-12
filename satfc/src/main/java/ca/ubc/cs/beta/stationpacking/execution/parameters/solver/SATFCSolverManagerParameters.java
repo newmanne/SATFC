@@ -34,7 +34,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
@@ -61,12 +60,6 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 	 */
 	@Parameter(names = "-DATA-FOLDERNAME",description = "a list of data foldernames that SATFC should know about.", required=true)
 	public List<String> DataFoldernames = new ArrayList<String>();
-	
-	/**
-	 * CNF directory.
-	 */
-	@Parameter(names = "-CNF-DIRECTORY",description = "a directory in which to put CNF problems encountered by SATFC.")
-	public String CNFDirectory = null;
 	
 	/**
 	 * Result file.
@@ -100,7 +93,7 @@ public class SATFCSolverManagerParameters extends AbstractOptions {
 						 * Set what solver selector will be used here.
 						 */
 						// TODO: allow specification of solver customization options
-						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,CNFDirectory,ResultFile, new SolverCustomizationOptions());
+						return new SATFCSolverBundle(clasplibrary, aStationManager, aConstraintManager,ResultFile, true, true, true, null);
 
 					}
 				}

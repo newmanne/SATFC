@@ -24,7 +24,6 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
@@ -37,25 +36,13 @@ public class SolverCustomizationOptionsParameters extends AbstractOptions {
 
 
         @Parameter(names = "--presolve", description = "pre-solving", arity = 1)
-        private boolean presolve = true;
+        public boolean presolve = true;
         @Parameter(names = "--underconstrained", description = "underconstrained station optimizations", arity = 1)
-        private boolean underconstrained = true;
+        public boolean underconstrained = true;
         @Parameter(names = "--decomposition", description = "connected component decomposition", arity = 1)
-        private boolean decomposition = true;
+        public boolean decomposition = true;
 
         @ParametersDelegate
-        private SATFCCachingParameters cachingParams = new SATFCCachingParameters();
-
-        public SolverCustomizationOptions getOptions() {
-            SolverCustomizationOptions options = new SolverCustomizationOptions();
-            options.setPresolve(presolve);
-            options.setUnderconstrained(underconstrained);
-            options.setDecompose(decomposition);
-            if (cachingParams.useCache)
-            {
-                options.setServerURL(cachingParams.serverURL);
-            }
-            return options;
-        }
+        public SATFCCachingParameters cachingParams = new SATFCCachingParameters();
 
 }

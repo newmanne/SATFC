@@ -22,16 +22,20 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
 import lombok.Data;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 
 @Data
 public class SATFCFacadeParameter {
-	
+
 	private final String claspLibrary;
 	private final boolean initializeLogging;
-	private final String cNFDirectory;
 	private final String resultFile;
 	private final SolverChoice solverChoice;
-	private final SolverCustomizationOptions options;
+    private final boolean presolve;
+    private final boolean underconstrained;
+    private final boolean decompose;
+    private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+    private final String serverURL;
 
 	public static enum SolverChoice
 	{

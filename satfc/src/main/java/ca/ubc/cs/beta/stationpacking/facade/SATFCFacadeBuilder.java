@@ -26,34 +26,43 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
  * @author afrechet
  */
+@Slf4j
 public class SATFCFacadeBuilder {
-	
-	private boolean fInitializeLogging;
+
+    private boolean fPresolve;
+    private boolean fUnderconstrained;
+    private boolean fDecompose;
+    private boolean fInitializeLogging;
 	private String fLibrary;
-	private String fCNFDirectory;
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
-	private SolverCustomizationOptions fCustomizationOptions;
+    private String serverURL;
+    private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
 
-	/**
+    /**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
 	 */
 	public SATFCFacadeBuilder()
 	{
 		fInitializeLogging = false;
 		fLibrary = findSATFCLibrary();
-		fCNFDirectory = null;
 		fResultFile = null;
 		fSolverChoice = SolverChoice.SATFC;
-		fCustomizationOptions = new SolverCustomizationOptions();
+        fPresolve = true;
+        fUnderconstrained = true;
+        fDecompose = true;
+        serverURL = null;
 	}
-	
+
 	/**
 	 * Some autodetection magic to find clasp library.
 	 * @return the path to the detected clasp library, null if none found.
@@ -126,8 +135,17 @@ public class SATFCFacadeBuilder {
 		{
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
-
-		return new SATFCFacade(new SATFCFacadeParameter(fLibrary, fInitializeLogging, fCNFDirectory, fResultFile, fSolverChoice, fCustomizationOptions));
+		return new SATFCFacade(new SATFCFacadeParameter(
+                fLibrary,
+                fInitializeLogging,
+                fResultFile,
+                fSolverChoice,
+                fPresolve,
+                fUnderconstrained,
+                fDecompose,
+                CNFSaver,
+                serverURL
+        ));
 	}
 	
 	/**
@@ -149,17 +167,7 @@ public class SATFCFacadeBuilder {
 		{
 			throw new IllegalArgumentException("Cannot provide a null library.");
 		}
-		
 		fLibrary = aLibrary;
-	}
-	
-	/**
-	 * Set the directory where SATFC should save encountered CNFs. Setting this to non-null will incur a performance penalty.
-	 * @param aCNFDirectory
-	 */
-	public void setCNFDirectory(String aCNFDirectory)
-	{
-		fCNFDirectory = aCNFDirectory;
 	}
 	
 	/**
@@ -179,10 +187,49 @@ public class SATFCFacadeBuilder {
 	{
 		fSolverChoice = aSolverChoice;
 	}
-	
-	public void setCustomizationOptions(@NonNull SolverCustomizationOptions aOptions) {
-		fCustomizationOptions = aOptions;
-	}
 
+    public void setPresolve(boolean presolve) {
+        this.fPresolve = presolve;
+    }
+
+    public void setUnderconstrained(boolean underconstrained) {
+        this.fUnderconstrained = underconstrained;
+    }
+
+    public void setDecompose(boolean decompose) {
+        this.fDecompose = decompose;
+    }
+
+    public void setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
+        this.CNFSaver = CNFSaver;
+    }
+
+    public void setServerURL(@NonNull String serverURL) {
+        this.serverURL = serverURL;
+    }
+	
+    public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
+        if (parameters.fClaspLibrary != null) {
+            setLibrary(parameters.fClaspLibrary);
+        }
+        setInitializeLogging(true);
+        setSolverChoice(parameters.fSolverChoice);
+        setDecompose(parameters.fSolverOptions.decomposition);
+        setUnderconstrained(parameters.fSolverOptions.underconstrained);
+        setPresolve(parameters.fSolverOptions.presolve);
+        if (parameters.fSolverOptions.cachingParams.serverURL != null) {
+            setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
+        }
+        if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
+            if (parameters.fRedisParameters.areValid()) {
+                log.info("CNF files will be saved to redis");
+                setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
+            } else {
+                log.info("Will save CNF files to disk at " + parameters.fCNFDir);
+                setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
+            }
+        }
+        return build();
+    }
 
 }
