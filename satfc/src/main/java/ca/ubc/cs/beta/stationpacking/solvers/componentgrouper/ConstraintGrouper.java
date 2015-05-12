@@ -95,5 +95,6 @@ public class ConstraintGrouper implements IComponentGrouper{
 		
 		return aConstraintGraph;
 	}
+
 }
 
