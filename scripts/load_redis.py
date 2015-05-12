@@ -25,5 +25,3 @@ if __name__ == '__main__':
 
 	r = redis.StrictRedis(host=args.host, port=args.port)
 	load_queue(r, args.qname, args.srpkfile)
-
-	
