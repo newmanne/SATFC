@@ -84,11 +84,16 @@ public class GraphBackedConstraintManager implements IConstraintManager {
         for (Integer channel: aAssignment.keySet()) {
             for (Station station : aAssignment.get(channel)) {
 
+                if (!stationHasADJconstraints(station)) {
+                    continue;
+                }
+
                 Set<Station> stationsOnNextChannel = aAssignment.get(channel + 1);
 
                 // If (channel + 1) is not contained in the assignment, then there can be no adjacency interference
-                if (stationsOnNextChannel == null)
+                if (stationsOnNextChannel == null) {
                     continue;
+                }
 
                 for (Station neighbor : adjInterferingStationNeighborIndex.neighborsOf(station))
                     if (stationsOnNextChannel.contains(neighbor))
@@ -103,6 +108,9 @@ public class GraphBackedConstraintManager implements IConstraintManager {
         for (Integer channel : aAssignment.keySet()) {
             Set<Station> stationsOnChannel = aAssignment.get(channel);
             for (Station station : stationsOnChannel) {
+                if (!stationHasCOconstraints(station)) {
+                    continue;
+                }
                 for (Station neighbor : coInterferingStationNeighborIndex.neighborsOf(station))
                     if (stationsOnChannel.contains(neighbor))
                         return true;
@@ -110,6 +118,14 @@ public class GraphBackedConstraintManager implements IConstraintManager {
         }
 
         return false;
+    }
+
+    private boolean stationHasCOconstraints(Station station) {
+        return this.coInterferingStationGraph.vertexSet().contains(station);
+    }
+
+    private boolean stationHasADJconstraints(Station station) {
+        return adjInterferingStationGraph.vertexSet().contains(station);
     }
 
     @Override

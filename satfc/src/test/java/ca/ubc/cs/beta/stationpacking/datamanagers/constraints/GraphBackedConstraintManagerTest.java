@@ -17,6 +17,8 @@ import com.google.common.collect.Collections2;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 
+import static org.junit.Assert.assertTrue;
+
 public class GraphBackedConstraintManagerTest {
 	
 	GraphLoader graphLoader;
@@ -34,8 +36,8 @@ public class GraphBackedConstraintManagerTest {
 	@Test
 	public void testNoNeighborsHasNoInterferingStations () throws Exception {
 		GraphBackedConstraintManager cm = new GraphBackedConstraintManager(graphLoader.getNoNeighbors(), graphLoader.getNoNeighbors());
-		assert(cm.getCOInterferingStations(new Station(0), ARBITRARY_CHANNEL).isEmpty());
-		assert(cm.getADJplusInterferingStations(new Station(0), ARBITRARY_CHANNEL).isEmpty());
+		assertTrue(cm.getCOInterferingStations(new Station(0), ARBITRARY_CHANNEL).isEmpty());
+		assertTrue(cm.getADJplusInterferingStations(new Station(0), ARBITRARY_CHANNEL).isEmpty());
 	}
 	
 	@Test
@@ -44,11 +46,11 @@ public class GraphBackedConstraintManagerTest {
 
 		// Ensure that output is what we expect for a toy example
 		Set<Station> neighbors = new HashSet<>(Arrays.asList(new Station(6), new Station(8), new Station(0)));
-		assert(cm.getCOInterferingStations(new Station(0), ARBITRARY_CHANNEL).equals(neighbors));
+		assertTrue(cm.getCOInterferingStations(new Station(2), ARBITRARY_CHANNEL).equals(neighbors));
 		
 		// Ensure that the empty set is correctly returned 
 		//  for stations that are not in the interference graph being queried
-		assert(cm.getCOInterferingStations(new Station(99), ARBITRARY_CHANNEL).isEmpty());
+		assertTrue(cm.getCOInterferingStations(new Station(99), ARBITRARY_CHANNEL).isEmpty());
 	}
 	
 	@Test
@@ -57,11 +59,11 @@ public class GraphBackedConstraintManagerTest {
 
 		// Ensure that output is what we expect for a toy example
 		Set<Station> neighbors = new HashSet<>(Arrays.asList(new Station(6), new Station(8), new Station(0)));
-		assert(cm.getADJplusInterferingStations(new Station(0), ARBITRARY_CHANNEL).equals(neighbors));
+		assertTrue(cm.getADJplusInterferingStations(new Station(2), ARBITRARY_CHANNEL).equals(neighbors));
 		
 		// Ensure that the empty set is correctly returned 
 		//  for stations that are not in the interference graph being queried
-		assert(cm.getADJplusInterferingStations(new Station(99), ARBITRARY_CHANNEL).isEmpty());
+		assertTrue(cm.getADJplusInterferingStations(new Station(99), ARBITRARY_CHANNEL).isEmpty());
 	}
 	
 	/**
@@ -78,7 +80,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(13, interferingStations);
 		assignment.put(14, nonInterferingStations);
 
-		assert(!cm.isSatisfyingAssignment(assignment));
+		assertTrue(!cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -96,7 +98,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(15, Collections.singleton(new Station(4)));
 		assignment.put(16, Collections.singleton(new Station(5)));
 		
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -115,7 +117,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(15, Collections.singleton(new Station(4)));
 		assignment.put(16, Collections.singleton(new Station(5)));
 
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -133,7 +135,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(18, Collections.singleton(new Station(4)));
 		assignment.put(20, Collections.singleton(new Station(5)));
 		
-		assert(!cm.isSatisfyingAssignment(assignment));
+		assertTrue(!cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -151,7 +153,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(18, Collections.singleton(new Station(4)));
 		assignment.put(20, Collections.singleton(new Station(5)));
 		
-		assert(!cm.isSatisfyingAssignment(assignment));
+		assertTrue(!cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -170,7 +172,7 @@ public class GraphBackedConstraintManagerTest {
 		assignment.put(18, Collections.singleton(new Station(4)));
 		assignment.put(20, Collections.singleton(new Station(5)));
 		
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -187,7 +189,7 @@ public class GraphBackedConstraintManagerTest {
 		Station station3 = new Station(3);
 		
 		assignment.put(11, new HashSet<>(Arrays.asList(station0, station1, station2, station3)));
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -206,7 +208,7 @@ public class GraphBackedConstraintManagerTest {
 			for (int i=0; i < 4; i++) {
 				assignment.put(channelPermutation.get(i), Collections.singleton(stations.get(i)));
 			}
-			assert(cm.isSatisfyingAssignment(assignment));
+			assertTrue(cm.isSatisfyingAssignment(assignment));
 		}
 		
 	}
@@ -219,7 +221,7 @@ public class GraphBackedConstraintManagerTest {
 		GraphBackedConstraintManager cm = new GraphBackedConstraintManager(graphLoader.getBigConnectedGraph(), graphLoader.getDisconnectedComponents());
 		Map<Integer, Set<Station>> assignment = new HashMap<>();
 		
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	/**
@@ -236,7 +238,7 @@ public class GraphBackedConstraintManagerTest {
 		Station station3 = new Station(3);
 		
 		assignment.put(11, new HashSet<>(Arrays.asList(station0, station1, station2, station3)));
-		assert(cm.isSatisfyingAssignment(assignment));
+		assertTrue(cm.isSatisfyingAssignment(assignment));
 	}
 	
 	
