@@ -14,10 +14,7 @@ public abstract class AProblemGenerator implements IProblemGenerator {
     public abstract SATFCFacadeProblem getNextProblem();
 
     @Override
-    public void onPostProblem(SATFCResult result) {
-        System.out.println(result.getResult());
-        System.out.println(result.getRuntime());
-        System.out.println(result.getWitnessAssignment());
+    public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
         index++;
     }
 }

@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +64,8 @@ public class SATFCFacadeExecutor {
             IProblemGenerator problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
             SATFCFacadeProblem problem;
             while ((problem = problemGenerator.getNextProblem()) != null) {
+                SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
+                log.info("Beginning problem {}", problem.getInstanceName());
                 log.info("Solving ...");
                 SATFCResult result = satfc.solve(
                         problem.getStationsToPack(),
@@ -75,7 +78,11 @@ public class SATFCFacadeExecutor {
                         problem.getInstanceName()
                 );
                 log.info("..done!");
-                problemGenerator.onPostProblem(result);
+                System.out.println(result.getResult());
+                System.out.println(result.getRuntime());
+                System.out.println(result.getWitnessAssignment());
+                SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
+                problemGenerator.onPostProblem(problem, result);
             }
             log.info("Finished all of the problems!");
             problemGenerator.onFinishedAllProblems();

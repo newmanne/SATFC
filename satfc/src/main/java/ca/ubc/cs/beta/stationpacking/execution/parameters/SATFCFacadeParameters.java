@@ -44,9 +44,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@ParametersDelegate
 	public InstanceParameters fInstanceParameters = new InstanceParameters();
 
-	@Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
-	public String fInterferencesFolder;
-
     @Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
     public String fCNFDir;
 
@@ -56,7 +53,14 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @ParametersDelegate
     public RedisParameters fRedisParameters = new RedisParameters();
 
-	/**
+    @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
+    public String fFileOfInstanceFiles;
+    @Parameter(names = "-OUTPUT-FILE", description = "output file summarizing results")
+    public String fMetricsFile;
+    @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
+    public String fInterferencesFolder;
+
+    /**
 	 * Clasp library to use (optional - can be automatically detected).
 	 */
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")

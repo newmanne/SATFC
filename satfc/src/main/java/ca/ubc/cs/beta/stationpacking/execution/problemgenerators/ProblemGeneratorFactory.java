@@ -9,9 +9,7 @@ public class ProblemGeneratorFactory {
 
     public static IProblemGenerator createFromParameters(SATFCFacadeParameters parameters) {
         IProblemGenerator generator;
-        if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
-            generator = new RedisProblemGenerator(parameters.fRedisParameters.fRedisHost, parameters.fRedisParameters.fRedisPort, parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
-        } else if (parameters.fInstanceParameters.fDataFoldername != null && parameters.fInstanceParameters.getDomains() != null) {
+        if (parameters.fInstanceParameters.fDataFoldername != null && parameters.fInstanceParameters.getDomains() != null) {
             generator = new SingleProblemFromCommandLineProblemGenerator(new SATFCFacadeProblem(
                     parameters.fInstanceParameters.getPackingStationIDs(),
                     parameters.fInstanceParameters.getPackingChannels(),
@@ -20,6 +18,10 @@ public class ProblemGeneratorFactory {
                     parameters.fInstanceParameters.fDataFoldername,
                     null
             ));
+        } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
+            generator = new RedisProblemGenerator(parameters.fRedisParameters.fRedisHost, parameters.fRedisParameters.fRedisPort, parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
+        } else if (parameters.fFileOfInstanceFiles != null && parameters.fInterferencesFolder != null) {
+            generator = new FileProblemGenerator(parameters.fFileOfInstanceFiles, parameters.fInterferencesFolder, parameters.fMetricsFile);
         } else {
             throw new IllegalArgumentException("Illegal parameters provided. Must provide -DATA-FOLDERNAME and -DOMAINS. Please consult the SATFC manual for examples");
         }

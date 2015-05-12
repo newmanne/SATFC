@@ -9,7 +9,7 @@ public interface IProblemGenerator {
 
     SATFCFacadeProblem getNextProblem();
 
-    void onPostProblem(SATFCResult result);
+    void onPostProblem(SATFCFacadeProblem problem, SATFCResult result);
 
     default void onFinishedAllProblems() {};
 }

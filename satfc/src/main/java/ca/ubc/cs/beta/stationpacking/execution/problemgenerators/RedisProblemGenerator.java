@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 
 /**
 * Created by newmanne on 12/05/15.
+* Reads in problems from a redis queue, where each entry in the queue is a (full path) to an srpk file
 */
 @Slf4j
 public class RedisProblemGenerator extends AProblemGenerator {
@@ -49,18 +50,17 @@ public class RedisProblemGenerator extends AProblemGenerator {
                 return null;
             }
             instanceFileName = new File(fullPathToInstanceFile).getName();
-            final long remainingJobs = jedis.llen(queueName);
-            log.info("Beginning problem {}; this is my {}th problem; there are {} problems remaining in the queue", instanceFileName, index, remainingJobs);
             try {
                 stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(fullPathToInstanceFile);
                 break;
             } catch (IOException e) {
-                log.warn("Error parsing file " + fullPathToInstanceFile, e);
+                log.warn("Error parsing file " + fullPathToInstanceFile + ", skipping it", e);
             }
         }
+        final long remainingJobs = jedis.llen(queueName);
+        log.info("There are {} problems remaining in the queue", remainingJobs);
         activeProblemFullPath = fullPathToInstanceFile;
         final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
-        SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(stations, instanceFileName));
         return new SATFCFacadeProblem(
                 stations,
                 stationPackingProblemSpecs.getDomains().values().stream().reduce(new HashSet<>(), Sets::union),
@@ -72,15 +72,17 @@ public class RedisProblemGenerator extends AProblemGenerator {
     }
 
     @Override
-    public void onPostProblem(SATFCResult result) {
-        super.onPostProblem(result);
-        final String instanceFileName = new File(activeProblemFullPath).getName();
-        SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceFileName, result.getResult(), result.getRuntime()));
+    public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
+        super.onPostProblem(problem, result);
+
+        // metrics
+        writeMetrics(problem.getInstanceName());
+
+        // update redis queue - if the job timed out, move it to the timeout channel. Either way, delete it from the processing queue
         if (!result.getResult().isConclusive()) {
-            log.info("Adding problem " + instanceFileName + " to the timeout queue");
+            log.info("Adding problem " + problem.getInstanceName() + " to the timeout queue");
             jedis.rpush(RedisUtils.makeKey(queueName, RedisUtils.TIMEOUTS_QUEUE), activeProblemFullPath);
         }
-        writeMetrics(instanceFileName);
         final long numDeleted = jedis.lrem(RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE), 1, activeProblemFullPath);
         if (numDeleted != 1) {
             log.error("Couldn't delete problem " + activeProblemFullPath + " from the processing queue!");
