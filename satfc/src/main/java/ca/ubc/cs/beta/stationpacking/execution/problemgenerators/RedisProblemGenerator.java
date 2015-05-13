@@ -28,14 +28,14 @@ public class RedisProblemGenerator extends AProblemGenerator {
     private final String interferencesFolder;
     private String activeProblemFullPath;
 
-    public RedisProblemGenerator(String host, int port, String queueName, String interferencesFolder) {
+    public RedisProblemGenerator(Jedis jedis, String queueName, String interferencesFolder) {
         this.interferencesFolder = interferencesFolder;
-        jedis = new Jedis(host, port);
+        this.jedis = jedis;
         if (!jedis.exists(RedisUtils.makeKey(queueName))) {
             throw new IllegalArgumentException("Queue " + queueName + " does not exist");
         }
         this.queueName = queueName;
-        log.info("Reading instances from {}:{} on queue {}", host, port, RedisUtils.makeKey());
+        log.info("Reading instances from queue {}", RedisUtils.makeKey(queueName));
         SATFCMetrics.init();
     }
 
@@ -45,7 +45,7 @@ public class RedisProblemGenerator extends AProblemGenerator {
         String fullPathToInstanceFile;
         String instanceFileName;
         while (true) {
-            fullPathToInstanceFile = jedis.rpoplpush(queueName, RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE));
+            fullPathToInstanceFile = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE));
             if (fullPathToInstanceFile == null) { // all problems exhausted
                 return null;
             }
@@ -57,7 +57,7 @@ public class RedisProblemGenerator extends AProblemGenerator {
                 log.warn("Error parsing file " + fullPathToInstanceFile + ", skipping it", e);
             }
         }
-        final long remainingJobs = jedis.llen(queueName);
+        final long remainingJobs = jedis.llen(RedisUtils.makeKey(queueName));
         log.info("There are {} problems remaining in the queue", remainingJobs);
         activeProblemFullPath = fullPathToInstanceFile;
         final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();

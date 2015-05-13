@@ -52,7 +52,6 @@ public class FileProblemGenerator extends AProblemGenerator {
 
     @Override
     public SATFCFacadeProblem getNextProblem() {
-        log.info("This is my {}th problem out of ", index, instanceFiles.size());
         String instanceFile = null;
         Converter.StationPackingProblemSpecs stationPackingProblemSpecs = null;
         while (listIndex < instanceFiles.size()) {
@@ -65,6 +64,7 @@ public class FileProblemGenerator extends AProblemGenerator {
             }
         }
         if (stationPackingProblemSpecs != null) {
+            log.info("This is my {}th problem out of {}", index, instanceFiles.size());
             final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
             return new SATFCFacadeProblem(
                     stations,

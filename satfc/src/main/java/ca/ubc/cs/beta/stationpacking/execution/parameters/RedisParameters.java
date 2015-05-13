@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 
@@ -20,7 +22,9 @@ public class RedisParameters extends AbstractOptions {
     private static Jedis jedis;
 
     synchronized public Jedis getJedis() {
+        Logger log = LoggerFactory.getLogger(RedisParameters.class);
         if (jedis == null) {
+            log.info("Making a redis connection to {}:{}", fRedisHost, fRedisPort);
             jedis = new Jedis(fRedisHost, fRedisPort);
         }
         return jedis;

@@ -18,9 +18,7 @@ public class RedisUtils {
     public static final String CNF_ASSIGNMENT_QUEUE = "CNFAssignment";
 
     public static String makeKey(String... args) {
-        final List<String> baseKey = Lists.newArrayList("SATFC");
-        baseKey.addAll(Arrays.asList(args));
-        return Joiner.on(':').join(baseKey);
+        return Joiner.on(':').join(args);
     }
 
 }
