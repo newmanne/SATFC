@@ -1,5 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
+
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.IntStream;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
@@ -9,12 +15,6 @@ import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.bitset.SimpleBitSetCache;
 import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.stream.IntStream;
-
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
 
 /**
 * Created by newmanne on 22/04/15.

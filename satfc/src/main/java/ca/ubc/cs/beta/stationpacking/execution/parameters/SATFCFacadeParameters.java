@@ -44,28 +44,23 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@ParametersDelegate
 	public InstanceParameters fInstanceParameters = new InstanceParameters();
 
-	@Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
-	public String fInstanceFile;
-	@Parameter(names = "-INSTANCES-FOLDER", description = "folder where the instance files are located")
-	public String fInstanceFolder;
-	@Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
-	public String fInterferencesFolder;
-	@Parameter(names = "-OUTPUT-FILE", description = "output file summarizing results")
-	public String fOutputFile;
-	@Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
-	public String fCNFDir;
+    @Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
+    public String fCNFDir;
 
-    @Parameter(names = "-REDIS-QUEUE", description = "The queue to take redis jobs from")
-    public String fRedisQueue;
-    @Parameter(names = "-REDIS-PORT", description = "Redis port (for problem queue)")
-    public Integer fRedisPort;
-    @Parameter(names = "-REDIS-HOST", description = "Redis host (for problem queue)")
-    public String fRedisHost;
-
-
-	@ParametersDelegate
+    @ParametersDelegate
 	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();
-	/**
+
+    @ParametersDelegate
+    public RedisParameters fRedisParameters = new RedisParameters();
+
+    @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
+    public String fFileOfInstanceFiles;
+    @Parameter(names = "-OUTPUT-FILE", description = "output file summarizing results")
+    public String fMetricsFile;
+    @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
+    public String fInterferencesFolder;
+
+    /**
 	 * Clasp library to use (optional - can be automatically detected).
 	 */
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
@@ -79,6 +74,5 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@ParametersDelegate
 	public ComplexLoggingOptions fLoggingOptions = new ComplexLoggingOptions();
-
 
 }

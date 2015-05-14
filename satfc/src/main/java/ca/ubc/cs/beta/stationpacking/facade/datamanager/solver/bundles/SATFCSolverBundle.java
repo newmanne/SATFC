@@ -23,16 +23,13 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SolverCustomizationOptions;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -40,7 +37,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
@@ -60,9 +56,8 @@ import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
  *
  * @author afrechet
  */
+@Slf4j
 public class SATFCSolverBundle extends ASolverBundle {
-
-    private static Logger log = LoggerFactory.getLogger(SATFCSolverBundle.class);
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
@@ -73,19 +68,21 @@ public class SATFCSolverBundle extends ASolverBundle {
      * @param aClaspLibraryPath  - library for the clasp to use.
      * @param aStationManager    - station manager.
      * @param aConstraintManager - constraint manager.
-     * @param aCNFDirectory      - directory in which CNFs should be saved (optional).
      * @param aResultFile        - file to which results should be written (optional).
      */
     public SATFCSolverBundle(
             String aClaspLibraryPath,
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
-            String aCNFDirectory,
             String aResultFile,
-            SolverCustomizationOptions solverOptions
+            boolean presolve,
+            boolean decompose,
+            boolean underconstrained,
+            String serverURL
     ) {
         super(aStationManager, aConstraintManager);
-        log.info("Initializing solver with the following solver options {}", solverOptions);
+        log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
+        boolean useCache = serverURL != null;
 
         log.debug("SATFC solver bundle.");
 
@@ -111,19 +108,19 @@ public class SATFCSolverBundle extends ASolverBundle {
         ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
         ICacher.CacheCoordinate cacheCoordinate = null;
-        if (solverOptions.isCache()) {
+        if (useCache) {
             cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
-            cacher = new CacherProxy(solverOptions.getServerURL(), cacheCoordinate);
-            containmentCache = new ContainmentCacheProxy(solverOptions.getServerURL(), cacheCoordinate);
+            cacher = new CacherProxy(serverURL, cacheCoordinate);
+            containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }
 
-        if (solverOptions.isCache()) {
+        if (useCache) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
-        if (solverOptions.isDecompose())
+        if (decompose)
         {
             // Split into components
             IComponentGrouper aGrouper = new ConstraintGrouper();
@@ -132,7 +129,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
 
-        if (solverOptions.isUnderconstrained())
+        if (underconstrained)
         {
             //Remove unconstrained stations.
             log.debug("Decorate solver to first remove underconstrained stations.");
@@ -140,7 +137,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
         }
 
-        if (solverOptions.isPresolve())
+        if (presolve)
         {
             log.debug("Adding neighborhood presolvers.");
             UHFsolver = new SequentialSolversComposite(
@@ -164,17 +161,9 @@ public class SATFCSolverBundle extends ASolverBundle {
             );
         }
 
-        if (solverOptions.isCache()) {
+        if (useCache) {
             UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate);
-        }
-
-        //Save CNFs, if needed.
-        if(aCNFDirectory != null)
-        {
-            log.debug("Decorate solver to save CNFs.");
-            UHFsolver = new CNFSaverSolverDecorator(UHFsolver, getConstraintManager(), aCNFDirectory);
-            VHFsolver = new CNFSaverSolverDecorator(VHFsolver, getConstraintManager(), aCNFDirectory);
         }
 
         //Save results, if needed.
@@ -192,7 +181,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
-        if (solverOptions.isCache()) {
+        if (useCache) {
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 

@@ -3,7 +3,6 @@ package ca.ubc.cs.beta.stationpacking;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.StationPackingInstanceHasher;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
@@ -13,17 +12,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 
@@ -76,7 +71,7 @@ public class ConvertCacheTest {
     @Ignore
     @Test
     public void drive() {
-        Jedis jedisOldCache = new Jedis("cersei");
+    	Jedis jedisOldCache = new Jedis("cersei");
         Jedis jedisNewCache = new Jedis("cersei", 7777);
         final String domainHash= "1fa85deb";
         final String interferenceHash = "0683bb7d";

@@ -1,5 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import java.io.IOException;
+import java.util.stream.Collectors;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.math3.util.Pair;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -7,24 +16,15 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
+
 import com.google.common.io.Resources;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.math3.util.Pair;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-
-import java.io.IOException;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class Clasp3SATSolverTest {

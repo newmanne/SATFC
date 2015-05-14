@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +39,13 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CNFSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheEverythingBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnlySolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -49,7 +55,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCo
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -119,11 +124,6 @@ public class SATFCFacade implements AutoCloseable {
 
         log.debug("Using library {}.", aSATFCParameters.getClaspLibrary());
 
-        // check parameters
-        if (aSATFCParameters.getOptions().isCache()) {
-            Preconditions.checkNotNull(aSATFCParameters.getOptions().getServerURL(), "Server URL can not be null if you want to use the cache");
-        }
-
         fSolverManager = new SolverManager(
                 new ISolverBundleFactory() {
 
@@ -142,18 +142,21 @@ public class SATFCFacade implements AutoCloseable {
                                         aSATFCParameters.getClaspLibrary(),
                                         aStationManager,
                                         aConstraintManager,
-                                        aSATFCParameters.getCNFDirectory(),
                                         aSATFCParameters.getResultFile(),
-                                        aSATFCParameters.getOptions());
+                                        aSATFCParameters.isPresolve(),
+                                        aSATFCParameters.isDecompose(),
+                                        aSATFCParameters.isUnderconstrained(),
+                                        aSATFCParameters.getServerURL()
+                                		);
                             case MIPFC:
-                                return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions());
+                                return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
                             case CNF:
-                                return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFDirectory());
+                                return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFSaver());
                             case CACHING_SOLVER_FULL_INSTANCES:
                             case CACHING_SOLVER_COMPONENTS:
-                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getOptions().getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
+                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case CACHE_EVERYTHING:
-                                return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getOptions());
+                                return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }

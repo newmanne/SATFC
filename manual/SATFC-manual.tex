@@ -299,9 +299,7 @@ SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder();
  * ...
  */
 // add caching info
-SolverCustomizationOptions options = new SolverCustomizationOptions();
-options.setServerURL("<serverhost>:<serverport>/satfcserver");
-satfcFacadeBuilder.setCustomizationOptions(options);
+satfcFacadeBuilder.setServerURL(<serverURL>)
 // finish like normal
 SATFCFacade satfc = satfcFacadeBuilder.build();
 \end{minted}

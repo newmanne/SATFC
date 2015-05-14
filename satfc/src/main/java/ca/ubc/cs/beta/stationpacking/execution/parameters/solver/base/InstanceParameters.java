@@ -107,14 +107,7 @@ public class InstanceParameters extends AbstractOptions {
 	 */
 	public HashMap<Integer,Set<Integer>> getDomains()
 	{
-		if(fDomains==null)
-		{
-			return new HashMap<Integer,Set<Integer>>();
-		}
-		else
-		{
-			return fDomains;
-		}
+		return fDomains;
 	}
 	
 	@Parameter(names = "-PREVIOUS-ASSIGNMENT", description = "Map taking (some) station IDs to valid previous channel assignment.", converter=PreviousAssignmentConverter.class)
@@ -155,7 +148,7 @@ public class InstanceParameters extends AbstractOptions {
 	@Override
 	public String toString()
 	{
-		return "("+getDomains().toString()+","+getPreviousAssignment().toString()+","+Cutoff+","+Seed+","+fDataFoldername+")";
+		return "("+fDomains+","+getPreviousAssignment().toString()+","+Cutoff+","+Seed+","+fDataFoldername+")";
 	}
 	
 

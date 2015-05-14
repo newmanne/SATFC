@@ -21,22 +21,26 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import com.google.common.collect.ImmutableList;
 import lombok.extern.slf4j.Slf4j;
-
 import net.jcip.annotations.ThreadSafe;
+
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Created by newmanne on 25/03/15.

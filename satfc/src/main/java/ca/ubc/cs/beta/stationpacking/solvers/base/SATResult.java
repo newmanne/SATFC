@@ -55,6 +55,10 @@ public enum SATResult implements Serializable{
      * Run was interrupted while solving problem.
      */
     INTERRUPTED;
+
+    public boolean isConclusive() {
+        return this == SAT || this == UNSAT;
+    }
 	
 	/**
 	 * @param aRunResult - a runresult.

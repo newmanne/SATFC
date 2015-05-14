@@ -24,7 +24,6 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -36,7 +35,6 @@ import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 /**
  * Created by newmanne on 22/03/15.
  */
-@Slf4j
 public class CacherProxy implements ICacher {
 
     private final RestTemplate restTemplate = CacheUtils.getRestTemplate();
