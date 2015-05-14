@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2015, Auctionomics, Alexandre FrÃ©chette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -21,17 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
-import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
-import com.google.common.io.Files;
-import com.sun.jna.Native;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
@@ -92,10 +83,24 @@ public class SATFCSolverBundle extends ASolverBundle {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
         boolean useCache = serverURL != null;
-        final ClaspLibraryGenerator claspLibraryGenerator = new ClaspLibraryGenerator(aClaspLibraryPath);
-        final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
 
         log.debug("SATFC solver bundle.");
+
+        SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
+
+        log.debug("Initializing base configured clasp solvers.");
+
+        AbstractCompressedSATSolver aUHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+        ISolver UHFClaspBasedSolver = new CompressedSATBasedSolver(aUHFClaspSATsolver, aCompressor, this.getConstraintManager());
+
+        AbstractCompressedSATSolver aHVHFClaspSATsolver = new Clasp3SATSolver(aClaspLibraryPath, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
+        ISolver VHFClaspBasedSolver = new CompressedSATBasedSolver(aHVHFClaspSATsolver, aCompressor, this.getConstraintManager());
+
+        //Chain pre-solving and main solver.
+        final double SATcertifiercutoff = 5;
+
+        ISolver UHFsolver = UHFClaspBasedSolver;
+        ISolver VHFsolver = VHFClaspBasedSolver;
 
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
@@ -109,69 +114,57 @@ public class SATFCSolverBundle extends ASolverBundle {
             containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }
 
-        List<ISolver> parallelUHFSolvers = new ArrayList<>();
-        List<ISolver> parallelVHFSolvers = new ArrayList<>();
-
-        // NOTE: The sorted order of this list matters if there are more solver paths than there are cores (i.e. first in list will go first)
-        // BEGIN PATHS
-        // Path 1 - Hit the cache at the instance level
         if (useCache) {
-            final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCache);// note that there is no need to check cache for UNSAT again, the first one would have caught it
-            final SupersetCacheSATDecorator UHFsupersetCacheSATDecorator = new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCache, cacheCoordinate);
-            parallelUHFSolvers.add(UHFsupersetCacheSATDecorator);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
-        // Path 2 - Decompose the problem and then hit the cache and then clasp
-        if (decompose || underconstrained) {
-            Clasp3Library path2Library = claspLibraryGenerator.createClaspLibrary();
-            ISolver UHFSolver = getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2, path2Library);
-            ISolver VHFSolver = getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path2Library);
-            if (decompose) {
-                // Split into components
-                IComponentGrouper aGrouper = new ConstraintGrouper();
-                log.debug("Decorate solver to split the graph into connected components and then merge the results");
-                UHFSolver = new ConnectedComponentGroupingDecorator(UHFSolver, aGrouper, getConstraintManager());
-                VHFSolver = new ConnectedComponentGroupingDecorator(VHFSolver, aGrouper, getConstraintManager());
-            }
-            if (underconstrained) {
-                //Remove unconstrained stations.
-                log.debug("Decorate solver to first remove underconstrained stations.");
-                UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager());
-                VHFSolver = new UnderconstrainedStationRemoverSolverDecorator(VHFSolver, getConstraintManager());
-            }
-            if (useCache) {
-                UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-                UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
-                UHFSolver = new CacheResultDecorator(UHFSolver, cacher, cacheCoordinate);
-            }
-            parallelUHFSolvers.add(UHFSolver);
-            parallelVHFSolvers.add(VHFSolver);
+        if (decompose)
+        {
+            // Split into components
+            IComponentGrouper aGrouper = new ConstraintGrouper();
+            log.debug("Decorate solver to split the graph into connected components and then merge the results");
+            UHFsolver = new ConnectedComponentGroupingDecorator(UHFsolver, aGrouper, getConstraintManager());
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
 
-        // Path 3 - Presolver
-        if (presolve) {
-            final double SATcertifiercutoff = 5;
+        if (underconstrained)
+        {
+            //Remove unconstrained stations.
+            log.debug("Decorate solver to first remove underconstrained stations.");
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager());
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+        }
+
+        if (presolve)
+        {
             log.debug("Adding neighborhood presolvers.");
-            Clasp3Library path3Library = claspLibraryGenerator.createClaspLibrary();
-            final ConstraintGraphNeighborhoodPresolver UHFconstraintGraphNeighborhoodPresolver = new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, path3Library), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))));
-            parallelUHFSolvers.add(UHFconstraintGraphNeighborhoodPresolver);
+            UHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    )),
+                            UHFsolver
+                    )
+            );
 
-            final ConstraintGraphNeighborhoodPresolver VHFconstraintGraphNeighborhoodPresolver = new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path3Library), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))));
-            parallelVHFSolvers.add(VHFconstraintGraphNeighborhoodPresolver);
+            VHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    )),
+                            VHFsolver
+                    )
+            );
         }
 
-        // Path 4 - Straight to clasp
-        log.debug("Initializing base configured clasp solvers.");
-        Clasp3Library path4Library = claspLibraryGenerator.createClaspLibrary();
-        parallelUHFSolvers.add(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, path4Library));
-        parallelVHFSolvers.add(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path4Library));
-        // END PATHS
-
-        // Init the parallel solvers
-        ISolver UHFsolver = new ParallelSolverComposite(parallelUHFSolvers);
-        ISolver VHFsolver = new ParallelSolverComposite(parallelVHFSolvers);
+        if (useCache) {
+            UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate);
+        }
 
         //Save results, if needed.
         if (aResultFile != null) {
@@ -194,38 +187,6 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
-    }
-
-    private ISolver getClaspSolver(SATCompressor aSATCompressor, String aConfig, Clasp3Library library) {
-        AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(library, aConfig);
-        return new CompressedSATBasedSolver(claspSATsolver, aSATCompressor, this.getConstraintManager());
-    }
-
-    /**
-     * This class returns a fresh, independent clasp library to each thread
-     * We need to use this class because clasp is (probably?) not re-entrant
-     * Because of the way JNA works, we need a new physical copy of the library each time we launch
-     */
-    public static class ClaspLibraryGenerator {
-        private final String libraryPath;
-        private int numClasps;
-
-        public ClaspLibraryGenerator(String libraryPath) {
-            this.libraryPath = libraryPath;
-            numClasps = 0;
-        }
-
-        public Clasp3Library createClaspLibrary() {
-            File origFile = new File(libraryPath);
-            try {
-                File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "." + ++numClasps, Files.getFileExtension(libraryPath));
-                Clasp3Library libCopy = (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class);
-                Files.copy(origFile, copy);
-                return libCopy;
-            } catch (IOException e) {
-                throw new RuntimeException("Couldn't create a copy of clasp!!!");
-            }
-        }
     }
 
     @Override
