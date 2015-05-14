@@ -21,8 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
+import java.util.List;
 import java.util.Optional;
 
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import lombok.extern.slf4j.Slf4j;
 
@@ -107,6 +112,30 @@ public class ContainmentCacheController extends AbstractController {
         }
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate()).get();
         cache.add(instance, request.getResult(), key);
+    }
+
+    @RequestMapping(value = "/filter", method = RequestMethod.POST)
+    @ResponseBody
+    public void filterCache() {
+        ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
+        RedisCacher.ContainmentCacheInitData initCache = cacher.getContainmentCacheInitData();
+        initCache.getCaches().forEach(cacheCoordinate -> {
+            final List<ContainmentCacheSATEntry> SATEntries = initCache.getSATResults().get(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATEntries = initCache.getUNSATResults().get(cacheCoordinate);
+            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
+
+            log.info("Finding SAT entries to be filted at cacheCoordinate " + cacheCoordinate);
+            List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT();
+            log.info("Pruning " + SATPrunables.size() + " SAT entries from Redis");
+            cacher.deleteSATCollection(SATPrunables);
+
+            log.info("Finding UNSAT entries to be filted at cacheCoordinate " + cacheCoordinate);
+            List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
+            log.info("Pruning " + UNSATPrunables.size() + " UNSAT entries from Redis");
+            cacher.deleteUNSATCollection(UNSATPrunables);
+
+            log.info("Filter completed");
+        });
     }
 
 }
