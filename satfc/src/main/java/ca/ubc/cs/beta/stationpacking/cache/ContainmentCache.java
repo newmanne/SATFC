@@ -95,11 +95,15 @@ public class ContainmentCache {
         try {
             final List<String> lines = Resources.readLines(Resources.getResource("precache_permutations.txt"), Charsets.UTF_8);
             final int numPermutations = lines.size();
+            if (lines.size() < 1) {
+                throw new RuntimeException("No permutations provided!");
+            }
             log.debug("Read " + numPermutations + " permutations");
-            permutationsTemp = new int[numPermutations][StationPackingUtils.N_STATIONS];
+            final int permutationSize = Splitter.on(',').trimResults().splitToList(lines.get(0)).size();
+            permutationsTemp = new int[numPermutations][permutationSize];
             for (int i = 0; i < lines.size(); i++) {
                 final List<String> numbers = Splitter.on(',').trimResults().splitToList(lines.get(i));
-                Preconditions.checkState(numbers.size() == StationPackingUtils.N_STATIONS, "Each permutation must have length equal to N_STATIONS");
+                Preconditions.checkState(numbers.size() == permutationSize, "Each permutation must have equal length");
                 for (int j = 0; j < numbers.size(); j++) {
                     permutationsTemp[i][j] = Integer.valueOf(numbers.get(j));
                 }

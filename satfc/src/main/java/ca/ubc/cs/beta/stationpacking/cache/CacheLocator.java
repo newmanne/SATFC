@@ -52,10 +52,11 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
     private final RedisCacher cacher;
     private final Map<CacheCoordinate, ISatisfiabilityCache> caches;
     private final ReadWriteLock readWriteLock;
-    private final ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
+    private final ISatisfiabilityCacheFactory cacheFactory;
 
-    public CacheLocator(RedisCacher cacher) {
+    public CacheLocator(RedisCacher cacher, ISatisfiabilityCacheFactory cacheFactory) {
         this.cacher = cacher;
+        this.cacheFactory = cacheFactory;
         caches = new HashMap<>();
         readWriteLock = new ReentrantReadWriteLock();
     }

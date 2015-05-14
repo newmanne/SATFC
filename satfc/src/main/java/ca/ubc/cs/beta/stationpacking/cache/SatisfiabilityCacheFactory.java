@@ -2,7 +2,10 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -11,20 +14,29 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Charsets;
+import com.google.common.io.Resources;
 import containmentcache.IContainmentCache;
 import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.simple.SimpleBitSetCache;
+import lombok.extern.slf4j.Slf4j;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 
 /**
 * Created by newmanne on 22/04/15.
 */
+@Slf4j
 public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
 
     private static final int SAT_BUFFER_SIZE = 100;
     private static final int UNSAT_BUFFER_SIZE = 3;
-    final Set<Station> universe = IntStream.rangeClosed(1, StationPackingUtils.N_STATIONS).mapToObj(Station::new).collect(toImmutableSet());
+    private final Set<Station> universe;
+
+    public SatisfiabilityCacheFactory(List<String> stationIds) {
+        universe = stationIds.stream().map(Integer::parseInt).sorted().map(Station::new).collect(GuavaCollectors.toImmutableSet());
+    }
 
     @Override
     public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries) {
