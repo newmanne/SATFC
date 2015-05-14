@@ -377,12 +377,6 @@ public class MIPBasedSolver implements ISolver
 	}
 
     @Override
-    public void interrupt() throws UnsupportedOperationException
-    {
-    	log.warn("Interruption not supported with CPLEX based MIP feasibility checker.");
-    }
-
-    @Override
     public void notifyShutdown()
     {
     	

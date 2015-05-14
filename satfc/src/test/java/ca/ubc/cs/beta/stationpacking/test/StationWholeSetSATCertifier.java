@@ -58,11 +58,6 @@ public class StationWholeSetSATCertifier implements IStationSubsetCertifier {
     }
 
     @Override
-    public void interrupt() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void notifyShutdown() {
         throw new UnsupportedOperationException();
     }

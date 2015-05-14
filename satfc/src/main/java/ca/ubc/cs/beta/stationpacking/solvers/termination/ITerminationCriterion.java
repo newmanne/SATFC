@@ -56,5 +56,9 @@ public interface ITerminationCriterion {
 	 * @param aTime - the time the event took to complete.
 	 */
 	public void notifyEvent(double aTime);
-	
+
+    public interface IInterruptibleTerminationCriterion extends ITerminationCriterion {
+        void interrupt();
+    }
+
 }

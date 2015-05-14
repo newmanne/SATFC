@@ -148,9 +148,4 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		log.debug("Not shutting down associated solver as it may be used elsewhere.");
 	}
 
-	@Override
-	public void interrupt() throws UnsupportedOperationException {
-		fSolver.interrupt();
-	}
-
 }

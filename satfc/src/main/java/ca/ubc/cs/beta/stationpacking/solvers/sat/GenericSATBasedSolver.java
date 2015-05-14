@@ -62,8 +62,7 @@ public class GenericSATBasedSolver implements ISolver {
     }
 
     @Override
-    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion,
-                              long aSeed) {
+    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
         Watch watch = Watch.constructAutoStartWatch();
 
@@ -145,12 +144,5 @@ public class GenericSATBasedSolver implements ISolver {
     public void notifyShutdown() {
         fSATSolver.notifyShutdown();
     }
-
-
-    @Override
-    public void interrupt() throws UnsupportedOperationException {
-        fSATSolver.interrupt();
-    }
-
 
 }

@@ -139,9 +139,19 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
 		}
 
-		NeighborIndex<Station, DefaultEdge> constraintGraphNeighborIndex = buildNeighborIndex(aInstance);
+        if (aTerminationCriterion.hasToStop()) {
+            log.debug("All time spent.");
+            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+        }
 
-		SolverData arguments = new SolverData(aInstance, aTerminationCriterion, aSeed, watch);
+        NeighborIndex<Station, DefaultEdge> constraintGraphNeighborIndex = buildNeighborIndex(aInstance);
+
+        if (aTerminationCriterion.hasToStop()) {
+            log.debug("All time spent.");
+            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+        }
+
+        SolverData arguments = new SolverData(aInstance, aTerminationCriterion, aSeed, watch);
 		SolverResult combinedResult = runPresolver(arguments, missingStations, constraintGraphNeighborIndex);
 		
 		logResult(combinedResult);
@@ -281,14 +291,6 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
         }
 
 		return false;
-	}
-
-	@Override
-	public void interrupt() throws UnsupportedOperationException {
-		for(IStationSubsetCertifier certifier : fCertifiers)
-		{
-			certifier.interrupt();
-		}
 	}
 
 	@Override

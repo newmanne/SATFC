@@ -22,6 +22,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.InterruptibleTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 
 import com.google.common.io.Resources;
@@ -60,19 +61,18 @@ public class Clasp3SATSolverTest {
         clasp3SATSolver.solve(hardCNF, terminationCriterion, 1);
     }
 
-    @Test
+    @Test(timeout = 3000)
     public void testInterrupt() {
         final Clasp3SATSolver clasp3SATSolver = new Clasp3SATSolver(libraryPath, parameters);
-        final ITerminationCriterion terminationCriterion = new CPUTimeTerminationCriterion(60.0);
-//        new Thread(() -> {
-//            try {
-//                Thread.sleep(1500);
-//            } catch (InterruptedException e) {
-//                log.error("Sleep interrupted?", e);
-//            }
-//            log.info("Interrupting!");
-//            clasp3SATSolver.interrupt();
-//        }).start();
+        final ITerminationCriterion.IInterruptibleTerminationCriterion terminationCriterion = new InterruptibleTerminationCriterion(new CPUTimeTerminationCriterion(60.0));
+        new Thread(() -> {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                log.error("Sleep interrupted?", e);
+            }
+            terminationCriterion.interrupt();
+        }).start();
         clasp3SATSolver.solve(hardCNF, terminationCriterion, 1);
     }
 

@@ -79,20 +79,11 @@ public class SequentialSolversComposite implements ISolver{
 	}
 
 	@Override
-	public void interrupt() throws UnsupportedOperationException {
-		for(ISolver solver : fSolvers)
-		{
-			solver.interrupt();
-		}
-	}
-
-	@Override
 	public void notifyShutdown() {
 		for(ISolver solver : fSolvers)
 		{
 			solver.notifyShutdown();
 		}
-		
 	}
 
 

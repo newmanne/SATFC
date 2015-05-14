@@ -69,11 +69,17 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 	@Override
 	public SolverResult solve(StationPackingInstance aInstance,
 			ITerminationCriterion aTerminationCriterion, long aSeed) {
-		
 		Watch watch = Watch.constructAutoStartWatch();
-
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
+        if (aTerminationCriterion.hasToStop()) {
+            log.debug("All time spent.");
+            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+        }
 		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains);
+        if (aTerminationCriterion.hasToStop()) {
+            log.debug("All time spent.");
+            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+        }
 		SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
 		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
 

@@ -33,7 +33,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
     private Clasp3Library fClaspLibrary;
     private String fParameters;
-    private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(1, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
+    private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
         fClaspLibrary = (Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class);
@@ -75,7 +75,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         final long MY_REQUEST_ID = currentRequestID.incrementAndGet();
         final int seed = Math.abs(new Random(aSeed).nextInt());
         final String params = fParameters + " --seed=" + seed;
-        try  {
+        try {
             // create the problem - config params have already been validated in the constructor, so this should work
             if (currentProblemPointer != null) {
                 throw new IllegalStateException("Went to solve a new problem, but there is a problem in progress!");
@@ -104,6 +104,26 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                             System.exit(AEATKReturnValues.OH_THE_HUMANITY_EXCEPTION);
                         }
                     }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
+
+            final int SCHEDULING_FREQUENCY_IN_SECONDS = 1;
+            Future<?> interruptFuture = fTimerService.schedule(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                lock.lock();
+                                if (MY_REQUEST_ID == currentRequestID.get() && isCurrentlySolving.get() && aTerminationCriterion.hasToStop()) {
+                                    log.debug("Interrupting clasp");
+                                    fClaspLibrary.interrupt(currentProblemPointer);
+                                    log.debug("Back from interrupting clasp");
+                                } else {
+                                    fTimerService.schedule(this, SCHEDULING_FREQUENCY_IN_SECONDS, TimeUnit.SECONDS);
+                                }
+                            } finally {
+                                lock.unlock();
+                            }
+                        }
+                    }, SCHEDULING_FREQUENCY_IN_SECONDS, TimeUnit.SECONDS);
 
             // Start solving
             log.debug("Send problem to clasp cutting off after " + cutoff + "s");
@@ -138,11 +158,11 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            log.debug("Incrementing job number");
-            currentRequestID.incrementAndGet();
 
             log.debug("Cancelling suicide future.");
             suicideFuture.cancel(true);
+            log.debug("Cancelling interrupt future.");
+            interruptFuture.cancel(true);
 
             final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime() + preTime + postTime, assignment);
             log.debug("Returning result: {}.", output);
@@ -154,18 +174,6 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 currentProblemPointer = null;
             }
         }
-
-    }
-
-    private void interrupt() throws UnsupportedOperationException {
-        // can only interrupt if there is a current solve in progress, otherwise it is not safe to do so
-        lock.lock();
-        if (isCurrentlySolving.get()) {
-            log.debug("Interrupting clasp");
-            fClaspLibrary.interrupt(currentProblemPointer);
-            log.debug("Back from interrupting clasp");
-        }
-        lock.unlock();
     }
 
     @Override

@@ -49,15 +49,9 @@ public abstract class ASolverDecorator implements ISolver{
 	}
 	
 	@Override
-	public void interrupt() throws UnsupportedOperationException
-	{
-		fDecoratedSolver.interrupt();
-	}
-
-	@Override
 	public void notifyShutdown()
 	{
-		fDecoratedSolver.interrupt();
+		fDecoratedSolver.notifyShutdown();
 	}
 	
 }

@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.Arrays;
 
 import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
