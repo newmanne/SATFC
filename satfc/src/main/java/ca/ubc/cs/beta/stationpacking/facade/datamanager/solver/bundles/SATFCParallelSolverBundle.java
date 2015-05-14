@@ -216,7 +216,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         public Clasp3Library createClaspLibrary() {
             File origFile = new File(libraryPath);
             try {
-                File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "." + ++numClasps, Files.getFileExtension(libraryPath));
+                File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, Files.getFileExtension(libraryPath));
                 Clasp3Library libCopy = (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class);
                 Files.copy(origFile, copy);
                 return libCopy;

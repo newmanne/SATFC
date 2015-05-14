@@ -95,7 +95,7 @@ public class SATFCFacadeExecutor {
             e.printStackTrace();
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         } catch (UnsatisfiedLinkError e) {
-            log.error("Couldn't initialize facade, see previous log messages and/or try logging with DEBUG.");
+            log.error("Couldn't initialize facade, see previous log messages and/or try logging with DEBUG.", e);
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         } catch (Throwable t) {
             log.error("Throwable encountered ({})", t.getMessage());
