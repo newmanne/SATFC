@@ -94,10 +94,24 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
         return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
     }
 
+    /**
+     * Abstraction around ssaving CNF files
+     */
     public interface ICNFSaver {
 
+        /**
+         *
+         * @param instanceName Name of the instance
+         * @param CNFName Name of the CNF
+         * @param CNFContents CNF contents as a string
+         */
         void saveCNF(String instanceName, String CNFName, String CNFContents);
 
+        /**
+         *
+         * @param CNFName Name of the CNF
+         * @param assignmentContents Assignment contents as string
+         */
         void saveAssignment(String CNFName, String assignmentContents);
 
     }
