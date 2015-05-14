@@ -14,7 +14,6 @@ public class ContainmentCacheSATEntryTest {
     // stations and channels
     private Station s1 = new Station(1);
     private Station s2 = new Station(2);
-    private Station s3 = new Station(3);
     private Integer c1 = 1;
     private Integer c2 = 2;
     private Integer c3 = 3;
@@ -28,7 +27,7 @@ public class ContainmentCacheSATEntryTest {
         String key = "key";
         ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(asgmnt, key);
 
-        Assert.assertFalse(entry.isSupersetOf(entry));
+        Assert.assertFalse(entry.hasMoreSolvingPower(entry));
     }
 
     /**
@@ -47,7 +46,7 @@ public class ContainmentCacheSATEntryTest {
         String k2 = "k2";
         ContainmentCacheSATEntry supersetEntry = new ContainmentCacheSATEntry(asgmnt2, k2);
 
-        Assert.assertTrue(supersetEntry.isSupersetOf(subsetEntry));
+        Assert.assertTrue(supersetEntry.hasMoreSolvingPower(subsetEntry));
     }
 
     /**
@@ -65,8 +64,8 @@ public class ContainmentCacheSATEntryTest {
         String k2 = "k2";
         ContainmentCacheSATEntry e2 = new ContainmentCacheSATEntry(asgmnt2, k2);
 
-        Assert.assertTrue(e1.isSupersetOf(e2));
-        Assert.assertTrue(e2.isSupersetOf(e1));
+        Assert.assertTrue(e1.hasMoreSolvingPower(e2));
+        Assert.assertTrue(e2.hasMoreSolvingPower(e1));
     }
 
     /**
@@ -84,8 +83,8 @@ public class ContainmentCacheSATEntryTest {
         String k2 = "k2";
         ContainmentCacheSATEntry e2 = new ContainmentCacheSATEntry(asgmnt2, k2);
 
-        Assert.assertFalse(e1.isSupersetOf(e2));
-        Assert.assertFalse(e2.isSupersetOf(e1));
+        Assert.assertFalse(e1.hasMoreSolvingPower(e2));
+        Assert.assertFalse(e2.hasMoreSolvingPower(e1));
     }
 
     /**
@@ -105,8 +104,8 @@ public class ContainmentCacheSATEntryTest {
         String k2 = "k2";
         ContainmentCacheSATEntry e2 = new ContainmentCacheSATEntry(asgmnt2, k2);
 
-        Assert.assertFalse(e1.isSupersetOf(e2));
-        Assert.assertFalse(e2.isSupersetOf(e1));
+        Assert.assertFalse(e1.hasMoreSolvingPower(e2));
+        Assert.assertFalse(e2.hasMoreSolvingPower(e1));
     }
 
 }

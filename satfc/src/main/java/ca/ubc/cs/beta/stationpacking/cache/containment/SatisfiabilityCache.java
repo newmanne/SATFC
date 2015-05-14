@@ -6,8 +6,7 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfi
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import containmentcache.IContainmentCache;
-import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
+import containmentcache.ILockableContainmentCache;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -19,13 +18,13 @@ import java.util.stream.StreamSupport;
 @Slf4j
 public class SatisfiabilityCache implements ISatisfiabilityCache {
 
-    public SatisfiabilityCache(IContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,IContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
-        SATCache = (BufferedThreadSafeCacheDecorator<Station, ContainmentCacheSATEntry>) aSATCache;
-        UNSATCache = (BufferedThreadSafeCacheDecorator<Station, ContainmentCacheUNSATEntry>) aUNSATCache;
-    }
+    final ILockableContainmentCache SATCache;
+    final ILockableContainmentCache UNSATCache;
 
-    final BufferedThreadSafeCacheDecorator<Station, ContainmentCacheSATEntry> SATCache;
-    final BufferedThreadSafeCacheDecorator<Station, ContainmentCacheUNSATEntry> UNSATCache;
+    public SatisfiabilityCache(ILockableContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
+        SATCache = aSATCache;
+        UNSATCache = aUNSATCache;
+    }
 
     @Override
     public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
@@ -99,19 +98,24 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
-        satEntries.forEach(cacheEntry -> {
-            Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
-            Optional<ContainmentCacheSATEntry> foundSuperset =
-                    StreamSupport.stream(supersets.spliterator(), false)
-                            .filter(entry -> entry.isSupersetOf(cacheEntry))
-                            .findAny();
-            if (foundSuperset.isPresent()) {
-                prunableEntries.add(cacheEntry);
-                if (prunableEntries.size() % 2000 == 0) {
-                    log.info("Found " + prunableEntries.size() + " prunables");
+        try{
+            SATCache.getReadLock().lock();
+            satEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
+                Optional<ContainmentCacheSATEntry> foundSuperset =
+                        StreamSupport.stream(supersets.spliterator(), false)
+                                .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
+                                .findAny();
+                if (foundSuperset.isPresent()) {
+                    prunableEntries.add(cacheEntry);
+                    if (prunableEntries.size() % 2000 == 0) {
+                        log.info("Found " + prunableEntries.size() + " prunables");
+                    }
                 }
-            }
-        });
+            });
+        } finally {
+            SATCache.getReadLock().unlock();
+        }
 
         prunableEntries.forEach(entry -> SATCache.remove(entry));
         return prunableEntries;
@@ -126,18 +130,23 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
-        unsatEntries.forEach(cacheEntry -> {
-            Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
-            // For two UNSAT problems P and Q, if Q has less stations to pack,
-            // and each station has more candidate channels, then Q is less restrictive than P
-            Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
-                    StreamSupport.stream(subsets.spliterator(), false)
-                            .filter(entry -> entry.isLessRestrictive(cacheEntry))
-                            .findAny();
-            if (lessRestrictiveUNSAT.isPresent()) {
-                prunableEntries.add(cacheEntry);
-            }
-        });
+        try {
+            UNSATCache.getReadLock().lock();
+            unsatEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
+                // For two UNSAT problems P and Q, if Q has less stations to pack,
+                // and each station has more candidate channels, then Q is less restrictive than P
+                Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
+                        StreamSupport.stream(subsets.spliterator(), false)
+                                .filter(entry -> entry.isLessRestrictive(cacheEntry))
+                                .findAny();
+                if (lessRestrictiveUNSAT.isPresent()) {
+                    prunableEntries.add(cacheEntry);
+                }
+            });
+        } finally {
+            UNSATCache.getReadLock().unlock();
+        }
 
         prunableEntries.forEach(entry -> UNSATCache.remove(entry));
         return prunableEntries;

@@ -59,8 +59,10 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station> {
     }
 
     /*
-     * returns true if this SAT entry is strictly a superset of the cacheEntry
-     * SAT entry with same key is not considered as a superset
+     * returns true if this UNSAT entry is less restrictive than the cacheEntry
+     * this UNSAT entry is less restrictive cacheEntry if this UNSAT has same or less stations than cacheEntry
+     * and each each stations has same or more candidate channels than the corresponding station in cacheEntry
+     * UNSAT entry with same key is not considered
      */
     public boolean isLessRestrictive(ContainmentCacheUNSATEntry cacheEntry) {
         // skip checking against itself
@@ -72,12 +74,9 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station> {
                 // each station in lessRes has same or more candidate channels than the corresponding station in moreRes
                 return StreamSupport.stream(lessRes.keySet().spliterator(), false)
                         .allMatch(station -> lessRes.get(station).containsAll(moreRes.get(station)));
-            } else {
-                return false;
             }
-        } else {
-            return false;
         }
+        return false;
     }
 
 }

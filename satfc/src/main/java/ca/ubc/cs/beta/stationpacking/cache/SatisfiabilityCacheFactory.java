@@ -7,6 +7,7 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import containmentcache.IContainmentCache;
+import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.simple.SimpleBitSetCache;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 
@@ -31,7 +32,7 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
         SATCache.addAll(SATEntries);
         final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), UNSAT_BUFFER_SIZE);
         UNSATCache.addAll(UNSATEntries);
-        return new SatisfiabilityCache(SATCache, UNSATCache);
+        return new SatisfiabilityCache((ILockableContainmentCache<Station, ContainmentCacheSATEntry>)SATCache, (ILockableContainmentCache<Station, ContainmentCacheUNSATEntry>)UNSATCache);
     }
 
 }
