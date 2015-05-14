@@ -36,7 +36,11 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
-        fClaspLibrary = (Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class);
+        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class), parameters);
+    }
+
+    public Clasp3SATSolver(Clasp3Library library, String parameters) {
+        fClaspLibrary = library;
         fParameters = parameters;
         // set the info about parameters, throw an exception if seed is contained.
         if (parameters.contains("--seed")) {

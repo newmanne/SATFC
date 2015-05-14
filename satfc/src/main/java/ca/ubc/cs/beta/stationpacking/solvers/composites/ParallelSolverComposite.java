@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.composites;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 
@@ -24,12 +25,12 @@ public class ParallelSolverComposite implements ISolver {
     Collection<ISolver> solvers;
     private final ForkJoinPool forkJoinPool;
 
-    public ParallelSolverComposite(int threadPoolSize, Collection<ISolver> solvers) {
+    public ParallelSolverComposite(int threadPoolSize, List<ISolver> solvers) {
         this.solvers = new ArrayList<>(solvers);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
     }
 
-    public ParallelSolverComposite(Collection<ISolver> solvers) {
+    public ParallelSolverComposite(List<ISolver> solvers) {
         this(Runtime.getRuntime().availableProcessors(), solvers);
     }
 
