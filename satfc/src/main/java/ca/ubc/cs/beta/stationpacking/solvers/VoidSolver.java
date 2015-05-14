@@ -15,11 +15,6 @@ public class VoidSolver implements ISolver {
     }
 
     @Override
-    public void interrupt() throws UnsupportedOperationException {
-
-    }
-
-    @Override
     public void notifyShutdown() {
 
     }

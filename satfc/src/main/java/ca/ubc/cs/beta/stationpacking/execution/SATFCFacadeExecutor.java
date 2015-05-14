@@ -23,7 +23,6 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
 
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +36,7 @@ import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProb
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;

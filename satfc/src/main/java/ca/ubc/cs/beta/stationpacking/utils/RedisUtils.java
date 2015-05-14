@@ -1,10 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.utils;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 /**
  * Created by newmanne on 11/05/15.
