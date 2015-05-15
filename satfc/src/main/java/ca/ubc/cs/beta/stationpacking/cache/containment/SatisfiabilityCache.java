@@ -8,11 +8,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.IContainmentCache;
 import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
-import containmentcache.ILockableContainmentCache;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.*;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by newmanne on 19/04/15.
