@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -216,10 +217,9 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         public Clasp3Library createClaspLibrary() {
             File origFile = new File(libraryPath);
             try {
-                File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, Files.getFileExtension(libraryPath));
-                Clasp3Library libCopy = (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class);
+                File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, "." + Files.getFileExtension(libraryPath));
                 Files.copy(origFile, copy);
-                return libCopy;
+                return (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class);
             } catch (IOException e) {
                 throw new RuntimeException("Couldn't create a copy of clasp!!!");
             }

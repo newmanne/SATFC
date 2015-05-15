@@ -66,6 +66,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private final AtomicLong currentRequestID = new AtomicLong(1);
     private final Lock lock = new ReentrantLock();
     private Pointer currentProblemPointer;
+    // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean();
 
     /*
@@ -162,6 +163,8 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
+            log.debug("Incrementing job srpkToCnfIndex.");
+            currentRequestID.incrementAndGet();
 
             log.debug("Cancelling suicide future.");
             suicideFuture.cancel(true);
@@ -174,6 +177,9 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         } finally {
             if (currentProblemPointer != null) {
                 log.trace("Destroying problem");
+                lock.lock();
+                isCurrentlySolving.set(false);
+                lock.unlock();
                 fClaspLibrary.destroyProblem(currentProblemPointer);
                 currentProblemPointer = null;
             }
