@@ -98,8 +98,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
+        SATCache.getReadLock().lock();
         try{
-            SATCache.getReadLock().lock();
             satEntries.forEach(cacheEntry -> {
                 Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
                 Optional<ContainmentCacheSATEntry> foundSuperset =
@@ -113,8 +113,6 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                     }
                 }
             });
-        } catch (Exception e){
-            log.info("Exception during filterSAT " + e.getMessage());
         } finally {
             SATCache.getReadLock().unlock();
         }
@@ -132,8 +130,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
+        UNSATCache.getReadLock().lock();
         try {
-            UNSATCache.getReadLock().lock();
             unsatEntries.forEach(cacheEntry -> {
                 Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
                 // For two UNSAT problems P and Q, if Q has less stations to pack,
@@ -146,8 +144,6 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                     prunableEntries.add(cacheEntry);
                 }
             });
-        } catch (Exception e){
-            log.info("Exception during filterUNSAT " + e.getMessage());
         } finally {
             UNSATCache.getReadLock().unlock();
         }
