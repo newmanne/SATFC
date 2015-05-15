@@ -13,8 +13,9 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import containmentcache.IContainmentCache;
-import containmentcache.bitset.SimpleBitSetCache;
-import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
+import containmentcache.ILockableContainmentCache;
+import containmentcache.bitset.simple.SimpleBitSetCache;
+import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 
 /**
 * Created by newmanne on 22/04/15.
@@ -27,11 +28,11 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
 
     @Override
     public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries) {
-        final IContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeContainmentCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), SAT_BUFFER_SIZE);
+        final IContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), SAT_BUFFER_SIZE);
         SATCache.addAll(SATEntries);
-        final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeContainmentCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), UNSAT_BUFFER_SIZE);
+        final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), UNSAT_BUFFER_SIZE);
         UNSATCache.addAll(UNSATEntries);
-        return new SatisfiabilityCache(SATCache, UNSATCache);
+        return new SatisfiabilityCache((ILockableContainmentCache<Station, ContainmentCacheSATEntry>)SATCache, (ILockableContainmentCache<Station, ContainmentCacheUNSATEntry>)UNSATCache);
     }
 
 }

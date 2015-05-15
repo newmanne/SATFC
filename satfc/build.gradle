@@ -53,7 +53,7 @@ dependencies {
     compile "org.springframework:spring-web:$springVersion"
 
     // Containment cache
-    compile 'ca.ubc.cs.beta:ContainmentCache:0.9'
+    compile 'ca.ubc.cs.beta:ContainmentCache:0.91'
 
     // Test dependencies.
     testCompile 'junit:junit:4.11'

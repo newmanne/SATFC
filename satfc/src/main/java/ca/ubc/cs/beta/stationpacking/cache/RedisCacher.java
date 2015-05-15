@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,9 +46,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -182,6 +179,27 @@ public class RedisCacher {
         public Set<CacheCoordinate> getCaches() {
             return Sets.union(SATResults.keySet(), UNSATResults.keySet());
         }
+    }
+
+
+    /**
+     * Removes the cache entries in Redis
+     * @param collection collection of SAT entries
+     */
+    public void deleteSATCollection(List<ContainmentCacheSATEntry> collection){
+        List<String> keys = new ArrayList<>();
+        collection.forEach(entry -> keys.add(entry.getKey()));
+        redisTemplate.delete(keys);
+    }
+
+    /**
+     * Removes the cache entries in Redis
+     * @param collection collection of UNSAT entries
+     */
+    public void deleteUNSATCollection(List<ContainmentCacheUNSATEntry> collection){
+        List<String> keys = new ArrayList<>();
+        collection.forEach(entry -> keys.add(entry.getKey()));
+        redisTemplate.delete(keys);
     }
 
 }

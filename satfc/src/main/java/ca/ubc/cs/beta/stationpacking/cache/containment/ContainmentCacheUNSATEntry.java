@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -57,5 +58,25 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station> {
         return bitSet.stream().mapToObj(Station::new).collect(GuavaCollectors.toImmutableSet());
     }
 
+    /*
+     * returns true if this UNSAT entry is less restrictive than the cacheEntry
+     * this UNSAT entry is less restrictive cacheEntry if this UNSAT has same or less stations than cacheEntry
+     * and each each stations has same or more candidate channels than the corresponding station in cacheEntry
+     * UNSAT entry with same key is not considered
+     */
+    public boolean isLessRestrictive(ContainmentCacheUNSATEntry cacheEntry) {
+        // skip checking against itself
+        if (!this.getKey().equals(cacheEntry.getKey())) {
+            Map<Station, Set<Integer>> moreRes = cacheEntry.domains;
+            Map<Station, Set<Integer>> lessRes = this.domains;
+            // lessRes has less stations to pack
+            if (moreRes.keySet().containsAll(lessRes.keySet())) {
+                // each station in lessRes has same or more candidate channels than the corresponding station in moreRes
+                return StreamSupport.stream(lessRes.keySet().spliterator(), false)
+                        .allMatch(station -> lessRes.get(station).containsAll(moreRes.get(station)));
+            }
+        }
+        return false;
+    }
 
 }

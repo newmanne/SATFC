@@ -25,6 +25,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -96,5 +97,24 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     @Override
     public Set<Station> getElements() {
         return bitSet.stream().mapToObj(Station::new).collect(GuavaCollectors.toImmutableSet());
+    }
+
+    /*
+     * returns true if this SAT entry is a superset of the cacheEntry, hence this SAT has more solving power than cacheEntry
+     * this SAT entry is superset of the cacheEntry if this SAT has same or more channels than cacheEntry
+     * and each each channel covers same or more stations than the corresponding channel in cacheEntry
+     * SAT entry with same key is not considered as a superset
+     */
+    public boolean hasMoreSolvingPower(ContainmentCacheSATEntry cacheEntry) {
+        // skip checking against itself
+        if (!this.getKey().equals(cacheEntry.getKey())) {
+            Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
+            Map<Integer, Set<Station>> superset = this.getAssignmentChannelToStation();
+            if (superset.keySet().containsAll(subset.keySet())) {
+                return StreamSupport.stream(subset.keySet().spliterator(), false)
+                        .allMatch(channel -> superset.get(channel).containsAll(subset.get(channel)));
+            }
+        }
+        return false;
     }
 }

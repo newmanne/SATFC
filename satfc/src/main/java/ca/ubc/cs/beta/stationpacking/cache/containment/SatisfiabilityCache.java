@@ -17,15 +17,16 @@ import containmentcache.decorators.BufferedThreadSafeContainmentCacheDecorator;
 /**
  * Created by newmanne on 19/04/15.
  */
+@Slf4j
 public class SatisfiabilityCache implements ISatisfiabilityCache {
 
-    public SatisfiabilityCache(IContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,IContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
-        SATCache = (BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheSATEntry>) aSATCache;
-        UNSATCache = (BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheUNSATEntry>) aUNSATCache;
-    }
+    final ILockableContainmentCache SATCache;
+    final ILockableContainmentCache UNSATCache;
 
-    final BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheSATEntry> SATCache;
-    final BufferedThreadSafeContainmentCacheDecorator<Station, ContainmentCacheUNSATEntry> UNSATCache;
+    public SatisfiabilityCache(ILockableContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
+        SATCache = aSATCache;
+        UNSATCache = aUNSATCache;
+    }
 
     @Override
     public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
@@ -88,6 +89,69 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
             final Set<Integer> integers = a.get(entry.getKey());
             return integers != null && integers.containsAll(entry.getValue());
         });
+    }
+
+    /**
+     * removes redundant SAT entries from this SATCache
+     * @return list of cache entries to be removed
+     */
+    @Override
+    public List<ContainmentCacheSATEntry> filterSAT(){
+        List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
+        Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
+
+        SATCache.getReadLock().lock();
+        try{
+            satEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
+                Optional<ContainmentCacheSATEntry> foundSuperset =
+                        StreamSupport.stream(supersets.spliterator(), false)
+                                .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
+                                .findAny();
+                if (foundSuperset.isPresent()) {
+                    prunableEntries.add(cacheEntry);
+                    if (prunableEntries.size() % 2000 == 0) {
+                        log.info("Found " + prunableEntries.size() + " prunables");
+                    }
+                }
+            });
+        } finally {
+            SATCache.getReadLock().unlock();
+        }
+
+        prunableEntries.forEach(entry -> SATCache.remove(entry));
+        return prunableEntries;
+    }
+
+    /**
+     * removes redundant UNSAT entries from this UNSATCache
+     * @return list of cache entries to be removed
+     */
+    @Override
+    public List<ContainmentCacheUNSATEntry> filterUNSAT(){
+        List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
+        Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
+
+        UNSATCache.getReadLock().lock();
+        try {
+            unsatEntries.forEach(cacheEntry -> {
+                Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
+                // For two UNSAT problems P and Q, if Q has less stations to pack,
+                // and each station has more candidate channels, then Q is less restrictive than P
+                Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
+                        StreamSupport.stream(subsets.spliterator(), false)
+                                .filter(entry -> entry.isLessRestrictive(cacheEntry))
+                                .findAny();
+                if (lessRestrictiveUNSAT.isPresent()) {
+                    prunableEntries.add(cacheEntry);
+                }
+            });
+        } finally {
+            UNSATCache.getReadLock().unlock();
+        }
+
+        prunableEntries.forEach(entry -> UNSATCache.remove(entry));
+        return prunableEntries;
     }
 
 }
