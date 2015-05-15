@@ -113,6 +113,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                     }
                 }
             });
+        } catch (Exception e){
+            log.info("Exception during filterSAT " + e.getMessage());
         } finally {
             SATCache.getReadLock().unlock();
         }
@@ -144,6 +146,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                     prunableEntries.add(cacheEntry);
                 }
             });
+        } catch (Exception e){
+            log.info("Exception during filterUNSAT " + e.getMessage());
         } finally {
             UNSATCache.getReadLock().unlock();
         }
