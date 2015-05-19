@@ -63,7 +63,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	public static final int A_FEW_MISSING_STATIONS = 10;
 	// TODO: This arbitrary constant needs to be validated empirically.
 	public static final int MAX_MISSING_STATIONS = 20;
-	public static final int UNLIMITED_NEIGHBOR_LAYERS = 0;
+	public static final int UNLIMITED_NEIGHBOR_LAYERS = -1;
 
 	private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
 	
@@ -72,8 +72,14 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	private final int maxLayersOfNeighbors;
 
 	/**
+	 * <p>
 	 * Produces a presolver, whose default behavior is to exhaustively search neighbors of neighbors until there
 	 * 	are no more neighbors left to add (unless a SAT solution is found first).
+	 * </p>
+	 * <p>
+	 *     The equivalent of calling the three-parameter constructor, with
+	 *     {@link ConstraintGraphNeighborhoodPresolver#UNLIMITED_NEIGHBOR_LAYERS} as the third argument.
+	 * </p>
 	 * @param aConstraintManager - indicates the interference constraints between stations.
 	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
 	 */
@@ -85,8 +91,10 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	/**
 	 * @param aConstraintManager - indicates the interference constraints between stations.
 	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
-	 * @param maxLayersOfNeighbors - a natural number specifying the maximum number of layers of neighbors that the
-	 *                             presolver should explore. The number 0 indicates that the presolver should
+	 * @param maxLayersOfNeighbors - a positive number specifying the maximum number of layers of neighbors that the
+	 *                             presolver should explore. The value
+	 *                             {@link ConstraintGraphNeighborhoodPresolver#UNLIMITED_NEIGHBOR_LAYERS}
+	 *                             indicates that the presolver should
 	 *                             exhaustively search neighbors of neighbors until there are no more neighbors left
 	 *                             to add (unless a SAT solution is found first).
 	 */
@@ -94,6 +102,10 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 												int maxLayersOfNeighbors) {
 		this.fConstraintManager = aConstraintManager;
 		this.fCertifiers = aCertifiers;
+		if (maxLayersOfNeighbors < 0 && maxLayersOfNeighbors != UNLIMITED_NEIGHBOR_LAYERS) {
+			throw new IllegalArgumentException("Maximum number of neighbor layers must be non-negative. " +
+					"Value specified was " + maxLayersOfNeighbors );
+		}
 		this.maxLayersOfNeighbors = maxLayersOfNeighbors;
 	}
 

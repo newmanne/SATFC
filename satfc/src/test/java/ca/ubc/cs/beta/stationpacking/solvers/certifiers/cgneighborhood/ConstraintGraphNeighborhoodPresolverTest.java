@@ -58,6 +58,8 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 	@Test
 	public void testMaxNumberOfNeighborLayers() throws Exception {
 		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
+				0, 0, SATResult.TIMEOUT);
+		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
 				1, 1, SATResult.TIMEOUT);
 		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
 				2, 2, SATResult.TIMEOUT);
@@ -100,7 +102,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
         testGraph(graphLoader.getClique(), new Station(0), 1);
         // We verify that our method doesn't care about whether the graph specified is a CO or ADJ interference graph 
         testGraph(graphLoader.getEmptyGraph(), graphLoader.getClique(), Collections.singleton(new Station(0)),
-				0, 1, SATResult.SAT);
+				ConstraintGraphNeighborhoodPresolver.UNLIMITED_NEIGHBOR_LAYERS, 1, SATResult.SAT);
     }
 	
 	@Test
@@ -211,7 +213,8 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 	private void testGraph(SimpleGraph<Station, DefaultEdge> graph, Set<Station> startingStations, 
 			int numberOfTimesToCall, SATResult expectedResult) 
 	{
-		testGraph(graph, graphLoader.getEmptyGraph(), startingStations, 0, numberOfTimesToCall, expectedResult);
+		testGraph(graph, graphLoader.getEmptyGraph(), startingStations,
+				ConstraintGraphNeighborhoodPresolver.UNLIMITED_NEIGHBOR_LAYERS, numberOfTimesToCall, expectedResult);
 	}
 	
 	/**
