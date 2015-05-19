@@ -88,7 +88,8 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	 *                             exhaustively search neighbors of neighbors until there are no more neighbors left
 	 *                             to add (unless a SAT solution is found first).
 	 */
-	public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers, int maxLayersOfNeighbors) {
+	public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers,
+												int maxLayersOfNeighbors) {
 		this.fConstraintManager = aConstraintManager;
 		this.fCertifiers = aCertifiers;
 		this.maxLayersOfNeighbors = maxLayersOfNeighbors;

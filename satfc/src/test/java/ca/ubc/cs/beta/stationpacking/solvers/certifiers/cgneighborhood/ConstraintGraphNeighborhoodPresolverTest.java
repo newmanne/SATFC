@@ -6,6 +6,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.GraphBackedConstra
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.ISATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 import ca.ubc.cs.beta.stationpacking.test.StationWholeSetSATCertifier;
@@ -53,8 +54,20 @@ public class ConstraintGraphNeighborhoodPresolverTest {
     	// We expect the solver to return immediately since the previous assignment will be empty.
     	testGraph(graphLoader.getEmptyGraph(), Collections.emptySet(), 0, SATResult.TIMEOUT);
     }
-    
-    @Test
+
+	@Test
+	public void testMaxNumberOfNeighborLayers() throws Exception {
+		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
+				1, 1, SATResult.TIMEOUT);
+		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
+				2, 2, SATResult.TIMEOUT);
+		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
+				3, 3, SATResult.TIMEOUT);
+		testGraph(graphLoader.getBigConnectedGraph(), graphLoader.getEmptyGraph(), Collections.singleton(new Station(0)),
+				4, 4, SATResult.SAT);
+	}
+
+	@Test
     public void testSingletonGraph() throws Exception {
     	SimpleGraph<Station, DefaultEdge> singleton = new SimpleGraph<>(DefaultEdge.class);
     	Station singleStation = new Station(0);
@@ -86,7 +99,8 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 		// Testing a fully connected graph ensures that the neighbor search excludes any nodes that have already been added.
         testGraph(graphLoader.getClique(), new Station(0), 1);
         // We verify that our method doesn't care about whether the graph specified is a CO or ADJ interference graph 
-        testGraph(graphLoader.getEmptyGraph(), graphLoader.getClique(), Collections.singleton(new Station(0)), 1, SATResult.SAT);
+        testGraph(graphLoader.getEmptyGraph(), graphLoader.getClique(), Collections.singleton(new Station(0)),
+				0, 1, SATResult.SAT);
     }
 	
 	@Test
@@ -197,7 +211,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 	private void testGraph(SimpleGraph<Station, DefaultEdge> graph, Set<Station> startingStations, 
 			int numberOfTimesToCall, SATResult expectedResult) 
 	{
-		testGraph(graph, graphLoader.getEmptyGraph(), startingStations, numberOfTimesToCall, expectedResult);
+		testGraph(graph, graphLoader.getEmptyGraph(), startingStations, 0, numberOfTimesToCall, expectedResult);
 	}
 	
 	/**
@@ -209,7 +223,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 	 * @param expectedResult - the SATResult we expect to receive from the solver.
 	 */
 	private void testGraph(SimpleGraph<Station, DefaultEdge> coGraph, SimpleGraph<Station, DefaultEdge> adjGraph, 
-			Set<Station> startingStations, int expectedNumberOfLayers, SATResult expectedResult )
+			Set<Station> startingStations, int maxLayersOfNeighbors, int expectedNumberOfLayers, SATResult expectedResult )
 	{
 		IConstraintManager constraintManager = new GraphBackedConstraintManager(coGraph, adjGraph);
         
@@ -217,7 +231,8 @@ public class ConstraintGraphNeighborhoodPresolverTest {
         StationWholeSetSATCertifier certifier = new StationWholeSetSATCertifier(Arrays.asList(coGraph, adjGraph), startingStations);
         List<IStationSubsetCertifier> certifierList = Collections.singletonList(certifier);
 
-        ConstraintGraphNeighborhoodPresolver presolver = new ConstraintGraphNeighborhoodPresolver(constraintManager, certifierList);
+        ConstraintGraphNeighborhoodPresolver presolver =
+				new ConstraintGraphNeighborhoodPresolver(constraintManager, certifierList, maxLayersOfNeighbors);
         SolverResult result = presolver.solve(instance, mockTerminationCriterion, arbitrarySeed);
         assertEquals(expectedNumberOfLayers, certifier.getNumberOfTimesCalled());
         assertEquals(expectedResult, result.getResult());
