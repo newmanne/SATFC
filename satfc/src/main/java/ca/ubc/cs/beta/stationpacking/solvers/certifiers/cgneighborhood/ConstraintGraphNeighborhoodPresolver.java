@@ -72,6 +72,8 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	private final int maxLayersOfNeighbors;
 
 	/**
+	 * Produces a presolver, whose default behavior is to exhaustively search neighbors of neighbors until there
+	 * 	are no more neighbors left to add (unless a SAT solution is found first).
 	 * @param aConstraintManager - indicates the interference constraints between stations.
 	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
 	 */
