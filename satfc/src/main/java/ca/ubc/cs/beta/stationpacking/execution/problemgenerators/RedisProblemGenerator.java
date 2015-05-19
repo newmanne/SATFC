@@ -77,6 +77,7 @@ public class RedisProblemGenerator extends AProblemGenerator {
 
         // metrics
         writeMetrics(problem.getInstanceName());
+        SATFCMetrics.clear();
 
         // update redis queue - if the job timed out, move it to the timeout channel. Either way, delete it from the processing queue
         if (!result.getResult().isConclusive()) {
@@ -97,7 +98,6 @@ public class RedisProblemGenerator extends AProblemGenerator {
     private void writeMetrics(String srpkname) {
         final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
         jedis.set(RedisUtils.makeKey(queueName, "METRICS", srpkname), json);
-        SATFCMetrics.clear();
     }
 
 }

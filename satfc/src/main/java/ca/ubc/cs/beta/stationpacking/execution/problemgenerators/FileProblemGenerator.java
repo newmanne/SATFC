@@ -43,6 +43,7 @@ public class FileProblemGenerator extends AProblemGenerator {
     public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
         super.onPostProblem(problem, result);
         writeMetrics(problem.getInstanceName());
+        SATFCMetrics.clear();
     }
 
     @Override

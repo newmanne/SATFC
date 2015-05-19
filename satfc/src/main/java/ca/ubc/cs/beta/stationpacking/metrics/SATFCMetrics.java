@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -200,7 +201,7 @@ public class SATFCMetrics {
 
         @Subscribe
         public void onSolvedByEvent(SolvedByEvent event) {
-            if (event.getResult().equals(SATResult.SAT) || event.getResult().equals(SATResult.UNSAT)) {
+            if (event.getResult().isConclusive() && !event.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
                 metrics.get(event.getName()).setSolvedBy(event.getSolvedBy());
             }
         }

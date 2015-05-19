@@ -135,10 +135,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("Result:");
             log.debug(solverResult.toParsableString());
 
-            // super hacky way of making sure that solved by clasp doesn't interfere with solved by solved by presolver
-            if (!aInstance.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
-                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CLASP, solverResult.getResult()));
-            }
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CLASP, solverResult.getResult()));
             return solverResult;
         }
     }
