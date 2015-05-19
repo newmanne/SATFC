@@ -63,18 +63,37 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	public static final int A_FEW_MISSING_STATIONS = 10;
 	// TODO: This arbitrary constant needs to be validated empirically.
 	public static final int MAX_MISSING_STATIONS = 20;
+	public static final int UNLIMITED_NEIGHBOR_LAYERS = 0;
 
 	private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
 	
 	private final IConstraintManager fConstraintManager;
 	private final List<IStationSubsetCertifier> fCertifiers;
-	
+	private final int maxLayersOfNeighbors;
+
+	/**
+	 * @param aConstraintManager - indicates the interference constraints between stations.
+	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
+	 */
 	public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers)
 	{
-		fConstraintManager = aConstraintManager;
-		fCertifiers = aCertifiers;
+		this(aConstraintManager, aCertifiers, UNLIMITED_NEIGHBOR_LAYERS);
 	}
-	
+
+	/**
+	 * @param aConstraintManager - indicates the interference constraints between stations.
+	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
+	 * @param maxLayersOfNeighbors - a natural number specifying the maximum number of layers of neighbors that the
+	 *                             presolver should explore. The number 0 indicates that the presolver should
+	 *                             exhaustively search neighbors of neighbors until there are no more neighbors left
+	 *                             to add (unless a SAT solution is found first).
+	 */
+	public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers, int maxLayersOfNeighbors) {
+		this.fConstraintManager = aConstraintManager;
+		this.fCertifiers = aCertifiers;
+		this.maxLayersOfNeighbors = maxLayersOfNeighbors;
+	}
+
 	@Override
 	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed)
 	{
@@ -154,10 +173,16 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		HashSet<Station> toPackStations = new HashSet<>();
 
 		toPackStations.addAll(missingStations);
-		boolean foundSAT = false;
+		boolean satResultFound = false;
 
 		// Keep expanding neighbors until either a SAT result is found or we are forced to stop 
-		while (!arguments.getTerminationCriterion().hasToStop() && !foundSAT) {
+		while (!arguments.getTerminationCriterion().hasToStop() && !satResultFound) {
+
+			if (maxLayersOfNeighbors != UNLIMITED_NEIGHBOR_LAYERS) {
+				if (neighborLayer > maxLayersOfNeighbors) {
+					break;
+				}
+			}
 			
 			log.debug("Adding level {} of neighbors.", neighborLayer);
 			HashSet<Station> currentNeighbors = getCurrentNeighbors(aConstraintGraphNeighborIndex, toPackStations);
@@ -165,7 +190,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 			// Only run the solver if new neighbors are actually added to the stations to pack,
 			//   unless it's the first layer (in this case we have one or more disconnected components)
 			if (toPackStations.addAll(currentNeighbors) || neighborLayer == 1) {
-				foundSAT = doCertifiersFindSATResult(arguments, results, toPackStations);
+				satResultFound = doCertifiersFindSATResult(arguments, results, toPackStations);
 				neighborLayer++;
 			}
 			else {
