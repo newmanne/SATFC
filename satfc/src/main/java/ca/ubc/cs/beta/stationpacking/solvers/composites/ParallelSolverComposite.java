@@ -44,12 +44,14 @@ public class ParallelSolverComposite implements ISolver {
                 return solvers.parallelStream()
                         .map(solver -> {
                             final SolverResult solve = solver.solve(aInstance, interruptibleCriterion, aSeed);
-                            if (solve.getResult().equals(SATResult.SAT) || solve.getResult().equals(SATResult.UNSAT)) {
+                            log.trace("Returned from solver");
+                            if (solve.getResult().isConclusive()) {
+                                log.debug("Found a conclusive result, interrupting other concurrent solvers");
                                 interruptibleCriterion.interrupt();
                             }
                             return solve;
                         })
-                        .filter(result -> result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))
+                        .filter(result -> result.getResult().isConclusive())
                         .findAny();
             }).get().orElse(new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime()));
         } catch (InterruptedException | ExecutionException e) {

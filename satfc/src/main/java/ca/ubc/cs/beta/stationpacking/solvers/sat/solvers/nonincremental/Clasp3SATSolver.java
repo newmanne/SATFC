@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
@@ -36,7 +37,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
-        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class), parameters);
+        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters);
     }
 
     public Clasp3SATSolver(Clasp3Library library, String parameters) {
