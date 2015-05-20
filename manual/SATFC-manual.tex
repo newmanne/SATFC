@@ -34,7 +34,7 @@ needspace, % space reservation
 \hyphenation{Fortran hy-phen-ation} % Specify custom hyphenation points in words with dashes where you would like hyphenation to occur, or alternatively, don't put any dashes in a word to stop hyphenation altogether
 
 \newcommand{\SATFC}{\textsc{SATFC}~}
-\newcommand{\SATFCServer}{\textsc{SATFCServer}~}
+\newcommand{\SATFCServer}{\textsc{SATFC-Server}~}
 \newcommand{\clasp}{\textsc{clasp}~}
 \newcommand{\AEATK}{\textsc{AEATK}}
 
@@ -271,7 +271,7 @@ There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServ
 
 A ready-to-go \SATFC server can be found in the releases folder of \SATFC's root directory. You can start it by running
 \begin{lstlisting}[style=Bash]
-> java -jar <server.jar> --redis.host <redishost> --redis.port <redisport>
+> ./SATFCServer --redis.host=<redishost> --redis.port=<redisport>
 \end{lstlisting}
 The server has started and is ready for use when you can hit \texttt{<host>:<port>/satfcserver/health} or when you observe a log line similar to 
 \begin{lstlisting}[style=Bash]
@@ -286,9 +286,9 @@ The command line parameters are summarized below:
 \end{itemize}
 To build \SATFCServer from source, you can run 
 \begin{lstlisting}[style=Bash]
-> ./gradlew :satfcserver:bootRepackage
+> ./gradlew :satfcserver:installDist
 \end{lstlisting}
-which will create a jar file in \texttt{<SATFC repository>satfcserver/build/libs/}
+which will create a runnable script in \texttt{<SATFC repository>satfcserver/build/install/SATFCServer/bin}
 
 \paragraph{Modifications to running \SATFC}
 Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---usecache ---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
@@ -299,18 +299,10 @@ SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder();
  * ...
  */
 // add caching info
-SolverCustomizationOptions options = new SolverCustomizationOptions();
-options.setServerURL("<serverhost>:<serverport>/satfcserver");
-satfcFacadeBuilder.setCustomizationOptions(options);
+satfcFacadeBuilder.setServerURL(<serverURL>)
 // finish like normal
 SATFCFacade satfc = satfcFacadeBuilder.build();
 \end{minted}
-
-
-\begin{fwarning}
-	\SATFCServer is a new project and is undergoing active development. A current limitation is that \SATFCServer builds its cache on startup, but does not dynamically update it. Therefore, we recommend periodically restarting \SATFCServer in order to take advantage of newly solved problems.
-\end{fwarning}
-
 
 \section{Acknowledgements} 
 
