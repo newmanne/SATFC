@@ -102,7 +102,7 @@ needspace, % space reservation
 
 \paragraph{Abstract} \SATFC (\emph{SAT-based Feasibility Checker}) solves radio-spectrum repacking feasibility problems arising in the FCC's upcoming reverse auction. It combines a formulation of feasibility checking based on propositional satisfiability with a heuristic pre-solver and a SAT solver tuned for the types of instances observed in auction simulations.
 
-\paragraph{Authors \& Collaborators}  \SATFC is the product of the ideas and hard work of \href{http://www.auctionomics.com/}{Auctionomics}, notably \href{http://www.cs.ubc.ca/~afrechet/}{Alexandre Fr\'echette}, \href{http://www.cs.ubc.ca/~newmanne/}{Neil Newman}, \href{http://www.cs.mcgill.ca/~gsauln/}{Guillaume Saulnier-Comte}, \href{http://web.stanford.edu/~narnosti/}{Nick Arnosti}, and \href{http://www.cs.ubc.ca/~kevinlb/}{Kevin Leyton-Brown}.
+\paragraph{Authors \& Collaborators}  \SATFC is the product of the ideas and hard work of \href{http://www.auctionomics.com/}{Auctionomics}, notably \href{http://www.cs.ubc.ca/~afrechet/}{Alexandre Fr\'echette}, \href{http://www.cs.ubc.ca/~newmanne/}{Neil Newman}, Paul Cernek, Emily Chenn, \href{http://www.cs.mcgill.ca/~gsauln/}{Guillaume Saulnier-Comte}, \href{http://web.stanford.edu/~narnosti/}{Nick Arnosti}, and \href{http://www.cs.ubc.ca/~kevinlb/}{Kevin Leyton-Brown}.
 
 \paragraph{Contact} Questions, bug reports and feature suggestions should be directed to \href{mailto:afrechet@cs.ubc.ca}{Alexandre Fr\'echette} -- afrechet@cs.ubc.ca.
 
@@ -158,6 +158,7 @@ To compile the source's \clasp (so that your custom built \SATFC has an already 
 > cd src/dist/clasp
 > bash compile.sh
 \end{lstlisting}
+Note that this version of \clasp requires some threading library that may not be part of your linux distribution - keep an eye on the output of the compile script.
 
 
 \subsection{Standalone}\label{sec:standalone}
