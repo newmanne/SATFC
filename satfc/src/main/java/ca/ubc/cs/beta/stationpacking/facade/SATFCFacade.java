@@ -92,7 +92,7 @@ public class SATFCFacade implements AutoCloseable {
 
         final File libraryFile = new File(aSATFCParameters.getClaspLibrary());
         if (!libraryFile.exists()) {
-            throw new IllegalArgumentException("Provided clasp library does not exist.");
+            throw new IllegalArgumentException("Provided clasp library " + libraryFile.getAbsolutePath() + " does not exist.");
         }
         if (libraryFile.isDirectory()) {
             throw new IllegalArgumentException("Provided clasp library is a directory.");
