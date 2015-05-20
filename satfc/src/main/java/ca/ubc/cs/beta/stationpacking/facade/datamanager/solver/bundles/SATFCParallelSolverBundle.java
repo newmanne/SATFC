@@ -49,6 +49,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Libr
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.sun.jna.Native;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by newmanne on 14/05/15.
@@ -208,10 +210,14 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
     public static class ClaspLibraryGenerator {
         private final String libraryPath;
         private int numClasps;
+        private final Map options;
+        private final static int RTLD_LOCAL = 0x00000;
+        private final static int RTLD_LAZY = 0x00001;
 
         public ClaspLibraryGenerator(String libraryPath) {
             this.libraryPath = libraryPath;
             numClasps = 0;
+            options = ImmutableMap.of(Clasp3Library.OPTION_OPEN_FLAGS, RTLD_LAZY | RTLD_LOCAL);
         }
 
         public Clasp3Library createClaspLibrary() {
@@ -219,7 +225,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             try {
                 File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, "." + Files.getFileExtension(libraryPath));
                 Files.copy(origFile, copy);
-                return (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class);
+                return (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class, options);
             } catch (IOException e) {
                 throw new RuntimeException("Couldn't create a copy of clasp!!!");
             }
