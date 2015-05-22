@@ -46,6 +46,7 @@ public class SATFCFacadeBuilder {
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
+    private boolean extendedCacheProblem;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
 
@@ -207,16 +208,18 @@ public class SATFCFacadeBuilder {
         this.CNFSaver = CNFSaver;
     }
 
-    public void setServerURL(@NonNull String serverURL) {
-        this.serverURL = serverURL;
-    }
+    public void setServerURL(@NonNull String serverURL) { this.serverURL = serverURL; }
+
+    public void setExtendedCacheProblemFlag(boolean extendedCacheProblem) {
+		this.extendedCacheProblem = extendedCacheProblem;
+	}
 
     /**
      * Set the maximum number of solvers that SATFC will execute in parallel
      * @param parallelismLevel
      */
     public void setParallelismLevel(int parallelismLevel) {this.parallelismLevel = parallelismLevel; }
-	
+
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         if (parameters.fClaspLibrary != null) {
             setLibrary(parameters.fClaspLibrary);
@@ -227,7 +230,8 @@ public class SATFCFacadeBuilder {
         setDecompose(parameters.fSolverOptions.decomposition);
         setUnderconstrained(parameters.fSolverOptions.underconstrained);
         setPresolve(parameters.fSolverOptions.presolve);
-        if (parameters.fSolverOptions.cachingParams.serverURL != null) {
+		setExtendedCacheProblemFlag(parameters.fSolverOptions.cachingParams.extendedCacheProblem);
+		if (parameters.fSolverOptions.cachingParams.serverURL != null) {
             setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
         }
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
