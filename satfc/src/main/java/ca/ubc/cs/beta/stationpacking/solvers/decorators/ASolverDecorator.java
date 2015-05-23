@@ -53,5 +53,9 @@ public abstract class ASolverDecorator implements ISolver{
 	{
 		fDecoratedSolver.notifyShutdown();
 	}
-	
+
+    @Override
+    public void interrupt() {
+        fDecoratedSolver.interrupt();
+    }
 }

@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -106,7 +107,7 @@ public class RedisCacher {
 
     }
 
-    public ContainmentCacheInitData getContainmentCacheInitData() {
+    public ContainmentCacheInitData getContainmentCacheInitData(long limit) {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
 
@@ -117,14 +118,16 @@ public class RedisCacher {
         final Set<String> UNSATKeys = new HashSet<>();
 
         final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
-        scan.forEachRemaining(k -> {
-            final String key = new String(k);
+        final AtomicLong count = new AtomicLong(0);
+        while (count.get() < limit && scan.hasNext()) {
+            final String key = new String(scan.next());
+            count.incrementAndGet();
             if (key.startsWith("SATFC:SAT:")) {
                 SATKeys.add(key);
             } else if (key.startsWith("SATFC:UNSAT:")) {
                 UNSATKeys.add(key);
             }
-        });
+        }
 
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");

@@ -40,20 +40,22 @@ public class ParallelSolverComposite implements ISolver {
         // Swap out the termination criterion to one that can be interrupted
         final ITerminationCriterion.IInterruptibleTerminationCriterion interruptibleCriterion = new InterruptibleTerminationCriterion(aTerminationCriterion);
         try {
-            return forkJoinPool.submit(() -> {
+            final SolverResult endResult = forkJoinPool.submit(() -> {
                 return solvers.parallelStream()
                         .map(solver -> {
                             final SolverResult solve = solver.solve(aInstance, interruptibleCriterion, aSeed);
                             log.trace("Returned from solver");
-                            if (solve.getResult().isConclusive()) {
-                                log.debug("Found a conclusive result, interrupting other concurrent solvers");
+                            if (!interruptibleCriterion.wasInterrupted() && solve.getResult().isConclusive()) {
+                                log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
                                 interruptibleCriterion.interrupt();
+                                solvers.forEach(ISolver::interrupt);
                             }
                             return solve;
                         })
                         .filter(result -> result.getResult().isConclusive())
                         .findAny();
             }).get().orElse(new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime()));
+            return new SolverResult(endResult.getResult(), watch.getElapsedTime(), endResult.getAssignment());
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error processing jobs in parallel!", e);
         }
@@ -62,5 +64,10 @@ public class ParallelSolverComposite implements ISolver {
     @Override
     public void notifyShutdown() {
         solvers.forEach(ISolver::notifyShutdown);
+    }
+
+    @Override
+    public void interrupt() {
+        // TODO: no idea what to do here.. 1) Interrupt all solvers, regardless of what they are doing 2) Would need to set the flag...?
     }
 }

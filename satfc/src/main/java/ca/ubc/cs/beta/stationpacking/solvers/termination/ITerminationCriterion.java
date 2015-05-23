@@ -59,6 +59,8 @@ public interface ITerminationCriterion {
 
     public interface IInterruptibleTerminationCriterion extends ITerminationCriterion {
         void interrupt();
+
+		boolean wasInterrupted();
     }
 
 }

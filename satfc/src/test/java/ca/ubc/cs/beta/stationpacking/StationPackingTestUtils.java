@@ -15,7 +15,7 @@ import com.google.common.collect.ImmutableSet;
 public class StationPackingTestUtils {
 
     public static StationPackingInstance getSimpleInstance() {
-        return new StationPackingInstance(ImmutableMap.of(new Station(1), ImmutableSet.of(1, 2)));
+        return new StationPackingInstance(ImmutableMap.of(new Station(1), ImmutableSet.of(1)));
     }
 
     public static Map<Integer, Set<Station>> getSimpleInstanceAnswer() {

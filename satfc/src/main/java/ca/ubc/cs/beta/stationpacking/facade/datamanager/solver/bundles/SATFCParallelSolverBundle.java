@@ -99,13 +99,11 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
-        ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
         ICacher.CacheCoordinate cacheCoordinate = null;
         if (useCache) {
             cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
             cacher = new CacherProxy(serverURL, cacheCoordinate);
-            containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }
 
         List<ISolver> parallelUHFSolvers = new ArrayList<>();
@@ -115,8 +113,9 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // BEGIN PATHS
         // Path 1 - Hit the cache at the instance level
         if (useCache) {
-            final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCache);// note that there is no need to check cache for UNSAT again, the first one would have caught it
-            final SupersetCacheSATDecorator UHFsupersetCacheSATDecorator = new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCache, cacheCoordinate);
+            final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+            final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
+            final SupersetCacheSATDecorator UHFsupersetCacheSATDecorator = new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCacheProxy, cacheCoordinate);
             parallelUHFSolvers.add(UHFsupersetCacheSATDecorator);
         }
 
@@ -139,7 +138,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 VHFSolver = new UnderconstrainedStationRemoverSolverDecorator(VHFSolver, getConstraintManager());
             }
             if (useCache) {
-                UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+                final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+                UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
                 UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
                 UHFSolver = new CacheResultDecorator(UHFSolver, cacher, cacheCoordinate);
             }

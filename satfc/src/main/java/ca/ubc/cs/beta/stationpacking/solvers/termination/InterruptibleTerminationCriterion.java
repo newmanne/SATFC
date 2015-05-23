@@ -33,5 +33,9 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
     public void interrupt() {
         interrupt.set(true);
     }
+    
+    public boolean wasInterrupted() {
+    	return interrupt.get();
+    }
 
 }

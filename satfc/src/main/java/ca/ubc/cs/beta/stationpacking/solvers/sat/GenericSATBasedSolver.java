@@ -138,7 +138,11 @@ public class GenericSATBasedSolver implements ISolver {
             return solverResult;
         }
     }
-        
+
+    @Override
+    public void interrupt() {
+        fSATSolver.interrupt();
+    }
 
     @Override
     public void notifyShutdown() {

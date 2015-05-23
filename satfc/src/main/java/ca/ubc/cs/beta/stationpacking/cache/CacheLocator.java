@@ -89,7 +89,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData();
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(100);
         containmentCacheInitData.getCaches().forEach(cacheCoordinate -> {
             final List<ContainmentCacheSATEntry> SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
             final List<ContainmentCacheUNSATEntry> UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);

@@ -34,10 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy.ContainmentCacheCacheRequest;
@@ -60,6 +57,7 @@ public class ContainmentCacheController extends AbstractController {
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
     @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ExceptionHandler()
     @ResponseBody
     public ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest request
@@ -67,6 +65,12 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the SAT cache for entry " + description);
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        log.info("Awake from sleep");
         final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance);

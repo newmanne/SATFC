@@ -69,11 +69,12 @@ public class Clasp3SATSolverTest {
         final ITerminationCriterion.IInterruptibleTerminationCriterion terminationCriterion = new InterruptibleTerminationCriterion(new CPUTimeTerminationCriterion(60.0));
         new Thread(() -> {
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 log.error("Sleep interrupted?", e);
             }
             terminationCriterion.interrupt();
+            clasp3SATSolver.interrupt();
         }).start();
         clasp3SATSolver.solve(hardCNF, terminationCriterion, 1);
     }

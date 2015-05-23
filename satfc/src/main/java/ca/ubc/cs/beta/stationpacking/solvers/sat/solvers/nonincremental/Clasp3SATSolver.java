@@ -34,7 +34,17 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
     private Clasp3Library fClaspLibrary;
     private String fParameters;
-    private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
+    private final ScheduledExecutorService fTimerService = Executors.newScheduledThreadPool(1, new SequentiallyNamedThreadFactory("Clasp SAT Solver Timers", true));
+
+    /**
+     * Integer flag that we use to keep track of our current request, cutoff and timer threads will only execute if
+     * this matches the id when they started.
+     */
+    private final AtomicLong currentRequestID = new AtomicLong(1);
+    private final Lock lock = new ReentrantLock();
+    private Pointer currentProblemPointer;
+    // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
+    private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
         this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters);
@@ -60,16 +70,6 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         }
     }
 
-    /**
-     * Integer flag that we use to keep track of our current request, cutoff and timer threads will only execute if
-     * this matches the id when they started.
-     */
-    private final AtomicLong currentRequestID = new AtomicLong(1);
-    private final Lock lock = new ReentrantLock();
-    private Pointer currentProblemPointer;
-    // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
-    private final AtomicBoolean isCurrentlySolving = new AtomicBoolean();
-
     /*
      * (non-Javadoc)
      * NOT THREAD SAFE!
@@ -88,6 +88,10 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             }
             currentProblemPointer = fClaspLibrary.initConfig(params);
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
+            // We lock this variable so that the interrupt code will only execute if there is a valid problem to interrupt
+            lock.lock();
+            isCurrentlySolving.set(true);
+            lock.unlock();
 
             watch.stop();
             double preTime = watch.getElapsedTime();
@@ -111,33 +115,9 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                         }
                     }, (long) cutoff + SUICIDE_GRACE_IN_SECONDS, TimeUnit.SECONDS);
 
-            final int SCHEDULING_FREQUENCY_IN_SECONDS = 1;
-            Future<?> interruptFuture = fTimerService.schedule(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                lock.lock();
-                                if (MY_REQUEST_ID == currentRequestID.get() && isCurrentlySolving.get() && aTerminationCriterion.hasToStop()) {
-                                    log.debug("Interrupting clasp");
-                                    fClaspLibrary.interrupt(currentProblemPointer);
-                                    log.debug("Back from interrupting clasp");
-                                } else {
-                                    fTimerService.schedule(this, SCHEDULING_FREQUENCY_IN_SECONDS, TimeUnit.SECONDS);
-                                }
-                            } finally {
-                                lock.unlock();
-                            }
-                        }
-                    }, SCHEDULING_FREQUENCY_IN_SECONDS, TimeUnit.SECONDS);
-
             // Start solving
             log.debug("Send problem to clasp cutting off after " + cutoff + "s");
 
-            // We lock this variable so that the interrupt code will only execute if there is a valid problem to interrupt
-            lock.lock();
-            isCurrentlySolving.set(true);
-            lock.unlock();
             fClaspLibrary.solveProblem(currentProblemPointer, cutoff);
             log.debug("Came back from clasp.");
             lock.lock();
@@ -164,13 +144,11 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            log.debug("Incrementing job srpkToCnfIndex.");
+            log.debug("Incrementing job number.");
             currentRequestID.incrementAndGet();
 
             log.debug("Cancelling suicide future.");
             suicideFuture.cancel(true);
-            log.debug("Cancelling interrupt future.");
-            interruptFuture.cancel(true);
 
             final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime() + preTime + postTime, assignment);
             log.debug("Returning result: {}.", output);
@@ -189,7 +167,18 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
     @Override
     public void notifyShutdown() {
-        //No shutdown necessary.
+        fTimerService.shutdown();
+    }
+
+    @Override
+    public void interrupt() {
+        lock.lock();
+        if (isCurrentlySolving.get()) {
+            log.debug("Interrupting clasp");
+            fClaspLibrary.interrupt(currentProblemPointer);
+            log.debug("Back from interrupting clasp");
+        }
+        lock.unlock();
     }
 
     private HashSet<Literal> parseAssignment(int[] assignment) {
