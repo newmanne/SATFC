@@ -1,15 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
-import ca.ubc.cs.beta.stationpacking.execution.AProblemGenerator;
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 
 /**
 * Created by newmanne on 12/05/15.
 */
-public class SingleProblemFromCommandLineProblemGenerator extends AProblemGenerator {
+public class SingleProblemFromCommandLineProblemReader extends AProblemReader {
 
     private final SATFCFacadeProblem problem;
 
-    public SingleProblemFromCommandLineProblemGenerator(SATFCFacadeProblem problem) {
+    public SingleProblemFromCommandLineProblemReader(SATFCFacadeProblem problem) {
         this.problem = problem;
     }
 

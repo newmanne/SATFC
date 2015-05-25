@@ -6,7 +6,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 * Created by newmanne on 12/05/15.
 * Abstraction around how SATFC gets the next problem to solve
 */
-public interface IProblemGenerator {
+public interface IProblemReader {
 
     /**
      * @return The next problem to solve, or null if there are no more problems to solve

@@ -7,7 +7,7 @@ import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
-import ca.ubc.cs.beta.stationpacking.execution.AProblemGenerator;
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
@@ -21,14 +21,14 @@ import com.google.common.collect.Sets;
 * Reads in problems from a redis queue, where each entry in the queue is a (full path) to an srpk file
 */
 @Slf4j
-public class RedisProblemGenerator extends AProblemGenerator {
+public class RedisProblemReader extends AProblemReader {
 
     private final Jedis jedis;
     private final String queueName;
     private final String interferencesFolder;
     private String activeProblemFullPath;
 
-    public RedisProblemGenerator(Jedis jedis, String queueName, String interferencesFolder) {
+    public RedisProblemReader(Jedis jedis, String queueName, String interferencesFolder) {
         this.interferencesFolder = interferencesFolder;
         this.jedis = jedis;
         if (!jedis.exists(RedisUtils.makeKey(queueName))) {

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.execution.AProblemGenerator;
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
@@ -21,14 +21,14 @@ import com.google.common.io.Files;
  * Created by newmanne on 12/05/15.
  */
 @Slf4j
-public class FileProblemGenerator extends AProblemGenerator {
+public class FileProblemReader extends AProblemReader {
 
     private final String interferencesFolder;
     private final List<String> instanceFiles;
     private final File metricsFile;
     private int listIndex = 0;
 
-    public FileProblemGenerator(String fileOfSrpkFiles, String interferencesFolder, String metricsFile) {
+    public FileProblemReader(String fileOfSrpkFiles, String interferencesFolder, String metricsFile) {
         this.interferencesFolder = interferencesFolder;
         log.info("Reading instances from file {}", fileOfSrpkFiles);
         try {
