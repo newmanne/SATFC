@@ -45,9 +45,9 @@ public class ParallelSolverComposite implements ISolver {
                         .map(solver -> {
                             final SolverResult solve = solver.solve(aInstance, interruptibleCriterion, aSeed);
                             log.trace("Returned from solver");
-                            if (!interruptibleCriterion.wasInterrupted() && solve.getResult().isConclusive()) {
+                            // Interrupt only if the result is conclusive
+                            if (solve.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
                                 log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
-                                interruptibleCriterion.interrupt();
                                 solvers.forEach(ISolver::interrupt);
                             }
                             return solve;

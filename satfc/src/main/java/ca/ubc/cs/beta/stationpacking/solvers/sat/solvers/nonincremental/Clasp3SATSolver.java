@@ -86,23 +86,25 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             if (currentProblemPointer != null) {
                 throw new IllegalStateException("Went to solve a new problem, but there is a problem in progress!");
             }
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+
             currentProblemPointer = fClaspLibrary.initConfig(params);
+
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
+
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+
             // We lock this variable so that the interrupt code will only execute if there is a valid problem to interrupt
             lock.lock();
             isCurrentlySolving.set(true);
             lock.unlock();
 
-            watch.stop();
             double preTime = watch.getElapsedTime();
-
-            watch.reset();
-            watch.start();
-
             final double cutoff = aTerminationCriterion.getRemainingTime();
             if (cutoff <= 0 || aTerminationCriterion.hasToStop()) {
-                log.debug("All time spent.");
-                return new SATSolverResult(SATResult.TIMEOUT, preTime, ImmutableSet.of());
+                return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
             //launches a suicide SATFC time that just kills everything if it finishes and we're still on the same job.
@@ -119,26 +121,26 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             log.debug("Send problem to clasp cutting off after " + cutoff + "s");
 
             fClaspLibrary.solveProblem(currentProblemPointer, cutoff);
-            log.debug("Came back from clasp.");
+            final double runtime = watch.getElapsedTime() - preTime;
+            log.debug("Came back from clasp after {}s.", runtime);
             lock.lock();
             isCurrentlySolving.set(false);
             lock.unlock();
 
-            watch.stop();
-            final double runtime = watch.getElapsedTime();
-            watch.reset();
-            watch.start();
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
 
             final ClaspResult claspResult = getSolverResult(fClaspLibrary, currentProblemPointer, runtime);
+            final double timeToParseClaspResult = watch.getElapsedTime() - runtime - preTime;
+            log.trace("Time to parse clasp result: {} s.", timeToParseClaspResult);
 
-            log.trace("Post time to clasp result obtained: {} s.", watch.getElapsedTime());
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
 
             final HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
-            log.trace("Post time to to assignment obtained: {} s.", watch.getElapsedTime());
 
-            watch.stop();
-            final double postTime = watch.getElapsedTime();
+            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
 
+            log.trace("Time to parse assignment: {} s.", watch.getElapsedTime() - runtime - preTime - timeToParseClaspResult);
+            final double postTime = watch.getElapsedTime() - runtime - preTime;
             log.trace("Total post time: {} s.", postTime);
             if (postTime > 60) {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");

@@ -30,7 +30,7 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemGenerator;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ProblemGeneratorFactory;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
@@ -61,7 +61,7 @@ public class SATFCFacadeExecutor {
             log.info("Initializing facade.");
             SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
             SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters);
-            IProblemGenerator problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
+            IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
             SATFCFacadeProblem problem;
             while ((problem = problemGenerator.getNextProblem()) != null) {
                 SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));

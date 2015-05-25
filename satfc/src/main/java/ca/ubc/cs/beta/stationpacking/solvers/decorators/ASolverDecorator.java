@@ -45,7 +45,7 @@ public abstract class ASolverDecorator implements ISolver{
 	@Override
 	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed)
 	{
-		return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
+		return aTerminationCriterion.hasToStop() ? SolverResult.createTimeoutResult(0.0) : fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
 	}
 	
 	@Override

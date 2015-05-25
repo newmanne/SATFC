@@ -21,13 +21,12 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base;
 
-import java.io.Serializable;
-import java.util.Set;
-
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
-
 import com.google.common.collect.ImmutableSet;
+
+import java.io.Serializable;
+import java.util.Set;
 
 public class SATSolverResult implements Serializable {
 
@@ -60,5 +59,9 @@ public class SATSolverResult implements Serializable {
 	{
 		return fResult+","+fRuntime+","+fAssignment;
 	}
+
+    public static SATSolverResult timeout(double time) {
+        return new SATSolverResult(SATResult.TIMEOUT, time, ImmutableSet.of());
+    }
 
 }

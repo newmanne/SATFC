@@ -121,7 +121,6 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		
 		if (aInstance.getStations().isEmpty()) {
 			log.debug("Presolver was given an empty StationPackingInstance.");
-			watch.stop();
 			return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
 		}
 		
@@ -130,7 +129,6 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		if (missingStations.isEmpty())
 		{
 			log.debug("No new stations were added this round. Presolver is returning SAT trivially.");
-			watch.stop();
 			return new SolverResult(SATResult.SAT, watch.getElapsedTime(), Assignment.fromStationChannelMap(aInstance.getPreviousAssignment()).toChannelStationMap());
 		}
 		
@@ -140,7 +138,6 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 		if (missingStations.size() > MAX_MISSING_STATIONS)
 		{
 			log.debug("Too many missing stations in previous assignment ({}).", missingStations.size());
-			watch.stop();
 			return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
 		}
 

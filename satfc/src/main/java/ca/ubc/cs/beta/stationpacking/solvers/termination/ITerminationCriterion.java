@@ -57,10 +57,11 @@ public interface ITerminationCriterion {
 	 */
 	public void notifyEvent(double aTime);
 
+    /**
+     * A termination criterion that can be interrupted.
+     */
     public interface IInterruptibleTerminationCriterion extends ITerminationCriterion {
-        void interrupt();
-
-		boolean wasInterrupted();
+        boolean interrupt();
     }
 
 }

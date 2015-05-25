@@ -34,10 +34,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -143,6 +140,10 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
                 UHFSolver = new CacheResultDecorator(UHFSolver, cacher, cacheCoordinate);
             }
+            // this path has some methods that can't be interrupted on the fly, so we only start it up if it looks like the problem is non-trivial
+            final double path2Delay = 1.0;
+            UHFSolver = new DelayedSolverDecorator(UHFSolver, path2Delay);
+            VHFSolver = new DelayedSolverDecorator(VHFSolver, path2Delay);
             parallelUHFSolvers.add(UHFSolver);
             parallelVHFSolvers.add(VHFSolver);
         }

@@ -30,12 +30,8 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
         decoratedCriterion.notifyEvent(aTime);
     }
 
-    public void interrupt() {
-        interrupt.set(true);
-    }
-    
-    public boolean wasInterrupted() {
-    	return interrupt.get();
+    public boolean interrupt() {
+        return interrupt.compareAndSet(false, true);
     }
 
 }

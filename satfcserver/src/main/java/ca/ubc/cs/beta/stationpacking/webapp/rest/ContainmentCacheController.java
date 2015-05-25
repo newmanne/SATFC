@@ -65,12 +65,6 @@ public class ContainmentCacheController extends AbstractController {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
         log.info("Querying the SAT cache for entry " + description);
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        log.info("Awake from sleep");
         final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
         if (cache.isPresent()) {
             return cache.get().proveSATBySuperset(instance);

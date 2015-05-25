@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.componentgrouper;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
@@ -48,11 +49,8 @@ public class ConstraintGrouper implements IComponentGrouper{
 		HashSet<Set<Station>> aGroups = new HashSet<Set<Station>>();
 		
 		ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<Station,DefaultEdge>(aConstraintGraph);
-		
-		for(Set<Station> aConnectedComponent : aConnectivityInspector.connectedSets())
-		{
-			aGroups.add(aConnectedComponent);
-		}
+
+        aGroups.addAll(aConnectivityInspector.connectedSets().stream().collect(Collectors.toList()));
 		
 		return aGroups;
 	}

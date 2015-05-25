@@ -37,6 +37,9 @@ public class FileProblemReader extends AProblemReader {
             throw new IllegalArgumentException("Could not read instance files from " + fileOfSrpkFiles, e);
         }
         this.metricsFile = new File(metricsFile);
+        if (this.metricsFile.exists()) {
+            this.metricsFile.delete();
+        }
         SATFCMetrics.init();
     }
 

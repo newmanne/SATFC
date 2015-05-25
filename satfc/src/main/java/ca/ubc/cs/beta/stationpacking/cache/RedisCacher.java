@@ -107,6 +107,11 @@ public class RedisCacher {
 
     }
 
+    public ContainmentCacheInitData getContainmentCacheInitData() {
+        return getContainmentCacheInitData(Long.MAX_VALUE);
+    }
+
+
     public ContainmentCacheInitData getContainmentCacheInitData(long limit) {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
