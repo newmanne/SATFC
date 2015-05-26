@@ -61,6 +61,9 @@ public interface ITerminationCriterion {
      * A termination criterion that can be interrupted.
      */
     public interface IInterruptibleTerminationCriterion extends ITerminationCriterion {
+        /**
+         * @return true if you managed to interrupt, false if already interrupted
+         */
         boolean interrupt();
     }
 

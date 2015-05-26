@@ -21,6 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
@@ -34,7 +42,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSu
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.DelayedSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -47,15 +59,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
 import com.google.common.io.Files;
 import com.sun.jna.Native;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Created by newmanne on 14/05/15.
@@ -140,25 +146,20 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
                 UHFSolver = new CacheResultDecorator(UHFSolver, cacher, cacheCoordinate);
             }
-            // this path has some methods that can't be interrupted on the fly, so we only start it up if it looks like the problem is non-trivial
-            final double path2Delay = 1.0;
-            UHFSolver = new DelayedSolverDecorator(UHFSolver, path2Delay);
-            VHFSolver = new DelayedSolverDecorator(VHFSolver, path2Delay);
             parallelUHFSolvers.add(UHFSolver);
             parallelVHFSolvers.add(VHFSolver);
         }
 
-        // Path 3 - Presolver
+        // Path 3 - Presolvers: these guys will expand range and use up all available time
         if (presolve) {
-            final double SATcertifiercutoff = 5;
             log.debug("Adding neighborhood presolvers.");
             Clasp3Library path3Library = claspLibraryGenerator.createClaspLibrary();
             final ConstraintGraphNeighborhoodPresolver UHFconstraintGraphNeighborhoodPresolver = new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, path3Library), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))));
+                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, path3Library))));
             parallelUHFSolvers.add(UHFconstraintGraphNeighborhoodPresolver);
 
             final ConstraintGraphNeighborhoodPresolver VHFconstraintGraphNeighborhoodPresolver = new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path3Library), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))));
+                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path3Library))));
             parallelVHFSolvers.add(VHFconstraintGraphNeighborhoodPresolver);
         }
 
@@ -172,6 +173,32 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Init the parallel solvers
         ISolver UHFsolver = new ParallelSolverComposite(parallelUHFSolvers);
         ISolver VHFsolver = new ParallelSolverComposite(parallelVHFSolvers);
+
+        // Because spinning up parallel infrastructure takes time, we first try to see if the presolver (restricted to immediate neighbour) with an extremely low cutoff
+        if (presolve)
+        {
+            final double initPresolveCutoff = 1.0;
+            log.debug("Adding neighborhood presolvers.");
+            UHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, path4Library), new CPUTimeTerminationCriterionFactory(initPresolveCutoff))
+                                    ), 1),
+                            UHFsolver
+                    )
+            );
+
+            VHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED, path4Library), new CPUTimeTerminationCriterionFactory(initPresolveCutoff))
+                                    ), 1),
+                            VHFsolver
+                    )
+            );
+        }
 
         //Save results, if needed.
         if (aResultFile != null) {

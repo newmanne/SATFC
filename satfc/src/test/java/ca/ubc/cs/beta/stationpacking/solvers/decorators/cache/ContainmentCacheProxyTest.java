@@ -1,12 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
-import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Test;
-import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 public class ContainmentCacheProxyTest {

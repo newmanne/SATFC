@@ -97,7 +97,8 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 	 * @param aConstraintManager - indicates the interference constraints between stations.
 	 * @param aCertifiers - the list of certifiers to use to evaluate the satisfiability of station subsets.
 	 * @param maxLayersOfNeighbors - a positive number specifying the maximum number of layers of neighbors that the
-	 *                             presolver should explore. The value
+	 *                             p			watch.stop();
+resolver should explore. The value
 	 *                             {@link ConstraintGraphNeighborhoodPresolver#UNLIMITED_NEIGHBOR_LAYERS}
 	 *                             indicates that the presolver should
 	 *                             exhaustively search neighbors of neighbors until there are no more neighbors left

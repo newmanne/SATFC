@@ -3,8 +3,6 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.math3.util.Pair;

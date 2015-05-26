@@ -1,10 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
@@ -12,9 +16,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import containmentcache.ILockableContainmentCache;
-import lombok.extern.slf4j.Slf4j;
-import java.util.*;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by newmanne on 19/04/15.

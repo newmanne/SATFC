@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -57,6 +58,11 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		fSolver = aSolver;
 		fTerminationCriterionFactory = aTerminationCriterionFactory;
 	}
+
+    public StationSubsetSATCertifier(ISolver aSolver) {
+        fSolver = aSolver;
+        fTerminationCriterionFactory = new CPUTimeTerminationCriterionFactory(Double.MAX_VALUE);
+    }
 	
 	@Override
 	public SolverResult certify(StationPackingInstance aInstance,
