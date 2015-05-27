@@ -15,10 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ParallelNoWaitSolverComposite implements ISolver {
 
-    private final ForkJoinPool forkJoinPool;
+    private final ThreadPoolExecutor executorService;
     private final List<BlockingQueue<ISolver>> listOfSolverQueues;
 
     /**
@@ -42,8 +40,8 @@ public class ParallelNoWaitSolverComposite implements ISolver {
      * @param solvers A list of ISolverFactory, sorted by priority (first in the list means high priority). This is the order that we will try things in if there are not enough threads to go around
      */
     public ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
-        log.info("Creating a fork join pool with {} threads", threadPoolSize);
-        forkJoinPool = new ForkJoinPool(threadPoolSize);
+        log.info("Creating a fixed pool with {} threads", threadPoolSize);
+        executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
         listOfSolverQueues = new ArrayList<>(solvers.size());
         for (ISolverFactory solverFactory : solvers) {
             final LinkedBlockingQueue<ISolver> solverQueue = Queues.newLinkedBlockingQueue(threadPoolSize);
@@ -61,6 +59,9 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        if (aTerminationCriterion.hasToStop()) {
+            return SolverResult.createTimeoutResult(0);
+        }
         log.debug("Solving via parallel solver");
         final Watch watch = Watch.constructAutoStartWatch();
         // Swap out the termination criterion to one that can be interrupted
@@ -69,43 +70,56 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         final Condition notFinished = lock.newCondition();
         // You should only modify this variable while holding the lock
         final SolverResultParallelWrapper resultWrapper = new SolverResultParallelWrapper();
-        // We maintain a list of all the solvers current solving the problem so we know who to interrupt
+        // We maintain a list of all the solvers current solving the problem so we know who to interrupt via the interrupt method
         final List<ISolver> solversSolvingCurrentProblem = Collections.synchronizedList(new ArrayList<>());
+        final AtomicInteger counter = new AtomicInteger(0);
+        final List<Future> futures = new ArrayList<>();
         try {
             lock.lock();
-            log.debug("Submitting new task to the pool");
-            forkJoinPool.submit(() -> {
-                listOfSolverQueues.parallelStream()
-                    .forEach(solverQueue -> {
-                        if (!interruptibleCriterion.hasToStop()) {
-                            final ISolver solver = solverQueue.poll();
-                            if (solver == null) {
-                                throw new IllegalStateException("Couldn't take a solver from the queue!");
-                            }
-                            solversSolvingCurrentProblem.add(solver);
-                            final SolverResult solverResult = solver.solve(aInstance, interruptibleCriterion, aSeed);
-                            // Interrupt only if the result is conclusive. Only the first one will go through this block
-                            if (solverResult.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
-                                solversSolvingCurrentProblem.forEach(ISolver::interrupt);
-                                log.debug("Found a conclusive result, interrupting other concurrent solvers");
-                                // Signal the initial thread that it can move forwards
-                                lock.lock();
-                                notFinished.signal();
-                                resultWrapper.setResult(solverResult);
-                                lock.unlock();
-                            }
-                            // Return your solver back to the queue
-                            solverQueue.offer(solver);
+            // Submit one job per each solver in the portfolio
+            listOfSolverQueues.forEach(solverQueue -> {
+                log.debug("Submitting new task to the pool. There are {} threads actively pursuing tasks related to previous problems, and {} queued jobs", executorService.getActiveCount());
+                futures.add(executorService.submit(() -> {
+                    if (!interruptibleCriterion.hasToStop()) {
+                        final ISolver solver = solverQueue.poll();
+                        if (solver == null) {
+                            throw new IllegalStateException("Couldn't take a solver from the queue!");
                         }
-                        log.trace("Returning to the pool...");
-                    });
-                // If we get here, every thread is finished. Because there might have been a timeout, we signal the blocking thread
-                // PROBLEM: You can't reclaim ANY threads! until here?
-                lock.lock();
-                notFinished.signal();
-                lock.unlock();
+                        // During this block (while you are added to this list) it is safe for you to be interrupted via the interrupt method
+                        solversSolvingCurrentProblem.add(solver);
+                        final SolverResult solverResult = solver.solve(aInstance, interruptibleCriterion, aSeed);
+                        solversSolvingCurrentProblem.remove(solver);
+                        // Interrupt only if the result is conclusive. Only the first one will go through this block
+                        if (solverResult.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
+                            synchronized (solversSolvingCurrentProblem) {
+                                solversSolvingCurrentProblem.forEach(ISolver::interrupt);
+                            }
+                            log.debug("Found a conclusive result, interrupting other concurrent solvers");
+                            // Signal the initial thread that it can move forwards
+                            lock.lock();
+                            notFinished.signal();
+                            resultWrapper.setResult(solverResult);
+                            lock.unlock();
+                        }
+                        // Return your solver back to the queue
+                        if (!solverQueue.offer(solver)) {
+                            throw new IllegalStateException("Wasn't able to return solver to the queue!");
+                        }
+                    }
+                    if (counter.incrementAndGet() == listOfSolverQueues.size()) {
+                        // If we get inside this block, then every thread has had a crack at this problem.
+                        // Because it's possible that every single result was inconclusive, we signal
+                        // It's hopefully a lost signal and the blocking thread is long gone, but just in case it's time to wakeup and report timeout
+                        lock.lock();
+                        notFinished.signal();
+                        lock.unlock();
+                    }
+                }));
             });
+            // Wait for a thread to complete solving and signal you, or all threads to timeout
             notFinished.await();
+            // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
+            futures.forEach(future -> future.cancel(false));
             return resultWrapper.getResult() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultWrapper.getResult().getResult(), watch.getElapsedTime(), resultWrapper.getResult().getAssignment());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while running parallel job", e);
@@ -116,6 +130,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     @Override
     public void notifyShutdown() {
+        executorService.shutdown();
         listOfSolverQueues.forEach(queue -> queue.forEach(ISolver::notifyShutdown));
     }
 

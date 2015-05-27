@@ -76,10 +76,11 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
      */
     @Override
     public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        Watch watch = Watch.constructAutoStartWatch();
+        final Watch watch = Watch.constructAutoStartWatch();
         final long MY_REQUEST_ID = currentRequestID.incrementAndGet();
         final int seed = Math.abs(new Random(aSeed).nextInt());
         final String params = fParameters + " --seed=" + seed;
+        Future<?> suicideFuture = null;
         try {
             // create the problem - config params have already been validated in the constructor, so this should work
             if (currentProblemPointer != null) {
@@ -114,7 +115,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
             //launches a suicide SATFC time that just kills everything if it finishes and we're still on the same job.
             final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
-            final Future<?> suicideFuture = fTimerService.schedule(
+            suicideFuture = fTimerService.schedule(
                     () -> {
                         if (MY_REQUEST_ID == currentRequestID.get()) {
                             log.error("Clasp has spent {} more seconds than expected ({}) on current run, killing everything (i.e. System.exit(1) ).", SUICIDE_GRACE_IN_SECONDS, cutoff);
@@ -140,15 +141,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             final double timeToParseClaspResult = watch.getElapsedTime() - runtime - preTime;
             log.trace("Time to parse clasp result: {} s.", timeToParseClaspResult);
 
-            if (aTerminationCriterion.hasToStop()) {
-                return SATSolverResult.timeout(watch.getElapsedTime());
-            }
-
             final HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
-
-            if (aTerminationCriterion.hasToStop()) {
-                return SATSolverResult.timeout(watch.getElapsedTime());
-            }
 
             log.trace("Time to parse assignment: {} s.", watch.getElapsedTime() - runtime - preTime - timeToParseClaspResult);
             final double postTime = watch.getElapsedTime() - runtime - preTime;
@@ -161,12 +154,13 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             currentRequestID.incrementAndGet();
 
             log.debug("Cancelling suicide future.");
-            suicideFuture.cancel(true);
+            suicideFuture.cancel(false);
 
             final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime() + preTime + postTime, assignment);
             log.debug("Returning result: {}.", output);
             return output;
         } finally {
+            // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
             if (currentProblemPointer != null) {
                 log.trace("Destroying problem");
                 lock.lock();
@@ -174,6 +168,9 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 lock.unlock();
                 fClaspLibrary.destroyProblem(currentProblemPointer);
                 currentProblemPointer = null;
+            }
+            if (suicideFuture != null) {
+                suicideFuture.cancel(false);
             }
         }
     }

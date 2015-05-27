@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
 
+import lombok.Cleanup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,7 @@ public class SATFCFacadeExecutor {
         try {
             log.info("Initializing facade.");
             SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
+            @Cleanup
             SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters);
             IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
             SATFCFacadeProblem problem;
@@ -102,6 +104,7 @@ public class SATFCFacadeExecutor {
             t.printStackTrace();
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         }
+        log.info("Normal termination. Goodbye");
     }
 
     private static Logger parseParameter(String[] args, SATFCFacadeParameters parameters) {

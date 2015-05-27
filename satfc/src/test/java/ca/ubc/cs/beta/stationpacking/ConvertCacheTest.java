@@ -1,18 +1,36 @@
 package ca.ubc.cs.beta.stationpacking;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import au.com.bytecode.opencsv.CSVReader;
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -31,6 +49,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import redis.clients.jedis.JedisShardInfo;
 
 /**
  * Created by newmanne on 24/04/15.
@@ -74,8 +93,8 @@ public class ConvertCacheTest {
     @Ignore
     @Test
     public void drive() {
-    	Jedis jedisOldCache = new Jedis("cersei");
-        Jedis jedisNewCache = new Jedis("cersei", 7777);
+    	Jedis jedisOldCache = new Jedis("localhost");
+        Jedis jedisNewCache = new Jedis("localhost", 7777);
         final String domainHash= "1fa85deb";
         final String interferenceHash = "0683bb7d";
         final Set<String> keys = jedisOldCache.keys("*");
@@ -98,6 +117,94 @@ public class ConvertCacheTest {
             log.info("Key: " + key + " to key: " + newKey);
             jedisNewCache.set(newKey, json);
         });
+    }
+
+//    @Ignore
+    @Test
+    public void encrypt() throws Exception {
+        // Load up the encryption csv
+        final String encryptionCSV = "/home/newmanne/arrow/satfc/instances/encodings/encoding.csv";
+        final File encryptionFile = new File(encryptionCSV);
+        final Map<Integer, Integer> oldToNew = new HashMap<>();
+        Files.readLines(encryptionFile, Charset.defaultCharset()).stream().skip(1).forEach(line -> {
+            final List<String> strings = Splitter.on(',').splitToList(line);
+            oldToNew.put(Integer.parseInt(strings.get(0)), Integer.parseInt(strings.get(1)));
+        });
+
+        final IStationManager stationManager = new DomainStationManager("/home/newmanne/arrow/satfc/public/interference/021814SC3M/Domain.csv");
+        final IConstraintManager manager = new ChannelSpecificConstraintManager(stationManager, "/home/newmanne/arrow/satfc/public/interference/021814SC3M/Interference_Paired.csv");
+        final String domainHash = stationManager.getHashCode();
+        final String interferenceHash = manager.getHashCode();
+
+        final Set<String> SATKeys = new HashSet<>();
+        final Set<String> UNSATKeys = new HashSet<>();
+
+        // Assemble all the old keys
+        final StringRedisTemplate fromRedisTemplate = new StringRedisTemplate(new JedisConnectionFactory(new JedisShardInfo("localhost", 7777)));
+        final StringRedisTemplate toRedisTemplate = new StringRedisTemplate(new JedisConnectionFactory(new JedisShardInfo("localhost")));
+
+        final Cursor<byte[]> scan = fromRedisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
+        while (scan.hasNext()) {
+            final String key = new String(scan.next());
+            if (key.startsWith("SATFC:SAT:")) {
+                SATKeys.add(key);
+            } else if (key.startsWith("SATFC:UNSAT:")) {
+                UNSATKeys.add(key);
+            }
+        }
+
+        log.info("Found " + SATKeys.size() + " SAT keys");
+        log.info("Found " + UNSATKeys.size() + " UNSAT keys");
+
+        // process SATs
+        final AtomicInteger progressIndex = new AtomicInteger();
+        SATKeys.forEach(key -> {
+            if (progressIndex.get() % 1000 == 0) {
+                log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
+            }
+            final String val = fromRedisTemplate.boundValueOps(key).get();
+            final ICacher.SATCacheEntry satCacheEntry = JSONUtils.toObject(val, ICacher.SATCacheEntry.class);
+            // convert it!
+            Map<Integer, Set<Station>> newAssignment = new HashMap<>();
+            satCacheEntry.getAssignment().entrySet().stream().forEach(entry -> newAssignment.put(entry.getKey(), entry.getValue().stream().map(s -> new Station(oldToNew.get(s.getID()))).collect(Collectors.toSet())));
+            final ICacher.SATCacheEntry satCacheEntry1 = new ICacher.SATCacheEntry(satCacheEntry.getMetadata(), newAssignment);
+            final String jsonResult = JSONUtils.toString(satCacheEntry1);
+            final String instanceHash = Iterables.getLast(Splitter.on(":").split(key));
+            final String newKey = Joiner.on(":").join(ImmutableList.of("SATFC", SATResult.SAT, domainHash, interferenceHash, instanceHash));
+            toRedisTemplate.boundValueOps(newKey).set(jsonResult);
+//            log.info("Key: " + key + " to key: " + newKey);
+            progressIndex.incrementAndGet();
+//            try {
+//                Thread.sleep(50);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+        });
+        log.info("Finished processing {} SAT entries", progressIndex.get());
+
+        progressIndex.set(0);
+        UNSATKeys.forEach(key -> {
+            if (progressIndex.get() % 1000 == 0) {
+                log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
+            }
+            final String val = fromRedisTemplate.boundValueOps(key).get();
+            final ICacher.UNSATCacheEntry cacheEntry = JSONUtils.toObject(val, ICacher.UNSATCacheEntry.class);
+            final Map<Station, Set<Integer>> newDomains = new HashMap<>();
+            cacheEntry.getDomains().entrySet().stream().forEach(entry -> newDomains.put(new Station(oldToNew.get(entry.getKey().getID())), entry.getValue()));
+            final ICacher.UNSATCacheEntry newEntry = new ICacher.UNSATCacheEntry(cacheEntry.getMetadata(), newDomains);
+            final String jsonResult = JSONUtils.toString(newEntry);
+            final String instanceHash = Iterables.getLast(Splitter.on(":").split(key));
+            final String newKey = Joiner.on(":").join(ImmutableList.of("SATFC", SATResult.UNSAT, domainHash, interferenceHash, instanceHash));
+            toRedisTemplate.boundValueOps(newKey).set(jsonResult);
+//            log.info("Key: " + key + " to key: " + newKey);
+//            try {
+//                Thread.sleep(50);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+            progressIndex.incrementAndGet();
+        });
+        log.info("Finished processing {} UNSAT entries", progressIndex.get());
     }
 
 }

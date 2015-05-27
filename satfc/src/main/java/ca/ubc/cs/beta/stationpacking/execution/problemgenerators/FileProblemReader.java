@@ -73,7 +73,7 @@ public class FileProblemReader extends AProblemReader {
             }
         }
         if (stationPackingProblemSpecs != null) {
-            log.info("This is my problem {} out of {}", index, instanceFiles.size());
+            log.info("This is problem {} out of {}", index, instanceFiles.size());
             final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
             return new SATFCFacadeProblem(
                     stations,
