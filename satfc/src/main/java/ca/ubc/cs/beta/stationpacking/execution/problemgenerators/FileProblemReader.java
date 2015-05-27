@@ -25,10 +25,10 @@ public class FileProblemReader extends AProblemReader {
 
     private final String interferencesFolder;
     private final List<String> instanceFiles;
-    private final File metricsFile;
+    private File metricsFile;
     private int listIndex = 0;
 
-    public FileProblemReader(String fileOfSrpkFiles, String interferencesFolder, String metricsFile) {
+    public FileProblemReader(String fileOfSrpkFiles, String interferencesFolder, String metricFileName) {
         this.interferencesFolder = interferencesFolder;
         log.info("Reading instances from file {}", fileOfSrpkFiles);
         try {
@@ -36,18 +36,22 @@ public class FileProblemReader extends AProblemReader {
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not read instance files from " + fileOfSrpkFiles, e);
         }
-        this.metricsFile = new File(metricsFile);
-        if (this.metricsFile.exists()) {
-            this.metricsFile.delete();
+        if (metricFileName != null) {
+            this.metricsFile = new File(metricFileName);
+            if (this.metricsFile.exists()) {
+                this.metricsFile.delete();
+            }
+            SATFCMetrics.init();
         }
-        SATFCMetrics.init();
     }
 
     @Override
     public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
         super.onPostProblem(problem, result);
-        writeMetrics(problem.getInstanceName());
-        SATFCMetrics.clear();
+        if (metricsFile != null) {
+            writeMetrics(problem.getInstanceName());
+            SATFCMetrics.clear();
+        }
     }
 
     @Override
@@ -69,7 +73,7 @@ public class FileProblemReader extends AProblemReader {
             }
         }
         if (stationPackingProblemSpecs != null) {
-            log.info("This is my {}th problem out of {}", index, instanceFiles.size());
+            log.info("This is my problem {} out of {}", index, instanceFiles.size());
             final Set<Integer> stations = stationPackingProblemSpecs.getDomains().keySet();
             return new SATFCFacadeProblem(
                     stations,

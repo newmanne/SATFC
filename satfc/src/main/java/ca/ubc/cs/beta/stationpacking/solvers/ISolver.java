@@ -49,7 +49,7 @@ public interface ISolver {
 	 * Ask the solver to shutdown.
 	 */
 	default void notifyShutdown() {};
-
-    default void interrupt() {};
+	
+	default void interrupt() {};
 
 }

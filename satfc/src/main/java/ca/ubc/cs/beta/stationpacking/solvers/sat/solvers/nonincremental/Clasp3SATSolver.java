@@ -85,15 +85,21 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             if (currentProblemPointer != null) {
                 throw new IllegalStateException("Went to solve a new problem, but there is a problem in progress!");
             }
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             currentProblemPointer = fClaspLibrary.initConfig(params);
 
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
 
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             // We lock this variable so that the interrupt code will only execute if there is a valid problem to interrupt
             lock.lock();
@@ -108,7 +114,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
             //launches a suicide SATFC time that just kills everything if it finishes and we're still on the same job.
             final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
-            Future<?> suicideFuture = fTimerService.schedule(
+            final Future<?> suicideFuture = fTimerService.schedule(
                     () -> {
                         if (MY_REQUEST_ID == currentRequestID.get()) {
                             log.error("Clasp has spent {} more seconds than expected ({}) on current run, killing everything (i.e. System.exit(1) ).", SUICIDE_GRACE_IN_SECONDS, cutoff);
@@ -126,17 +132,23 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             isCurrentlySolving.set(false);
             lock.unlock();
 
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             final ClaspResult claspResult = getSolverResult(fClaspLibrary, currentProblemPointer, runtime);
             final double timeToParseClaspResult = watch.getElapsedTime() - runtime - preTime;
             log.trace("Time to parse clasp result: {} s.", timeToParseClaspResult);
 
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             final HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
 
-            if (aTerminationCriterion.hasToStop()) {return SATSolverResult.timeout(watch.getElapsedTime());}
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
+            }
 
             log.trace("Time to parse assignment: {} s.", watch.getElapsedTime() - runtime - preTime - timeToParseClaspResult);
             final double postTime = watch.getElapsedTime() - runtime - preTime;
@@ -165,21 +177,21 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             }
         }
     }
-
-    @Override
-    public void notifyShutdown() {
-        fTimerService.shutdown();
-    }
-
+    
     @Override
     public void interrupt() {
-        lock.lock();
+    	lock.lock();
         if (isCurrentlySolving.get()) {
             log.debug("Interrupting clasp");
             fClaspLibrary.interrupt(currentProblemPointer);
             log.debug("Back from interrupting clasp");
         }
         lock.unlock();
+    }
+
+    @Override
+    public void notifyShutdown() {
+        fTimerService.shutdown();
     }
 
     private HashSet<Literal> parseAssignment(int[] assignment) {

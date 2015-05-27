@@ -19,7 +19,6 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
  * Created by newmanne on 13/05/15.
  */
 @Slf4j
-// TODO: this will kill metrics...
 public class ParallelSolverComposite implements ISolver {
 
     Collection<ISolver> solvers;
@@ -49,7 +48,6 @@ public class ParallelSolverComposite implements ISolver {
                             // Interrupt only if the result is conclusive
                             if (solve.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
                                 log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
-                                solvers.forEach(ISolver::interrupt);
                             }
                             return solve;
                         })
@@ -67,8 +65,4 @@ public class ParallelSolverComposite implements ISolver {
         solvers.forEach(ISolver::notifyShutdown);
     }
 
-    @Override
-    public void interrupt() {
-        // TODO: no idea what to do here.. 1) Interrupt all solvers, regardless of what they are doing 2) Would need to set the flag...?
-    }
 }

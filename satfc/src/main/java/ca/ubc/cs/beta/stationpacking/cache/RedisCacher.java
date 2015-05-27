@@ -39,7 +39,6 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.UNSATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;

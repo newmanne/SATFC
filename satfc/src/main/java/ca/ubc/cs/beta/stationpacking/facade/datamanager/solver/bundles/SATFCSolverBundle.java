@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.util.Arrays;
 
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
@@ -107,9 +108,9 @@ public class SATFCSolverBundle extends ASolverBundle {
          */
         ContainmentCacheProxy containmentCache = null;
         ICacher cacher = null;
-        ICacher.CacheCoordinate cacheCoordinate = null;
+        CacheCoordinate cacheCoordinate = null;
         if (useCache) {
-            cacheCoordinate = new ICacher.CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+            cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
             cacher = new CacherProxy(serverURL, cacheCoordinate);
             containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }

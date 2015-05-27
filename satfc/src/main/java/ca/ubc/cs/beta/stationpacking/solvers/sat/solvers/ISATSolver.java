@@ -39,6 +39,7 @@ public interface ISATSolver {
 	public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed);
 
 	public void notifyShutdown();
+	
+	default void interrupt() {};
 
-    public default void interrupt() {};
 }

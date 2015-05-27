@@ -24,7 +24,6 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import java.util.Optional;
 
 import net.jcip.annotations.ThreadSafe;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 
 /**
