@@ -24,26 +24,23 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ClaspLibraryGenerator.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
@@ -52,10 +49,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorat
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 /**
@@ -67,7 +62,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
-    private final ClaspLibraryGenerator claspLibraryGenerator;
 
     /**
      * Create a SATFC solver bundle.
@@ -90,8 +84,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
         boolean useCache = serverURL != null;
-        claspLibraryGenerator = new ClaspLibraryGenerator(aClaspLibraryPath);
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
+        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
 
         log.debug("SATFC solver bundle.");
 
@@ -118,21 +112,21 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             log.debug("Adding neighborhood presolvers.");
             final double SATcertifiercutoff = 5.0;
             parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
+                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
             parallelVHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
+                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
         }
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
-        parallelUHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
-        parallelVHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED));
+        parallelUHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelVHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED));
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
             final IComponentGrouper aGrouper = new ConstraintGrouper();
             parallelUHFSolvers.add(() -> {
-                ISolver UHFSolver = getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
+                ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
                 if (decompose) {
                     log.debug("Decorate solver to split the graph into connected components and then merge the results");
                     UHFSolver = new ConnectedComponentGroupingDecorator(UHFSolver, aGrouper, getConstraintManager());
@@ -151,7 +145,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 return UHFSolver;
             });
             parallelVHFSolvers.add(() -> {
-                ISolver VHFSolver = getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
+                ISolver VHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
                 if (decompose) {
                     // Split into components
                     VHFSolver = new ConnectedComponentGroupingDecorator(VHFSolver, aGrouper, getConstraintManager());
@@ -189,11 +183,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         fUHFSolver = UHFsolver;
         fVHFSolver = VHFsolver;
-    }
-
-    private ISolver getClaspSolver(SATCompressor aSATCompressor, String aConfig) {
-        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createClaspLibrary(), aConfig);
-        return new CompressedSATBasedSolver(claspSATsolver, aSATCompressor, this.getConstraintManager());
     }
 
     @Override

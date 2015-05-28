@@ -57,12 +57,8 @@ public class StationWholeSetSATCertifier implements IStationSubsetCertifier {
         return new SolverResult(SATResult.TIMEOUT, 0);
     }
 
-    @Override
-    public void notifyShutdown() {
-        throw new UnsupportedOperationException();
-    }
-
     public int getNumberOfTimesCalled() {
         return numberOfTimesCalled;
     }
+
 }

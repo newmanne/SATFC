@@ -1,25 +1,28 @@
 package ca.ubc.cs.beta.stationpacking.solvers.composites;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.common.util.concurrent.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.InterruptibleTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.google.common.collect.Queues;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import com.google.common.collect.Queues;
 
 /**
  * Created by newmanne on 26/05/15.
@@ -31,17 +34,16 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ParallelNoWaitSolverComposite implements ISolver {
 
-    private final ThreadPoolExecutor executorService;
+    private final ListeningExecutorService executorService;
     private final List<BlockingQueue<ISolver>> listOfSolverQueues;
 
     /**
-     *
      * @param threadPoolSize
-     * @param solvers A list of ISolverFactory, sorted by priority (first in the list means high priority). This is the order that we will try things in if there are not enough threads to go around
+     * @param solvers        A list of ISolverFactory, sorted by priority (first in the list means high priority). This is the order that we will try things in if there are not enough threads to go around
      */
-    public  ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
-        log.info("Creating a fixed pool with {} threads", threadPoolSize);
-        executorService = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
+    public ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
+        log.debug("Creating a fixed pool with {} threads", threadPoolSize);
+        executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(threadPoolSize));
         listOfSolverQueues = new ArrayList<>(solvers.size());
         for (ISolverFactory solverFactory : solvers) {
             final LinkedBlockingQueue<ISolver> solverQueue = Queues.newLinkedBlockingQueue(threadPoolSize);
@@ -69,7 +71,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         final Lock lock = new ReentrantLock();
         final Condition notFinished = lock.newCondition();
         // You should only modify this variable while holding the lock
-        final SolverResultParallelWrapper resultWrapper = new SolverResultParallelWrapper();
+        final Wrapper<SolverResult> resultWrapper = new Wrapper<>();
         // We maintain a list of all the solvers current solving the problem so we know who to interrupt via the interrupt method
         final List<ISolver> solversSolvingCurrentProblem = Collections.synchronizedList(new ArrayList<>());
         final AtomicInteger counter = new AtomicInteger(0);
@@ -78,8 +80,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
             lock.lock();
             // Submit one job per each solver in the portfolio
             listOfSolverQueues.forEach(solverQueue -> {
-                log.debug("Submitting new task to the pool. There are {} threads actively pursuing tasks related to previous problems", executorService.getActiveCount());
-                futures.add(executorService.submit(() -> {
+                final ListenableFuture<Void> future = executorService.submit(() -> {
                     log.debug("Job starting...");
                     if (!interruptibleCriterion.hasToStop()) {
                         final ISolver solver = solverQueue.poll();
@@ -102,7 +103,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                             lock.lock();
                             log.debug("Signalling the blocked thread to wake up!");
                             notFinished.signal();
-                            resultWrapper.setResult(solverResult);
+                            resultWrapper.setWrapped(solverResult);
                             lock.unlock();
                         }
                         // Return your solver back to the queue
@@ -120,21 +121,41 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         lock.unlock();
                     }
                     log.debug("Job ending...");
-                }));
+                    return null;
+                });
+                futures.add(future);
+                addExceptionHandlingCallback(future);
             });
             // Wait for a thread to complete solving and signal you, or all threads to timeout
-            log.info("Main thread going to sleep");
+            log.debug("Main thread going to sleep");
             notFinished.await();
-            log.info("Main thread waking up, cancelling futures");
+            log.debug("Main thread waking up, cancelling futures");
             // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
             futures.forEach(future -> future.cancel(false));
             log.info("Returning now");
-            return resultWrapper.getResult() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultWrapper.getResult().getResult(), watch.getElapsedTime(), resultWrapper.getResult().getAssignment());
+            return resultWrapper.getWrapped() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultWrapper.getWrapped().getResult(), watch.getElapsedTime(), resultWrapper.getWrapped().getAssignment());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while running parallel job", e);
         } finally {
             lock.unlock();
         }
+    }
+
+    private void addExceptionHandlingCallback(ListenableFuture<Void> future) {
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                if (t instanceof CancellationException) {
+                    return;
+                }
+                throw new RuntimeException("Error executing task!", t);
+            }
+        });
     }
 
     @Override
@@ -143,11 +164,23 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         listOfSolverQueues.forEach(queue -> queue.forEach(ISolver::notifyShutdown));
     }
 
-    @NoArgsConstructor
-    public static class SolverResultParallelWrapper {
-        @Setter
-        @Getter
-        SolverResult result;
+    @Override
+    public void interrupt() {
+        throw new RuntimeException("Not yet implemented");
     }
+
+    @NoArgsConstructor
+    public static class Wrapper<T> {
+        @Getter
+        T wrapped;
+
+        public synchronized void setWrapped(T t) {
+            if (wrapped != null) {
+                throw new IllegalStateException("Object is already set!");
+            }
+            wrapped = t;
+        }
+    }
+
 
 }

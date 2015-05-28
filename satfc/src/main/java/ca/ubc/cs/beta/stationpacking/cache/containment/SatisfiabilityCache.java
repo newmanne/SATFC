@@ -23,8 +23,8 @@ import containmentcache.ILockableContainmentCache;
 @Slf4j
 public class SatisfiabilityCache implements ISatisfiabilityCache {
 
-    final ILockableContainmentCache SATCache;
-    final ILockableContainmentCache UNSATCache;
+    final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache;
+    final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache;
 
     public SatisfiabilityCache(ILockableContainmentCache<Station, ContainmentCacheSATEntry> aSATCache,ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> aUNSATCache) {
         SATCache = aSATCache;

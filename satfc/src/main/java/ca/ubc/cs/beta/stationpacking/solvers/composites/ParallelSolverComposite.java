@@ -17,6 +17,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * Created by newmanne on 13/05/15.
+ * A very simple parallel solver that forks and joins (i.e. blocks until every solver completes (though it does try to interrupt them))
  */
 @Slf4j
 public class ParallelSolverComposite implements ISolver {
@@ -28,10 +29,6 @@ public class ParallelSolverComposite implements ISolver {
         this.solvers = new ArrayList<>(solvers);
         log.debug("Creating a fork join pool with {} threads", threadPoolSize);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
-    }
-
-    public ParallelSolverComposite(List<ISolver> solvers) {
-        this(Runtime.getRuntime().availableProcessors(), solvers);
     }
 
     @Override
@@ -64,5 +61,10 @@ public class ParallelSolverComposite implements ISolver {
     public void notifyShutdown() {
         solvers.forEach(ISolver::notifyShutdown);
     }
+
+	@Override
+	public void interrupt() {
+		throw new RuntimeException("Interrupt not yet implemeneted...");
+	}
 
 }

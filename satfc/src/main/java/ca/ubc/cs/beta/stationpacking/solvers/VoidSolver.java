@@ -18,4 +18,9 @@ public class VoidSolver implements ISolver {
     public void notifyShutdown() {
 
     }
+    
+    @Override
+    public void interrupt() {
+
+    }
 }

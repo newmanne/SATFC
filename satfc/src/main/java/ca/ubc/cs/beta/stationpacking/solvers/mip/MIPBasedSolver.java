@@ -381,5 +381,11 @@ public class MIPBasedSolver implements ISolver
     {
     	
     }
+
+	@Override
+	public void interrupt() {
+		// TODO Auto-generated method stub
+		
+	}
     
 }

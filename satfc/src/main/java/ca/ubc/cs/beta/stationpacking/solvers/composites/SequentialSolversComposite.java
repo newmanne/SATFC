@@ -86,6 +86,14 @@ public class SequentialSolversComposite implements ISolver{
 		}
 	}
 
+	@Override
+	public void interrupt() {
+		for(ISolver solver : fSolvers)
+		{
+			solver.interrupt();
+		}
+	}
+
 
 
 }
