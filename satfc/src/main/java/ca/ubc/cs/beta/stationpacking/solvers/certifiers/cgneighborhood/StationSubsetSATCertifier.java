@@ -59,11 +59,6 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		fTerminationCriterionFactory = aTerminationCriterionFactory;
 	}
 
-    public StationSubsetSATCertifier(ISolver aSolver) {
-        fSolver = aSolver;
-        fTerminationCriterionFactory = new CPUTimeTerminationCriterionFactory(Double.MAX_VALUE);
-    }
-	
 	@Override
 	public SolverResult certify(StationPackingInstance aInstance,
 			Set<Station> aToPackStations,
@@ -117,14 +112,14 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_SATCERTIFIER);
         StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
 		
-		if(!aTerminationCriterion.hasToStop())
+		if(!terminationCriterion.hasToStop())
 		{
-			
 			watch.stop();
+            log.debug("Going off to SAT solver...");
 			SolverResult SATboundResult = fSolver.solve(SATboundInstance, terminationCriterion, aSeed);
-			watch.start();
-			
-			
+            log.debug("Back from SAT solver... SAT bound result was {}", SATboundResult.getResult());
+            watch.start();
+
 			if(SATboundResult.getResult().equals(SATResult.SAT))
 			{
 				log.debug("Stations not in previous assignment can be packed with their neighborhood when all other stations are fixed to their previous assignment..");
@@ -154,4 +149,8 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 		log.debug("Not shutting down associated solver as it may be used elsewhere.");
 	}
 
+    @Override
+    public void interrupt() {
+        fSolver.interrupt();
+    }
 }

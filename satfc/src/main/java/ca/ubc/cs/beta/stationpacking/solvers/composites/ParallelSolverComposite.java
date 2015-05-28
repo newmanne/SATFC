@@ -26,7 +26,7 @@ public class ParallelSolverComposite implements ISolver {
 
     public ParallelSolverComposite(int threadPoolSize, List<ISolver> solvers) {
         this.solvers = new ArrayList<>(solvers);
-        log.info("Creating a fork join pool with {} threads", threadPoolSize);
+        log.debug("Creating a fork join pool with {} threads", threadPoolSize);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
     }
 

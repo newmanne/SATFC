@@ -52,5 +52,7 @@ public interface IStationSubsetCertifier {
 	 * Ask the solver to shutdown.
 	 */
 	public void notifyShutdown();
+
+    public void interrupt();
 	
 }

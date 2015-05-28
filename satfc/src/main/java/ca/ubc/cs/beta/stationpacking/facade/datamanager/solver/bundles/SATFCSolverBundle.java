@@ -146,7 +146,7 @@ public class SATFCSolverBundle extends ASolverBundle {
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
                                             new StationSubsetSATCertifier(UHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
-                                    )),
+                                    ), 1),
                             UHFsolver
                     )
             );
@@ -156,7 +156,7 @@ public class SATFCSolverBundle extends ASolverBundle {
                             new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                                     Arrays.asList(
                                             new StationSubsetSATCertifier(VHFClaspBasedSolver, new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
-                                    )),
+                                    ), 1),
                             VHFsolver
                     )
             );

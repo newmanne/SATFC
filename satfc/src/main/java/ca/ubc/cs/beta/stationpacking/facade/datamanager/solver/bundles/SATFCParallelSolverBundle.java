@@ -24,10 +24,14 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
@@ -100,8 +104,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         final List<ISolverFactory> parallelVHFSolvers = new ArrayList<>();
 
         // NOTE: The sorted order of this list matters if there are more solver paths than there are cores (i.e. first in list will go first)
-        // BEGIN PATHS
-        // Path 1 - Hit the cache at the instance level
+        // Hit the cache at the instance level
         if (useCache) {
             parallelUHFSolvers.add(() -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
@@ -110,7 +113,22 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             });
         }
 
-        // Path 2 - Decompose the problem and then hit the cache and then clasp
+        // Presolvers: these guys will expand range and use up all available time
+        if (presolve) {
+            log.debug("Adding neighborhood presolvers.");
+            final double SATcertifiercutoff = 5.0;
+            parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
+            parallelVHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
+        }
+
+        // Straight to clasp
+        log.debug("Initializing base configured clasp solvers.");
+        parallelUHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelVHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED));
+
+        // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
             final IComponentGrouper aGrouper = new ConstraintGrouper();
             parallelUHFSolvers.add(() -> {
@@ -144,20 +162,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 return VHFSolver;
             });
         }
-
-        // Path 3 - Presolvers: these guys will expand range and use up all available time
-        if (presolve) {
-            log.debug("Adding neighborhood presolvers.");
-            parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)))));
-            parallelVHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)))));
-        }
-
-        // Path 4 - Straight to clasp
-        log.debug("Initializing base configured clasp solvers.");
-        parallelUHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
-        parallelVHFSolvers.add(() -> getClaspSolver(aCompressor, ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED));
         // END PATHS
 
         // Init the parallel solvers
