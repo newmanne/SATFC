@@ -69,29 +69,18 @@ public class SATFCFacadeBuilder {
 	 */
 	public static String findSATFCLibrary()
 	{
-		String relativeLibPath = "clasp"+File.separator+"jna"+File.separator+"libjnaclasp";
+		//Relative path pointing to the clasp .so
+		final String relativeLibPath = "clasp"+File.separator+"jna"+File.separator+"libjnaclasp.so";
 		
-		String osName = System.getProperty("os.name").toLowerCase();
-		boolean isMacOs = osName.startsWith("mac os x");
-		if(isMacOs)
-		{
-			relativeLibPath+=".dylib";
-		}
-		else
-		{
-			relativeLibPath+=".so";
-		}
-		
-		//SATFCFacadeBuilder.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-		
-		URL url = SATFCFacadeBuilder.class.getProtectionDomain().getCodeSource().getLocation();
+		//Find the root of the clasp relative path.
+		final URL url = SATFCFacadeBuilder.class.getProtectionDomain().getCodeSource().getLocation();
 		File f;
 		try {
 		  f = new File(url.toURI());
 		} catch(URISyntaxException e) {
 		  f = new File(url.getPath());
 		}
-		String currentLocation;
+		final String currentLocation;
 		
 		if(f.isDirectory())
 		{
@@ -110,7 +99,7 @@ public class SATFCFacadeBuilder {
 			currentLocation = f.getParentFile().getParentFile().getAbsolutePath();
 		}
 		
-		File file = new File(currentLocation + File.separator + relativeLibPath);
+		final File file = new File(currentLocation + File.separator + relativeLibPath);
 		if(file.exists())
 		{
 			System.out.println("Found default library "+file.getAbsolutePath()+".");
