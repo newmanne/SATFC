@@ -132,7 +132,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
             log.debug("Main thread waking up, cancelling futures");
             // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
             futures.forEach(future -> future.cancel(false));
-            log.info("Returning now");
+            log.debug("Returning now");
             return resultWrapper.getWrapped() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultWrapper.getWrapped().getResult(), watch.getElapsedTime(), resultWrapper.getWrapped().getAssignment());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while running parallel job", e);
