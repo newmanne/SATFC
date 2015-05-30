@@ -21,7 +21,7 @@ public class ProblemGeneratorFactory {
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
             generator = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
         } else if (parameters.fFileOfInstanceFiles != null && parameters.fInterferencesFolder != null) {
-            generator = new FileProblemReader(parameters.fFileOfInstanceFiles, parameters.fInterferencesFolder, parameters.fMetricsFile);
+            generator = new FileProblemReader(parameters.fFileOfInstanceFiles, parameters.fInterferencesFolder);
         } else {
             throw new IllegalArgumentException("Illegal parameters provided. Must provide -DATA-FOLDERNAME and -DOMAINS. Please consult the SATFC manual for examples");
         }

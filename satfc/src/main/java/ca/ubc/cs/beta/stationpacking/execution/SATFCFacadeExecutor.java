@@ -23,6 +23,8 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
 
+import ca.ubc.cs.beta.stationpacking.execution.metricwriters.IMetricWriter;
+import ca.ubc.cs.beta.stationpacking.execution.metricwriters.MetricWriterFactory;
 import lombok.Cleanup;
 
 import org.slf4j.Logger;
@@ -65,6 +67,7 @@ public class SATFCFacadeExecutor {
             @Cleanup
             SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters);
             IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
+            IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
             SATFCFacadeProblem problem;
             while ((problem = problemGenerator.getNextProblem()) != null) {
                 SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
@@ -86,9 +89,12 @@ public class SATFCFacadeExecutor {
                 System.out.println(result.getWitnessAssignment());
                 SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
                 problemGenerator.onPostProblem(problem, result);
+                metricWriter.writeMetrics();
+                SATFCMetrics.clear();
             }
             log.info("Finished all of the problems!");
             problemGenerator.onFinishedAllProblems();
+            metricWriter.onFinished();
         } catch (ParameterException e) {
             log.error("Invalid parameter argument detected ({}).", e.getMessage());
             e.printStackTrace();

@@ -1,21 +1,18 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.Converter;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
+import com.google.common.io.Files;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.Converter;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 /**
  * Created by newmanne on 12/05/15.
@@ -25,10 +22,9 @@ public class FileProblemReader extends AProblemReader {
 
     private final String interferencesFolder;
     private final List<String> instanceFiles;
-    private File metricsFile;
     private int listIndex = 0;
 
-    public FileProblemReader(String fileOfSrpkFiles, String interferencesFolder, String metricFileName) {
+    public FileProblemReader(String fileOfSrpkFiles, String interferencesFolder) {
         this.interferencesFolder = interferencesFolder;
         log.info("Reading instances from file {}", fileOfSrpkFiles);
         try {
@@ -36,27 +32,6 @@ public class FileProblemReader extends AProblemReader {
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not read instance files from " + fileOfSrpkFiles, e);
         }
-        if (metricFileName != null) {
-            this.metricsFile = new File(metricFileName);
-            if (this.metricsFile.exists()) {
-                this.metricsFile.delete();
-            }
-            SATFCMetrics.init();
-        }
-    }
-
-    @Override
-    public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
-        super.onPostProblem(problem, result);
-        if (metricsFile != null) {
-            writeMetrics(problem.getInstanceName());
-            SATFCMetrics.clear();
-        }
-    }
-
-    @Override
-    public void onFinishedAllProblems() {
-        SATFCMetrics.report();
     }
 
     @Override
@@ -85,15 +60,6 @@ public class FileProblemReader extends AProblemReader {
             );
         } else {
             return null;
-        }
-    }
-
-    private void writeMetrics(String srpkname) {
-        final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
-        try {
-            Files.append(json, metricsFile, Charsets.UTF_8);
-        } catch (IOException e) {
-            log.error("Couldn't save metrics to file " + metricsFile.getAbsolutePath(), e);
         }
     }
 

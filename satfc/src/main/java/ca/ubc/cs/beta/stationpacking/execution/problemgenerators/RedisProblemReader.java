@@ -74,11 +74,6 @@ public class RedisProblemReader extends AProblemReader {
     @Override
     public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
         super.onPostProblem(problem, result);
-
-        // metrics
-        writeMetrics(problem.getInstanceName());
-        SATFCMetrics.clear();
-
         // update redis queue - if the job timed out, move it to the timeout channel. Either way, delete it from the processing queue
         if (!result.getResult().isConclusive()) {
             log.info("Adding problem " + problem.getInstanceName() + " to the timeout queue");
@@ -88,16 +83,6 @@ public class RedisProblemReader extends AProblemReader {
         if (numDeleted != 1) {
             log.error("Couldn't delete problem " + activeProblemFullPath + " from the processing queue!");
         }
-    }
-
-    @Override
-    public void onFinishedAllProblems() {
-        SATFCMetrics.report();
-    }
-
-    private void writeMetrics(String srpkname) {
-        final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
-        jedis.set(RedisUtils.makeKey(queueName, "METRICS", srpkname), json);
     }
 
 }

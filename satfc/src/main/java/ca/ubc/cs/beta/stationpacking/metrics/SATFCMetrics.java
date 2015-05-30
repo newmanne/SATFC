@@ -23,9 +23,12 @@ package ca.ubc.cs.beta.stationpacking.metrics;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import lombok.Data;
@@ -47,8 +50,6 @@ import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.google.common.collect.Maps;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.common.eventbus.SubscriberExceptionContext;
-import com.google.common.eventbus.SubscriberExceptionHandler;
 
 /**
  * Created by newmanne on 15/01/15.
@@ -56,18 +57,13 @@ import com.google.common.eventbus.SubscriberExceptionHandler;
 @Slf4j
 public class SATFCMetrics {
 
-	private static MetricHandler metricsHandler;
+    private static MetricHandler metricsHandler;
     private static EventBus eventBus;
 
     public static void init() {
         metricsHandler = new MetricHandler();
-        eventBus = new EventBus(new SubscriberExceptionHandler() {
-
-            @Override
-            public void handleException(Throwable exception,
-                                        SubscriberExceptionContext context) {
-                log.error("Could not dispatch event: " + context.getSubscriber() + " to " + context.getSubscriberMethod(), exception);
-            }
+        eventBus = new EventBus((exception, context) -> {
+            log.error("Could not dispatch event: " + context.getSubscriber() + " to " + context.getSubscriberMethod(), exception);
         });
         eventBus.register(metricsHandler);
         registerAll("gc", new GarbageCollectorMetricSet(), registry);
@@ -81,9 +77,9 @@ public class SATFCMetrics {
             eventBus.post(event);
         }
     }
-    
+
     public static InstanceInfo getMetrics() {
-    	return metricsHandler.getMetrics();
+        return metricsHandler.getMetrics();
     }
 
     public static void clear() {
@@ -138,13 +134,13 @@ public class SATFCMetrics {
         private final String solvedBy;
         private final SATResult result;
     }
-    
+
     @Data
     public static class ComponentsSolvedEvent {
-    	private final String name;
-    	private final Collection<SolverResult> solverResults;
-    	private final SATResult result;
-	}
+        private final String name;
+        private final Collection<SolverResult> solverResults;
+        private final SATResult result;
+    }
 
     @Data
     public static class JustifiedByCacheEvent {
@@ -154,86 +150,130 @@ public class SATFCMetrics {
 
     public static class MetricHandler {
 
-    	private final Map<String, InstanceInfo> metrics = Maps.newLinkedHashMap();
+        private InstanceInfo activeProblemMetrics;
+        private Lock metricsLock = new ReentrantLock();
 
-        public void clear() {
-            metrics.clear();
+        public interface IMetricCallback {
+            void doWithLock(InstanceInfo info);
         }
-        
+
+        private void safeMetricEdit(String name, IMetricCallback callback) {
+            try {
+                metricsLock.lock();
+                // ensure that you only edit the "current problem" metrics.
+                if ((activeProblemMetrics == null) || activeProblemMetrics.getName().startsWith(name)) {
+                    callback.doWithLock(getInfo(name));
+                }
+            } finally {
+                metricsLock.unlock();
+            }
+        }
+
         public InstanceInfo getMetrics() {
-        	return metrics.values().iterator().next();
+            return activeProblemMetrics;
+        }
+
+        private void clear() {
+            activeProblemMetrics = null;
+        }
+
+        private InstanceInfo getInfo(String name) {
+            if (activeProblemMetrics == null) {
+                return null;
+            }
+            if (name.equals(activeProblemMetrics.getName())) {
+                return
+            }
+            if (name.contains("_component")) {
+                return activeProblemMetrics.getComponents().get(name);
+            } else if (name.{
+                return activeProblemMetrics;
+            }
         }
 
         @Subscribe
         public void onNewStationPackingInstanceEvent(NewStationPackingInstanceEvent event) {
-            final InstanceInfo currentMetric = new InstanceInfo();
-            currentMetric.setName(event.getName());
-            currentMetric.setStations(event.getStations());
-            currentMetric.setNumStations(event.getStations().size());
-            metrics.put(event.getName(), currentMetric);
+            safeMetricEdit(event.getName(), info -> {
+                if (activeProblemMetrics != null) {
+                    throw new IllegalStateException("Metrics already in progress!");
+                }
+                activeProblemMetrics = new InstanceInfo();
+                activeProblemMetrics.setName(event.getName());
+                activeProblemMetrics.setStations(event.getStations());
+                activeProblemMetrics.setNumStations(event.getStations().size());
+            });
         }
 
         @Subscribe
         public void onInstanceSolvedEvent(InstanceSolvedEvent event) {
-            final InstanceInfo instanceInfo = metrics.get(event.getName());
-            instanceInfo.setResult(event.getResult());
-            instanceInfo.setRuntime(event.getRuntime());
+            safeMetricEdit(event.getName(), info -> {
+                info.setResult(event.getResult());
+                info.setRuntime(event.getRuntime());
+            });
         }
 
         @Subscribe
         public void onUnderconstrainedStationsRemovedEvent(UnderconstrainedStationsRemovedEvent event) {
-            final InstanceInfo instanceInfo = metrics.get(event.getName());
-            instanceInfo.setUnderconstrainedStations(event.getUnderconstrainedStations().stream().map(Station::getID).collect(Collectors.toSet()));
+            safeMetricEdit(event.getName(), info -> {
+                info.setUnderconstrainedStations(event.getUnderconstrainedStations().stream().map(Station::getID).collect(Collectors.toSet()));
+            });
         }
 
         @Subscribe
-        public void onSplitIntoConnectedComponentsEvent (SplitIntoConnectedComponentsEvent event) {
-            final InstanceInfo outerInstance = metrics.get(event.getName());
-            event.getComponents().forEach(component -> {
-                final InstanceInfo instanceInfo = new InstanceInfo();
-                metrics.put(component.getName(), instanceInfo);
-                instanceInfo.setName(component.getName());
-                instanceInfo.setNumStations(component.getStations().size());
-                instanceInfo.setStations(component.getStations().stream().map(Station::getID).collect(Collectors.toSet()));
-                outerInstance.getComponents().add(instanceInfo);
+        public void onSplitIntoConnectedComponentsEvent(SplitIntoConnectedComponentsEvent event) {
+            safeMetricEdit(event.getName(), outerInfo -> {
+                event.getComponents().forEach(component -> {
+                    final InstanceInfo instanceInfo = new InstanceInfo();
+                    outerInfo.getComponents().put(component.getName(), instanceInfo);
+                    instanceInfo.setName(component.getName());
+                    instanceInfo.setNumStations(component.getStations().size());
+                    instanceInfo.setStations(component.getStations().stream().map(Station::getID).collect(Collectors.toSet()));
+                });
             });
         }
 
         @Subscribe
         public void onSolvedByEvent(SolvedByEvent event) {
-            if (event.getResult().isConclusive() && !event.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
-                metrics.get(event.getName()).setSolvedBy(event.getSolvedBy());
-            }
+            safeMetricEdit(event.getName(), info -> {
+                if (info.getSolvedBy() != null && event.getResult().isConclusive() && !event.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
+                    info.setSolvedBy(event.getSolvedBy());
+                }
+            });
         }
 
         @Subscribe
         public void onTimingEvent(TimingEvent event) {
-            final InstanceInfo instanceInfo = metrics.get(event.getName());
-            if (instanceInfo.getTimingInfo() == null) {
-                instanceInfo.setTimingInfo(Maps.newHashMap());
-            }
-            instanceInfo.getTimingInfo().put(event.getTimedEvent(), event.getTime());
+            safeMetricEdit(event.getName(), info -> {
+                if (info.getTimingInfo() == null) {
+                    info.setTimingInfo(new HashMap<>());
+                }
+                info.getTimingInfo().put(event.getTimedEvent(), event.getTime());
+            });
         }
-        
+
         @Subscribe
         public void onJustifiedByCacheEvent(JustifiedByCacheEvent event) {
-            metrics.get(event.getName()).setCacheResultUsed(event.getKey());
+            safeMetricEdit(event.getName(), info -> {
+                info.setCacheResultUsed(event.getKey());
+            });
         }
 
     }
 
     // codahale metrics for jvm stuff:
     private final static MetricRegistry registry = new MetricRegistry();
+
     // log jvm metrics
     public static void report() {
         log.info("Reporting jvm metrics");
         final Slf4jReporter reporter = Slf4jReporter.forRegistry(registry)
-                                .outputTo(log)
-                                .convertRatesTo(TimeUnit.SECONDS)
-                                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                                .build();
-                reporter.report();
+                .outputTo(log)
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS)
+                .build();
+        reporter.report();
     }
+
     private static void registerAll(String prefix, MetricSet metricSet, MetricRegistry registry) {
         for (Map.Entry<String, Metric> entry : metricSet.getMetrics().entrySet()) {
             if (entry.getValue() instanceof MetricSet) {

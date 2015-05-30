@@ -36,6 +36,7 @@ public class SATFCFacadeParameter {
     private final boolean decompose;
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final String serverURL;
+    private final int numCores;
 
 	public static enum SolverChoice
 	{

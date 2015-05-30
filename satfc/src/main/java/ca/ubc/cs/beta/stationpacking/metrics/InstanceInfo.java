@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.metrics;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +45,7 @@ public class InstanceInfo {
     private Double runtime;
     private SATResult result;
     private Set<Integer> underconstrainedStations;
-    private List<InstanceInfo> components = Lists.newArrayList();
+    private Map<String, InstanceInfo> components = new HashMap<>();
     private String solvedBy;
     private Map<String, Double> timingInfo;
     private String cacheResultUsed;

@@ -158,7 +158,8 @@ public class SATFCFacade implements AutoCloseable {
                                     aSATFCParameters.isPresolve(),
                                     aSATFCParameters.isDecompose(),
                                     aSATFCParameters.isUnderconstrained(),
-                                    aSATFCParameters.getServerURL()
+                                    aSATFCParameters.getServerURL(),
+                                    aSATFCParameters.getNumCores()
                                 );
                             case MIPFC:
                                 return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());

@@ -69,6 +69,10 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@Parameter(names = "-SOLVER-CHOICE", description = "type of SATFC")
 	public SolverChoice fSolverChoice = SolverChoice.SATFC;
 
+
+    @Parameter(names = "-NUM-CORES", description = "Number of cores to use in parallel execution (should be >=4 ideally)")
+    public int numCores = Runtime.getRuntime().availableProcessors();
+
 	/**
 	 * Logging options.
 	 */

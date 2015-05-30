@@ -47,6 +47,7 @@ public class SATFCFacadeBuilder {
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+    private int numCores;
 
     /**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -61,6 +62,7 @@ public class SATFCFacadeBuilder {
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
+        numCores = Runtime.getRuntime().availableProcessors();
 	}
 
 	/**
@@ -133,7 +135,8 @@ public class SATFCFacadeBuilder {
                 fUnderconstrained,
                 fDecompose,
                 CNFSaver,
-                serverURL
+                serverURL,
+                numCores
         ));
 	}
 	
@@ -196,6 +199,8 @@ public class SATFCFacadeBuilder {
     public void setServerURL(@NonNull String serverURL) {
         this.serverURL = serverURL;
     }
+
+    public void setNumCores(@NonNull int numCores) {this.numCores = numCores; }
 	
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         if (parameters.fClaspLibrary != null) {

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -79,7 +80,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             final boolean presolve,
             final boolean decompose,
             final boolean underconstrained,
-            final String serverURL
+            final String serverURL,
+            int numCores
     ) {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
@@ -95,9 +97,10 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         final CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
 
         final List<ISolverFactory> parallelUHFSolvers = new ArrayList<>();
-        final List<ISolverFactory> parallelVHFSolvers = new ArrayList<>();
 
+        // BEGIN UHF
         // NOTE: The sorted order of this list matters if there are more solver paths than there are cores (i.e. first in list will go first)
+
         // Hit the cache at the instance level
         if (useCache) {
             parallelUHFSolvers.add(() -> {
@@ -112,15 +115,12 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             log.debug("Adding neighborhood presolvers.");
             final double SATcertifiercutoff = 5.0;
             parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
-            parallelVHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))), 1));
+                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
         }
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
         parallelUHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
-        parallelVHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED));
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
@@ -144,25 +144,36 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 }
                 return UHFSolver;
             });
-            parallelVHFSolvers.add(() -> {
-                ISolver VHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
-                if (decompose) {
-                    // Split into components
-                    VHFSolver = new ConnectedComponentGroupingDecorator(VHFSolver, aGrouper, getConstraintManager());
-                }
-                if (underconstrained) {
-                    VHFSolver = new UnderconstrainedStationRemoverSolverDecorator(VHFSolver, getConstraintManager());
-                }
-                return VHFSolver;
-            });
         }
-        // END PATHS
 
         // Init the parallel solvers
-        ISolver UHFsolver = new ParallelNoWaitSolverComposite(parallelUHFSolvers.size(), parallelUHFSolvers);
-        ISolver VHFsolver = new ParallelNoWaitSolverComposite(parallelVHFSolvers.size(), parallelVHFSolvers);
+        ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers);
+        // END UHF
 
-        //Save results, if needed.
+        // BEGIN VHF
+        final double SATcertifiercutoff = 5.0;
+        ISolver VHFsolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED);
+        if (decompose) {
+            final IComponentGrouper aGrouper = new ConstraintGrouper();
+            VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
+        }
+        if (underconstrained) {
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager());
+        }
+        if (presolve) {
+            VHFsolver = new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+                                    Arrays.asList(
+                                            new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
+                                    ), 1),
+                            VHFsolver
+                    ));
+        }
+        // END VHF
+
+
+        // Save results, if needed.
         if (aResultFile != null) {
             log.debug("Decorate solver to save results.");
             UHFsolver = new ResultSaverSolverDecorator(UHFsolver, aResultFile);
