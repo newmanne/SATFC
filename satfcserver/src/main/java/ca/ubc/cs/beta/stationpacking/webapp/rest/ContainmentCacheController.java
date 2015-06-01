@@ -57,7 +57,6 @@ public class ContainmentCacheController extends AbstractController {
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
     @RequestMapping(value = "/query/SAT", method = RequestMethod.POST, produces = JSON_CONTENT, consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ExceptionHandler()
     @ResponseBody
     public ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest request
