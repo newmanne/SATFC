@@ -21,9 +21,11 @@ public class RedisMetricsWriter implements IMetricWriter {
 
     @Override
     public void writeMetrics() {
-        final InstanceInfo instanceInfo = SATFCMetrics.getMetrics();
-        final String json = JSONUtils.toString(instanceInfo);
-        jedis.set(RedisUtils.makeKey(queueName, "METRICS", instanceInfo.getName()), json);
+        SATFCMetrics.doWithMetrics(info -> {
+            final String json = JSONUtils.toString(info);
+            jedis.set(RedisUtils.makeKey(queueName, "METRICS", info.getName()), json);
+        });
+
     }
 
     @Override

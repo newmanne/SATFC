@@ -55,7 +55,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 
     @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
     public String fFileOfInstanceFiles;
-    @Parameter(names = "-OUTPUT-FILE", description = "output file summarizing results")
+    @Parameter(names = "-METRICS-FILE", description = "Causes the FileMetricWriter to be used, outputs a file with metrics (may cause performance loss)")
     public String fMetricsFile;
     @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
     public String fInterferencesFolder;

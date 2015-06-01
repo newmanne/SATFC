@@ -38,7 +38,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
     private final List<BlockingQueue<ISolver>> listOfSolverQueues;
 
     /**
-     * @param threadPoolSize
+     * @param threadPoolSize The number of threads to use in the thread pool
      * @param solvers        A list of ISolverFactory, sorted by priority (first in the list means high priority). This is the order that we will try things in if there are not enough threads to go around
      */
     public ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
@@ -53,10 +53,6 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                 solverQueue.offer(solver);
             }
         }
-    }
-
-    public ParallelNoWaitSolverComposite(List<ISolverFactory> solvers) {
-        this(Runtime.getRuntime().availableProcessors(), solvers);
     }
 
     @Override
@@ -112,9 +108,11 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         }
                     }
                     if (counter.incrementAndGet() == listOfSolverQueues.size()) {
-                        // If we get inside this block, then every thread has had a crack at this problem.
-                        // Because it's possible that every single result was inconclusive, we signal
-                        // It's hopefully a lost signal and the blocking thread is long gone, but just in case it's time to wakeup and report timeout
+                        /**
+                         * If we get inside this block, then every thread has had a crack at this problem.
+                         * Because it's possible that every single result was inconclusive, we signal
+                         * It's hopefully a lost signal and the blocking thread is long gone, but just in case it's time to wakeup and report timeout
+                         */
                         log.debug("I'm the last one here, so I'll signal the main thread to wake up (just incase)!");
                         lock.lock();
                         notFinished.signal();

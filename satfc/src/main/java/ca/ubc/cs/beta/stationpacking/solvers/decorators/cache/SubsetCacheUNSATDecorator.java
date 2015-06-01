@@ -47,7 +47,7 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        Watch watch = Watch.constructAutoStartWatch();
+        final Watch watch = Watch.constructAutoStartWatch();
         final SolverResult result;
         log.debug("Querying UNSAT cache");
         ContainmentCacheUNSATResult proveUNSATBySubset = containmentCache.proveUNSATBySubset(aInstance, aTerminationCriterion);

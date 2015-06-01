@@ -31,6 +31,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -53,6 +54,7 @@ import com.google.common.eventbus.Subscribe;
 
 /**
  * Created by newmanne on 15/01/15.
+ * TODO: if you solve the same problem twice in a row, metrics behaviour is undefined (because we use name to reference things. Oh well)
  */
 @Slf4j
 public class SATFCMetrics {
@@ -78,8 +80,8 @@ public class SATFCMetrics {
         }
     }
 
-    public static InstanceInfo getMetrics() {
-        return metricsHandler.getMetrics();
+    public static void doWithMetrics(MetricHandler.IMetricCallback callback) {
+        metricsHandler.doWithMetrics(callback);
     }
 
     public static void clear() {
@@ -128,17 +130,11 @@ public class SATFCMetrics {
         public final static String PRESOLVER = "presolver";
         public final static String SUBSET_CACHE = "subset_cache";
         public final static String SUPERSET_CACHE = "superset_cache";
-        public static final String CLASP = "clasp";
+        public final static String CLASP = "clasp";
+        public final static String CONNECTED_COMPONENTS = "connected_components";
 
         private final String name;
         private final String solvedBy;
-        private final SATResult result;
-    }
-
-    @Data
-    public static class ComponentsSolvedEvent {
-        private final String name;
-        private final Collection<SolverResult> solverResults;
         private final SATResult result;
     }
 
@@ -161,16 +157,24 @@ public class SATFCMetrics {
             try {
                 metricsLock.lock();
                 // ensure that you only edit the "current problem" metrics.
-                if ((activeProblemMetrics == null) || activeProblemMetrics.getName().startsWith(name)) {
-                    callback.doWithLock(getInfo(name));
+                if (activeProblemMetrics != null && activeProblemMetrics.getName().startsWith(name)) {
+                    final InstanceInfo info = getInfo(name);
+                    if (info != null) {
+                        callback.doWithLock(info);
+                    }
                 }
             } finally {
                 metricsLock.unlock();
             }
         }
 
-        public InstanceInfo getMetrics() {
-            return activeProblemMetrics;
+        public void doWithMetrics(IMetricCallback callback) {
+            try {
+                metricsLock.lock();
+                callback.doWithLock(activeProblemMetrics);
+            } finally {
+                metricsLock.unlock();
+            }
         }
 
         private void clear() {
@@ -179,29 +183,25 @@ public class SATFCMetrics {
 
         private InstanceInfo getInfo(String name) {
             if (activeProblemMetrics == null) {
-                return null;
-            }
-            if (name.equals(activeProblemMetrics.getName())) {
-                return
-            }
-            if (name.contains("_component")) {
-                return activeProblemMetrics.getComponents().get(name);
-            } else if (name.{
+                throw new IllegalStateException("Trying to add metrics with no valid problem");
+            } else if (name.equals(activeProblemMetrics.getName())) {
                 return activeProblemMetrics;
+            } else if (name.contains("_component")) {
+                return activeProblemMetrics.getComponents().get(name);
             }
+            return null; // This will catch presolver instances
         }
 
         @Subscribe
         public void onNewStationPackingInstanceEvent(NewStationPackingInstanceEvent event) {
-            safeMetricEdit(event.getName(), info -> {
-                if (activeProblemMetrics != null) {
-                    throw new IllegalStateException("Metrics already in progress!");
-                }
-                activeProblemMetrics = new InstanceInfo();
-                activeProblemMetrics.setName(event.getName());
-                activeProblemMetrics.setStations(event.getStations());
-                activeProblemMetrics.setNumStations(event.getStations().size());
-            });
+            // don't thread this one
+            if (activeProblemMetrics != null) {
+                throw new IllegalStateException("Metrics already in progress!");
+            }
+            activeProblemMetrics = new InstanceInfo();
+            activeProblemMetrics.setName(event.getName());
+            activeProblemMetrics.setStations(event.getStations());
+            activeProblemMetrics.setNumStations(event.getStations().size());
         }
 
         @Subscribe
@@ -235,7 +235,7 @@ public class SATFCMetrics {
         @Subscribe
         public void onSolvedByEvent(SolvedByEvent event) {
             safeMetricEdit(event.getName(), info -> {
-                if (info.getSolvedBy() != null && event.getResult().isConclusive() && !event.getName().contains(StationSubsetSATCertifier.STATION_SUBSET_SATCERTIFIER)) {
+                if (event.getSolvedBy() != null && event.getResult().isConclusive()) {
                     info.setSolvedBy(event.getSolvedBy());
                 }
             });
@@ -244,9 +244,6 @@ public class SATFCMetrics {
         @Subscribe
         public void onTimingEvent(TimingEvent event) {
             safeMetricEdit(event.getName(), info -> {
-                if (info.getTimingInfo() == null) {
-                    info.setTimingInfo(new HashMap<>());
-                }
                 info.getTimingInfo().put(event.getTimedEvent(), event.getTime());
             });
         }
@@ -257,7 +254,6 @@ public class SATFCMetrics {
                 info.setCacheResultUsed(event.getKey());
             });
         }
-
     }
 
     // codahale metrics for jvm stuff:
@@ -283,6 +279,5 @@ public class SATFCMetrics {
             }
         }
     }
-
 
 }

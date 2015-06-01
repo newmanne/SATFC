@@ -4,7 +4,6 @@ import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -27,12 +26,13 @@ public class FileMetricsWriter implements IMetricWriter {
 
     @Override
     public void writeMetrics() {
-        final String json = JSONUtils.toString(SATFCMetrics.getMetrics());
-        try {
-            Files.append(json, metricsFile, Charsets.UTF_8);
-        } catch (IOException e) {
-            log.error("Couldn't save metrics to file " + metricsFile.getAbsolutePath(), e);
-        }
+        SATFCMetrics.doWithMetrics(info -> {
+            try {
+                Files.append(JSONUtils.toString(info), metricsFile, Charsets.UTF_8);
+            } catch (IOException e) {
+                log.error("Couldn't save metrics to file " + metricsFile.getAbsolutePath(), e);
+            }
+        });
     }
 
     @Override

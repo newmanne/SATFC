@@ -57,7 +57,7 @@ public class SATFCFacadeBuilder {
 		fInitializeLogging = false;
 		fLibrary = findSATFCLibrary();
 		fResultFile = null;
-		fSolverChoice = SolverChoice.SATFC;
+		fSolverChoice = SolverChoice.SATFC_PARALLEL;
         fPresolve = true;
         fUnderconstrained = true;
         fDecompose = true;
@@ -200,7 +200,7 @@ public class SATFCFacadeBuilder {
         this.serverURL = serverURL;
     }
 
-    public void setNumCores(@NonNull int numCores) {this.numCores = numCores; }
+    public void setNumCores(int numCores) {this.numCores = numCores; }
 	
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         if (parameters.fClaspLibrary != null) {

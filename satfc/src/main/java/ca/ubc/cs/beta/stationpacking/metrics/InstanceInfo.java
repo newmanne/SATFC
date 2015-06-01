@@ -47,7 +47,7 @@ public class InstanceInfo {
     private Set<Integer> underconstrainedStations;
     private Map<String, InstanceInfo> components = new HashMap<>();
     private String solvedBy;
-    private Map<String, Double> timingInfo;
+    private Map<String, Double> timingInfo = new HashMap<>();
     private String cacheResultUsed;
 
 }

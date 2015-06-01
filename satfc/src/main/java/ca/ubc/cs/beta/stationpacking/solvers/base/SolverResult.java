@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.EqualsAndHashCode;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 
@@ -179,5 +180,10 @@ public class SolverResult implements Serializable {
 
 		return aOutput.toString();
 	}
+
+    @JsonIgnore
+    public boolean isConclusive() {
+        return fResult.isConclusive();
+    }
 
 }

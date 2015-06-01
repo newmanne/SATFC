@@ -140,7 +140,7 @@ public class GenericSATBasedSolver implements ISolver {
     
     @Override
     public void interrupt() {
-    	fSATSolver.interrupt();;
+    	fSATSolver.interrupt();
     }
 
     @Override

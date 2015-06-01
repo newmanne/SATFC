@@ -76,23 +76,18 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
             return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
         }
 		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains);
+        SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
             return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
         }
-		SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
-		SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
-
 
 		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
 		
 		//Remove the nodes from the instance.
 		Map<Station,Set<Integer>> alteredDomains = new HashMap<>(domains);
-		alteredDomains = Maps.filterKeys(alteredDomains, new Predicate<Station>(){
-			@Override
-			public boolean apply(Station arg0) {
-				return !underconstrainedStations.contains(arg0);
-			}});
+		alteredDomains = Maps.filterKeys(alteredDomains, station -> !underconstrainedStations.contains(station));
 
 		final SolverResult subResult;
 		final double preTime;
