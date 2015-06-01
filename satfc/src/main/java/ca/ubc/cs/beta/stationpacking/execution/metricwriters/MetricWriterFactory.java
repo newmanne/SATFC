@@ -1,7 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.execution.metricwriters;
 
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCParameters;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 
 /**

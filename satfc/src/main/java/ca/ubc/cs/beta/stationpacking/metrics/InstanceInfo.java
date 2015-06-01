@@ -22,7 +22,6 @@
 package ca.ubc.cs.beta.stationpacking.metrics;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,7 +29,6 @@ import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.google.common.collect.Lists;
 
 /**
  * Created by newmanne on 21/01/15.

@@ -1,10 +1,9 @@
 package ca.ubc.cs.beta.stationpacking.execution.metricwriters;
 
-import ca.ubc.cs.beta.stationpacking.metrics.InstanceInfo;
+import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-import redis.clients.jedis.Jedis;
 
 /**
  * Created by newmanne on 29/05/15.

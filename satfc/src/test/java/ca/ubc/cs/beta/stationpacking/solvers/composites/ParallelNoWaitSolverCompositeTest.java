@@ -6,16 +6,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
+
 import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
-import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
+import com.google.common.collect.ImmutableMap;
 
 @Slf4j
 public class ParallelNoWaitSolverCompositeTest {

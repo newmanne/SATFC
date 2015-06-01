@@ -39,7 +39,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedS
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 /**

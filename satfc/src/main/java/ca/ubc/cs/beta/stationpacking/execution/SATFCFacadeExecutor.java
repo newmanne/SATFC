@@ -23,8 +23,6 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
 
-import ca.ubc.cs.beta.stationpacking.execution.metricwriters.IMetricWriter;
-import ca.ubc.cs.beta.stationpacking.execution.metricwriters.MetricWriterFactory;
 import lombok.Cleanup;
 
 import org.slf4j.Logger;
@@ -33,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluatorLoader;
+import ca.ubc.cs.beta.stationpacking.execution.metricwriters.IMetricWriter;
+import ca.ubc.cs.beta.stationpacking.execution.metricwriters.MetricWriterFactory;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ProblemGeneratorFactory;

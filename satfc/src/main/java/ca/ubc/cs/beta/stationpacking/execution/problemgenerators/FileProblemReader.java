@@ -1,18 +1,18 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
-import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.Converter;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.Converter;
+
+import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
+import com.google.common.io.Files;
 
 /**
  * Created by newmanne on 12/05/15.

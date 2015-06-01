@@ -42,26 +42,4 @@ public abstract class ASolverBundleTest {
         Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
     }
 
-    public static class CacheOnlySolverBundleTest extends ASolverBundleTest {
-
-        public CacheOnlySolverBundleTest() throws FileNotFoundException {
-        }
-
-        @Override
-        protected ISolverBundle getBundle() {
-            return new SATFCParallelSolverBundle(
-                    SATFCFacadeBuilder.findSATFCLibrary(),
-                    stationManager,
-                    manager,
-                    null,
-                    true,
-                    true,
-                    true,
-                    "http://localhost:8080/satfcserver"
-            );
-//            return new CacheOnlySolverBundle(stationManager, manager, "http://localhost:8080/satfcserver", false);
-        }
-
-    }
-
 }
