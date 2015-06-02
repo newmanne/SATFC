@@ -1,24 +1,19 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.io.File;
-import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import com.google.common.base.Charsets;
-import com.google.common.io.Resources;
 import containmentcache.IContainmentCache;
 import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.simple.SimpleBitSetCache;
-import lombok.extern.slf4j.Slf4j;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 
 /**

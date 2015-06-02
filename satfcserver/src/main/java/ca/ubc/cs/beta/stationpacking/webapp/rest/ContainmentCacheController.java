@@ -117,14 +117,9 @@ public class ContainmentCacheController extends AbstractController {
     @RequestMapping(value = "/filter", method = RequestMethod.POST)
     @ResponseBody
     public void filterCache() {
-        ISatisfiabilityCacheFactory cacheFactory = new SatisfiabilityCacheFactory();
-        RedisCacher.ContainmentCacheInitData initCache = cacher.getContainmentCacheInitData();
-        initCache.getCaches().forEach(cacheCoordinate -> {
-            final List<ContainmentCacheSATEntry> SATEntries = initCache.getSATResults().get(cacheCoordinate);
-            final List<ContainmentCacheUNSATEntry> UNSATEntries = initCache.getUNSATResults().get(cacheCoordinate);
-            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries);
-
+    	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
             log.info("Finding SAT entries to be filted at cacheCoordinate " + cacheCoordinate);
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate).get();
             List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT();
             log.info("Pruning " + SATPrunables.size() + " SAT entries from Redis");
             cacher.deleteSATCollection(SATPrunables);

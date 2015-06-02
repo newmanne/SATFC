@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -40,6 +41,7 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntr
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Created by newmanne on 25/03/15.
@@ -96,4 +98,10 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
             caches.put(cacheCoordinate, cache);
         });
     }
+
+	@Override
+	public Set<ISatisfiabilityCache> getCaches() {
+		return ImmutableSet.copyOf(caches.values());
+	}
+	
 }
