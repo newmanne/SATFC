@@ -64,37 +64,37 @@ public class SATFCFacadeExecutor {
         try {
             log.info("Initializing facade.");
             SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
-            @Cleanup
-            SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters);
-            IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
-            IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
-            SATFCFacadeProblem problem;
-            while ((problem = problemGenerator.getNextProblem()) != null) {
-                SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
-                log.info("Beginning problem {}", problem.getInstanceName());
-                log.info("Solving ...");
-                SATFCResult result = satfc.solve(
-                        problem.getStationsToPack(),
-                        problem.getChannelsToPackOn(),
-                        problem.getDomains(),
-                        problem.getPreviousAssignment(),
-                        parameters.fInstanceParameters.Cutoff,
-                        parameters.fInstanceParameters.Seed,
-                        problem.getStationConfigFolder(),
-                        problem.getInstanceName()
-                );
-                log.info("..done!");
-                System.out.println(result.getResult());
-                System.out.println(result.getRuntime());
-                System.out.println(result.getWitnessAssignment());
-                SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
-                problemGenerator.onPostProblem(problem, result);
-                metricWriter.writeMetrics();
-                SATFCMetrics.clear();
+            try(final SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters)) {
+                IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
+                IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
+                SATFCFacadeProblem problem;
+                while ((problem = problemGenerator.getNextProblem()) != null) {
+                    SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
+                    log.info("Beginning problem {}", problem.getInstanceName());
+                    log.info("Solving ...");
+                    SATFCResult result = satfc.solve(
+                            problem.getStationsToPack(),
+                            problem.getChannelsToPackOn(),
+                            problem.getDomains(),
+                            problem.getPreviousAssignment(),
+                            parameters.fInstanceParameters.Cutoff,
+                            parameters.fInstanceParameters.Seed,
+                            problem.getStationConfigFolder(),
+                            problem.getInstanceName()
+                    );
+                    log.info("..done!");
+                    System.out.println(result.getResult());
+                    System.out.println(result.getRuntime());
+                    System.out.println(result.getWitnessAssignment());
+                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
+                    problemGenerator.onPostProblem(problem, result);
+                    metricWriter.writeMetrics();
+                    SATFCMetrics.clear();
+                }
+                log.info("Finished all of the problems!");
+                problemGenerator.onFinishedAllProblems();
+                metricWriter.onFinished();
             }
-            log.info("Finished all of the problems!");
-            problemGenerator.onFinishedAllProblems();
-            metricWriter.onFinished();
         } catch (ParameterException e) {
             log.error("Invalid parameter argument detected ({}).", e.getMessage());
             e.printStackTrace();
