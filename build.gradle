@@ -70,7 +70,6 @@ subprojects {
             logger.lifecycle(System.lineSeparator + "Running test: " + descriptor)
         }
         testLogging {
-            showStandardStreams = true
             events "passed", "skipped", "failed", "standardError"
         }
     }
