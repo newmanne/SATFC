@@ -127,8 +127,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
         }
-        log.debug("\nResult:");
-        log.debug(result.toParsableString());
+        log.debug("Result:" + System.lineSeparator() + result.toParsableString());
         return result;
     }
 

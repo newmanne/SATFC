@@ -80,7 +80,9 @@ public class SATFCMetrics {
     }
 
     public static void clear() {
-        metricsHandler.clear();
+        if (eventBus != null) {
+            metricsHandler.clear();
+        }
     }
 
     @Data

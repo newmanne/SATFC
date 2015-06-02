@@ -66,8 +66,13 @@ subprojects {
     }
 
     test {
-        testLogging.showStandardStreams = true
-        testLogging.showStackTraces = true
+        beforeTest { descriptor ->
+            logger.lifecycle(System.lineSeparator + "Running test: " + descriptor)
+        }
+        testLogging {
+            showStandardStreams = true
+            events "passed", "skipped", "failed", "standardError"
+        }
     }
 
 }

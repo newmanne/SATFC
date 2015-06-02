@@ -35,7 +35,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
  * @author afrechet
  */
-@Slf4j
 public class SATFCFacadeBuilder {
 
     private boolean fPresolve;
@@ -71,6 +70,11 @@ public class SATFCFacadeBuilder {
 	 */
 	public static String findSATFCLibrary()
 	{
+        final String envPath = System.getenv("SATFC_CLASP_LIBRARY");
+        if (envPath != null) {
+            return envPath;
+        }
+
 		//Relative path pointing to the clasp .so
 		final String relativeLibPath = "clasp"+File.separator+"jna"+File.separator+"libjnaclasp.so";
 		
@@ -216,10 +220,8 @@ public class SATFCFacadeBuilder {
         }
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
             if (parameters.fRedisParameters.areValid()) {
-                log.info("CNF files will be saved to redis");
                 setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
             } else {
-                log.info("Will save CNF files to disk at " + parameters.fCNFDir);
                 setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
             }
         }

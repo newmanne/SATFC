@@ -145,7 +145,7 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
 	@Override
 	public void notifyShutdown() {
-		log.debug("Not shutting down associated solver as it may be used elsewhere.");
+        fSolver.notifyShutdown();
 	}
 
     @Override

@@ -96,11 +96,11 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         log.debug("End solve {}", solver.getClass().getSimpleName());
                         solversSolvingCurrentProblem.remove(solver);
                         // Interrupt only if the result is conclusive. Only the first one will go through this block
-                        if (solverResult.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
+                        if (solverResult.isConclusive() && interruptibleCriterion.interrupt()) {
+                            log.debug("Found a conclusive result, interrupting other concurrent solvers");
                             synchronized (solversSolvingCurrentProblem) {
                                 solversSolvingCurrentProblem.forEach(ISolver::interrupt);
                             }
-                            log.debug("Found a conclusive result, interrupting other concurrent solvers");
                             // Signal the initial thread that it can move forwards
                             lock.lock();
                             log.debug("Signalling the blocked thread to wake up!");
