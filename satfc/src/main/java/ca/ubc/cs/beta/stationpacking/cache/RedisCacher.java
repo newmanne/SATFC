@@ -131,10 +131,10 @@ public class RedisCacher {
         final Set<String> UNSATKeys = new HashSet<>();
 
         final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
-        final AtomicLong count = new AtomicLong(0);
-        while (count.get() < limit && scan.hasNext()) {
+        long count = 0;
+        while (count < limit && scan.hasNext()) {
             final String key = new String(scan.next());
-            count.incrementAndGet();
+            count++;
             if (key.startsWith("SATFC:SAT:")) {
                 SATKeys.add(key);
             } else if (key.startsWith("SATFC:UNSAT:")) {

@@ -26,7 +26,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
@@ -37,6 +36,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
  */
 public class SATFCFacadeBuilder {
 
+    public static final String SATFC_CLASP_LIBRARY_ENV_VAR = "SATFC_CLASP_LIBRARY";
     private boolean fPresolve;
     private boolean fUnderconstrained;
     private boolean fDecompose;
@@ -70,7 +70,7 @@ public class SATFCFacadeBuilder {
 	 */
 	public static String findSATFCLibrary()
 	{
-        final String envPath = System.getenv("SATFC_CLASP_LIBRARY");
+        final String envPath = System.getenv(SATFC_CLASP_LIBRARY_ENV_VAR);
         if (envPath != null) {
             return envPath;
         }
@@ -210,6 +210,7 @@ public class SATFCFacadeBuilder {
         if (parameters.fClaspLibrary != null) {
             setLibrary(parameters.fClaspLibrary);
         }
+        setNumCores(parameters.numCores);
         setInitializeLogging(true);
         setSolverChoice(parameters.fSolverChoice);
         setDecompose(parameters.fSolverOptions.decomposition);
