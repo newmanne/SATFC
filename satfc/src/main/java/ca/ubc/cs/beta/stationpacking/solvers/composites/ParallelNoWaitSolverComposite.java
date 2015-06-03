@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -72,8 +73,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         final ITerminationCriterion.IInterruptibleTerminationCriterion interruptibleCriterion = new InterruptibleTerminationCriterion(aTerminationCriterion);
         final Lock lock = new ReentrantLock();
         final Condition notFinished = lock.newCondition();
-        // You should only modify this variable while holding the lock
-        final Wrapper<SolverResult> resultWrapper = new Wrapper<>();
+        final AtomicReference<SolverResult> resultReference = new AtomicReference<>();
         // We maintain a list of all the solvers current solving the problem so we know who to interrupt via the interrupt method
         final List<ISolver> solversSolvingCurrentProblem = Collections.synchronizedList(new ArrayList<>());
         final AtomicInteger counter = new AtomicInteger(0);
@@ -104,8 +104,8 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                             // Signal the initial thread that it can move forwards
                             lock.lock();
                             log.debug("Signalling the blocked thread to wake up!");
+                            resultReference.compareAndSet(null, solverResult);
                             notFinished.signal();
-                            resultWrapper.setWrapped(solverResult);
                             lock.unlock();
                         }
                         // Return your solver back to the queue
@@ -137,7 +137,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
             // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
             futures.forEach(future -> future.cancel(false));
             log.debug("Returning now");
-            return resultWrapper.getWrapped() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultWrapper.getWrapped().getResult(), watch.getElapsedTime(), resultWrapper.getWrapped().getAssignment());
+            return resultReference.get() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultReference.get().getResult(), watch.getElapsedTime(), resultReference.get().getAssignment());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while running parallel job", e);
         } finally {
@@ -172,19 +172,5 @@ public class ParallelNoWaitSolverComposite implements ISolver {
     public void interrupt() {
         throw new RuntimeException("Not yet implemented");
     }
-
-    @NoArgsConstructor
-    public static class Wrapper<T> {
-        @Getter
-        T wrapped;
-
-        public synchronized void setWrapped(T t) {
-            if (wrapped != null) {
-                throw new IllegalStateException("Object is already set!");
-            }
-            wrapped = t;
-        }
-    }
-
 
 }
