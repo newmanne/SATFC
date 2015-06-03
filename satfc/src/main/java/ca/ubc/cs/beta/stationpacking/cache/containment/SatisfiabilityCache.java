@@ -85,11 +85,18 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         }
     }
 
-    // true if a's domain is a superset of b's domain
+    /**
+     * Domain a has less stations than domain b because of previous method call getSubsets();
+     * If each station domain in domain a has same or more channels than the matching station in domain b,
+     * then a is superset of b
+     * @param a superset domain
+     * @param b subset domain
+     * @return true if a's domain is a superset of b's domain
+     */
     private boolean isSupersetOrEqualToByDomains(Map<Station, Set<Integer>> a, Map<Station, Set<Integer>> b) {
-        return b.entrySet().stream().allMatch(entry -> {
-            final Set<Integer> integers = a.get(entry.getKey());
-            return integers != null && integers.containsAll(entry.getValue());
+        return a.entrySet().stream().allMatch(entry -> {
+            final Set<Integer> integers = b.get(entry.getKey());
+            return integers != null && entry.getValue().containsAll(integers);
         });
     }
 
