@@ -42,7 +42,7 @@ public class ParallelNoWaitSolverCompositeTest {
         solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 32.0, StationPackingTestUtils.getSimpleInstanceAnswer()));
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(nThreads, solvers);
         final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
-        assertEquals(solve.getResult(), SATResult.SAT);
+        assertEquals(SATResult.SAT, solve.getResult());
     }
 
     @Test
@@ -75,7 +75,7 @@ public class ParallelNoWaitSolverCompositeTest {
         });
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);
         final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
-        assertEquals(solve.getResult(), SATResult.SAT);
+        assertEquals(SATResult.SAT, solve.getResult());
     }
 
 }

@@ -3,11 +3,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.composites;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -71,15 +67,15 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         final Watch watch = Watch.constructAutoStartWatch();
         // Swap out the termination criterion to one that can be interrupted
         final ITerminationCriterion.IInterruptibleTerminationCriterion interruptibleCriterion = new InterruptibleTerminationCriterion(aTerminationCriterion);
-        final Lock lock = new ReentrantLock();
-        final Condition notFinished = lock.newCondition();
+        //Semaphore holding how many components are done working on the current instance.
+        final Semaphore workDone = new Semaphore(0);
+        //Number of completed solver processes we need before terminating with a timeout.
+        final int numWorkToDo = listOfSolverQueues.size();
         final AtomicReference<SolverResult> resultReference = new AtomicReference<>();
         // We maintain a list of all the solvers current solving the problem so we know who to interrupt via the interrupt method
         final List<ISolver> solversSolvingCurrentProblem = Collections.synchronizedList(new ArrayList<>());
-        final AtomicInteger counter = new AtomicInteger(0);
         final List<Future> futures = new ArrayList<>();
         try {
-            lock.lock();
             // Submit one job per each solver in the portfolio
             listOfSolverQueues.forEach(solverQueue -> {
                 final ListenableFuture<Void> future = executorService.submit(() -> {
@@ -104,25 +100,14 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                             // Signal the initial thread that it can move forwards
                             log.debug("Signalling the blocked thread to wake up!");
                             resultReference.set(solverResult);
-                            lock.lock();
-                            notFinished.signal();
-                            lock.unlock();
+                            workDone.release(numWorkToDo);
                         }
+                        log.debug("Releasing a single permit as the work for this thread is done.");
+                        workDone.release(1);
                         // Return your solver back to the queue
                         if (!solverQueue.offer(solver)) {
                             throw new IllegalStateException("Wasn't able to return solver to the queue!");
                         }
-                    }
-                    if (counter.incrementAndGet() == listOfSolverQueues.size()) {
-                        /**
-                         * If we get inside this block, then every thread has had a crack at this problem.
-                         * Because it's possible that every single result was inconclusive, we signal
-                         * It's hopefully a lost signal and the blocking thread is long gone, but just in case it's time to wakeup and report timeout
-                         */
-                        log.debug("I'm the last one here, so I'll signal the main thread to wake up (just incase)!");
-                        lock.lock();
-                        notFinished.signal();
-                        lock.unlock();
                     }
                     log.debug("Job ending...");
                     return null;
@@ -132,7 +117,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
             });
             // Wait for a thread to complete solving and signal you, or all threads to timeout
             log.debug("Main thread going to sleep");
-            notFinished.await();
+            workDone.acquire(numWorkToDo);
             log.debug("Main thread waking up, cancelling futures");
             // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
             futures.forEach(future -> future.cancel(false));
@@ -140,8 +125,6 @@ public class ParallelNoWaitSolverComposite implements ISolver {
             return resultReference.get() == null ? SolverResult.createTimeoutResult(watch.getElapsedTime()) : new SolverResult(resultReference.get().getResult(), watch.getElapsedTime(), resultReference.get().getAssignment());
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while running parallel job", e);
-        } finally {
-            lock.unlock();
         }
     }
 
