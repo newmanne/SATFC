@@ -102,9 +102,9 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                                 solversSolvingCurrentProblem.forEach(ISolver::interrupt);
                             }
                             // Signal the initial thread that it can move forwards
-                            lock.lock();
                             log.debug("Signalling the blocked thread to wake up!");
-                            resultReference.compareAndSet(null, solverResult);
+                            resultReference.set(solverResult);
+                            lock.lock();
                             notFinished.signal();
                             lock.unlock();
                         }

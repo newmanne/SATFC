@@ -42,18 +42,4 @@ public class ClaspLibraryGenerator {
         }
     }
 
-    @RequiredArgsConstructor
-    public static class Clasp3ISolverFactory {
-
-        private final ClaspLibraryGenerator claspLibraryGenerator;
-        private final SATCompressor satCompressor;
-        private final IConstraintManager constraintManager;
-
-        public CompressedSATBasedSolver create(String aConfig) {
-            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createClaspLibrary(), aConfig);
-            return new CompressedSATBasedSolver(claspSATsolver, satCompressor, constraintManager);
-        }
-
-    }
-
 }
