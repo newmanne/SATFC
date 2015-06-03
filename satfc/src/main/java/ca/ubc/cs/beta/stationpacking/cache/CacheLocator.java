@@ -100,8 +100,8 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
     }
 
 	@Override
-	public Set<ISatisfiabilityCache> getCaches() {
-		return ImmutableSet.copyOf(caches.values());
+	public Set<CacheCoordinate> getCoordinates() {
+		return ImmutableSet.copyOf(caches.keySet());
 	}
 	
 }
