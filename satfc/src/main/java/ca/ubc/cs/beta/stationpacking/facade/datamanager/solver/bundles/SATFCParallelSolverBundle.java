@@ -105,6 +105,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         if (useCache) {
             parallelUHFSolvers.add(() -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+
                 final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
                 return new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCacheProxy, cacheCoordinate);
             });

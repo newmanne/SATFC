@@ -26,6 +26,7 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 
 import com.beust.jcommander.Parameter;
@@ -67,7 +68,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public String fClaspLibrary;
 	
 	@Parameter(names = "-SOLVER-CHOICE", description = "type of SATFC")
-	public SolverChoice fSolverChoice = SolverChoice.SATFC;
+	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() > 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
 
 
     @Parameter(names = "-NUM-CORES", description = "Number of cores to use in parallel execution (should be >=4 ideally)")

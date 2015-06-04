@@ -138,7 +138,7 @@ public class SATFCFacade implements AutoCloseable {
 						 * Set what bundle we're using here.
 						 */
                         switch (aSATFCParameters.getSolverChoice()) {
-                            case SATFC:
+                            case SATFC_SEQUENTIAL:
                                 return new SATFCSolverBundle(
                                         aSATFCParameters.getClaspLibrary(),
                                         aStationManager,

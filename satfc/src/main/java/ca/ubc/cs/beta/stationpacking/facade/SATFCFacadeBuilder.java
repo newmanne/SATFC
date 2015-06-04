@@ -32,6 +32,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
+ * DO NOT USE LOGGER IN THIS CLASS. LOGGING HAS NOT BEEN INITIALIZED
  * @author afrechet
  */
 public class SATFCFacadeBuilder {
@@ -56,12 +57,12 @@ public class SATFCFacadeBuilder {
 		fInitializeLogging = false;
 		fLibrary = findSATFCLibrary();
 		fResultFile = null;
-		fSolverChoice = SolverChoice.SATFC_PARALLEL;
+        numCores = Runtime.getRuntime().availableProcessors();
+		fSolverChoice = numCores >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         fPresolve = true;
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
-        numCores = Runtime.getRuntime().availableProcessors();
 	}
 
 	/**
@@ -131,6 +132,11 @@ public class SATFCFacadeBuilder {
 		{
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
+        if (fSolverChoice.equals(SolverChoice.SATFC_PARALLEL)) {
+            if (numCores < 4) {
+                throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SolverChoice.SATFC_SEQUENTIAL + " solver instead. We recommend the " + SolverChoice.SATFC_PARALLEL + " solver with >= than 4 threads");
+            }
+        }
 		return new SATFCFacade(new SATFCFacadeParameter(
                 fLibrary,
                 fInitializeLogging,
@@ -222,8 +228,10 @@ public class SATFCFacadeBuilder {
         }
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
             if (parameters.fRedisParameters.areValid()) {
+                System.out.println("Saving CNFS to redis");
                 setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
             } else {
+                System.out.println("Saving CNFS to disk");
                 setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
             }
         }

@@ -40,7 +40,7 @@ public class SATFCFacadeParameter {
 
 	public static enum SolverChoice
 	{
-		SATFC,
+		SATFC_SEQUENTIAL,
         SATFC_PARALLEL,
 		MIPFC,
         CNF,
