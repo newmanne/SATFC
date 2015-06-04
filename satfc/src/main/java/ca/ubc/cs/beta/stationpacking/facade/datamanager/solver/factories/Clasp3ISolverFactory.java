@@ -19,7 +19,11 @@ public class Clasp3ISolverFactory {
     private final IConstraintManager constraintManager;
 
     public CompressedSATBasedSolver create(String aConfig) {
-        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createClaspLibrary(), aConfig);
+        return create(aConfig, 0);
+    }
+
+    public CompressedSATBasedSolver create(String aConfig, int seedOffset) {
+        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createClaspLibrary(), aConfig, seedOffset);
         return new CompressedSATBasedSolver(claspSATsolver, satCompressor, constraintManager);
     }
 

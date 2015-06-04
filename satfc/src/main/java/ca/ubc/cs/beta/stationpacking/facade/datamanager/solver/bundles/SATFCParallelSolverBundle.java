@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -105,8 +106,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         if (useCache) {
             parallelUHFSolvers.add(() -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-
-                final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
+                final CompressedSATBasedSolver compressedSATBasedSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
+                final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(compressedSATBasedSolver, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
                 return new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCacheProxy, cacheCoordinate);
             });
         }

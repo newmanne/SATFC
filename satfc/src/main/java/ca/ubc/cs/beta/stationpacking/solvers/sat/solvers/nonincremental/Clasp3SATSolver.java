@@ -44,12 +44,18 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private Pointer currentProblemPointer;
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
+    private final int fSeedOffset;
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
         this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters);
     }
 
     public Clasp3SATSolver(Clasp3Library library, String parameters) {
+        this(library, parameters, 0);
+    }
+
+    public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset) {
+        fSeedOffset = seedOffset;
         fClaspLibrary = library;
         fParameters = parameters;
         // set the info about parameters, throw an exception if seed is contained.
@@ -78,7 +84,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
         final long MY_REQUEST_ID = currentRequestID.incrementAndGet();
-        final int seed = Math.abs(new Random(aSeed).nextInt());
+        final int seed = Math.abs(new Random(aSeed + fSeedOffset).nextInt());
         final String params = fParameters + " --seed=" + seed;
         Future<?> suicideFuture = null;
         try {
