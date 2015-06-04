@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Parse args (optional- only needed in libtbb is not installed and you have to point to a local copy)
 TBB_INCLUDE=''
@@ -23,20 +23,9 @@ echo "Done."
 echo "CLASP----------------------------------------------"
 cd $CLASP
 ./configure.sh $TBB_INCLUDE $TBB_LIB --config=jna --with-mt CXXFLAGS="-O3 -DNDEBUG -fPIC"
-#./configure.sh --config=jna CXXFLAGS="-g -fPIC"
 cd build/jna_mt
 make clean
-
-# copy my modified headers and code to handle interrupts
-#origh=$CURRENT/$CLASP/libclasp/clasp/solve_algorithms.h
-#origc=$CURRENT/$CLASP/libclasp/src/solve_algorithms.cpp
-#cp $origh $origh.bak
-#cp $origc $origc.bak
-#cp $CURRENT/solve_algorithms.h $origh
-#cp $CURRENT/solve_algorithms.cpp $origc
 make -j4
-#mv $origh.bak $origh
-#mv $origc.bak $origc
 echo "---------------------------------------------------"
 echo "JNA_CLASP------------------------------------------"
 cd $CURRENT

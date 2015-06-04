@@ -42,7 +42,6 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;

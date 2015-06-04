@@ -31,7 +31,9 @@ namespace JNA {
 			std::string getConfigErrorMessage();
 			Clasp::ClaspFacade* getFacade();
 			Clasp::Cli::ClaspCliConfig* getConfig();
+			Clasp::ClaspFacade::AsyncResult* getAsyncResult();
 			void setFacade(Clasp::ClaspFacade* facade);
+			void setAsyncResult(Clasp::ClaspFacade::AsyncResult* asyncResult);
 			void setConfig(Clasp::Cli::ClaspCliConfig* config);
 			void setConfigKey(Clasp::Cli::ConfigKey key);
 			void setResultState(Result_State state);
@@ -49,6 +51,7 @@ namespace JNA {
 			Result_State resultState_;
 			Config_State configState_;
 			Clasp::ClaspFacade* facade_;
+			Clasp::ClaspFacade::AsyncResult* asyncResult_;
 			Clasp::Cli::ClaspCliConfig* config_;
 			Clasp::Cli::ConfigKey configKey_;
 			std::string configErrorMessage_;

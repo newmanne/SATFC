@@ -23,7 +23,7 @@ jna_clasp.o: jna_clasp.cpp
 	$(CXX) $(INCLUDES) $(WARNFLAGS) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm *.so *.o *.a
+	rm -f *.so *.o *.a
 
 clean1:
-	rm *.o *.a
+	rm -f *.o *.a

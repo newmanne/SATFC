@@ -1,10 +1,18 @@
 // Guillaume Saulnier-Comte
+// Neil Newman
 #include <iostream>
 #include <sstream>
 
 #include "jna_clasp.h"
 #include <clasp/solver.h>
 #include <clasp/enumerator.h>
+
+/*
+ * At the time of writing, we are using clasp 3.0.5, and the most recent version is 3.1.2.
+ * There is a bug in the clasp 3.0.5 source code that is fixed in 3.1.2 that I had to backport
+ * The bug is in clasp_facade.cpp in the wait() method, right before the return, where join() is called.
+ * I'm just writing this here to document that the clasp source code is not an exact 3.0.5 match
+ */
 
 namespace JNA {
 
@@ -15,11 +23,17 @@ namespace JNA {
 		facade_ = NULL;
 		config_ = NULL;
 		configAllocated_ = false;
+		asyncResult_ = NULL;
 	}
 
 	JNAProblem::~JNAProblem() {
 		delete[] assignment_;
 		assignment_ = NULL;
+		if (asyncResult_ != NULL && asyncResult_->running()) {
+			asyncResult_->cancel();
+		}
+		delete asyncResult_;
+		asyncResult_ = NULL;
 		delete facade_;
 		facade_ = NULL;
 		if (config_ != NULL && configAllocated_) {
@@ -37,6 +51,10 @@ namespace JNA {
 
 	void JNAProblem::setConfig(Clasp::Cli::ClaspCliConfig* config) {
 		config_ = config;
+	}
+
+	void JNAProblem::setAsyncResult(Clasp::ClaspFacade::AsyncResult* asyncResult) {
+		asyncResult_ = asyncResult;
 	}
 
 	void JNAProblem::setResultState(Result_State resultState) {
@@ -63,6 +81,11 @@ namespace JNA {
 		return configState_;
 	}
 
+	Clasp::ClaspFacade::AsyncResult* JNAProblem::getAsyncResult() {
+		return asyncResult_;
+	}
+
+
 	int* JNAProblem::getAssignment() {
 		return assignment_;
 	}
@@ -80,7 +103,7 @@ namespace JNA {
 	}
 
 	bool JNAProblem::interrupt() {
-		return facade_->terminate(9); // SIGCANCEL is defined as 9 in clasp_facade.cpp
+		return asyncResult_->cancel(); 
 	}
 
 	bool JNAProblem::onModel(const Clasp::Solver& s, const Clasp::Model& m) {
@@ -131,24 +154,25 @@ void initProblem(void* jnaProblemPointer, const char* problem) {
 	// Parse the problem
 	facade->startSat(*jnaProblem->getConfig()).parseProgram(problemAsStream);
 	facade->prepare();
+	// Start the solve, passing in the event handler (which JNAProblem implements)
+	Clasp::ClaspFacade::AsyncResult* asyncResult = new Clasp::ClaspFacade::AsyncResult(facade->solveAsync(jnaProblem));
+	jnaProblem->setAsyncResult(asyncResult);
 }
 
 void solveProblem(void* jnaProblemPointer, double timeoutTime) {
 	JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
-	Clasp::ClaspFacade* facade = jnaProblem->getFacade();
+	Clasp::ClaspFacade::AsyncResult* asyncResult = jnaProblem->getAsyncResult();
 
-	// Start the solve, passing in the event handler (which JNAProblem implements)
-	Clasp::ClaspFacade::AsyncResult asyncResult = facade->solveAsync(jnaProblem);
-	if (asyncResult.waitFor(timeoutTime)) { // returns true immediately when the problem is solved. Otherwise returns false (and continues solving the problem)
-		Clasp::ClaspFacade::Result result = asyncResult.get();
+	if (asyncResult->waitFor(timeoutTime)) { // returns true immediately when the problem is solved. Otherwise returns false (and continues solving the problem)
+		Clasp::ClaspFacade::Result result = asyncResult->get();
 		if (result.sat()) {
 			jnaProblem->setResultState(r_SAT);
 		} else if (result.unsat()) {
 			jnaProblem->setResultState(r_UNSAT);
 		} else if (result.interrupted()) {
 			jnaProblem->setResultState(r_INTERRUPTED);
-		} 
-	} else if (asyncResult.cancel()) { // times up - try to shut down the problem
+		}
+	} else if (asyncResult->cancel()) { // times up - try to shut down the problem
 		jnaProblem->setResultState(r_TIMEOUT);
 	} 
 }

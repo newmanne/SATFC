@@ -26,7 +26,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
@@ -35,9 +34,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
  * @author afrechet
  */
-@Slf4j
 public class SATFCFacadeBuilder {
 
+    public static final String SATFC_CLASP_LIBRARY_ENV_VAR = "SATFC_CLASP_LIBRARY";
     private boolean fPresolve;
     private boolean fUnderconstrained;
     private boolean fDecompose;
@@ -47,6 +46,7 @@ public class SATFCFacadeBuilder {
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+    private int numCores;
 
     /**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -56,11 +56,12 @@ public class SATFCFacadeBuilder {
 		fInitializeLogging = false;
 		fLibrary = findSATFCLibrary();
 		fResultFile = null;
-		fSolverChoice = SolverChoice.SATFC;
+		fSolverChoice = SolverChoice.SATFC_PARALLEL;
         fPresolve = true;
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
+        numCores = Runtime.getRuntime().availableProcessors();
 	}
 
 	/**
@@ -69,6 +70,12 @@ public class SATFCFacadeBuilder {
 	 */
 	public static String findSATFCLibrary()
 	{
+        final String envPath = System.getenv(SATFC_CLASP_LIBRARY_ENV_VAR);
+        if (envPath != null) {
+			System.out.println("Using path set from env variable " + envPath);
+            return envPath;
+        }
+
 		//Relative path pointing to the clasp .so
 		final String relativeLibPath = "clasp"+File.separator+"jna"+File.separator+"libjnaclasp.so";
 		
@@ -133,7 +140,8 @@ public class SATFCFacadeBuilder {
                 fUnderconstrained,
                 fDecompose,
                 CNFSaver,
-                serverURL
+                serverURL,
+                numCores
         ));
 	}
 	
@@ -196,11 +204,14 @@ public class SATFCFacadeBuilder {
     public void setServerURL(@NonNull String serverURL) {
         this.serverURL = serverURL;
     }
+
+    public void setNumCores(int numCores) {this.numCores = numCores; }
 	
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         if (parameters.fClaspLibrary != null) {
             setLibrary(parameters.fClaspLibrary);
         }
+        setNumCores(parameters.numCores);
         setInitializeLogging(true);
         setSolverChoice(parameters.fSolverChoice);
         setDecompose(parameters.fSolverOptions.decomposition);
@@ -211,10 +222,8 @@ public class SATFCFacadeBuilder {
         }
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
             if (parameters.fRedisParameters.areValid()) {
-                log.info("CNF files will be saved to redis");
                 setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
             } else {
-                log.info("Will save CNF files to disk at " + parameters.fCNFDir);
                 setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
             }
         }

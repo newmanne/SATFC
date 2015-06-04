@@ -1,12 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import java.util.*;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * A mock ConstraintManager useful for running tests where the focus is on the shape of interference constraint graphs

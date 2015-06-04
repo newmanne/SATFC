@@ -21,10 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import ca.ubc.cs.beta.stationpacking.cache.*;
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -37,13 +37,17 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 import redis.clients.jedis.JedisShardInfo;
+import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 
 /**
  * Created by newmanne on 23/03/15.

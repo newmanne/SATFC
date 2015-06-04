@@ -1,10 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * Created by emily404 on 5/12/15.
