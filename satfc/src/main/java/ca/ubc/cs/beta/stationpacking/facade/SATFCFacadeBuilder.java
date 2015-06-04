@@ -72,6 +72,7 @@ public class SATFCFacadeBuilder {
 	{
         final String envPath = System.getenv(SATFC_CLASP_LIBRARY_ENV_VAR);
         if (envPath != null) {
+			System.out.println("Using path set from env variable " + envPath);
             return envPath;
         }
 
