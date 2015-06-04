@@ -18,6 +18,10 @@ Rough information about the evolution of **SATFC** through releases.
 * The **SATFCserver** now has a clever clean up procedures to prune away unnecessary entries if the cache becomes too big.
 * The cache is now updated on the fly. This means instances solved are immediately accessible to future cache queries (improving performance), and the cache server does not need to be restarted to have access to new data (improving usability). 
 
+### SATFC 1.7 [8/06/2015]
+
+* New feature, _parallel portfolios_, allow SATFC to execute multiple solving techniques in parallel, returning a result as soon as any technique succeeds. Previous versions of SATFC applied each technique sequentially.
+
 ## Introduction
 
 **SATFC** (_SAT-based Feasibility Checker_) solves radio-spectrum repacking feasibility problems arising in the reverse auction of the FCC's upcoming broadcast incentive auction. It combines a formulation of feasibility checking based on propositional satisfiability with a heuristic pre-solver and a SAT solver tuned for the types of instances observed in auction simulations.
