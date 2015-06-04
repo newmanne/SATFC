@@ -29,7 +29,7 @@ public class FileMetricsWriter implements IMetricWriter {
     public void writeMetrics() {
         SATFCMetrics.doWithMetrics(info -> {
             try {
-                Files.append(JSONUtils.toString(info), metricsFile, Charsets.UTF_8);
+                Files.append(JSONUtils.toString(info) + System.lineSeparator(), metricsFile, Charsets.UTF_8);
             } catch (IOException e) {
                 log.error("Couldn't save metrics to file " + metricsFile.getAbsolutePath(), e);
             }

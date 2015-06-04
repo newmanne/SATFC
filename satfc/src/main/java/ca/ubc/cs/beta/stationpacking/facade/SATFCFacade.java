@@ -124,7 +124,7 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         log.debug("Using library {}.", aSATFCParameters.getClaspLibrary());
-
+        log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
         fSolverManager = new SolverManager(
                 new ISolverBundleFactory() {
 

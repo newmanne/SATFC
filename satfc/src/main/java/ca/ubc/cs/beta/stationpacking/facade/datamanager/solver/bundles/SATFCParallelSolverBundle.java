@@ -102,16 +102,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // BEGIN UHF
         // NOTE: The sorted order of this list matters if there are more solver paths than there are cores (i.e. first in list will go first)
 
-        // Hit the cache at the instance level
-        if (useCache) {
-            parallelUHFSolvers.add(() -> {
-                final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-                final CompressedSATBasedSolver compressedSATBasedSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
-                final SubsetCacheUNSATDecorator UHFsubsetCacheUNSATDecorator = new SubsetCacheUNSATDecorator(compressedSATBasedSolver, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
-                return new SupersetCacheSATDecorator(UHFsubsetCacheUNSATDecorator, containmentCacheProxy, cacheCoordinate);
-            });
-        }
-
         // Presolvers: these guys will expand range and use up all available time
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
@@ -119,6 +109,17 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                     Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
         }
+
+        // Hit the cache at the instance level
+        parallelUHFSolvers.add(() -> {
+            ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
+            if (useCache) {
+                final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+                UHFSolver = new SubsetCacheUNSATDecorator(UHFSolver, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
+                UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate);
+            }
+            return UHFSolver;
+        });
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
@@ -129,6 +130,12 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             final IComponentGrouper aGrouper = new ConstraintGrouper();
             parallelUHFSolvers.add(() -> {
                 ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
+                if (useCache) {
+                    final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
+                    UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+                    UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+                    UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
+                }
                 if (decompose) {
                     log.debug("Decorate solver to split the graph into connected components and then merge the results");
                     UHFSolver = new ConnectedComponentGroupingDecorator(UHFSolver, aGrouper, getConstraintManager());
@@ -137,12 +144,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     //Remove unconstrained stations.
                     log.debug("Decorate solver to first remove underconstrained stations.");
                     UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager());
-                }
-                if (useCache) {
-                    final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-                    UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-                    UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
-                    UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
                 }
                 return UHFSolver;
             });
