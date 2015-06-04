@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,12 +14,10 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Collections2;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 
-import static org.junit.Assert.assertTrue;
+import com.google.common.collect.Collections2;
 
 public class GraphBackedConstraintManagerTest {
 	

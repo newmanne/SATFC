@@ -79,11 +79,11 @@ void ClaspConfig::prepare(SharedContext& ctx) {
 	}
 	if (std::abs(enumerate.numModels) != 1) { satPre.mode = SatPreParams::prepro_preserve_models; }
 	setSolvers(numS);
+	BasicSatConfig::prepare(ctx);
 	ctx.setConcurrency(solve.numSolver());
 	for (uint32 i = 1; i != ctx.concurrency(); ++i) {
 		if (!ctx.hasSolver(i)) { ctx.addSolver(); }
 	}
-	BasicSatConfig::prepare(ctx);
 }
 /////////////////////////////////////////////////////////////////////////////////////////
 // ClaspFacade::SolveImpl/SolveStrategy/AsyncResult
@@ -222,7 +222,12 @@ struct ClaspFacade::AsyncSolve : public SolveStrategy, public EventHandler {
 				}
 			}
 		}
-		if (state == state_done) { join(); }
+		if (state == state_done && join()) {
+			// Just in case other AsyncSolve objects are waiting on the computation.
+			// This should not happen but there is some existing code that uses
+			// an AsyncSolve object in a separate thread for cancellation.
+			mqCond.notify_all();
+		}
 		return true;
 	}
 	bool onModel(const Solver&, const Model&) {
@@ -234,7 +239,7 @@ struct ClaspFacade::AsyncSolve : public SolveStrategy, public EventHandler {
 		while (state == state_model && signal == 0) { mqCond.wait(lock); }
 		return signal == 0;
 	}
-	void join() { if (task.joinable()) { task.join(); } }
+	bool join() { if (task.joinable()) { task.join(); return true; } return false; }
 	Clasp::thread             task;   // async solving thread
 	Clasp::mutex              mqMutex;// protects mqCond
 	Clasp::condition_variable mqCond; // for iterating over models one by one

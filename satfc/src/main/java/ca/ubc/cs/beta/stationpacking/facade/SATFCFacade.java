@@ -45,6 +45,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnly
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -98,7 +99,7 @@ public class SATFCFacade implements AutoCloseable {
 
         final File libraryFile = new File(aSATFCParameters.getClaspLibrary());
         if (!libraryFile.exists()) {
-            throw new IllegalArgumentException("Provided clasp library does not exist.");
+            throw new IllegalArgumentException("Provided clasp library " + libraryFile.getAbsolutePath() + " does not exist.");
         }
         if (libraryFile.isDirectory()) {
             throw new IllegalArgumentException("Provided clasp library is a directory.");
@@ -148,6 +149,18 @@ public class SATFCFacade implements AutoCloseable {
                                         aSATFCParameters.isUnderconstrained(),
                                         aSATFCParameters.getServerURL()
                                 		);
+                            case SATFC_PARALLEL:
+                                return new SATFCParallelSolverBundle(
+                                    aSATFCParameters.getClaspLibrary(),
+                                    aStationManager,
+                                    aConstraintManager,
+                                    aSATFCParameters.getResultFile(),
+                                    aSATFCParameters.isPresolve(),
+                                    aSATFCParameters.isDecompose(),
+                                    aSATFCParameters.isUnderconstrained(),
+                                    aSATFCParameters.getServerURL(),
+                                    aSATFCParameters.getNumCores()
+                                );
                             case MIPFC:
                                 return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
                             case CNF:

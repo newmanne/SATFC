@@ -1,8 +1,9 @@
 package ca.ubc.cs.beta.stationpacking.test;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * <p>

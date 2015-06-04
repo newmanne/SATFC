@@ -1,11 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.solvers.base;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * An immutable container class that represents assignments of stations to channels (i.e. solutions to station packing problems)

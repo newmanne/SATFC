@@ -29,7 +29,6 @@ import java.util.stream.StreamSupport;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import containmentcache.ICacheEntry;
 
 /**

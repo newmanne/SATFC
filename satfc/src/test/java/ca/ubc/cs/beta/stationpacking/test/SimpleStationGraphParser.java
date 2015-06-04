@@ -1,15 +1,16 @@
 package ca.ubc.cs.beta.stationpacking.test;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * <p>

@@ -2,7 +2,9 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import redis.clients.jedis.Jedis;
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 
 import com.beust.jcommander.Parameter;
@@ -10,6 +12,7 @@ import com.beust.jcommander.Parameter;
 /**
  * Created by newmanne on 12/05/15.
  */
+@UsageTextField(title="Redis Parameters",description="Parameters describing how to take jobs from redis")
 public class RedisParameters extends AbstractOptions {
 
     @Parameter(names = "-REDIS-QUEUE", description = "The queue to take redis jobs from")
