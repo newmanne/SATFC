@@ -36,8 +36,6 @@ public class ExtendedCacheProblemProducer {
 
     private static final long THREAD_SLEEP_MILLIS = 5 * 10^5;
     private static final long QUEUE_SIZE_THRESHOLD = 100;
-    private static Jedis jedis;
-    private static ExtendedCacheProblemProducerParameters parameters = new ExtendedCacheProblemProducerParameters();
 
     /**
      * This method takes an existing SAT cache entry and generate a new problem by adding a new station
@@ -46,13 +44,14 @@ public class ExtendedCacheProblemProducer {
      */
     public static void main(String[] args) throws FileNotFoundException, InterruptedException {
 
+        ExtendedCacheProblemProducerParameters parameters = new ExtendedCacheProblemProducerParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         parameters.fLoggingOptions.initializeLogging();
 
         String domainCSV = parameters.fInterferencesFolder + "/Domain.csv";
         IStationManager stationManager = new DomainStationManager(domainCSV);
 
-        jedis = parameters.fRedisParameters.getJedis();
+        Jedis jedis = parameters.fRedisParameters.getJedis();
         IStationSampler stationSampler = StationSamplerFactory.getStationSampler(parameters.fStationSampler);
         IProblemSampler problemSampler = ProblemSamplerFactory.getProblemSampler(parameters.fProblemSampler);
 
@@ -65,9 +64,9 @@ public class ExtendedCacheProblemProducer {
         satKeys.forEach(key -> jedis.lpush(parameters.fRedisParameters.fRedisQueue, key));
 
         while(true){
-            if(queueSizeLow()){
+            if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue)){
                 problemSampler.sample();
-                if(queueSizeLow()) {
+                if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue)) {
                     Thread.sleep(THREAD_SLEEP_MILLIS);
                 }
             } else {
@@ -141,8 +140,8 @@ public class ExtendedCacheProblemProducer {
         }
     }
 
-    private static boolean queueSizeLow(){
-        if(jedis.llen(parameters.fRedisParameters.fRedisQueue) < QUEUE_SIZE_THRESHOLD){
+    private static boolean queueSizeLow(Jedis jedis, String queue){
+        if(jedis.llen(queue) < QUEUE_SIZE_THRESHOLD){
             return true;
         }
         return false;
