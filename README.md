@@ -21,6 +21,7 @@ Rough information about the evolution of **SATFC** through releases.
 ### SATFC 1.7 [8/06/2015]
 
 * New feature, _parallel portfolios_, allow SATFC to execute multiple solving techniques in parallel, returning a result as soon as any technique succeeds. Previous versions of SATFC applied each technique sequentially.
+* Enhanced the presolver technique to look beyond a station's immediate neighbours
 
 ## Introduction
 

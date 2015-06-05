@@ -67,11 +67,11 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
 	public String fClaspLibrary;
 	
-	@Parameter(names = "-SOLVER-CHOICE", description = "type of SATFC")
+	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC")
 	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
 
 
-    @Parameter(names = "-NUM-CORES", description = "Number of cores to use in parallel execution (should be >=4 ideally)")
+    @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. Defaults to all available processors")
     public int numCores = Runtime.getRuntime().availableProcessors();
 
 	/**

@@ -47,7 +47,7 @@ public class SATFCFacadeBuilder {
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
-    private int numCores;
+    private int parallelismLevel;
 
     /**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -57,8 +57,8 @@ public class SATFCFacadeBuilder {
 		fInitializeLogging = false;
 		fLibrary = findSATFCLibrary();
 		fResultFile = null;
-        numCores = Runtime.getRuntime().availableProcessors();
-		fSolverChoice = numCores >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
+        parallelismLevel = Runtime.getRuntime().availableProcessors();
+		fSolverChoice = parallelismLevel >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         fPresolve = true;
         fUnderconstrained = true;
         fDecompose = true;
@@ -133,7 +133,7 @@ public class SATFCFacadeBuilder {
 			throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
 		}
         if (fSolverChoice.equals(SolverChoice.SATFC_PARALLEL)) {
-            if (numCores < 4) {
+            if (parallelismLevel < 4) {
                 throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SolverChoice.SATFC_SEQUENTIAL + " solver instead. We recommend the " + SolverChoice.SATFC_PARALLEL + " solver with >= than 4 threads");
             }
         }
@@ -147,7 +147,7 @@ public class SATFCFacadeBuilder {
                 fDecompose,
                 CNFSaver,
                 serverURL,
-                numCores
+                parallelismLevel
         ));
 	}
 	
@@ -212,16 +212,16 @@ public class SATFCFacadeBuilder {
     }
 
     /**
-     * Set the maximum number of cores that SATFC will use
-     * @param numCores
+     * Set the maximum number of solvers that SATFC will execute in parallel
+     * @param parallelismLevel
      */
-    public void setNumCores(int numCores) {this.numCores = numCores; }
+    public void setParallelismLevel(int parallelismLevel) {this.parallelismLevel = parallelismLevel; }
 	
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         if (parameters.fClaspLibrary != null) {
             setLibrary(parameters.fClaspLibrary);
         }
-        setNumCores(parameters.numCores);
+        setParallelismLevel(parameters.numCores);
         setInitializeLogging(true);
         setSolverChoice(parameters.fSolverChoice);
         setDecompose(parameters.fSolverOptions.decomposition);
