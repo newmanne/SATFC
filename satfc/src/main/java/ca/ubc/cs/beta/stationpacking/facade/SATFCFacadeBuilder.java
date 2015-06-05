@@ -211,6 +211,10 @@ public class SATFCFacadeBuilder {
         this.serverURL = serverURL;
     }
 
+    /**
+     * Set the maximum number of cores that SATFC will use
+     * @param numCores
+     */
     public void setNumCores(int numCores) {this.numCores = numCores; }
 	
     public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
