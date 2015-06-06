@@ -7,6 +7,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.NeighborIndex;
@@ -14,10 +18,14 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by pcernek on 5/8/15.
  */
+@Slf4j
 public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
 
     private final IConstraintManager constraintManager;
@@ -33,6 +41,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        AC3(aInstance);
         return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
     }
 
@@ -40,102 +49,77 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
      * Will fail at the first indication of inconsistency.
      *
      * @param instance
-     * @param constraintManager
      * @return
      */
-    private boolean AC3(StationPackingInstance instance, IConstraintManager constraintManager) {
-        NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
-
-        LinkedHashSet<Pair<Station, Station>> interferingStationPairs = getInterferingStationPairs(neighborIndex, instance);
-        Iterator<Pair<Station, Station>> iterator = interferingStationPairs.iterator();
-
-        while (iterator.hasNext()) {
-            Pair<Station, Station> pair = iterator.next();
-            iterator.remove();
-            if (arcReduce(pair, instance, constraintManager)) {
-                Station referenceStation = pair.getLeft();
-                if (instance.getDomains().get(referenceStation).isEmpty()) {
+    private boolean AC3(StationPackingInstance instance) {
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
+        final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
+        final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
+        while (!workList.isEmpty()) {
+            final Pair<Station, Station> pair = workList.poll();
+            if (arcReduce(pair, reducedDomains)) {
+                final Station referenceStation = pair.getLeft();
+                if (reducedDomains.get(referenceStation).isEmpty()) {
+                    log.info("Reduced a domain to empty! Problem is solved UNSAT");
                     return false;
                 } else {
-                    reenqueueAllAffectedPairs(interferingStationPairs, pair, neighborIndex);
+                    reenqueueAllAffectedPairs(workList, pair, neighborIndex);
                 }
             }
         }
-
         return true;
     }
 
-    private void reenqueueAllAffectedPairs(LinkedHashSet<Pair<Station, Station>> interferingStationPairs,
+    private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,
                                            Pair<Station, Station> modifiedPair, NeighborIndex<Station, DefaultEdge> neighborIndex) {
-        Station referenceStation = modifiedPair.getLeft();
-        Station modifiedNeighbor = modifiedPair.getRight();
+        final Station referenceStation = modifiedPair.getLeft();
+        final Station modifiedNeighbor = modifiedPair.getRight();
 
-        Set<Station> allOtherNeighbors = neighborIndex.neighborsOf(referenceStation);
-        allOtherNeighbors.remove(modifiedNeighbor);
-
-        for (Station neighbor : allOtherNeighbors) {
+        neighborIndex.neighborsOf(referenceStation).stream().filter(neighbor -> neighbor != modifiedNeighbor).forEach(neighbor -> {
             interferingStationPairs.add(Pair.of(referenceStation, neighbor));
             interferingStationPairs.add(Pair.of(neighbor, referenceStation));
-        }
+        });
     }
 
-    private LinkedHashSet<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex,
+    private LinkedBlockingQueue<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex,
                                                                              StationPackingInstance instance) {
-        LinkedHashSet<Pair<Station, Station>> interferingStationPairs = new LinkedHashSet<>();
-
+        // TODO: do you need both (x,y) AND (y, x)?
+        final LinkedBlockingQueue<Pair<Station, Station>> workList = new LinkedBlockingQueue<>();
         for (Station referenceStation : instance.getStations()) {
             for (Station neighborStation : neighborIndex.neighborsOf(referenceStation)) {
-                interferingStationPairs.add(Pair.of(referenceStation, neighborStation));
+                workList.add(Pair.of(referenceStation, neighborStation));
             }
         }
-
-        return interferingStationPairs;
+        return workList;
     }
 
-    private boolean arcReduce(Pair<Station, Station> pair, StationPackingInstance instance, IConstraintManager constraintManager) {
+    private boolean arcReduce(Pair<Station, Station> pair, Map<Station, Set<Integer>> domains) {
         boolean change = false;
-        Station referenceStation = pair.getLeft();
-        Station neighborStation = pair.getRight();
-        for (Integer referenceChannel : instance.getDomains().get(referenceStation)) {
-            if (channelViolatesArcConsistency(referenceStation, referenceChannel, neighborStation, instance, constraintManager)) {
-                instance.getDomains().get(referenceStation).remove(referenceChannel);
+        final Station xStation = pair.getLeft();
+        final Station yStation = pair.getRight();
+        final List<Integer> xValuesToPurge = new ArrayList<>();
+        for (int vx : domains.get(xStation)) {
+            if (channelViolatesArcConsistency(xStation, vx, yStation, domains)) {
+                log.info("Purging channel {} from station {}'s domain", vx, xStation.getID());
+                xValuesToPurge.add(vx);
                 change = true;
             }
         }
+        domains.get(xStation).removeAll(xValuesToPurge);
         return change;
     }
 
-    private boolean channelViolatesArcConsistency(Station referenceStation, Integer referenceChannel, Station neighborStation,
-                                                  StationPackingInstance instance, IConstraintManager constraintManager) {
-        for (Integer neighborChannel : instance.getDomains().get(neighborStation)) {
-            Map<Integer, Set<Station>> tempAssignment = new HashMap<>();
-            tempAssignment.put(referenceChannel, new HashSet<>());
-            tempAssignment.put(neighborChannel, new HashSet<>());
-            tempAssignment.get(referenceChannel).add(referenceStation);
-            tempAssignment.get(neighborChannel).add(neighborStation);
-            if (constraintManager.isSatisfyingAssignment(tempAssignment)) {
+    private boolean channelViolatesArcConsistency(Station xStation, int vx, Station yStation, Map<Station, Set<Integer>> domains) {
+        for (int vy : domains.get(yStation)) {
+            final Map<Integer, Set<Station>> assignment = new HashMap<>();
+            assignment.put(vx, Sets.newHashSet(xStation));
+            assignment.putIfAbsent(vy, new HashSet<>());
+            assignment.get(vy).add(yStation);
+            if (constraintManager.isSatisfyingAssignment(assignment)) {
                 return false;
             }
         }
-
         return true;
-    }
-
-    private LinkedHashSet<Pair<Station, Station>> getInterferingStationPairs(StationPackingInstance instance, IConstraintManager constraintManager) {
-        LinkedHashSet<Pair<Station, Station>> interferingStationPairs = new LinkedHashSet<>();
-        for (Station station : instance.getStations()) {
-            for (Integer domainChannel : instance.getDomains().get(station)) {
-                for (Station coInterferingNeighbor : constraintManager.getCOInterferingStations(station, domainChannel)) {
-                    Pair<Station, Station> pair = Pair.of(station, coInterferingNeighbor);
-                    interferingStationPairs.add(pair);
-                }
-                for (Station adjInterferingNeighbor : constraintManager.getADJplusInterferingStations(station, domainChannel)) {
-                    Pair<Station, Station> pair = Pair.of(station, adjInterferingNeighbor);
-                    interferingStationPairs.add(pair);
-                }
-            }
-        }
-        return interferingStationPairs;
     }
 
 }
