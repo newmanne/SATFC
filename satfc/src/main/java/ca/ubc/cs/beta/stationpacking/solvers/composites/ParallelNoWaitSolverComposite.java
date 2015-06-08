@@ -60,6 +60,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     private final ListeningExecutorService executorService;
     private final List<BlockingQueue<ISolver>> listOfSolverQueues;
+    private final AtomicReference<Throwable> error;
 
     /**
      * @param threadPoolSize The number of threads to use in the thread pool
@@ -77,6 +78,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                 solverQueue.offer(solver);
             }
         }
+        error = new AtomicReference<>();
     }
 
     @Override
@@ -134,12 +136,29 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                     return null;
                 });
                 futures.add(future);
-                addExceptionHandlingCallback(future);
+                Futures.addCallback(future, new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        if (t instanceof CancellationException) {
+                            return;
+                        }
+                        // Only set the first error
+                        error.compareAndSet(null, t);
+                        // Wake up the main thread (if it's still sleeping)
+                        workDone.release(numWorkToDo);
+                    }
+                });
             });
             // Wait for a thread to complete solving and signal you, or all threads to timeout
             log.debug("Main thread going to sleep");
             workDone.acquire(numWorkToDo);
-            log.debug("Main thread waking up, cancelling futures");
+            log.debug("Main thread waking up, checking for errors then cancelling futures");
+            checkForErrors();
             // Might as well cancel any jobs that haven't run yet. We don't interrupt them (via Thread interrupt) if they have already started, because we have our own interrupt system
             futures.forEach(future -> future.cancel(false));
             log.debug("Returning now");
@@ -149,21 +168,15 @@ public class ParallelNoWaitSolverComposite implements ISolver {
         }
     }
 
-    private void addExceptionHandlingCallback(ListenableFuture<Void> future) {
-        Futures.addCallback(future, new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                if (t instanceof CancellationException) {
-                    return;
-                }
-                throw new RuntimeException("Error executing task!", t);
-            }
-        });
+    /**
+     * We want a fail-fast policy, but java executors aren't going to throw the exception on the main thread.
+     * We can't call Future.get() and check for errors, because that might block.
+     * So we set a variable when an error occurs, and check it here.
+     */
+    private void checkForErrors() {
+        if (error.get() != null) {
+            throw new RuntimeException("Error occurred while executing a task", error.get());
+        }
     }
 
     @Override

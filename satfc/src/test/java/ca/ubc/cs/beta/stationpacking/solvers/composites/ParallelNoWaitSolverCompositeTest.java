@@ -99,4 +99,14 @@ public class ParallelNoWaitSolverCompositeTest {
         assertEquals(SATResult.SAT, solve.getResult());
     }
 
+    @Test(expected = RuntimeException.class)
+    public void exceptionsPropagateToMainThread() {
+        final List<ISolverFactory> solvers = new ArrayList<>();
+        solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> {
+            throw new IllegalArgumentException();
+        });
+        final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);
+        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
+    }
+
 }
