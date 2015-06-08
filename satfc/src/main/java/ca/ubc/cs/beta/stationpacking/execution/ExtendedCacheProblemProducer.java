@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 
 import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
@@ -111,11 +112,12 @@ public class ExtendedCacheProblemProducer {
                                 SATFCFacadeProblem problem =
                                         new SATFCFacadeProblem(stations, channelsToPackOn, domains, ccEntry.getAssignment(), parameters.fInterferencesFolder, instanceName);
 
-                                //load key into job queue
-                                jedis.rpush(RedisUtils.makeKey(parameters.fRedisParameters.fRedisQueue, RedisUtils.JOB_QUEUE), instanceName);
-                                //load problem json into hash
+                                //load key into job queue and load problem json into hash atomically
+                                Transaction multi = jedis.multi();
+                                multi.rpush(RedisUtils.makeKey(parameters.fRedisParameters.fRedisQueue, RedisUtils.JOB_QUEUE), instanceName);
                                 String json = JSONUtils.toString(problem);
-                                jedis.hset(RedisUtils.makeKey(parameters.fRedisParameters.fRedisQueue, RedisUtils.JSON_HASH), instanceName, json);
+                                multi.hset(RedisUtils.makeKey(parameters.fRedisParameters.fRedisQueue, RedisUtils.JSON_HASH), instanceName, json);
+                                multi.exec();
 
                                 //restore stations list and domain list after building each problem
                                 stations.remove(station);
