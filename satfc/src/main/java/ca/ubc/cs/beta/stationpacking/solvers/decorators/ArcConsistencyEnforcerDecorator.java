@@ -4,9 +4,11 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -17,6 +19,10 @@ import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -29,6 +35,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
 
     private final IConstraintManager constraintManager;
+    public final static MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 
     /**
      * @param aSolver           - decorated ISolver.
@@ -39,10 +46,30 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
         this.constraintManager = constraintManager;
     }
 
+    private BigInteger searchSpaceSize(Map<Station, Set<Integer>> domains) {
+        return domains.values().stream().map(domain -> BigInteger.valueOf(domain.size())).reduce(BigInteger.ONE, BigInteger::multiply);
+    }
+
+    private long domainSize(Map<Station, Set<Integer>> domains) {
+        return domains.values().stream().mapToInt(Set::size).sum();
+    }
+
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        AC3(aInstance);
-        return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
+        final Watch watch = Watch.constructAutoStartWatch();
+//        final BigInteger initialSearchSpaceSize = searchSpaceSize(aInstance.getDomains());
+        final Map<Station, Set<Integer>> reducedDomains = AC3(aInstance);
+        if (reducedDomains.values().stream().anyMatch(Set::isEmpty)) {
+            return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+        } else {
+            final StationPackingInstance reducedInstance = new StationPackingInstance(reducedDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
+//            final BigInteger afterSearchSpaceSize = searchSpaceSize(reducedInstance.getDomains());
+//            final BigDecimal bd = new BigDecimal(afterSearchSpaceSize, MATH_CONTEXT).divide(new BigDecimal(initialSearchSpaceSize, MATH_CONTEXT), MATH_CONTEXT);
+//            int newScale = 4-bd.precision()+bd.scale();
+//            BigDecimal bd2 = bd.setScale(newScale, RoundingMode.HALF_UP);
+//            log.info("Domains reduced from {} to {}. The reduced search space is a {}% of the initial space", initialSearchSpaceSize, afterSearchSpaceSize, bd2);
+            return fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
+        }
     }
 
     /**
@@ -51,7 +78,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
      * @param instance
      * @return
      */
-    private boolean AC3(StationPackingInstance instance) {
+    private Map<Station, Set<Integer>> AC3(StationPackingInstance instance) {
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
         final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
@@ -61,13 +88,13 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
                 final Station referenceStation = pair.getLeft();
                 if (reducedDomains.get(referenceStation).isEmpty()) {
                     log.info("Reduced a domain to empty! Problem is solved UNSAT");
-                    return false;
+                    return reducedDomains;
                 } else {
                     reenqueueAllAffectedPairs(workList, pair, neighborIndex);
                 }
             }
         }
-        return true;
+        return reducedDomains;
     }
 
     private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,
