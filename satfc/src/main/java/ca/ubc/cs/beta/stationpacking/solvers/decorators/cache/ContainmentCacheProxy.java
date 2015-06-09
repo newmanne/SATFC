@@ -127,11 +127,12 @@ public class ContainmentCacheProxy {
     }
 
     public void interrupt() {
-        lock.lock();
-        if (activeSolve.get()) {
-            post.abort();
-        }
-        lock.unlock();
+        // TODO: seems to cause a bug every now and again
+//        lock.lock();
+//        if (activeSolve.get()) {
+//            post.abort();
+//        }
+//        lock.unlock();
     }
 
 }
