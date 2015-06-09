@@ -57,17 +57,11 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
-//        final BigInteger initialSearchSpaceSize = searchSpaceSize(aInstance.getDomains());
         final Map<Station, Set<Integer>> reducedDomains = AC3(aInstance);
         if (reducedDomains.values().stream().anyMatch(Set::isEmpty)) {
             return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
         } else {
             final StationPackingInstance reducedInstance = new StationPackingInstance(reducedDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
-//            final BigInteger afterSearchSpaceSize = searchSpaceSize(reducedInstance.getDomains());
-//            final BigDecimal bd = new BigDecimal(afterSearchSpaceSize, MATH_CONTEXT).divide(new BigDecimal(initialSearchSpaceSize, MATH_CONTEXT), MATH_CONTEXT);
-//            int newScale = 4-bd.precision()+bd.scale();
-//            BigDecimal bd2 = bd.setScale(newScale, RoundingMode.HALF_UP);
-//            log.info("Domains reduced from {} to {}. The reduced search space is a {}% of the initial space", initialSearchSpaceSize, afterSearchSpaceSize, bd2);
             return fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
         }
     }
@@ -110,7 +104,6 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
 
     private LinkedBlockingQueue<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex,
                                                                              StationPackingInstance instance) {
-        // TODO: do you need both (x,y) AND (y, x)?
         final LinkedBlockingQueue<Pair<Station, Station>> workList = new LinkedBlockingQueue<>();
         for (Station referenceStation : instance.getStations()) {
             for (Station neighborStation : neighborIndex.neighborsOf(referenceStation)) {
