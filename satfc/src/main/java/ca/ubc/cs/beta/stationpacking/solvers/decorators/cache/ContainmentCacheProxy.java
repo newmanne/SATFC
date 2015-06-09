@@ -108,9 +108,10 @@ public class ContainmentCacheProxy {
             if (terminationCriterion.hasToStop()) {
                 return failure;
             }
-            final CloseableHttpResponse httpResponse = httpClient.execute(post);
-            final String response = EntityUtils.toString(httpResponse.getEntity());
-            return JSONUtils.toObject(response, responseClass);
+            try (final CloseableHttpResponse httpResponse = httpClient.execute(post)) {
+                final String response = EntityUtils.toString(httpResponse.getEntity());
+                return JSONUtils.toObject(response, responseClass);
+            }
         } catch (IOException e) {
             if (post.isAborted()) {
                 log.trace("Web request was aborted");
