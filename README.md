@@ -4,13 +4,10 @@
 
 Rough information about the evolution of **SATFC** through releases.
 
-### SATFC 1.3 [30/10/2014]
+### SATFC 1.7 [8/06/2015]
 
-* First official release of **SATFC** by the FCC.
-
-### SATFC 1.5 [26/03/2015]
-
-* New feature, _containment cache_, that uses previously solved problems to solve new, related problems. Our experiments with this feature show that it provides significant performance increase, not only by taking care of problems that are seen often (e.g. from very similar auction runs), but also improving solving time of new, unseen problems. This cache is implemented as a standalone server, the **SATFCserver**, to allow multiple **SATFC** solvers to use the same cache and reduce memory overhead. This server in turn uses **redis** as its backbone cache data structure.
+* New feature, _parallel portfolios_, allow SATFC to execute multiple solvers in parallel, returning a result as soon as any solver succeeds. Previous versions of SATFC applied each solver sequentially.
+* Enhanced the presolver technique to look beyond a station's immediate neighbours
 
 ### SATFC 1.6 [19/05/2015]
 
@@ -18,10 +15,13 @@ Rough information about the evolution of **SATFC** through releases.
 * The **SATFCserver** now has a clever clean up procedures to prune away unnecessary entries if the cache becomes too big.
 * The cache is now updated on the fly. This means instances solved are immediately accessible to future cache queries (improving performance), and the cache server does not need to be restarted to have access to new data (improving usability). 
 
-### SATFC 1.7 [8/06/2015]
+### SATFC 1.5 [26/03/2015]
 
-* New feature, _parallel portfolios_, allow SATFC to execute multiple solving techniques in parallel, returning a result as soon as any technique succeeds. Previous versions of SATFC applied each technique sequentially.
-* Enhanced the presolver technique to look beyond a station's immediate neighbours
+* New feature, _containment cache_, that uses previously solved problems to solve new, related problems. Our experiments with this feature show that it provides significant performance increase, not only by taking care of problems that are seen often (e.g. from very similar auction runs), but also improving solving time of new, unseen problems. This cache is implemented as a standalone server, the **SATFCserver**, to allow multiple **SATFC** solvers to use the same cache and reduce memory overhead. This server in turn uses **redis** as its backbone cache data structure.
+
+### SATFC 1.3 [30/10/2014]
+
+* First official release of **SATFC** by the FCC.
 
 ## Introduction
 
