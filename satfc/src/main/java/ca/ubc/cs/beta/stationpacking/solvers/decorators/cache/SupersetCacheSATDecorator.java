@@ -91,4 +91,9 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
         proxy.interrupt();
         super.interrupt();
     }
+
+    @Override
+    public void notifyShutdown() {
+        proxy.notifyShutdown();
+    }
 }

@@ -107,7 +107,7 @@ public class ContainmentCacheProxy {
             activeFuture.set(httpClient.execute(httpPost, new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
-                    log.info("Back from making web request");
+                    log.trace("Back from making web request");
                     httpResponse.set(result);
                     latch.countDown();
                 }
@@ -120,7 +120,7 @@ public class ContainmentCacheProxy {
 
                 @Override
                 public void cancelled() {
-                    log.info("Web request aborted");
+                    log.debug("Web request aborted");
                     latch.countDown();
                 }
             }));
@@ -149,7 +149,16 @@ public class ContainmentCacheProxy {
     public void interrupt() {
         final Future<HttpResponse> future = activeFuture.getAndSet(null);
         if (future != null) {
+            log.debug("Cancelling web request future");
             future.cancel(true);
+        }
+    }
+
+    public synchronized void notifyShutdown() {
+        try {
+            httpClient.close();
+        } catch (IOException e) {
+            throw new RuntimeException("Couldn't close http client", e);
         }
     }
 
