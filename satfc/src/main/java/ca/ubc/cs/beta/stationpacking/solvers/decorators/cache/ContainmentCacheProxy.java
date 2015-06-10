@@ -21,31 +21,30 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.util.EntityUtils;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by newmanne on 01/03/15.
@@ -56,21 +55,21 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 public class ContainmentCacheProxy {
 
     private final CacheCoordinate coordinate;
-    private final CloseableHttpClient httpClient;
+    private final static CloseableHttpAsyncClient httpClient;
     private final String SAT_URL;
     private final String UNSAT_URL;
+    private final AtomicReference<Future<HttpResponse>> activeFuture;
 
-    private final Lock lock;
-    private final AtomicBoolean activeSolve;
-    private HttpPost post;
+    static {
+        httpClient = HttpAsyncClients.createDefault();
+        httpClient.start();
+    }
 
     public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
         this.coordinate = coordinate;
-        httpClient = HttpClients.createDefault();
-        lock = new ReentrantLock();
-        activeSolve = new AtomicBoolean(false);
+        activeFuture = new AtomicReference<>();
     }
 
     /**
@@ -95,44 +94,63 @@ public class ContainmentCacheProxy {
     private <T> T makePost(String URL, StationPackingInstance instance, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(URL);
         final String uriString = builder.build().toUriString();
-        post = new HttpPost(uriString);
+        final HttpPost httpPost = new HttpPost(uriString);
         log.debug("Making a request to the cache server for instance " + instance.getName() + " " + uriString);
         final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
         final String jsonRequest = JSONUtils.toString(request);
         final StringEntity stringEntity = new StringEntity(jsonRequest, ContentType.APPLICATION_JSON);
-        post.setEntity(stringEntity);
+        httpPost.setEntity(stringEntity);
         try {
-            lock.lock();
-            activeSolve.set(true);
-            lock.unlock();
+            final CountDownLatch latch = new CountDownLatch(1);
+            final AtomicReference<HttpResponse> httpResponse = new AtomicReference<>();
+            final AtomicReference<Exception> exception = new AtomicReference<>();
+            activeFuture.set(httpClient.execute(httpPost, new FutureCallback<HttpResponse>() {
+                @Override
+                public void completed(HttpResponse result) {
+                    log.info("Back from making web request");
+                    httpResponse.set(result);
+                    latch.countDown();
+                }
+
+                @Override
+                public void failed(Exception ex) {
+                    exception.set(ex);
+                    latch.countDown();
+                }
+
+                @Override
+                public void cancelled() {
+                    log.info("Web request aborted");
+                    latch.countDown();
+                }
+            }));
             if (terminationCriterion.hasToStop()) {
                 return failure;
             }
-            try (final CloseableHttpResponse httpResponse = httpClient.execute(post)) {
-                final String response = EntityUtils.toString(httpResponse.getEntity());
-                return JSONUtils.toObject(response, responseClass);
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Interrupted while waiting for countdown latch", e);
             }
-        } catch (IOException e) {
-            if (post.isAborted()) {
-                log.trace("Web request was aborted");
+            final Exception ex = exception.get();
+            if (ex != null) {
+                throw new RuntimeException("Error making web request", ex);
+            }
+            if (terminationCriterion.hasToStop()) {
                 return failure;
-            } else {
-                throw new RuntimeException("Could not contact server", e);
             }
-        } finally {
-            lock.lock();
-            activeSolve.set(false);
-            lock.unlock();
+            final String response = EntityUtils.toString(httpResponse.get().getEntity());
+            return JSONUtils.toObject(response, responseClass);
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading input stream from httpResponse", e);
         }
     }
 
     public void interrupt() {
-        // TODO: seems to cause a bug every now and again
-//        lock.lock();
-//        if (activeSolve.get()) {
-//            post.abort();
-//        }
-//        lock.unlock();
+        final Future<HttpResponse> future = activeFuture.getAndSet(null);
+        if (future != null) {
+            future.cancel(true);
+        }
     }
 
 }
