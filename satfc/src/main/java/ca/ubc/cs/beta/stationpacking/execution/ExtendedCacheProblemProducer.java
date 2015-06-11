@@ -15,6 +15,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.ExtendedCacheProblemPr
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
+import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
@@ -49,7 +50,7 @@ public class ExtendedCacheProblemProducer {
         ExtendedCacheProblemProducerParameters parameters = new ExtendedCacheProblemProducerParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         parameters.fLoggingOptions.initializeLogging();
-        log = LoggerFactory.getLogger(Converter.class);
+        log = LoggerFactory.getLogger(ExtendedCacheProblemProducer.class);
 
         String domainCSV = parameters.fInterferencesFolder + "/Domain.csv";
         IStationManager stationManager = new DomainStationManager(domainCSV);
@@ -140,8 +141,7 @@ public class ExtendedCacheProblemProducer {
             Set<String> queueKeys = jedis.keys("*" + fRedisQueue + "*");
             queueKeys.forEach(key -> jedis.del(key));
         } else {
-            log.error("Invalid redis queue argument detected.");
-            System.exit(AEATKReturnValues.PARAMETER_EXCEPTION);
+            throw new ParameterException("Invalid redis queue argument detected.");
         }
         log.info("Finished cleaning up related queues");
     }

@@ -8,6 +8,8 @@ import ca.ubc.cs.beta.stationpacking.execution.extendedcache.StationSamplerFacto
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by emily404 on 5/28/15.
  */
@@ -27,9 +29,9 @@ public class ExtendedCacheProblemProducerParameters extends AbstractOptions {
     public StationSamplerFactory.StationSamplingMethod fStationSampler;
 
     @Parameter(names = "-SLEEP-INTERVAL", description = "the time in milliseconds thread sleeps for when queue is low, default 5 seconds")
-    public long fSleepInterval = 5 * (long)Math.pow(10,3);
+    public long fSleepInterval = TimeUnit.SECONDS.toMillis(5);
 
-    @Parameter(names = "-QUEUE-SIZE-THRESHOLD", description = "threshold indicating the queue size is low")
+    @Parameter(names = "-QUEUE-SIZE-THRESHOLD", description = "threshold indicating the number of keys in queue is low")
     public int fQueueSizeThreshold = 100;
 
     @ParametersDelegate
