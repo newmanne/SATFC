@@ -27,7 +27,8 @@ import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.SACConsistencyEnforcerDecorator;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -36,7 +37,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -147,8 +147,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         }
 
         // Init the parallel solvers
-//        ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers);
-        ISolver UHFsolver = new ArcConsistencyEnforcerDecorator(new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers), aConstraintManager);
+        ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers);
+        UHFsolver = new ArcConsistencyEnforcerDecorator(UHFsolver, aConstraintManager);
         // END UHF
 
         // BEGIN VHF

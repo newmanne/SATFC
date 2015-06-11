@@ -6,8 +6,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ArcConsistencyEnforcerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.SACConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 
 /**
@@ -22,7 +22,7 @@ public class ConsistencyBundle extends ASolverBundle {
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
         solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
-        solver = new ArcConsistencyEnforcerDecorator(solver, aConstraintManager);
+        solver = new SACConsistencyEnforcerDecorator(solver, aConstraintManager);
     }
 
     @Override

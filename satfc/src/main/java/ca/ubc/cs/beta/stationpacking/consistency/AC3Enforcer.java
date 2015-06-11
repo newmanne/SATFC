@@ -1,69 +1,28 @@
-package ca.ubc.cs.beta.stationpacking.solvers.decorators;
+package ca.ubc.cs.beta.stationpacking.consistency;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Created by pcernek on 5/8/15.
- */
+* Created by newmanne on 10/06/15.
+*/
 @Slf4j
-public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
+public class AC3Enforcer {
 
     private final IConstraintManager constraintManager;
-    public final static MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 
-    /**
-     * @param aSolver           - decorated ISolver.
-     * @param constraintManager
-     */
-    public ArcConsistencyEnforcerDecorator(ISolver aSolver, IConstraintManager constraintManager) {
-        super(aSolver);
+    public AC3Enforcer(IConstraintManager constraintManager) {
         this.constraintManager = constraintManager;
-    }
-
-    private BigInteger searchSpaceSize(Map<Station, Set<Integer>> domains) {
-        return domains.values().stream().map(domain -> BigInteger.valueOf(domain.size())).reduce(BigInteger.ONE, BigInteger::multiply);
-    }
-
-    private long domainSize(Map<Station, Set<Integer>> domains) {
-        return domains.values().stream().mapToInt(Set::size).sum();
-    }
-
-    @Override
-    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        final Watch watch = Watch.constructAutoStartWatch();
-        final Map<Station, Set<Integer>> reducedDomains = AC3(aInstance);
-        if (reducedDomains.values().stream().anyMatch(Set::isEmpty)) {
-            return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
-        } else {
-            final StationPackingInstance reducedInstance = new StationPackingInstance(reducedDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
-            return fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
-        }
     }
 
     /**
@@ -72,23 +31,25 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
      * @param instance
      * @return
      */
-    private Map<Station, Set<Integer>> AC3(StationPackingInstance instance) {
+    public AC3Output AC3(StationPackingInstance instance) {
+        final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
+        final AC3Output output = new AC3Output(reducedDomains);
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
-        final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
         while (!workList.isEmpty()) {
             final Pair<Station, Station> pair = workList.poll();
-            if (arcReduce(pair, reducedDomains)) {
+            if (arcReduce(pair, output)) {
                 final Station referenceStation = pair.getLeft();
                 if (reducedDomains.get(referenceStation).isEmpty()) {
                     log.info("Reduced a domain to empty! Problem is solved UNSAT");
-                    return reducedDomains;
+                    output.setNoSolution(true);
+                    return output;
                 } else {
                     reenqueueAllAffectedPairs(workList, pair, neighborIndex);
                 }
             }
         }
-        return reducedDomains;
+        return output;
     }
 
     private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,
@@ -103,7 +64,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
     }
 
     private LinkedBlockingQueue<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex,
-                                                                             StationPackingInstance instance) {
+                                                                                   StationPackingInstance instance) {
         final LinkedBlockingQueue<Pair<Station, Station>> workList = new LinkedBlockingQueue<>();
         for (Station referenceStation : instance.getStations()) {
             for (Station neighborStation : neighborIndex.neighborsOf(referenceStation)) {
@@ -113,14 +74,16 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
         return workList;
     }
 
-    private boolean arcReduce(Pair<Station, Station> pair, Map<Station, Set<Integer>> domains) {
+    private boolean arcReduce(Pair<Station, Station> pair, AC3Output output) {
         boolean change = false;
+        final Map<Station, Set<Integer>> domains = output.getReducedDomains();
         final Station xStation = pair.getLeft();
         final Station yStation = pair.getRight();
         final List<Integer> xValuesToPurge = new ArrayList<>();
         for (int vx : domains.get(xStation)) {
             if (channelViolatesArcConsistency(xStation, vx, yStation, domains)) {
                 log.info("Purging channel {} from station {}'s domain", vx, xStation.getID());
+                output.setNumReducedChannels(output.getNumReducedChannels() + 1);
                 xValuesToPurge.add(vx);
                 change = true;
             }
@@ -141,5 +104,4 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
         }
         return true;
     }
-
 }
