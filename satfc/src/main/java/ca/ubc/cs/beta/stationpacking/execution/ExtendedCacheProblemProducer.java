@@ -64,7 +64,7 @@ public class ExtendedCacheProblemProducer {
         while(true){
             if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)){
                 log.info("Queue size low, sampling more problems");
-                problemSampler.sample();
+                jedis.lpush(parameters.fRedisParameters.fRedisQueue, problemSampler.sample());
                 if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)) {
                     Thread.sleep(parameters.fSleepInterval);
                 }

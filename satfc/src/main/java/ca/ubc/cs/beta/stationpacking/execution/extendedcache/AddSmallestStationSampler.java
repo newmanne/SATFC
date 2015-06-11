@@ -11,6 +11,11 @@ import java.util.BitSet;
  */
 public class AddSmallestStationSampler implements IStationSampler {
 
+    /**
+     * Find all stations that are not present in current problem, return the first one
+     * @param flipped BitSet representing stations that are present in current problem
+     * @return stationID of the station to be added
+     */
     @Override
     public Integer sample(BitSet flipped) {
         flipped.flip(1, flipped.length());

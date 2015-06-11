@@ -7,6 +7,12 @@ import java.util.BitSet;
  */
 public class PopulationSizeStationSampler implements IStationSampler {
 
+    /**
+     * Sample stations based on population density that the station covers,
+     * stations with higher population density are more likely to be selected
+     * @param bitSet a BitSet representing stations that are present in a problem
+     * @return stationID of the station to be added
+     */
     @Override
     public Integer sample(BitSet bitSet) {
         return 0;
