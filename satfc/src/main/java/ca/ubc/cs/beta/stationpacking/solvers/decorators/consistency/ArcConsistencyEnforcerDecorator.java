@@ -37,7 +37,8 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
             return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
         } else {
             final StationPackingInstance reducedInstance = new StationPackingInstance(ac3Output.getReducedDomains(), aInstance.getPreviousAssignment(), aInstance.getMetadata());
-            return SolverResult.addTime(fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
+            final SolverResult solve = fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
+            return new SolverResult(solve.getResult(), watch.getElapsedTime(), solve.getAssignment());
         }
     }
 
