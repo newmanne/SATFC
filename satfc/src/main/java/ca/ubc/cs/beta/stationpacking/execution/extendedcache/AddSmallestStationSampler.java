@@ -1,0 +1,20 @@
+package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
+
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import com.google.common.collect.ImmutableSet;
+
+import java.util.BitSet;
+
+/**
+ * Created by emily404 on 6/10/15.
+ */
+public class AddSmallestStationSampler implements IStationSampler {
+
+    @Override
+    public Integer sample(BitSet flipped) {
+        flipped.flip(1, flipped.length());
+        ImmutableSet<Integer> stationsToAdd = flipped.stream().mapToObj(Integer::new).collect(GuavaCollectors.toImmutableSet());
+        return stationsToAdd.asList().get(0);
+    }
+}

@@ -9,11 +9,14 @@ public class StationSamplerFactory{
         switch(sampler){
             case POPULATION_SIZE:
                 return new PopulationSizeStationSampler();
+            case ADD_SMALLEST:
+                return new AddSmallestStationSampler();
         }
-        return null;
+        throw new IllegalStateException();
     }
 
     public enum StationSamplingMethod {
-        POPULATION_SIZE
+        POPULATION_SIZE,
+        ADD_SMALLEST
     }
 }

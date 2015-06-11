@@ -26,6 +26,12 @@ public class ExtendedCacheProblemProducerParameters extends AbstractOptions {
     @Parameter(names = "-STATION-SAMPLER", description = "sampling method to produce next station to add to a cache entry")
     public StationSamplerFactory.StationSamplingMethod fStationSampler;
 
+    @Parameter(names = "-SLEEP-INTERVAL", description = "the time in milliseconds thread sleeps for when queue is low, default 5 seconds")
+    public long fSleepInterval = 5 * (long)Math.pow(10,3);
+
+    @Parameter(names = "-QUEUE-SIZE-THRESHOLD", description = "threshold indicating the queue size is low")
+    public int fQueueSizeThreshold = 100;
+
     @ParametersDelegate
     public RedisParameters fRedisParameters = new RedisParameters();
 

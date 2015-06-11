@@ -9,7 +9,7 @@ public class ProblemSamplerFactory {
             case STATION_SIZE_SQUARED:
                 return new StationSizeSquaredProblemSampler();
         }
-        return null;
+        throw new IllegalStateException();
     }
 
     public enum ProblemSamplingMethod {
