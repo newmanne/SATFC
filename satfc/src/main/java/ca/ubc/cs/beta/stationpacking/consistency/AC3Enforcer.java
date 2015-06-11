@@ -41,7 +41,7 @@ public class AC3Enforcer {
             if (arcReduce(pair, output)) {
                 final Station referenceStation = pair.getLeft();
                 if (reducedDomains.get(referenceStation).isEmpty()) {
-                    log.info("Reduced a domain to empty! Problem is solved UNSAT");
+                    log.debug("Reduced a domain to empty! Problem is solved UNSAT");
                     output.setNoSolution(true);
                     return output;
                 } else {
@@ -82,7 +82,7 @@ public class AC3Enforcer {
         final List<Integer> xValuesToPurge = new ArrayList<>();
         for (int vx : domains.get(xStation)) {
             if (channelViolatesArcConsistency(xStation, vx, yStation, domains)) {
-                log.info("Purging channel {} from station {}'s domain", vx, xStation.getID());
+                log.debug("Purging channel {} from station {}'s domain", vx, xStation.getID());
                 output.setNumReducedChannels(output.getNumReducedChannels() + 1);
                 xValuesToPurge.add(vx);
                 change = true;
