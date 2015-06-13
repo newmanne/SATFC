@@ -25,6 +25,7 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
@@ -48,6 +49,7 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
+    private SATFCHydraParams hydraParams;
 
     /**
 	 * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -63,6 +65,7 @@ public class SATFCFacadeBuilder {
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
+        hydraParams = null;
 	}
 
 	/**
@@ -147,7 +150,8 @@ public class SATFCFacadeBuilder {
                 fDecompose,
                 CNFSaver,
                 serverURL,
-                parallelismLevel
+                parallelismLevel,
+                hydraParams
         ));
 	}
 	
@@ -211,6 +215,8 @@ public class SATFCFacadeBuilder {
         this.serverURL = serverURL;
     }
 
+    private void setHydraParams(@NonNull SATFCHydraParams hydraParams) { this.hydraParams = hydraParams; }
+
     /**
      * Set the maximum number of solvers that SATFC will execute in parallel
      * @param parallelismLevel
@@ -238,6 +244,9 @@ public class SATFCFacadeBuilder {
                 System.out.println("Saving CNFS to disk");
                 setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
             }
+        }
+        if (parameters.fHydraParams != null) {
+            setHydraParams(parameters.fHydraParams);
         }
         return build();
     }

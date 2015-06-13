@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters;
 import ca.ubc.cs.beta.aeatk.logging.ComplexLoggingOptions;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
@@ -54,6 +55,8 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @ParametersDelegate
     public RedisParameters fRedisParameters = new RedisParameters();
 
+    @Parameter(names = "-SRPK-FILE", description = "single srpk file to run")
+    public String fsrpkFile;
     @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
     public String fFileOfInstanceFiles;
     @Parameter(names = {"-METRICS-FILE", "-OUTPUT-FILE"}, description = "Causes the FileMetricWriter to be used, outputs a file with metrics (may cause performance loss)")
@@ -79,5 +82,8 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@ParametersDelegate
 	public ComplexLoggingOptions fLoggingOptions = new ComplexLoggingOptions();
+
+    @ParametersDelegate
+    public SATFCHydraParams fHydraParams = new SATFCHydraParams();
 
 }

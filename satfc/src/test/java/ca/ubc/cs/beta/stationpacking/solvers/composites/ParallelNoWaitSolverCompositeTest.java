@@ -53,14 +53,14 @@ public class ParallelNoWaitSolverCompositeTest {
         final int nThreads = 11;
         for (int i = 0; i < nThreads - 1; i++) {
             // create many solvers that loop infinitely
-            solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> {
+            solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> {
                 final Watch watch = Watch.constructAutoStartWatch();
                 while (!aTerminationCriterion.hasToStop()) {} // infinite loop
                 return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
             });
         }
         // construct a solver that just returns the answer immediately
-        solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 32.0, StationPackingTestUtils.getSimpleInstanceAnswer()));
+        solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 32.0, StationPackingTestUtils.getSimpleInstanceAnswer()));
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(nThreads, solvers);
         final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
         assertEquals(SATResult.SAT, solve.getResult());
@@ -72,7 +72,7 @@ public class ParallelNoWaitSolverCompositeTest {
         final AtomicInteger numCalls = new AtomicInteger(0);
         final int N_SOLVERS = 10;
         for (int i = 0; i < N_SOLVERS; i++) {
-            solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> {
+            solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> {
                 numCalls.incrementAndGet();
                 return new SolverResult(SATResult.TIMEOUT, 60.0);
             });
@@ -86,8 +86,8 @@ public class ParallelNoWaitSolverCompositeTest {
     @Test(timeout = 2000)
     public void notEverySolverIsWaitedForIfOneHasAConclusiveAnswer() {
         final List<ISolverFactory> solvers = new ArrayList<>();
-        solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 1.0, ImmutableMap.of()));
-        solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> {
+        solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 1.0, ImmutableMap.of()));
+        solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> {
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ignored) {
@@ -102,7 +102,7 @@ public class ParallelNoWaitSolverCompositeTest {
     @Test(expected = RuntimeException.class)
     public void exceptionsPropagateToMainThread() {
         final List<ISolverFactory> solvers = new ArrayList<>();
-        solvers.add(()->(aInstance, aTerminationCriterion, aSeed) -> {
+        solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> {
             throw new IllegalArgumentException();
         });
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);

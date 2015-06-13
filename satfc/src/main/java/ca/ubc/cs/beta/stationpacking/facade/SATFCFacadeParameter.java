@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 
@@ -37,6 +38,7 @@ public class SATFCFacadeParameter {
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final String serverURL;
     private final int numCores;
+    private final SATFCHydraParams hydraParams;
 
 	public static enum SolverChoice
 	{
@@ -47,7 +49,8 @@ public class SATFCFacadeParameter {
         CACHING_SOLVER_FULL_INSTANCES,
         CACHING_SOLVER_COMPONENTS,
         CACHE_EVERYTHING,
-        CONSISTENCY
+        CONSISTENCY,
+        HYDRA
 	}
 
 }

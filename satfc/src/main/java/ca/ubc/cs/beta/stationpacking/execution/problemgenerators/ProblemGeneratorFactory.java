@@ -39,6 +39,8 @@ public class ProblemGeneratorFactory {
                     parameters.fInstanceParameters.fDataFoldername,
                     null
             ));
+        } else if (parameters.fsrpkFile != null) {
+            generator = new SingleSrpkProblemReader(parameters.fsrpkFile, parameters.fInterferencesFolder);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
             generator = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
         } else if (parameters.fFileOfInstanceFiles != null && parameters.fInterferencesFolder != null) {

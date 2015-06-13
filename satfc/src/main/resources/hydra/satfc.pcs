@@ -1,0 +1,11 @@
+presolver {on, off} [on]
+presolverCutfoff [1, 60] [5]i | presolver in on
+presolverClaspConfig {H1, H2} [H1] | presolver in on
+
+claspClaspConfig {H1, H2} [H1]
+
+numOpts [0, 3] [0]i
+opt1 {CONNECTED_COMPONENTS, ARC_CONSISTENCY, UNDERCONSTRAINED} [ARC_CONSISTENCY] | numOpts >= 1
+opt2 {CONNECTED_COMPONENTS, ARC_CONSISTENCY, UNDERCONSTRAINED} [CONNECTED_COMPONENTS] | numOpts >= 2 
+opt3 {CONNECTED_COMPONENTS, ARC_CONSISTENCY, UNDERCONSTRAINED} [UNDERCONSTRAINED] | numOpts >= 3 
+{ (opt1 != opt2) && (opt1 != opt3) && (opt2 != opt3) }

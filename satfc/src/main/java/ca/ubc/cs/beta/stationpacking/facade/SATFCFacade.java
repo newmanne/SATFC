@@ -163,8 +163,8 @@ public class SATFCFacade implements AutoCloseable {
                                 return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case CACHE_EVERYTHING:
                                 return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
-                            case CONSISTENCY:
-                                return new ConsistencyBundle(aStationManager, aConstraintManager, aSATFCParameters.getClaspLibrary());
+                            case HYDRA:
+                                return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }

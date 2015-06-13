@@ -102,13 +102,13 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Presolvers: these guys will expand range and use up all available time
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
-            final double SATcertifiercutoff = 5.0;
-            parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+            final double SATcertifiercutoff = 10.0;
+            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                     Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
         }
 
         // Hit the cache at the instance level
-        parallelUHFSolvers.add(() -> {
+        parallelUHFSolvers.add(s -> {
             ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
             if (useCache) {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
@@ -120,12 +120,12 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
-        parallelUHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
             final IComponentGrouper aGrouper = new ConstraintGrouper();
-            parallelUHFSolvers.add(() -> {
+            parallelUHFSolvers.add(s -> {
                 ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
                 if (useCache) {
                     final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
