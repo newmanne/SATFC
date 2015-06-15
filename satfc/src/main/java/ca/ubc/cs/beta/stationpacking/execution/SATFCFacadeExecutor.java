@@ -22,7 +22,9 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ExtendedCacheProblemReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,11 +63,12 @@ public class SATFCFacadeExecutor {
         logVersionInfo(log);
         try {
             log.info("Initializing facade.");
-            try(final SATFCFacade satfc = SATFCFacadeBuilder.buildFromParameters(parameters)) {
-                IProblemReader problemGenerator = ProblemGeneratorFactory.createFromParameters(parameters);
+            SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
+            try(final SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters)) {
+                IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
                 IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
                 SATFCFacadeProblem problem;
-                while ((problem = problemGenerator.getNextProblem()) != null) {
+                while ((problem = problemReader.getNextProblem()) != null) {
                     SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
                     log.info("Beginning problem {}", problem.getInstanceName());
                     log.info("Solving ...");
@@ -84,12 +87,12 @@ public class SATFCFacadeExecutor {
                     System.out.println(result.getRuntime());
                     System.out.println(result.getWitnessAssignment());
                     SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
-                    problemGenerator.onPostProblem(problem, result);
+                    problemReader.onPostProblem(problem, result);
                     metricWriter.writeMetrics();
                     SATFCMetrics.clear();
                 }
                 log.info("Finished all of the problems!");
-                problemGenerator.onFinishedAllProblems();
+                problemReader.onFinishedAllProblems();
                 metricWriter.onFinished();
             }
         } catch (ParameterException e) {
