@@ -188,7 +188,7 @@ public class MIPBasedSolver implements ISolver
 				
 				//Add ADJ-constraints
 				final Integer targetChannel = sourceChannel+1;
-				for(Station targetStation : aConstraintManager.getADJplusInterferingStations(sourceStation, sourceChannel))
+				for(Station targetStation : aConstraintManager.getADJplusOneInterferingStations(sourceStation, sourceChannel))
 				{
 					if(aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(targetChannel))
 					{
@@ -197,6 +197,17 @@ public class MIPBasedSolver implements ISolver
 						aMIP.addLe(aMIP.sum(sourceVariable,targetVariable), 1);
 					}
 				}
+
+                final Integer targetChannel2 = sourceChannel+2;
+                for(Station targetStation : aConstraintManager.getADJplusTwoInterferingStations(sourceStation, sourceChannel))
+                {
+                    if(aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(targetChannel2))
+                    {
+                        final IloIntVar targetVariable = aVariables.get(targetStation).get(targetChannel2);
+                        // x_{s,c} + x_{s',c'} \leq 1
+                        aMIP.addLe(aMIP.sum(sourceVariable,targetVariable), 1);
+                    }
+                }
 			}
 			
 		}

@@ -85,12 +85,20 @@ public class ConstraintGrouper implements IComponentGrouper{
 				}
 				
 				int channelp1 = channel+1;
-				for(Station aStation2 : aConstraintManager.getADJplusInterferingStations(aStation1,channel)){
+				for(Station aStation2 : aConstraintManager.getADJplusOneInterferingStations(aStation1, channel)){
 					if(aStations.contains(aStation2) && aDomains.get(aStation2).contains(channelp1))
 					{
 						aConstraintGraph.addEdge(aStation1, aStation2);
 					}
 				}
+
+                int channelp2 = channel+2;
+                for(Station aStation2 : aConstraintManager.getADJplusTwoInterferingStations(aStation1, channel)){
+                    if(aStations.contains(aStation2) && aDomains.get(aStation2).contains(channelp2))
+                    {
+                        aConstraintGraph.addEdge(aStation1, aStation2);
+                    }
+                }
 			}
 		}
 		

@@ -83,7 +83,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                         badChannels.put(coNeighbour, coneighbourBadChannels);
                     }
                 }
-                for(Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
+                for(Station adjNeighbour : fConstraintManager.getADJplusOneInterferingStations(station, domainChannel))
                 {
                     if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
                     {
@@ -101,6 +101,27 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                             adjneighbourBadChannels = new HashSet<Integer>();
                         }
                         adjneighbourBadChannels.add(domainChannel+1);
+                        badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                    }
+                }
+                for(Station adjNeighbour : fConstraintManager.getADJplusTwoInterferingStations(station, domainChannel))
+                {
+                    if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+2))
+                    {
+                        Set<Integer> stationBadChannels = badChannels.get(station);
+                        if(stationBadChannels == null)
+                        {
+                            stationBadChannels = new HashSet<Integer>();
+                        }
+                        stationBadChannels.add(domainChannel);
+                        badChannels.put(station, stationBadChannels);
+
+                        Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
+                        if(adjneighbourBadChannels == null)
+                        {
+                            adjneighbourBadChannels = new HashSet<Integer>();
+                        }
+                        adjneighbourBadChannels.add(domainChannel+2);
                         badChannels.put(adjNeighbour, adjneighbourBadChannels);
                     }
                 }
