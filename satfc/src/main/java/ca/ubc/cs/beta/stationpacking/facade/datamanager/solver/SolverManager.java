@@ -47,12 +47,11 @@ public class SolverManager implements AutoCloseable{
 	 * Creates a solver manager that will use the given factory to create the solvers when needed.
 	 * @param aSolverBundleFactory a solver bundle factory to create solver bundles.
 	 */
-	public SolverManager(ISolverBundleFactory aSolverBundleFactory)
-	{
-		fSolverBundleFactory = aSolverBundleFactory;
-		fSolverData = new HashMap<String, ISolverBundle>();
-		fDataManager = new DataManager();
-	}
+    public SolverManager(ISolverBundleFactory aSolverBundleFactory, DataManager aDataManager) {
+        fDataManager = aDataManager;
+        fSolverBundleFactory = aSolverBundleFactory;
+        fSolverData = new HashMap<>();
+    }
 	
 	/**
 	 * @param path - a data path.

@@ -94,18 +94,18 @@ public class SATFCFacadeExecutor {
                 metricWriter.onFinished();
             }
         } catch (ParameterException e) {
-            log.error("Invalid parameter argument detected ({}).", e.getMessage());
+            log.error("Invalid parameter argument detected.", e);
             e.printStackTrace();
             System.exit(AEATKReturnValues.PARAMETER_EXCEPTION);
         } catch (RuntimeException e) {
-            log.error("Runtime exception encountered ({})", e.getMessage());
+            log.error("Runtime exception encountered ", e);
             e.printStackTrace();
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         } catch (UnsatisfiedLinkError e) {
             log.error("Couldn't initialize facade, see previous log messages and/or try logging with DEBUG.", e);
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         } catch (Throwable t) {
-            log.error("Throwable encountered ({})", t.getMessage());
+            log.error("Throwable encountered ", t);
             t.printStackTrace();
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         }

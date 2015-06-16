@@ -28,11 +28,13 @@ import java.util.Map;
 public class SATFCHydraBundle extends ASolverBundle {
 
     ISolver fSolver;
+    private final ClaspLibraryGenerator claspLibraryGenerator;
 
     public SATFCHydraBundle(IStationManager aStationManager, IConstraintManager aConstraintManager, SATFCHydraParams params, String aClaspLibraryPath) {
         super(aStationManager, aConstraintManager);
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
-        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
+        claspLibraryGenerator = new ClaspLibraryGenerator(aClaspLibraryPath);
+        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());
         Map<SATFCHydraParams.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CONNECTED_COMPONENTS, solver -> {
             return new ConnectedComponentGroupingDecorator(solver, new ConstraintGrouper(), aConstraintManager);
@@ -62,7 +64,9 @@ public class SATFCHydraBundle extends ASolverBundle {
         });
         fSolver = new VoidSolver();
         for (SATFCHydraParams.SolverType solverType : params.getSolverOrder()) {
-            fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
+            if (solverType != SATFCHydraParams.SolverType.NONE) {
+                fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
+            }
         }
     }
 
@@ -74,5 +78,6 @@ public class SATFCHydraBundle extends ASolverBundle {
     @Override
     public void close() throws Exception {
         fSolver.notifyShutdown();
+        claspLibraryGenerator.notifyShutdown();
     }
 }

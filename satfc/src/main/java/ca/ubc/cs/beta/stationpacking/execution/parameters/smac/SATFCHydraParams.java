@@ -4,7 +4,9 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
@@ -21,7 +23,8 @@ public class SATFCHydraParams extends AbstractOptions {
         PRESOLVER,
         UNDERCONSTRAINED,
         CONNECTED_COMPONENTS,
-        ARC_CONSISTENCY
+        ARC_CONSISTENCY,
+        NONE
     }
 
     public enum ClaspConfig {
@@ -40,21 +43,21 @@ public class SATFCHydraParams extends AbstractOptions {
         }
     }
 
-    @Parameter(names = "--presolver")
+    @Parameter(names = "-presolver")
     public boolean presolver;
-    @Parameter(names = "--presolverCutoff")
+    @Parameter(names = "-presolverCutoff")
     public double presolverCutoff;
-    @Parameter(names = "--presolverClaspConfig")
+    @Parameter(names = "-presolverClaspConfig")
     public ClaspConfig presolverClaspConfig;
 
-    @Parameter(names = "--claspClaspConfig")
+    @Parameter(names = "-claspClaspConfig")
     public ClaspConfig claspClaspConfig;
 
-    @Parameter(names = "--opt1")
+    @Parameter(names = "-opt1")
     public SolverType opt1;
-    @Parameter(names = "--opt2")
+    @Parameter(names = "-opt2")
     public SolverType opt2;
-    @Parameter(names = "--opt3")
+    @Parameter(names = "-opt3")
     public SolverType opt3;
 
     public List<SolverType> getSolverOrder() {
@@ -73,6 +76,11 @@ public class SATFCHydraParams extends AbstractOptions {
         }
         list.add(SolverType.CLASP);
         return list;
+    }
+
+    public boolean validate() {
+        Preconditions.checkNotNull(claspClaspConfig);
+        return true;
     }
 
 }

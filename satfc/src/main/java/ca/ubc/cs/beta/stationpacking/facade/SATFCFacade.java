@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,12 +70,16 @@ public class SATFCFacade implements AutoCloseable {
     private final SolverManager fSolverManager;
 
 
+    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
+        this(aSATFCParameters, new DataManager());
+    }
+
     /**
      * Construct a SATFC solver facade, with the option of initializing logging if its not already done.
      *
      * @param aSATFCParameters parameters needed by the facade.
      */
-    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
+    public SATFCFacade(final SATFCFacadeParameter aSATFCParameters, final DataManager dataManager) {
         //Initialize logging.
         if (!logInitialized && aSATFCParameters.isInitializeLogging()) {
             initializeLogging(LogLevel.INFO);
@@ -127,7 +132,7 @@ public class SATFCFacade implements AutoCloseable {
 
 						/*
 						 * SOLVER BUNDLE.
-						 * 
+						 *
 						 * Set what bundle we're using here.
 						 */
                         switch (aSATFCParameters.getSolverChoice()) {
@@ -168,11 +173,9 @@ public class SATFCFacade implements AutoCloseable {
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }
-
-
                     }
-                }
-
+                },
+                dataManager
         );
     }
 

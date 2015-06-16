@@ -45,7 +45,6 @@ public class SATFCTargetAlgorithmEvaluatorFactory extends AbstractTargetAlgorith
 	@Override
 	public SATFCTargetAlgorithmEvaluator getTargetAlgorithmEvaluator(
 			AbstractOptions options) {
-		
 		SATFCTargetAlgorithmEvaluatorOptions SATFCoptions;
 		try
 		{
@@ -56,18 +55,7 @@ public class SATFCTargetAlgorithmEvaluatorFactory extends AbstractTargetAlgorith
 			throw new IllegalStateException("Could not cast given options to SATFC TAE options.");
 		}
 		
-		SATFCFacadeBuilder facadeBuilder = new SATFCFacadeBuilder();
-		
-		String library = SATFCoptions.fLibrary;
-		if(library != null)
-		{
-			facadeBuilder.setLibrary(library);
-		}
-		facadeBuilder.setInitializeLogging(false);
-		
-		SATFCFacade facade = facadeBuilder.build();
-		
-		return new SATFCTargetAlgorithmEvaluator(facade, SATFCoptions.fStationConfigFolder);
+		return new SATFCTargetAlgorithmEvaluator(SATFCoptions);
 	}
 
 	@Override

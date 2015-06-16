@@ -22,16 +22,8 @@
 package ca.ubc.cs.beta.stationpacking.tae;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,6 +31,21 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.aeatk.parameterconfigurationspace.ParameterConfiguration;
+import ca.ubc.cs.beta.stationpacking.execution.Converter;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ProblemGeneratorFactory;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SingleSrpkProblemReader;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import lombok.Data;
 
 import org.slf4j.Logger;
@@ -65,394 +72,279 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Target algorithm evaluator that wraps around the SATFC facade and only
  * solves, synchronously, station packing feasibility problems.
- * 
+ *
  * @author afrechet, seramage
  */
-public class SATFCTargetAlgorithmEvaluator extends
-		AbstractSyncTargetAlgorithmEvaluator {
-	
-	private static final Logger log = LoggerFactory.getLogger(SATFCTargetAlgorithmEvaluator.class);
-	
-	//Context key for a SATFC specific TAE run config.
-	public final static String SATFC_CONTEXT_KEY = "SATFC_CONTEXT";
+public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEvaluator {
 
-	private final SATFCFacade fSATFCFacade;
-	private final String fStationConfigFolder;
+    private static final Logger log = LoggerFactory.getLogger(SATFCTargetAlgorithmEvaluator.class);
 
-	private final ScheduledExecutorService fObserverThreadPool;
+    //Context key for a SATFC specific TAE run config.
+    public final static String SATFC_CONTEXT_KEY = "SATFC_CONTEXT";
 
-	private static final Semaphore fUniqueSATFCTAESemaphore = new Semaphore(1);
+    private final String fStationConfigFolder;
+    private final String fLibPath;
 
-	public SATFCTargetAlgorithmEvaluator(SATFCFacade aSATFCFacade, String aStationConfigFolder) {
-		
+    private final ScheduledExecutorService fObserverThreadPool;
+    private final DataManager dataManager;
+
+    public SATFCTargetAlgorithmEvaluator(SATFCTargetAlgorithmEvaluatorOptions options) {
+
 	    /*
-	     * Since asynchronous evaluations are guaranteed by the {@link AbstractSyncTargetAlgorithmEvaluator}, but the SATFCTAE is inherently synchronous,
+         * Since asynchronous evaluations are guaranteed by the {@link AbstractSyncTargetAlgorithmEvaluator}, but the SATFCTAE is inherently synchronous,
 	     * we constrained the AbstractSyncTargetAlgorithmEvaluator supertype to only use 2 threads.
 	     */
-	    
-	    super(2);
-	    
-		if(aSATFCFacade == null)
-		{
-			throw new IllegalArgumentException("Cannot provide a null SATFC facade.");
-		}
-		
-		if(aStationConfigFolder == null)
-		{
-			throw new IllegalArgumentException("Cannot provide a null station config folder.");
-		}
-		
-		
-		if (!new File(aStationConfigFolder).exists()) {
-			throw new IllegalArgumentException(
-					"Provided station config folder " + aStationConfigFolder
-							+ " does not exist.");
-		}
+        super(2);
+        Preconditions.checkNotNull(options.fStationConfigFolder);
+        Preconditions.checkArgument(new File(options.fStationConfigFolder).exists(), "Provided station config folder " + options.fStationConfigFolder + " does not exist.");
+        fStationConfigFolder = options.fStationConfigFolder;
+        Preconditions.checkNotNull(options.fLibrary);
+        fLibPath = options.fLibrary;
+        fObserverThreadPool = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("SATFC Observer Thread", true));
+        // Create the DataManager (will be reused so we don't keep loading in constraints)
+        dataManager = new DataManager();
+    }
 
-		fStationConfigFolder = aStationConfigFolder;
+    @Override
+    public boolean areRunsObservable() {
+        return true;
+    }
 
-		fSATFCFacade = aSATFCFacade;
+    @Override
+    public boolean areRunsPersisted() {
+        return false;
+    }
 
-		fObserverThreadPool = Executors.newScheduledThreadPool(2,
-				new SequentiallyNamedThreadFactory("SATFC Observer Thread",
-						true));
-	}
+    @Override
+    public boolean isRunFinal() {
+        return false;
+    }
 
-	@Override
-	public boolean areRunsObservable() {
-		return true;
-	}
+    @Override
+    protected void subtypeShutdown() {
+    }
 
-	@Override
-	public boolean areRunsPersisted() {
-		return false;
-	}
+    @Override
+    public synchronized List<AlgorithmRunResult> evaluateRun(List<AlgorithmRunConfiguration> aRuns, final TargetAlgorithmEvaluatorRunObserver aObserver) {
 
-	@Override
-	public boolean isRunFinal() {
-		return false;
-	}
+        final List<AlgorithmRunResult> results = new ArrayList<>(aRuns.size());
 
-	@Override
-	protected void subtypeShutdown() {
-		try {
-            fSATFCFacade.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Could not shutdown SATFC facade.",e);
+        // Initialize observation structures.
+        final Map<AlgorithmRunConfiguration, AlgorithmRunResult> resultMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        final Map<AlgorithmRunConfiguration, StopWatch> watchMap = Collections.synchronizedMap(new LinkedHashMap<>());
+        final Map<AlgorithmRunConfiguration, StatusVariableKillHandler> runconfigToKillMap = new ConcurrentHashMap<>();
+
+        for (AlgorithmRunConfiguration config : aRuns) {
+            final StatusVariableKillHandler killHandler = new StatusVariableKillHandler();
+            resultMap.put(config, new RunningAlgorithmRunResult(config, 0.0, 0.0, 0.0, config.getProblemInstanceSeedPair().getSeed(), 0.0, killHandler));
+            runconfigToKillMap.put(config, killHandler);
+            watchMap.put(config, new StopWatch());
         }
-	}
-	
-	@Override
-	public synchronized List<AlgorithmRunResult> evaluateRun(
-			List<AlgorithmRunConfiguration> aRuns,
-			final TargetAlgorithmEvaluatorRunObserver aObserver) {
-
-		
-		if (!fUniqueSATFCTAESemaphore.tryAcquire()) {
-			System.out.println("[WARNING] Multiple SATFC TAEs probably exist, and this implementation does not support concurrent executions.");
-			log.warn("Multiple SATFC TAEs probably exist, and this implementation does not support concurrent executions.");
-			fUniqueSATFCTAESemaphore.acquireUninterruptibly();
-		}
-		
-		try {
-			List<AlgorithmRunResult> results = new ArrayList<AlgorithmRunResult>(
-					aRuns.size());
-
-			// Initialize observation structures.
-			final Map<AlgorithmRunConfiguration, AlgorithmRunResult> resultMap = Collections.synchronizedMap(new LinkedHashMap<AlgorithmRunConfiguration, AlgorithmRunResult>());
-			final Map<AlgorithmRunConfiguration, StopWatch> watchMap = Collections.synchronizedMap(new LinkedHashMap<AlgorithmRunConfiguration, StopWatch>());
-			final Map<AlgorithmRunConfiguration, StatusVariableKillHandler> runconfigToKillMap = new ConcurrentHashMap<>();
 			
-			for (AlgorithmRunConfiguration config : aRuns) {
-				StatusVariableKillHandler killHandler = new StatusVariableKillHandler();
-				resultMap.put(config, new RunningAlgorithmRunResult(config,0.0, 0.0, 0.0, config.getProblemInstanceSeedPair().getSeed(), 0.0, killHandler));
-				runconfigToKillMap.put(config, killHandler);
-				watchMap.put(config, new StopWatch());
-			}
-			
-			/*
-			 * Observer thread.
-			 * 
-			 * Provides observation of the run along with estimated wallclock time.
-			 * 
-			 */
-			Runnable observerThread = new SATFCTAEObserverThread(aObserver, resultMap, watchMap, runconfigToKillMap);
-			
-			//Start observer thread.
-			observerThread.run();
-			ScheduledFuture<?> observerFuture = fObserverThreadPool.scheduleAtFixedRate(observerThread, 0, 5, TimeUnit.SECONDS);
-			
-			//Process the runs.
-			for (AlgorithmRunConfiguration config : aRuns) {
-				
-				final ExistingAlgorithmRunResult runResult;
-				
-				if (!runconfigToKillMap.get(config).isKilled())
-				{	
-					StopWatch configWatch = watchMap.get(config);
-					synchronized (configWatch) {
-						configWatch.start();
-					}
-					
-					log.debug("Solving instance corresponding to algo run config \"{}\"",config);
-					
-					log.debug("Transforming config into SATFC problem...");
-					
-					// Transform algorithm run configuration to SATFC problem.
-					SATFCProblem problem = new SATFCProblem(config);
-	
-					log.debug("Giving problem to SATFC facade...");
-					// Solve the problem.
-					SATFCResult result = fSATFCFacade.solve(
-							problem.getDomains(),
-							problem.getPreviousAssignment(),
-							problem.getCutoff(),
-							problem.getSeed(),
-							fStationConfigFolder + File.separator
-									+ problem.getStationConfigFolder()
-							);
-					
-					log.debug("Transforming SATFC facade result to TAE result...");
-					runResult = getAlgorithmRunResult(result, config, configWatch, problem.getSeed());
-					
-				} 
-				else
-				{
-					log.debug("Run has been preemptively killed in SATFC TAE");
-					runResult = new ExistingAlgorithmRunResult(
-							config, 
-							RunStatus.KILLED,
-							0, 
-							0,
-							0,
-							config.getProblemInstanceSeedPair().getSeed(),
-							"Killed Preemptively before starting in SATFC TAE by Steve Ramage, Handsome Developer",
-							0);
-				}
+		// Observer thread: Provides observation of the run along with estimated wallclock time.
+        final Runnable observerThread = new SATFCTAEObserverThread(aObserver, resultMap, watchMap, runconfigToKillMap);
+        // Run once for setup
+        observerThread.run();
+        // Start observer thread.
+        ScheduledFuture<?> observerFuture = fObserverThreadPool.scheduleAtFixedRate(observerThread, 0, 5, TimeUnit.SECONDS);
 
-				resultMap.put(config, runResult);
 
-				results.add(runResult);
-			}
+        //Process the runs.
+        for (AlgorithmRunConfiguration config : aRuns) {
 
-			observerFuture.cancel(false);
+            final ExistingAlgorithmRunResult runResult;
 
-			return results;
-		} 
-		finally 
-		{
-			fUniqueSATFCTAESemaphore.release();
-		}
-	}
-	
-	/**
-	 * Creates the algorithm run result corresponding to the given SATFC result and scenario, and stop the given watch as well.
-	 * 
-	 * @param result - the SATFC result.
-	 * @param config - the config corresponding to the run executed.
-	 * @param configWatch - the running watch used for the run.
-	 * @param seed - the seed used for the run.
-	 * @return the algorithm run result corresponding to the given results and scenario.
-	 */
-	private static ExistingAlgorithmRunResult getAlgorithmRunResult(SATFCResult result, AlgorithmRunConfiguration config, StopWatch configWatch, long seed)
-	{
-		// Transform result to algorithm run result.
-		final RunStatus status;
-		final String additionalRunData;
-		switch (result.getResult()) {
-			case SAT:
-				status = RunStatus.SAT;
-				//Send back the witness assignment.
-				Map<Integer, Integer> witness = result.getWitnessAssignment();
-				StringBuilder sb = new StringBuilder();
-				Iterator<Entry<Integer, Integer>> entryIterator = witness.entrySet().iterator();
-				while (entryIterator.hasNext()) {
-					
-					Entry<Integer, Integer> entry = entryIterator.next();
-					
-					int stationID = entry.getKey();
-					int channel = entry.getValue();
+            if (!runconfigToKillMap.get(config).isKilled()) {
+                StopWatch configWatch = watchMap.get(config);
+                synchronized (configWatch) {
+                    configWatch.start();
+                }
 
-					sb.append(stationID + "=" + channel);
+                log.debug("Solving instance corresponding to algo run config \"{}\"", config);
 
-					if (entryIterator.hasNext()) {
-						sb.append(",");
-					}
-				}
-				additionalRunData = sb.toString();
-				break;
-			case UNSAT:
-				status = RunStatus.UNSAT;
-				additionalRunData = "";
-				break;
-			case TIMEOUT:
-				status = RunStatus.TIMEOUT;
-				additionalRunData = "";
-				break;
-			default:
-				status = RunStatus.CRASHED;
-				additionalRunData = "";
-				break;
-		}
+                log.debug("Transforming config into SATFC problem...");
 
-		synchronized (configWatch) {
-			configWatch.stop();
-			return new ExistingAlgorithmRunResult(
-					config, 
-					status,
-					result.getRuntime(), 
-					result.getRuntime(),
-					result.getRuntime(),
-					seed,
-					additionalRunData,
-					configWatch.time()/1000.0);
-		}
-	}
-	
-	
-	
-	/**
-	 * Observer runnable that provides ongoing runs with estimate wall clock time to use the real observer on.
-	 *  
-	 * @author afrechet
-	 *
-	 */
-	@Data
-	private static class SATFCTAEObserverThread implements Runnable
-	{
-		private final TargetAlgorithmEvaluatorRunObserver fObserver;
-		
-		private final Map<AlgorithmRunConfiguration,AlgorithmRunResult> fResultMap;
-		private final Map<AlgorithmRunConfiguration,StopWatch> fWatchMap;
-		private final Map<AlgorithmRunConfiguration, StatusVariableKillHandler> fRunconfigToKillMap;
-		
-		@Override
-		public synchronized void run() {
-		    
-		    //Update current status for wallclock time.
-			List<AlgorithmRunResult> currentResults = new ArrayList<AlgorithmRunResult>(fResultMap.size());
+                //Read the feasibility checking instance from the additional run info.
+                final ProblemInstance instance = config.getProblemInstanceSeedPair().getProblemInstance();
+                final String srpkFile = instance.getInstanceName();
+                final SATFCFacadeProblem problem = new SingleSrpkProblemReader(srpkFile, fStationConfigFolder).getNextProblem();
 
-			for (AlgorithmRunConfiguration config : fResultMap.keySet())
-			{
-				AlgorithmRunResult result = fResultMap.get(config);
-				if (result.getRunStatus().equals(RunStatus.RUNNING))
-				{
-					StopWatch configWatch = fWatchMap.get(config);
+                log.info(config.getParameterConfiguration().getFormattedParameterString(ParameterConfiguration.ParameterStringFormat.NODB_SYNTAX));
 
-					synchronized (configWatch)
-					{
-						currentResults.add(new RunningAlgorithmRunResult(
-										config,
-										0.0,
-										0.0,
-										0.0,
-										config.getProblemInstanceSeedPair().getSeed(),
-										configWatch.time()/1000.0,
-										fRunconfigToKillMap.get(config)));
-					}
-				} 
-				else
-				{
-					currentResults.add(result);
-				}
-			}
-			
-			//Trigger observer.
-			fObserver.currentStatus(currentResults);
-		}
-	}
+                //Read the straightforward parameters from the problem instance.
+                final double cutoff = config.getCutoffTime();
+                final long seed = config.getProblemInstanceSeedPair().getSeed();
 
-	/**
-	 * Conversion object between a SATFC problem specified in an algorithm run
-	 * configuration object and what the SATFC facade requires.
-	 * 
-	 * @author afrechet
-	 */
-	@Data
-	private static class SATFCProblem {
-		
-		private final ImmutableMap<Integer, Set<Integer>> domains;
-		private final ImmutableMap<Integer, Integer> previousAssignment;
-		private final double cutoff;
-		private final long seed;
-		private final String stationConfigFolder;
+                final Set<String> activeParameters = config.getParameterConfiguration().getActiveParameters();
+                String[] commandLine = new String[activeParameters.size() * 2];
+                final Iterator<String> iterator = activeParameters.iterator();
+                int i = 0;
+                while (iterator.hasNext()) {
+                    final String next = iterator.next();
+                    commandLine[i] = "-" + next;
+                    commandLine[i+1] = config.getParameterConfiguration().get(next);
+                    i+=2;
+                }
+                final SATFCHydraParams params = new SATFCHydraParams();
+                JCommanderHelper.parseCheckingForHelpAndVersion(commandLine, params);
+                final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
+                        fLibPath,
+                        false, // logging
+                        null, // result file
+                        SATFCFacadeParameter.SolverChoice.HYDRA,
+                        false, // unused flag
+                        false, // unused flag
+                        false, // unused flag
+                        null, // cnf
+                        null, // server
+                        1,
+                        params);
+                try (final SATFCFacade facade = new SATFCFacade(satfcFacadeParameter, dataManager)) {
+                    log.debug("Giving problem to SATFC facade...");
+                    // Solve the problem.
+                    final SATFCResult result = facade.solve(
+                            problem.getDomains(),
+                            problem.getPreviousAssignment(),
+                            cutoff,
+                            seed,
+                            problem.getStationConfigFolder(),
+                            srpkFile
+                    );
+                    log.debug("Transforming SATFC facade result to TAE result...");
+                    runResult = getAlgorithmRunResult(result, config, configWatch, seed);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                log.debug("Run has been preemptively killed in SATFC TAE");
+                runResult = new ExistingAlgorithmRunResult(
+                        config,
+                        RunStatus.KILLED,
+                        0,
+                        0,
+                        0,
+                        config.getProblemInstanceSeedPair().getSeed(),
+                        "Killed Preemptively before starting in SATFC TAE by Steve Ramage, Handsome Developer",
+                        0);
+            }
 
-		public SATFCProblem(AlgorithmRunConfiguration aConfig){
+            resultMap.put(config, runResult);
 
-			// Make sure the algorithm execution config is for a SATFC
-			// problem.
-			if (!aConfig.getAlgorithmExecutionConfiguration()
-					.getTargetAlgorithmExecutionContext()
-					.containsKey(SATFC_CONTEXT_KEY)) {
-				throw new TargetAlgorithmAbortException(
-						"Provided algorithm execution config is not meant for a SATFC TAE.");
-			}
-			
-			//Read the straightforward parameters from the problem instance.
-			
-			cutoff = aConfig.getCutoffTime();
+            results.add(runResult);
+        }
 
-			ProblemInstanceSeedPair pisp = aConfig
-					.getProblemInstanceSeedPair();
+        observerFuture.cancel(false);
 
-			seed = pisp.getSeed();
+        return results;
+    }
 
-			//Read the feasibility checking instance from the additional run info.
-			
-			ProblemInstance instance = pisp.getProblemInstance();
-			
-			//String instanceName = instance.getInstanceName();
-			
-			String instanceString = instance.getInstanceSpecificInformation();
-			String[] instanceParts = instanceString.split("_");
-			
-			if(instanceParts.length <=1)
-			{
-				throw new IllegalArgumentException("Instance string is not a valid SATFC TAE instance:\n "+instanceString);
-			}
-			
-			stationConfigFolder = instanceParts[0];
-			
-			Map<Integer,Set<Integer>> tempdomains = new HashMap<Integer,Set<Integer>>();
-			Map<Integer,Integer> temppreviousassignment = new HashMap<Integer,Integer>();
-			
-			for(int i=1;i<instanceParts.length;i++)
-			{
-				String stationString = instanceParts[i];
-				String[] stationParts = stationString.split(";");
-				
-				if(stationParts.length!=3)
-				{
-					throw new IllegalArgumentException("String representing station info is not formatted correctly:\n \""+stationString+"\"");
-				}
-				
-				int stationID = Integer.valueOf(stationParts[0]);
-				int previousChannel = Integer.valueOf(stationParts[1]);
-				
-				if(previousChannel>0)
-				{
-					temppreviousassignment.put(stationID, previousChannel);
-				}
-				
-				String channelsString = stationParts[2];
-				String[] channelsParts = channelsString.split(",");
-				
-				Set<Integer> domain = new HashSet<Integer>();
-				
-				for(int j=0;j<channelsParts.length;j++)
-				{
-					int channel = Integer.valueOf(channelsParts[j]);
-					domain.add(channel);
-				}
-				
-				tempdomains.put(stationID, domain);
-			}
-			
-			domains = ImmutableMap.copyOf(tempdomains);
-			previousAssignment = ImmutableMap.copyOf(temppreviousassignment);
-		}
-	}
-	
-	
+
+    /**
+     * Creates the algorithm run result corresponding to the given SATFC result and scenario, and stop the given watch as well.
+     *
+     * @param result      - the SATFC result.
+     * @param config      - the config corresponding to the run executed.
+     * @param configWatch - the running watch used for the run.
+     * @param seed        - the seed used for the run.
+     * @return the algorithm run result corresponding to the given results and scenario.
+     */
+    private static ExistingAlgorithmRunResult getAlgorithmRunResult(SATFCResult result, AlgorithmRunConfiguration config, StopWatch configWatch, long seed) {
+        // Transform result to algorithm run result.
+        final RunStatus status;
+        final String additionalRunData;
+        switch (result.getResult()) {
+            case SAT:
+                status = RunStatus.SAT;
+                //Send back the witness assignment.
+                Map<Integer, Integer> witness = result.getWitnessAssignment();
+                StringBuilder sb = new StringBuilder();
+                Iterator<Entry<Integer, Integer>> entryIterator = witness.entrySet().iterator();
+                while (entryIterator.hasNext()) {
+
+                    Entry<Integer, Integer> entry = entryIterator.next();
+
+                    int stationID = entry.getKey();
+                    int channel = entry.getValue();
+
+                    sb.append(stationID).append("=").append(channel);
+
+                    if (entryIterator.hasNext()) {
+                        sb.append(",");
+                    }
+                }
+                additionalRunData = sb.toString();
+                break;
+            case UNSAT:
+                status = RunStatus.UNSAT;
+                additionalRunData = "";
+                break;
+            case TIMEOUT:
+                status = RunStatus.TIMEOUT;
+                additionalRunData = "";
+                break;
+            default:
+                status = RunStatus.CRASHED;
+                additionalRunData = "";
+                break;
+        }
+
+        synchronized (configWatch) {
+            configWatch.stop();
+            return new ExistingAlgorithmRunResult(
+                    config,
+                    status,
+                    result.getRuntime(),
+                    result.getRuntime(),
+                    result.getRuntime(),
+                    seed,
+                    additionalRunData,
+                    configWatch.time() / 1000.0);
+        }
+    }
+
+
+    /**
+     * Observer runnable that provides ongoing runs with estimate wall clock time to use the real observer on.
+     *
+     * @author afrechet
+     */
+    @Data
+    private static class SATFCTAEObserverThread implements Runnable {
+        private final TargetAlgorithmEvaluatorRunObserver fObserver;
+
+        private final Map<AlgorithmRunConfiguration, AlgorithmRunResult> fResultMap;
+        private final Map<AlgorithmRunConfiguration, StopWatch> fWatchMap;
+        private final Map<AlgorithmRunConfiguration, StatusVariableKillHandler> fRunconfigToKillMap;
+
+        @Override
+        public synchronized void run() {
+
+            //Update current status for wallclock time.
+            List<AlgorithmRunResult> currentResults = new ArrayList<AlgorithmRunResult>(fResultMap.size());
+
+            for (AlgorithmRunConfiguration config : fResultMap.keySet()) {
+                final AlgorithmRunResult result = fResultMap.get(config);
+                if (result.getRunStatus().equals(RunStatus.RUNNING)) {
+                    final StopWatch configWatch = fWatchMap.get(config);
+
+                    synchronized (configWatch) {
+                        currentResults.add(new RunningAlgorithmRunResult(
+                                config,
+                                0.0,
+                                0.0,
+                                0.0,
+                                config.getProblemInstanceSeedPair().getSeed(),
+                                configWatch.time() / 1000.0,
+                                fRunconfigToKillMap.get(config)));
+                    }
+                } else {
+                    currentResults.add(result);
+                }
+            }
+
+            //Trigger observer.
+            fObserver.currentStatus(currentResults);
+        }
+    }
+
 }
