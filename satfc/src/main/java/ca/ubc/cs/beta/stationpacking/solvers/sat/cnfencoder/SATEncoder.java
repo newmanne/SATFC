@@ -234,36 +234,37 @@ public class SATEncoder implements ISATEncoder {
 			//For every channel,
 			for(Integer aChannel : aInstanceDomains.get(aStation))
 			{
-                //Get interfering channel that is +1 given channel,
-                Integer aInterferingChannel = aChannel + 1;
-
-                //For every interfering station
-                for (Station aInterferingStation : fConstraintManager.getADJplusOneInterferingStations(aStation, aChannel)) {
-                    //Make sure instance contains interfering station, and interfering channel is in interfering station's domain.
-                    if (aInstanceStations.contains(aInterferingStation) && aInstanceDomains.get(aInterferingStation).contains(aInterferingChannel)) {
-                        Clause aAdjChannelClause = new Clause();
-                        aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), false));
-                        aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aInterferingStation.getID(), aInterferingChannel)), false));
-                        aCNF.add(aAdjChannelClause);
-                    }
-                }
-
-                //Get interfering channel that is +2 given channel,
-                Integer aInterferingChannel2 = aChannel+2;
-
-                //For every interfering station
-                for(Station aInterferingStation : fConstraintManager.getADJplusTwoInterferingStations(aStation, aChannel))
                 {
-                    //Make sure instance contains interfering station, and interfering channel is in interfering station's domain.
-                    if(aInstanceStations.contains(aInterferingStation) && aInstanceDomains.get(aInterferingStation).contains(aInterferingChannel2))
-                    {
-                        Clause aAdjChannelClause = new Clause();
-                        aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(),aChannel)),false));
-                        aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aInterferingStation.getID(),aInterferingChannel2)),false));
-                        aCNF.add(aAdjChannelClause);
+                    //Get interfering channel that is +1 given channel,
+                    final Integer aInterferingChannel = aChannel + 1;
+
+                    //For every interfering station
+                    for (Station aInterferingStation : fConstraintManager.getADJplusOneInterferingStations(aStation, aChannel)) {
+                        //Make sure instance contains interfering station, and interfering channel is in interfering station's domain.
+                        if (aInstanceStations.contains(aInterferingStation) && aInstanceDomains.get(aInterferingStation).contains(aInterferingChannel)) {
+                            Clause aAdjChannelClause = new Clause();
+                            aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), false));
+                            aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aInterferingStation.getID(), aInterferingChannel)), false));
+                            aCNF.add(aAdjChannelClause);
+                        }
                     }
                 }
 
+                {
+                    //Get interfering channel that is +2 given channel,
+                    final Integer aInterferingChannel = aChannel + 2;
+
+                    //For every interfering station
+                    for (Station aInterferingStation : fConstraintManager.getADJplusTwoInterferingStations(aStation, aChannel)) {
+                        //Make sure instance contains interfering station, and interfering channel is in interfering station's domain.
+                        if (aInstanceStations.contains(aInterferingStation) && aInstanceDomains.get(aInterferingStation).contains(aInterferingChannel)) {
+                            Clause aAdjChannelClause = new Clause();
+                            aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), false));
+                            aAdjChannelClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aInterferingStation.getID(), aInterferingChannel)), false));
+                            aCNF.add(aAdjChannelClause);
+                        }
+                    }
+                }
 
             }
 		}
