@@ -56,7 +56,6 @@ public class RedisProblemReader extends AProblemReader {
         }
         this.queueName = queueName;
         log.info("Reading instances from queue {}", RedisUtils.makeKey(queueName));
-        SATFCMetrics.init();
     }
 
     @Override
