@@ -116,9 +116,16 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
     }
 
+    /**
+     * This CNFSaver wraps anohter CNF saver and builds an index of saved CNFs in redis for easy parsing
+     */
     @RequiredArgsConstructor
-    public static class RedisCNFSaver implements ICNFSaver {
-    	
+    public static class RedisIndexCNFSaver implements ICNFSaver {
+
+        // This just builds an index in redis: use a different saver to save the actual files
+        @NonNull
+        private final ICNFSaver saver;
+
     	@NonNull
     	private final Jedis jedis;
     	@NonNull
@@ -126,16 +133,14 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
         @Override
         public void saveCNF(String instanceName, String CNFName, String CNFContents) {
-            final String contentKey = RedisUtils.makeKey(queueName, RedisUtils.CNF_QUEUE, CNFName);
             final String indexKey = RedisUtils.makeKey(queueName, RedisUtils.CNF_INDEX_QUEUE, CNFName);
-            jedis.set(contentKey, CNFContents);
             jedis.rpush(indexKey, instanceName);
+            saver.saveCNF(instanceName, CNFName, CNFContents);
         }
 
         @Override
         public void saveAssignment(String CNFName, String assignmentContents) {
-            final String assignmentKey = RedisUtils.makeKey(queueName, RedisUtils.CNF_ASSIGNMENT_QUEUE, CNFName);
-            jedis.set(assignmentKey, assignmentContents);
+            saver.saveAssignment(CNFName, assignmentContents);
         }
 
     }
@@ -154,7 +159,6 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
             }
             fCNFDirectory = aCNFDirectory;
         }
-
 
         @Override
         public void saveCNF(String instanceName, String CNFName, String CNFContents) {

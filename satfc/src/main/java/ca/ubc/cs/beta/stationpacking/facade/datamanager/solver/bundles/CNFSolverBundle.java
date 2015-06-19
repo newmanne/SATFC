@@ -53,20 +53,22 @@ public class CNFSolverBundle extends ASolverBundle {
     ) {
         super(aStationManager, aConstraintManager);
         cnfOnlySolver = new VoidSolver();
+
+        // TODO: take in parameters that determine whether to save cnfs for presat / components
         // save the cnf for each component
-        cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver, getConstraintManager(), aCNFSaver, false);
-        IComponentGrouper aGrouper = new ConstraintGrouper();
-        cnfOnlySolver = new ConnectedComponentGroupingDecorator(cnfOnlySolver, aGrouper, getConstraintManager(), true);
-        cnfOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cnfOnlySolver, aConstraintManager);
-        cnfOnlySolver = new SequentialSolversComposite(
-                Arrays.asList(
-                        new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                Arrays.asList(
-                                        new StationSubsetSATCertifier(new CNFSaverSolverDecorator(new VoidSolver(), getConstraintManager(), aCNFSaver, true), new CPUTimeTerminationCriterionFactory(60.0))
-                                )),
-                        cnfOnlySolver
-                )
-        );
+//        cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver, getConstraintManager(), aCNFSaver, false);
+//        IComponentGrouper aGrouper = new ConstraintGrouper();
+//        cnfOnlySolver = new ConnectedComponentGroupingDecorator(cnfOnlySolver, aGrouper, getConstraintManager(), true);
+//        cnfOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cnfOnlySolver, aConstraintManager);
+//        cnfOnlySolver = new SequentialSolversComposite(
+//                Arrays.asList(
+//                        new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+//                                Arrays.asList(
+//                                        new StationSubsetSATCertifier(new CNFSaverSolverDecorator(new VoidSolver(), getConstraintManager(), aCNFSaver, true), new CPUTimeTerminationCriterionFactory(60.0))
+//                                )),
+//                        cnfOnlySolver
+//                )
+//        );
 
         // save the cnf for the full problem
         cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver,getConstraintManager(), aCNFSaver, false);
