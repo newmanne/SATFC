@@ -49,7 +49,7 @@ public class RedisParameters extends AbstractOptions {
         Logger log = LoggerFactory.getLogger(RedisParameters.class);
         if (jedis == null) {
             log.info("Making a redis connection to {}:{}", fRedisHost, fRedisPort);
-            jedis = new Jedis(fRedisHost, fRedisPort);
+            jedis = new Jedis(fRedisHost, fRedisPort, 60);
         }
         return jedis;
     }
