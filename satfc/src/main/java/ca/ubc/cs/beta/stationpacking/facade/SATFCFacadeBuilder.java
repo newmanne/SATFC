@@ -46,6 +46,7 @@ public class SATFCFacadeBuilder {
 	private String fResultFile;
 	private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
+    private boolean extendedCacheProblem;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
 
@@ -154,92 +155,118 @@ public class SATFCFacadeBuilder {
 	/**
 	 * Set whether SATFC should initialize the logging on construction.
 	 * @param aInitializeLogging
+	 * @return this {@code Builder} object
 	 */
-	public void setInitializeLogging(boolean aInitializeLogging)
+	public SATFCFacadeBuilder setInitializeLogging(boolean aInitializeLogging)
 	{
 		fInitializeLogging = aInitializeLogging;
+		return this;
 	}
 	
 	/**
 	 * Set the (clasp) library SATFC should use.
 	 * @param aLibrary
+	 * @return this {@code Builder} object
 	 */
-	public void setLibrary(String aLibrary)
+	public SATFCFacadeBuilder setLibrary(String aLibrary)
 	{
 		if(aLibrary == null)
 		{
 			throw new IllegalArgumentException("Cannot provide a null library.");
 		}
 		fLibrary = aLibrary;
+		return this;
 	}
 	
 	/**
 	 * Set the file in which SATFC writes encountered problem/results pairs.
 	 * @param aResultFile
+	 * @return this {@code Builder} object
 	 */
-	public void setResultFile(String aResultFile)
+	public SATFCFacadeBuilder setResultFile(String aResultFile)
 	{
 		fResultFile = aResultFile;
+		return this;
 	}
 	
 	/**
 	 * Set the type of solver choice to use in SATFC.
 	 * @param aSolverChoice
+	 * @return this {@code Builder} object
 	 */
-	public void setSolverChoice(SATFCFacadeParameter.SolverChoice aSolverChoice)
+	public SATFCFacadeBuilder setSolverChoice(SATFCFacadeParameter.SolverChoice aSolverChoice)
 	{
 		fSolverChoice = aSolverChoice;
+		return this;
 	}
 
-    public void setPresolve(boolean presolve) {
+    public SATFCFacadeBuilder setPresolve(boolean presolve) {
         this.fPresolve = presolve;
+        return this;
     }
 
-    public void setUnderconstrained(boolean underconstrained) {
+    public SATFCFacadeBuilder setUnderconstrained(boolean underconstrained) {
         this.fUnderconstrained = underconstrained;
+        return this;
     }
 
-    public void setDecompose(boolean decompose) {
+    public SATFCFacadeBuilder setDecompose(boolean decompose) {
         this.fDecompose = decompose;
+        return this;
     }
 
-    public void setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
+    public SATFCFacadeBuilder setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
         this.CNFSaver = CNFSaver;
+        return this;
     }
 
-    public void setServerURL(@NonNull String serverURL) {
-        this.serverURL = serverURL;
+    public SATFCFacadeBuilder setServerURL(@NonNull String serverURL) {
+    	this.serverURL = serverURL;
+    	return this;
     }
+
+    public SATFCFacadeBuilder setExtendedCacheProblemFlag(boolean extendedCacheProblem) {
+		this.extendedCacheProblem = extendedCacheProblem;
+		return this;
+	}
 
     /**
      * Set the maximum number of solvers that SATFC will execute in parallel
      * @param parallelismLevel
+     * @return this {@code Builder} object
      */
-    public void setParallelismLevel(int parallelismLevel) {this.parallelismLevel = parallelismLevel; }
-	
-    public SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
+    public SATFCFacadeBuilder setParallelismLevel(int parallelismLevel) {
+    	this.parallelismLevel = parallelismLevel; 
+    	return this;
+    }
+
+    public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
+    	
+    	final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
+    	
         if (parameters.fClaspLibrary != null) {
-            setLibrary(parameters.fClaspLibrary);
+        	builder.setLibrary(parameters.fClaspLibrary);
         }
-        setParallelismLevel(parameters.numCores);
-        setInitializeLogging(true);
-        setSolverChoice(parameters.fSolverChoice);
-        setDecompose(parameters.fSolverOptions.decomposition);
-        setUnderconstrained(parameters.fSolverOptions.underconstrained);
-        setPresolve(parameters.fSolverOptions.presolve);
-        if (parameters.fSolverOptions.cachingParams.serverURL != null) {
-            setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
+        builder.setParallelismLevel(parameters.numCores);
+        builder.setInitializeLogging(true);
+        builder. setSolverChoice(parameters.fSolverChoice);
+        builder.setDecompose(parameters.fSolverOptions.decomposition);
+        builder.setUnderconstrained(parameters.fSolverOptions.underconstrained);
+        builder.setPresolve(parameters.fSolverOptions.presolve);
+        builder.setExtendedCacheProblemFlag(parameters.fSolverOptions.cachingParams.extendedCacheProblem);
+		if (parameters.fSolverOptions.cachingParams.serverURL != null) {
+			builder.setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
         }
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
             if (parameters.fRedisParameters.areValid()) {
                 System.out.println("Saving CNFS to redis");
-                setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
+                builder.setCNFSaver(new CNFSaverSolverDecorator.RedisCNFSaver(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue));
             } else {
                 System.out.println("Saving CNFS to disk");
-                setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
+                builder.setCNFSaver(new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir));
             }
         }
-        return build();
+        return builder.build();
     }
 
 }
