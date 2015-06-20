@@ -271,9 +271,11 @@ Even though \SATFC is built using gradle, native components such as \clasp are n
 
 There is an entirely optional addition to \SATFC called \SATFCServer. \SATFCServer provides a way to store results from problems that \SATFC solves and use them to solve future problems. It is intended for long term, heavy users of \SATFC.\SATFCServer is web app which uses the \href{http://projects.spring.io/spring-boot/}{Spring Boot} framework. In order to run this component, you need to have a \href{http://redis.io/}{Redis} server running. We recommend using a dedicated Redis server for this purpose.
 
+The \SATFCServer uses a data structure which must know about all of the station IDs that it could ever possibly see when it starts up. To specify these IDs the server takes a parameter, \texttt{---stations.file}, which should specify a path to a file in which every line corresponds to a station ID. For most cases, it should suffice to create a file which is simply the second column of your \texttt{Domain.csv} (which lists all of the station IDs).
+
 A ready-to-go \SATFC server can be found in the releases folder of \SATFC's root directory. You can start it by running
 \begin{lstlisting}[style=Bash]
-> ./SATFCServer --redis.host=<redishost> --redis.port=<redisport>
+> ./SATFCServer --redis.host=<redishost> --redis.port=<redisport> --stations.file=<stationfilepath>
 \end{lstlisting}
 The server has started and is ready for use when you can hit \texttt{<host>:<port>/satfcserver/health} or when you observe a log line similar to 
 \begin{lstlisting}[style=Bash]
@@ -284,8 +286,10 @@ The command line parameters are summarized below:
 \item \texttt{---redis.host} The port that the server runs on. Defaults to localhost
 \item \texttt{---redis.port} The port that the server runs on. Defaults to 6379
 \item \texttt{---server.port} The port that the server runs on. Defaults to 8080
+\item \texttt{---stations.file} A path to a file in which every line contains the id of a station
 \item \texttt{---logging.level.ca.ubc.cs.beta.stationpacking} The logging level for SATFC classes. Defaults to INFO
 \end{itemize}
+
 To build \SATFCServer from source, you can run 
 \begin{lstlisting}[style=Bash]
 > ./gradlew :satfcserver:installDist
