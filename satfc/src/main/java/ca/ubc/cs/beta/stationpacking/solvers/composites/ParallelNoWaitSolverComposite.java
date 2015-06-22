@@ -175,6 +175,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
      */
     private void checkForErrors() {
         if (error.get() != null) {
+            log.error("Error occured while executing a task", error.get());
             throw new RuntimeException("Error occurred while executing a task", error.get());
         }
     }
