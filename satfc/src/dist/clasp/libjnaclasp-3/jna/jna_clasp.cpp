@@ -15,23 +15,16 @@ namespace JNA {
 		assignment_ = NULL;
 		facade_ = NULL;
 		config_ = NULL;
-		configAllocated_ = false;
 		asyncResult_ = NULL;
 	}
 
 	JNAProblem::~JNAProblem() {
 		delete[] assignment_;
 		assignment_ = NULL;
-		if (asyncResult_ != NULL && asyncResult_->running()) {
-			asyncResult_->cancel();
-		}
 		delete asyncResult_;
 		asyncResult_ = NULL;
 		delete facade_;
 		facade_ = NULL;
-		if (config_ != NULL) {
-			config_->reset();
-		}
 		delete config_;
 		config_ = NULL;
 	}
@@ -71,7 +64,6 @@ namespace JNA {
 	Clasp::ClaspFacade::AsyncResult* JNAProblem::getAsyncResult() {
 		return asyncResult_;
 	}
-
 
 	int* JNAProblem::getAssignment() {
 		return assignment_;
@@ -113,14 +105,14 @@ namespace JNA {
 
 using namespace JNA;
 
-void* initConfig(const char* params[]) {
+void* initConfig(const char* params) {
 	JNAProblem* jnaProblem = new JNAProblem();
 	// Init the configuration
 	Clasp::Cli::ClaspCliConfig* config = new Clasp::Cli::ClaspCliConfig();
 	jnaProblem->setConfig(config);
 	try {
-		config->setConfig(params, params + (sizeof(params)/sizeof(const char*)), Problem_t::SAT);
-		jnaProblem->setConfigState(c_CONFIGURED);
+		const char** it = &params;
+		config->setConfig(it, it + 1, Problem_t::SAT);
 		jnaProblem->setConfigState(c_CONFIGURED);
 	} catch (std::exception& e) {
 		jnaProblem->setConfigState(c_ERROR);

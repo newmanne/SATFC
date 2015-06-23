@@ -46,7 +46,6 @@ namespace JNA {
 			bool onModel(const Clasp::Solver& s, const Clasp::Model& m);
 		private:
 			int* assignment_;
-			bool configAllocated_;
 			Result_State resultState_;
 			Config_State configState_;
 			Clasp::ClaspFacade* facade_;
@@ -60,7 +59,7 @@ namespace JNA {
 // JNA Library
 extern "C" {
 
-	void* initConfig(const char* params[]);
+	void* initConfig(const char* params);
 
 	void initProblem(void* jnaProblemPointer, const char* problem);
 	
