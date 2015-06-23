@@ -35,7 +35,6 @@ namespace JNA {
 			void setFacade(Clasp::ClaspFacade* facade);
 			void setAsyncResult(Clasp::ClaspFacade::AsyncResult* asyncResult);
 			void setConfig(Clasp::Cli::ClaspCliConfig* config);
-			void setConfigKey(Clasp::Cli::ConfigKey key);
 			void setResultState(Result_State state);
 			void setConfigState(Config_State configState);
 			void setConfigErrorMessage(std::string message);
@@ -53,7 +52,6 @@ namespace JNA {
 			Clasp::ClaspFacade* facade_;
 			Clasp::ClaspFacade::AsyncResult* asyncResult_;
 			Clasp::Cli::ClaspCliConfig* config_;
-			Clasp::Cli::ConfigKey configKey_;
 			std::string configErrorMessage_;
 	};
 
@@ -62,7 +60,7 @@ namespace JNA {
 // JNA Library
 extern "C" {
 
-	void* initConfig(const char* params);
+	void* initConfig(const char* params[]);
 
 	void initProblem(void* jnaProblemPointer, const char* problem);
 	

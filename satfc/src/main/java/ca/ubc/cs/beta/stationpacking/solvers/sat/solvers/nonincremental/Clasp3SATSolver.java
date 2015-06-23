@@ -85,7 +85,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         }
         // make sure the configuration is valid
         String params = fParameters + " --seed=1";
-        Pointer jnaProblem = fClaspLibrary.initConfig(params);
+        Pointer jnaProblem = fClaspLibrary.initConfig(params.split(" "));
         try {
             int status = fClaspLibrary.getConfigState(jnaProblem);
             if (status == 2) {
@@ -117,7 +117,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
-            currentProblemPointer = fClaspLibrary.initConfig(params);
+            currentProblemPointer = fClaspLibrary.initConfig(params.split(" "));
 
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());

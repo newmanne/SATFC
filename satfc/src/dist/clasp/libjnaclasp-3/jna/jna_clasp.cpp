@@ -7,13 +7,6 @@
 #include <clasp/solver.h>
 #include <clasp/enumerator.h>
 
-/*
- * At the time of writing, we are using clasp 3.0.5, and the most recent version is 3.1.2.
- * There is a bug in the clasp 3.0.5 source code that is fixed in 3.1.2 that I had to backport
- * The bug is in clasp_facade.cpp in the wait() method, right before the return, where join() is called.
- * I'm just writing this here to document that the clasp source code is not an exact 3.0.5 match
- */
-
 namespace JNA {
 
 	JNAProblem::JNAProblem() {
@@ -36,17 +29,11 @@ namespace JNA {
 		asyncResult_ = NULL;
 		delete facade_;
 		facade_ = NULL;
-		if (config_ != NULL && configAllocated_) {
-			config_->releaseConfig(configKey_);	
-			configAllocated_ = false;
+		if (config_ != NULL) {
+			config_->reset();
 		}
 		delete config_;
 		config_ = NULL;
-	}
-
-	void JNAProblem::setConfigKey(Clasp::Cli::ConfigKey configKey) {
-		configKey_ = configKey;
-		configAllocated_ = true;
 	}
 
 	void JNAProblem::setConfig(Clasp::Cli::ClaspCliConfig* config) {
@@ -126,16 +113,14 @@ namespace JNA {
 
 using namespace JNA;
 
-void* initConfig(const char* params) {
+void* initConfig(const char* params[]) {
 	JNAProblem* jnaProblem = new JNAProblem();
 	// Init the configuration
 	Clasp::Cli::ClaspCliConfig* config = new Clasp::Cli::ClaspCliConfig();
 	jnaProblem->setConfig(config);
-	Clasp::Cli::ConfigKey key = config->allocConfig();
-	jnaProblem->setConfigKey(key);
 	try {
-		config->appendConfig(key, "SATFC-Config", params);	
-		config->init(0, key);	
+		config->setConfig(params, params + (sizeof(params)/sizeof(const char*)), Problem_t::SAT);
+		jnaProblem->setConfigState(c_CONFIGURED);
 		jnaProblem->setConfigState(c_CONFIGURED);
 	} catch (std::exception& e) {
 		jnaProblem->setConfigState(c_ERROR);
