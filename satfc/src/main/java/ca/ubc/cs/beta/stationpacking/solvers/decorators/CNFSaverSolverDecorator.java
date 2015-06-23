@@ -52,15 +52,15 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
     private final IConstraintManager fConstraintManager;
     private final ICNFSaver fCNFSaver;
-    private boolean preSAT;
+    private boolean saveAssignment;
 
     public CNFSaverSolverDecorator(@NonNull ISolver aSolver,
                                    @NonNull IConstraintManager aConstraintManager,
                                    @NonNull ICNFSaver aCNFSaver,
-                                   boolean preSAT) {
+                                   boolean saveAssignment) {
         super(aSolver);
         this.fCNFSaver = aCNFSaver;
-        this.preSAT = preSAT;
+        this.saveAssignment = saveAssignment;
         fConstraintManager = aConstraintManager;
     }
 
@@ -84,7 +84,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
         final String CNFName = aInstance.getHashString();
         fCNFSaver.saveCNF(aInstance.getName(), CNFName, cnfFileContentString);
 
-        if (!preSAT) {
+        if (!saveAssignment) {
             // Create assignment
             final String assignmentString = Joiner.on(System.lineSeparator()).join(aEncoding.getInitialAssignment().entrySet().stream()
                     .map(entry -> entry.getKey() + " " + (entry.getValue() ? 1 : 0)).collect(Collectors.toList()));
