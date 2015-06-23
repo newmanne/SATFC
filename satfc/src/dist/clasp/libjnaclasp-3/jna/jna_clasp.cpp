@@ -123,7 +123,6 @@ void* initConfig(const char* params) {
 
 void initProblem(void* jnaProblemPointer, const char* problem) {
 	JNAProblem* jnaProblem = reinterpret_cast<JNA::JNAProblem*>(jnaProblemPointer);
-
 	// Init the facade
 	Clasp::ClaspFacade* facade = new Clasp::ClaspFacade();
 	jnaProblem->setFacade(facade);
@@ -149,9 +148,10 @@ void solveProblem(void* jnaProblemPointer, double timeoutTime) {
 		} else if (result.interrupted()) {
 			jnaProblem->setResultState(r_INTERRUPTED);
 		}
-	} else if (asyncResult->cancel()) { // times up - try to shut down the problem
+	} else { // times up
 		jnaProblem->setResultState(r_TIMEOUT);
 	} 
+	asyncResult->cancel();
 }
 
 void destroyProblem(void* jnaProblemPointer) {
