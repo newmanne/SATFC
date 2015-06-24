@@ -30,6 +30,8 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 
 import com.beust.jcommander.Parameter;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by newmanne on 12/05/15.
  */
@@ -49,7 +51,7 @@ public class RedisParameters extends AbstractOptions {
         Logger log = LoggerFactory.getLogger(RedisParameters.class);
         if (jedis == null) {
             log.info("Making a redis connection to {}:{}", fRedisHost, fRedisPort);
-            jedis = new Jedis(fRedisHost, fRedisPort, 60);
+            jedis = new Jedis(fRedisHost, fRedisPort, (int) TimeUnit.SECONDS.toMillis(60));
         }
         return jedis;
     }
