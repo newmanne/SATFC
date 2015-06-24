@@ -25,6 +25,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -112,7 +116,8 @@ public class Application {
         } catch (IOException e) {
             throw new RuntimeException("Couldn't load stations file " + stationsFile + " that lists what stations are in the universe");
         }
-        return new SatisfiabilityCacheFactory(stationIds);
+        final ImmutableSet<Station> stationSet = stationIds.stream().map(idString -> new Station(Integer.parseInt(idString))).collect(GuavaCollectors.toImmutableSet());
+        return new SatisfiabilityCacheFactory(stationSet);
     }
 
 }

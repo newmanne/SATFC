@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -47,8 +48,8 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
     private static final int UNSAT_BUFFER_SIZE = 3;
     private final Set<Station> universe;
 
-    public SatisfiabilityCacheFactory(List<String> stationIds) {
-        universe = stationIds.stream().map(Integer::parseInt).sorted().map(Station::new).collect(GuavaCollectors.toImmutableSet());
+    public SatisfiabilityCacheFactory(Set<Station> stationIds) {
+        universe = ImmutableSet.copyOf(stationIds);
     }
 
     @Override
