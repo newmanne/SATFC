@@ -6,6 +6,7 @@
 #include "jna_clasp.h"
 #include <clasp/solver.h>
 #include <clasp/enumerator.h>
+#include <signal.h>
 
 namespace JNA {
 
@@ -21,8 +22,6 @@ namespace JNA {
 	JNAProblem::~JNAProblem() {
 		delete[] assignment_;
 		assignment_ = NULL;
-		delete asyncResult_;
-		asyncResult_ = NULL;
 		delete facade_;
 		facade_ = NULL;
 		delete config_;
@@ -82,7 +81,7 @@ namespace JNA {
 	}
 
 	bool JNAProblem::interrupt() {
-		return asyncResult_->cancel(); 
+		return facade_->terminate(SIGINT); 
 	}
 
 	bool JNAProblem::onModel(const Clasp::Solver& s, const Clasp::Model& m) {

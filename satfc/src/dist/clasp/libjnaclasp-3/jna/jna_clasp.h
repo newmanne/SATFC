@@ -49,7 +49,7 @@ namespace JNA {
 			Result_State resultState_;
 			Config_State configState_;
 			Clasp::ClaspFacade* facade_;
-			Clasp::ClaspFacade::AsyncResult* asyncResult_;
+			Clasp::ClaspFacade::AsyncResult* asyncResult_; // note: asyncResult is not thread safe
 			Clasp::Cli::ClaspCliConfig* config_;
 			std::string configErrorMessage_;
 	};
