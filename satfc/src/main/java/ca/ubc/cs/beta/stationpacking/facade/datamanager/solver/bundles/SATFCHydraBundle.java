@@ -17,6 +17,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationR
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
 /**
  * Created by newmanne on 11/06/15.
  */
+@Slf4j
 public class SATFCHydraBundle extends ASolverBundle {
 
     ISolver fSolver;
@@ -63,6 +65,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                             solver));
         });
         fSolver = new VoidSolver();
+        log.info(params.getSolverOrder().toString());
         for (SATFCHydraParams.SolverType solverType : params.getSolverOrder()) {
             if (solverType != SATFCHydraParams.SolverType.NONE) {
                 fSolver = solverTypeToFactory.get(solverType).extend(fSolver);

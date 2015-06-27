@@ -3,14 +3,14 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.smac;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -53,24 +53,37 @@ public class SATFCHydraParams extends AbstractOptions {
     @Parameter(names = "-claspClaspConfig")
     public ClaspConfig claspClaspConfig;
 
-    @Parameter(names = "-opt1")
-    public SolverType opt1;
-    @Parameter(names = "-opt2")
-    public SolverType opt2;
-    @Parameter(names = "-opt3")
-    public SolverType opt3;
+    @Parameter(names = "-arcConsistency")
+    public boolean arcConsistency;
+    @Parameter(names = "-arcConsistencyPriority")
+    public int arcConsistencyPriority;
+
+    @Parameter(names = "-underconstrained")
+    public boolean underconstrained;
+    @Parameter(names = "-underconstrainedPriority")
+    public int underconstrainedPriority;
+
+    @Parameter(names = "-connectedComponents")
+    public boolean connectedComponents;
+    @Parameter(names = "-connectedComponentsPriority")
+    public int connectedComponentsPriority;
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        if (opt1 != null) {
-            list.add(opt1);
+        final Map<SolverType, Integer> solverChoiceToPriority = new HashMap<>();
+        if (arcConsistency) {
+            solverChoiceToPriority.put(SolverType.ARC_CONSISTENCY, arcConsistencyPriority);
         }
-        if (opt2 != null) {
-            list.add(opt2);
+        if (underconstrained) {
+            solverChoiceToPriority.put(SolverType.UNDERCONSTRAINED, underconstrainedPriority);
         }
-        if (opt3 != null) {
-            list.add(opt3);
+        if (connectedComponents) {
+            solverChoiceToPriority.put(SolverType.CONNECTED_COMPONENTS, connectedComponentsPriority);
         }
+        solverChoiceToPriority.entrySet().stream().sorted((a, b) -> a.getValue().compareTo(b.getValue())).forEach(entry -> {
+            list.add(entry.getKey());
+        });
+
         if (presolver) {
             list.add(SolverType.PRESOLVER);
         }
