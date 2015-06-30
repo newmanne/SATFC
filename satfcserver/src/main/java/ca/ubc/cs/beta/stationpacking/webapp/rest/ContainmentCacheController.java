@@ -120,9 +120,7 @@ public class ContainmentCacheController {
 
         // add to our in memory cache
         if (!containmentCacheLocator.locate(request.getCoordinate()).isPresent()) {
-            log.info("Could not find an in memory containment cache to add problem to. Creating new containment cache");
-            // might need to create a new cache
-            containmentCacheLocator.addCache(request.getCoordinate());
+            throw new IllegalStateException("No cache was made for coordinate " + request.getCoordinate() + ". Was the corresponding station configuration folder present at server start up?");
         }
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate()).get();
         cache.add(instance, request.getResult(), key);

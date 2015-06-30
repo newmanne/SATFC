@@ -123,7 +123,7 @@ public class SATFCFacade implements AutoCloseable {
             throw new IllegalArgumentException("Could not load JNA library.");
         }
 
-        log.debug("Using library {}.", aSATFCParameters.getClaspLibrary());
+        log.info("Using library {}.", aSATFCParameters.getClaspLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
         fSolverManager = new SolverManager(
                 new ISolverBundleFactory() {

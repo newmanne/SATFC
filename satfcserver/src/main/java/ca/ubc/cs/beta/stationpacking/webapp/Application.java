@@ -21,19 +21,25 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
+import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -49,9 +55,8 @@ import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
+
+import java.io.File;
 
 /**
  * Created by newmanne on 23/03/15.
@@ -60,17 +65,35 @@ import com.google.common.io.Resources;
 @SpringBootApplication
 public class Application {
 
+    private final static SATFCServerParameters parameters = new SATFCServerParameters();
+
     public static void main(String[] args) {
+        // Even though spring has its own parameter parsing, JComamnder gives tidier error messages
+        JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
+        parameters.validate();
+        log.info("Using the following command line parameters " + System.lineSeparator() + parameters.toString());
         SpringApplication.run(Application.class, args);
     }
 
-    // These will be set by command line properties e.g. --redis.port=8080
-    @Value("${redis.host:localhost}")
-    String redisURL;
-    @Value("${redis.port:6379}")
-    int redisPort;
-    @Value("${stations.file:}")
-    String stationsFile;
+    @ToString
+    @Parameters(separators = "=")
+    @UsageTextField(title="SATFCServer Parameters",description="Parameters needed to build SATFCServer")
+    public static class SATFCServerParameters extends AbstractOptions {
+        @Parameter(names = "--redis.host", description = "host for redis", required = true)
+        @Getter
+        private String redisURL;
+        @Parameter(names = "--redis.port", description = "port for redis", required = true)
+        @Getter
+        private int redisPort;
+        @Parameter(names = "--constraint.folder", description = "Folder containing all of the station configuration folders", required = true)
+        @Getter
+        private String constraintFolder;
+
+        public void validate() {
+            Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
+        }
+
+    }
 
     @Bean
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
@@ -82,8 +105,8 @@ public class Application {
 
     @Bean
     RedisConnectionFactory redisConnectionFactory() {
-        log.info("Using the following redis information: host " + redisURL + ", port: " + redisPort);
-        return new JedisConnectionFactory(new JedisShardInfo(redisURL, redisPort));
+        final SATFCServerParameters satfcServerParameters = satfcServerParameters();
+        return new JedisConnectionFactory(new JedisShardInfo(satfcServerParameters.getRedisURL(), satfcServerParameters.getRedisPort()));
     }
 
     @Bean
@@ -98,26 +121,21 @@ public class Application {
 
     @Bean
     ICacheLocator containmentCache() {
-        return new CacheLocator(cacher(), satisfiabilityCacheFactory());
+        return new CacheLocator(satisfiabilityCacheFactory());
     }
 
     @Bean
     ISatisfiabilityCacheFactory satisfiabilityCacheFactory() {
-        final List<String> stationIds;
-        // By default, just load the universe of stations from our internal file; if the user specified somewhere else, load from there
-        try {
-            if (stationsFile.isEmpty()) {
-                log.info("Reading station universe file from internal resources");
-                stationIds = Resources.readLines(Resources.getResource("universe.txt"), Charsets.UTF_8);
-            } else {
-                log.info("Reading station universe file from " + stationsFile);
-                stationIds = Files.readLines(new File(stationsFile), Charsets.UTF_8);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Couldn't load stations file " + stationsFile + " that lists what stations are in the universe");
-        }
-        final ImmutableSet<Station> stationSet = stationIds.stream().map(idString -> new Station(Integer.parseInt(idString))).collect(GuavaCollectors.toImmutableSet());
-        return new SatisfiabilityCacheFactory(stationSet);
+        return new SatisfiabilityCacheFactory();
+    }
+
+    @Bean
+    DataManager dataManager() {
+        return new DataManager();
+    }
+
+    @Bean SATFCServerParameters satfcServerParameters() {
+        return parameters;
     }
 
 }

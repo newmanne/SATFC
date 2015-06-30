@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
 
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -42,11 +43,11 @@ public class DataManager {
 	/**
      * File path suffix for a (station config / interference) domain file.
      */
-	public static String DOMAIN_FILE = File.separator+"Domain.csv";
+	public static String DOMAIN_FILE = "Domain.csv";
 	/**
 	 * File path suffix for a (station config / interference) interference constraints file.
 	 */
-	public static String INTERFERENCES_FILE = File.separator+"Interference_Paired.csv";
+	public static String INTERFERENCES_FILE = "Interference_Paired.csv";
 	
 	private HashMap<String, ManagerBundle> fData;
 	
@@ -75,7 +76,7 @@ public class DataManager {
 		}
 		else
 		{
-			final IStationManager stationManager = new DomainStationManager(path+DOMAIN_FILE);
+			final IStationManager stationManager = new DomainStationManager(path + File.separator + DOMAIN_FILE);
 
 			final IConstraintManager constraintManager;
 			
@@ -85,7 +86,7 @@ public class DataManager {
 			IConstraintManager unabridgedConstraintManager = null;
 			try
 			{
-				unabridgedConstraintManager= new UnabridgedFormatConstraintManager(stationManager, path + INTERFERENCES_FILE);
+				unabridgedConstraintManager= new UnabridgedFormatConstraintManager(stationManager, path + File.separator + INTERFERENCES_FILE);
 			}
 			catch(Exception e)
 			{
@@ -98,7 +99,7 @@ public class DataManager {
 			IConstraintManager channelspecificConstraintManager = null;
 			try
 			{
-				channelspecificConstraintManager= new ChannelSpecificConstraintManager(stationManager, path + INTERFERENCES_FILE);
+				channelspecificConstraintManager= new ChannelSpecificConstraintManager(stationManager, path + File.separator + INTERFERENCES_FILE);
 			}
 			catch(Exception e)
 			{

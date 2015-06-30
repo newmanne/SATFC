@@ -34,7 +34,6 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfi
 public interface ICacheLocator {
 
     Optional<ISatisfiabilityCache> locate(CacheCoordinate coordinate);
-    void addCache(CacheCoordinate coordinate);
     Set<CacheCoordinate> getCoordinates();
 
 }
