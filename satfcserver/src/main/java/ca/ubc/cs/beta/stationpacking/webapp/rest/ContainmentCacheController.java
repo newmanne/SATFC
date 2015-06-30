@@ -23,14 +23,14 @@ package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
 import java.util.List;
 import java.util.Optional;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -40,18 +40,12 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy.ContainmentCacheCacheRequest;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
+import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy.ContainmentCacheRequest;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.connector.ClientAbortException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
 
 @Controller
 @Slf4j
@@ -80,13 +74,9 @@ public class ContainmentCacheController {
     ) {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Querying the SAT cache for entry " + description);
-        final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
-        if (cache.isPresent()) {
-            return cache.get().proveSATBySuperset(instance);
-        } else {
-            return ContainmentCacheSATResult.failure();
-        }
+        log.info("Querying the SAT cache with coordinate " + request.getCoordinate() + " for entry " + description);
+        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+        return cache.proveSATBySuperset(instance);
     }
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
@@ -97,13 +87,9 @@ public class ContainmentCacheController {
     ) {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Querying the UNSAT cache for entry " + description);
-        final Optional<ISatisfiabilityCache> cache = containmentCacheLocator.locate(request.getCoordinate());
-        if (cache.isPresent()) {
-            return cache.get().proveUNSATBySubset(instance);
-        } else {
-            return ContainmentCacheUNSATResult.failure();
-        }
+        log.info("Querying the UNSAT cache with coordinate " + request.getCoordinate() + " for entry " + description);
+        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+        return cache.proveUNSATBySubset(instance);
     }
 
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -113,16 +99,11 @@ public class ContainmentCacheController {
     ) {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Adding entry to the cache " + description);
+        log.info("Adding entry to the cache with coordinate " + request.getCoordinate() + ". Entry: " + description);
 
         // add to redis
         final String key = cacher.cacheResult(request.getCoordinate(), instance, request.getResult());
-
-        // add to our in memory cache
-        if (!containmentCacheLocator.locate(request.getCoordinate()).isPresent()) {
-            throw new IllegalStateException("No cache was made for coordinate " + request.getCoordinate() + ". Was the corresponding station configuration folder present at server start up?");
-        }
-        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate()).get();
+        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
         cache.add(instance, request.getResult(), key);
     }
 
@@ -131,7 +112,7 @@ public class ContainmentCacheController {
     public void filterCache() {
     	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
             log.info("Finding SAT entries to be filted at cacheCoordinate " + cacheCoordinate);
-            final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate).get();
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
             List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT();
             log.info("Pruning " + SATPrunables.size() + " SAT entries from Redis");
             cacher.deleteSATCollection(SATPrunables);

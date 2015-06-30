@@ -84,7 +84,7 @@ public class SATFCFacade implements AutoCloseable {
     SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
         //Initialize logging.
         if (!logInitialized && aSATFCParameters.isInitializeLogging()) {
-            initializeLogging(LogLevel.INFO);
+            initializeLogging(aSATFCParameters.getLogLevel());
             log = LoggerFactory.getLogger(getClass());
             log.warn("Logging initialized by default to INFO.");
 

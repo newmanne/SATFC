@@ -22,18 +22,14 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import containmentcache.IContainmentCache;
 import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.simple.SimpleBitSetCache;

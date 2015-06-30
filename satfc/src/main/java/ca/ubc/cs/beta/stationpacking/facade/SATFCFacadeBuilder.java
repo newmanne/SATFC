@@ -24,12 +24,9 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Paths;
 
-import com.google.common.base.Preconditions;
 import lombok.NonNull;
+import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
@@ -51,9 +48,9 @@ public class SATFCFacadeBuilder {
     private String fResultFile;
     private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
-    private boolean extendedCacheProblem;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
+    private LogLevel logLevel;
 
     /**
      * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -68,6 +65,7 @@ public class SATFCFacadeBuilder {
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
+        logLevel = LogLevel.INFO;
     }
 
     /**
@@ -145,7 +143,8 @@ public class SATFCFacadeBuilder {
                 fDecompose,
                 CNFSaver,
                 serverURL,
-                parallelismLevel
+                parallelismLevel,
+                logLevel
         ));
     }
 
@@ -216,13 +215,14 @@ public class SATFCFacadeBuilder {
         return this;
     }
 
+    /**
+     * Set the URL of the SATFCServer. This is only required if you are using the SATFCServer module.
+     *
+     * @param serverURL
+     * @return this {@code Builder} object
+     */
     public SATFCFacadeBuilder setServerURL(@NonNull String serverURL) {
         this.serverURL = serverURL;
-        return this;
-    }
-
-    public SATFCFacadeBuilder setExtendedCacheProblemFlag(boolean extendedCacheProblem) {
-        this.extendedCacheProblem = extendedCacheProblem;
         return this;
     }
 
@@ -235,6 +235,17 @@ public class SATFCFacadeBuilder {
     public SATFCFacadeBuilder setParallelismLevel(int parallelismLevel) {
         this.parallelismLevel = parallelismLevel;
         return this;
+    }
+    
+    /**
+     * Set the log level for SATFC to use. Use in conjunction with {@link #setInitializeLogging(boolean)}
+     *
+     * @param logLevel
+     * @return this {@code Builder} object
+     */
+    public SATFCFacadeBuilder setLogLevel(LogLevel logLevel) {
+    	this.logLevel = logLevel;
+    	return this;
     }
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
@@ -250,7 +261,7 @@ public class SATFCFacadeBuilder {
         builder.setDecompose(parameters.fSolverOptions.decomposition);
         builder.setUnderconstrained(parameters.fSolverOptions.underconstrained);
         builder.setPresolve(parameters.fSolverOptions.presolve);
-        builder.setExtendedCacheProblemFlag(parameters.fSolverOptions.cachingParams.extendedCacheProblem);
+        builder.setLogLevel(parameters.fLoggingOptions.logLevel);
         if (parameters.fSolverOptions.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
         }

@@ -1,10 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import com.google.common.collect.ImmutableSet;
-
 import java.util.BitSet;
+
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Created by emily404 on 6/10/15.

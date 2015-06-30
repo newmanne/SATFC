@@ -1,7 +1,22 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import java.io.FileNotFoundException;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
+import redis.clients.jedis.Transaction;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -15,23 +30,13 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.ExtendedCacheProblemPr
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
+
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.ScanParams;
-import redis.clients.jedis.ScanResult;
-import redis.clients.jedis.Transaction;
-
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Created by emily404 on 5/28/15.

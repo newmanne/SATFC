@@ -24,15 +24,14 @@ package ca.ubc.cs.beta.stationpacking.solvers.composites;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -83,22 +82,55 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        if (aTerminationCriterion.hasToStop()) {
+            return SolverResult.createTimeoutResult(0);
+        }
+        log.debug("Solving via parallel solver");
+        final Watch watch = Watch.constructAutoStartWatch();
+        // Swap out the termination criterion to one that can be interrupted
+        final ITerminationCriterion.IInterruptibleTerminationCriterion interruptibleCriterion = new InterruptibleTerminationCriterion(aTerminationCriterion);
+        //Semaphore holding how many components are done working on the current instance.
+        final Semaphore workDone = new Semaphore(0);
+        //Number of completed solver processes we need before terminating with a timeout.
+        final int numWorkToDo = listOfSolverQueues.size();
         final AtomicReference<SolverResult> resultReference = new AtomicReference<>();
-        final List<Future> futures = new ArrayList<>();
+        // We maintain a list of all the solvers current solving the problem so we know who to interrupt via the interrupt method
+        final List<ISolver> solversSolvingCurrentProblem = Collections.synchronizedList(new ArrayList<>());
+        final List<Future<Void>> futures = new ArrayList<>();
         try {
             // Submit one job per each solver in the portfolio
             listOfSolverQueues.forEach(solverQueue -> {
                 final ListenableFuture<Void> future = executorService.submit(() -> {
-                    // do some work
-                    // Interrupt only if the result is conclusive. Only the first one will go through this block
-                    if (solverResult.isConclusive() && interruptibleCriterion.interrupt()) {
-                        log.debug("Signalling the blocked thread to wake up!");
-                        resultReference.set(solverResult);
-                        workDone.release(numWorkToDo);
+                    log.debug("Job starting...");
+                    if (!interruptibleCriterion.hasToStop()) {
+                        final ISolver solver = solverQueue.poll();
+                        if (solver == null) {
+                            throw new IllegalStateException("Couldn't take a solver from the queue!");
+                        }
+                        // During this block (while you are added to this list) it is safe for you to be interrupted via the interrupt method
+                        solversSolvingCurrentProblem.add(solver);
+                        log.debug("Begin solve {}", solver.getClass().getSimpleName());
+                        final SolverResult solverResult = solver.solve(aInstance, interruptibleCriterion, aSeed);
+                        log.debug("End solve {}", solver.getClass().getSimpleName());
+                        solversSolvingCurrentProblem.remove(solver);
+                        // Interrupt only if the result is conclusive. Only the first one will go through this block
+                        if (solverResult.isConclusive() && interruptibleCriterion.interrupt()) {
+                            log.debug("Found a conclusive result, interrupting other concurrent solvers");
+                            synchronized (solversSolvingCurrentProblem) {
+                                solversSolvingCurrentProblem.forEach(ISolver::interrupt);
+                            }
+                            // Signal the initial thread that it can move forwards
+                            log.debug("Signalling the blocked thread to wake up!");
+                            resultReference.set(solverResult);
+                            workDone.release(numWorkToDo);
+                        }
+                        log.debug("Releasing a single permit as the work for this thread is done.");
+                        workDone.release(1);
+                        // Return your solver back to the queue
+                        if (!solverQueue.offer(solver)) {
+                            throw new IllegalStateException("Wasn't able to return solver to the queue!");
+                        }
                     }
-                    log.debug("Releasing a single permit as the work for this thread is done.");
-                    workDone.release(1);
-                    // Return your solver back to the queue
                     log.debug("Job ending...");
                     return null;
                 });

@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +31,6 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 
 import com.beust.jcommander.Parameter;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by newmanne on 12/05/15.

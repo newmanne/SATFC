@@ -1,7 +1,5 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
-
 import java.util.BitSet;
 
 /**

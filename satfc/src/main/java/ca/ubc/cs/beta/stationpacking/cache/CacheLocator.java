@@ -21,33 +21,34 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import lombok.extern.slf4j.Slf4j;
+import net.jcip.annotations.ThreadSafe;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
-import lombok.extern.slf4j.Slf4j;
-import net.jcip.annotations.ThreadSafe;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.event.ContextRefreshedEvent;
-
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by newmanne on 25/03/15.
@@ -65,8 +66,12 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
     }
 
     @Override
-    public Optional<ISatisfiabilityCache> locate(CacheCoordinate coordinate) {
-        return Optional.ofNullable(caches.get(coordinate));
+    public ISatisfiabilityCache locate(CacheCoordinate coordinate) {
+        ISatisfiabilityCache cache = caches.get(coordinate);
+        if (cache == null) {
+            throw new IllegalStateException("No cache was made for coordinate " + coordinate + ". Was the corresponding station configuration folder present at server start up?");
+        }
+        return cache;
     }
 
     // We want this to happen after the context has been brought up (so the error messages aren't horrific)
@@ -94,7 +99,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
                 log.info("Folder " + folder.getAbsolutePath() + " corresponds to coordinate " + bundle.getCacheCoordinate());
                 coordinateToBundle.put(bundle.getCacheCoordinate(), bundle);
             } catch (FileNotFoundException e) {
-                throw new IllegalStateException(folder.getAbsolutePath() + " is not a valid station configuration folder", e);
+                throw new IllegalStateException(folder.getAbsolutePath() + " is not a valid station configuration folder (missing Domain or Interference files?)", e);
             }
         });
 

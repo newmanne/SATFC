@@ -1,17 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
-import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
-
-import java.io.File;
-import java.io.IOException;
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
 
 /**
  * Created by emily404 on 5/20/15.

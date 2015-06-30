@@ -21,25 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
-import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-import com.google.common.base.Preconditions;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -47,16 +32,19 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 import redis.clients.jedis.JedisShardInfo;
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by newmanne on 23/03/15.
@@ -75,26 +63,6 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    @ToString
-    @Parameters(separators = "=")
-    @UsageTextField(title="SATFCServer Parameters",description="Parameters needed to build SATFCServer")
-    public static class SATFCServerParameters extends AbstractOptions {
-        @Parameter(names = "--redis.host", description = "host for redis", required = true)
-        @Getter
-        private String redisURL;
-        @Parameter(names = "--redis.port", description = "port for redis", required = true)
-        @Getter
-        private int redisPort;
-        @Parameter(names = "--constraint.folder", description = "Folder containing all of the station configuration folders", required = true)
-        @Getter
-        private String constraintFolder;
-
-        public void validate() {
-            Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
-        }
-
-    }
-
     @Bean
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
         final MappingJackson2HttpMessageConverter mappingJacksonHttpMessageConverter = new MappingJackson2HttpMessageConverter();
@@ -106,7 +74,8 @@ public class Application {
     @Bean
     RedisConnectionFactory redisConnectionFactory() {
         final SATFCServerParameters satfcServerParameters = satfcServerParameters();
-        return new JedisConnectionFactory(new JedisShardInfo(satfcServerParameters.getRedisURL(), satfcServerParameters.getRedisPort()));
+        final int timeout = (int) TimeUnit.SECONDS.toMillis(60);
+        return new JedisConnectionFactory(new JedisShardInfo(satfcServerParameters.getRedisURL(), satfcServerParameters.getRedisPort(), timeout));
     }
 
     @Bean
