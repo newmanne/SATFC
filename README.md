@@ -4,6 +4,11 @@
 
 Rough information about the evolution of **SATFC** through releases.
 
+### SATFC 1.7.1 [30/06/2015]
+
+* New required command line parameter for the server, _constraint.folder_, that tells the server where all of the data folders are so that it can properly size cache entries
+* Upgrade to clasp 3.1.2
+
 ### SATFC 1.7 [8/06/2015]
 
 * New feature, _parallel portfolios_, allow SATFC to execute multiple solvers in parallel, returning a result as soon as any solver succeeds. Previous versions of SATFC applied each solver sequentially.

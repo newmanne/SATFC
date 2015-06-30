@@ -18,10 +18,10 @@ import com.google.common.base.Preconditions;
 @Parameters(separators = "=")
 @UsageTextField(title="SATFCServer Parameters",description="Parameters needed to build SATFCServer")
 public class SATFCServerParameters extends AbstractOptions {
-    @Parameter(names = "--redis.host", description = "host for redis", required = true)
+    @Parameter(names = "--redis.host", description = "host for redis")
     @Getter
     private String redisURL =  "localhost";
-    @Parameter(names = "--redis.port", description = "port for redis", required = true)
+    @Parameter(names = "--redis.port", description = "port for redis")
     @Getter
     private int redisPort = 6379;
     @Parameter(names = "--constraint.folder", description = "Folder containing all of the station configuration folders", required = true)
