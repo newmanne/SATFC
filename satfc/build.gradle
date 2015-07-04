@@ -45,9 +45,9 @@ dependencies {
     compile 'com.mangosdk:spi:0.2.4'
 	compile 'io.dropwizard.metrics:metrics-core:3.1.0'
 	compile 'io.dropwizard.metrics:metrics-jvm:3.1.0'
+    compile 'org.python:jython-standalone:2.7.0'
 
     compile 'org.choco-solver:choco-solver:3.3.1'
-
 
     // redis
     compile 'redis.clients:jedis:2.6.1'

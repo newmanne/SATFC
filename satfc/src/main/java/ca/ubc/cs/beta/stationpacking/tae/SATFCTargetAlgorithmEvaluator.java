@@ -21,36 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.tae;
 
-import java.io.File;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
-import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.aeatk.parameterconfigurationspace.ParameterConfiguration;
-import ca.ubc.cs.beta.stationpacking.execution.Converter;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ProblemGeneratorFactory;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SingleSrpkProblemReader;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import lombok.Data;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ca.ubc.cs.beta.aeatk.algorithmrunconfiguration.AlgorithmRunConfiguration;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.AlgorithmRunResult;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.ExistingAlgorithmRunResult;
@@ -58,16 +28,32 @@ import ca.ubc.cs.beta.aeatk.algorithmrunresult.RunStatus;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.RunningAlgorithmRunResult;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.kill.StatusVariableKillHandler;
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.watch.StopWatch;
+import ca.ubc.cs.beta.aeatk.parameterconfigurationspace.ParameterConfiguration;
 import ca.ubc.cs.beta.aeatk.probleminstance.ProblemInstance;
-import ca.ubc.cs.beta.aeatk.probleminstance.ProblemInstanceSeedPair;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.AbstractSyncTargetAlgorithmEvaluator;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.TargetAlgorithmEvaluatorRunObserver;
-import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.exceptions.TargetAlgorithmAbortException;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SingleSrpkProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import com.google.common.base.Preconditions;
+import lombok.Data;
+import org.python.core.PyObject;
+import org.python.util.PythonInterpreter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
+import javax.script.ScriptException;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
 
 /**
  * Target algorithm evaluator that wraps around the SATFC facade and only
@@ -87,6 +73,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 
     private final ScheduledExecutorService fObserverThreadPool;
     private final DataManager dataManager;
+    private final PythonInterpreter python;
 
     public SATFCTargetAlgorithmEvaluator(SATFCTargetAlgorithmEvaluatorOptions options) {
 
@@ -103,6 +90,10 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
         fObserverThreadPool = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("SATFC Observer Thread", true));
         // Create the DataManager (will be reused so we don't keep loading in constraints)
         dataManager = new DataManager();
+
+        // Clasp parameters are super annoying to convert between the parameters that SMAC returns and an actual command line string, so we use the provided python library (invoked via jython) to figrue things out)
+        python = new PythonInterpreter();
+        python.execfile(getClass().getClassLoader().getResourceAsStream("hydra/claspParamPcsParser.py"));
     }
 
     @Override
@@ -140,8 +131,8 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
             runconfigToKillMap.put(config, killHandler);
             watchMap.put(config, new StopWatch());
         }
-			
-		// Observer thread: Provides observation of the run along with estimated wallclock time.
+
+        // Observer thread: Provides observation of the run along with estimated wallclock time.
         final Runnable observerThread = new SATFCTAEObserverThread(aObserver, resultMap, watchMap, runconfigToKillMap);
         // Run once for setup
         observerThread.run();
@@ -169,7 +160,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final String srpkFile = instance.getInstanceName();
                 final SATFCFacadeProblem problem = new SingleSrpkProblemReader(srpkFile, fStationConfigFolder).getNextProblem();
 
-                log.info(config.getParameterConfiguration().getFormattedParameterString(ParameterConfiguration.ParameterStringFormat.NODB_SYNTAX));
+                log.info("Parameters are :" + System.lineSeparator() +  config.getParameterConfiguration().getFormattedParameterString(ParameterConfiguration.ParameterStringFormat.NODB_SYNTAX));
 
                 //Read the straightforward parameters from the problem instance.
                 final double cutoff = config.getCutoffTime();
@@ -179,14 +170,26 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 String[] commandLine = new String[activeParameters.size() * 2];
                 final Iterator<String> iterator = activeParameters.iterator();
                 int i = 0;
+                final StringBuilder clasp = new StringBuilder();
                 while (iterator.hasNext()) {
                     final String next = iterator.next();
-                    commandLine[i] = "-" + next;
-                    commandLine[i+1] = config.getParameterConfiguration().get(next);
-                    i+=2;
+                    if (next.startsWith("@")) { // CLASP PARAMETER
+                        clasp.append("--").append(next).append(" ").append(config.getParameterConfiguration().get(next));
+                    } else {
+                        commandLine[i] = "-" + next;
+                        commandLine[i + 1] = config.getParameterConfiguration().get(next);
+                        i += 2;
+                    }
+                }
+                String claspParams;
+                try {
+                    claspParams = parseClasp(clasp.toString());
+                } catch (Exception e) {
+                    throw new RuntimeException("Couldn't parse out claps params! " + clasp.toString(), e);
                 }
                 final SATFCHydraParams params = new SATFCHydraParams();
                 JCommanderHelper.parseCheckingForHelpAndVersion(commandLine, params);
+                params.claspConfig = claspParams;
                 final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
                         fLibPath,
                         false, // logging
@@ -238,6 +241,15 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
         return results;
     }
 
+    public String parseClasp(final String claspParams) {
+        final String evalString = "get_commmand(\"" + claspParams + "\")";
+        log.info("Eval command: " + evalString);
+        final PyObject eval = python.eval(evalString);
+        python.eva
+        final String claspConfig = eval.toString();
+        log.info("Eval output: " + claspConfig);
+        return claspConfig;
+    }
 
     /**
      * Creates the algorithm run result corresponding to the given SATFC result and scenario, and stop the given watch as well.

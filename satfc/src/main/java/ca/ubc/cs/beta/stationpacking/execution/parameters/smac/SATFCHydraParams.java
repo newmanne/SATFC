@@ -47,11 +47,6 @@ public class SATFCHydraParams extends AbstractOptions {
     public boolean presolver;
     @Parameter(names = "-presolverCutoff")
     public double presolverCutoff;
-    @Parameter(names = "-presolverClaspConfig")
-    public ClaspConfig presolverClaspConfig;
-
-    @Parameter(names = "-claspClaspConfig")
-    public ClaspConfig claspClaspConfig;
 
     @Parameter(names = "-arcConsistency")
     public boolean arcConsistency;
@@ -67,6 +62,8 @@ public class SATFCHydraParams extends AbstractOptions {
     public boolean connectedComponents;
     @Parameter(names = "-connectedComponentsPriority")
     public int connectedComponentsPriority;
+
+    public String claspConfig;
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
@@ -92,7 +89,7 @@ public class SATFCHydraParams extends AbstractOptions {
     }
 
     public boolean validate() {
-        Preconditions.checkNotNull(claspClaspConfig);
+        Preconditions.checkNotNull(claspConfig);
         return true;
     }
 

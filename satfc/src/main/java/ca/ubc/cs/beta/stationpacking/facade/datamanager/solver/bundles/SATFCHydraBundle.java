@@ -48,7 +48,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
-            return clasp3ISolverFactory.create(params.claspClaspConfig.getConfig());
+            return clasp3ISolverFactory.create(params.claspConfig);
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
             return new SequentialSolversComposite(
@@ -57,7 +57,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                                     aConstraintManager,
                                     Arrays.asList(
                                             new StationSubsetSATCertifier(
-                                                    clasp3ISolverFactory.create(params.presolverClaspConfig.getConfig()),
+                                                    clasp3ISolverFactory.create(params.claspConfig),
                                                     new CPUTimeTerminationCriterionFactory(params.presolverCutoff)
                                             )
                                     )
