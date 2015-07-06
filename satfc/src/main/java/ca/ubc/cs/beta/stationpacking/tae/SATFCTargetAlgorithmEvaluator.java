@@ -167,18 +167,16 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final long seed = config.getProblemInstanceSeedPair().getSeed();
 
                 final Set<String> activeParameters = config.getParameterConfiguration().getActiveParameters();
-                String[] commandLine = new String[activeParameters.size() * 2];
+                List<String> commandLine = new ArrayList<>();
                 final Iterator<String> iterator = activeParameters.iterator();
-                int i = 0;
                 final StringBuilder clasp = new StringBuilder();
                 while (iterator.hasNext()) {
                     final String next = iterator.next();
                     if (next.startsWith("@")) { // CLASP PARAMETER
-                        clasp.append("--").append(next).append(" ").append(config.getParameterConfiguration().get(next));
+                        clasp.append("-").append(next).append(" ").append(config.getParameterConfiguration().get(next)).append(" ");
                     } else {
-                        commandLine[i] = "-" + next;
-                        commandLine[i + 1] = config.getParameterConfiguration().get(next);
-                        i += 2;
+                        commandLine.add("-" + next);
+                        commandLine.add(config.getParameterConfiguration().get(next));
                     }
                 }
                 String claspParams;
@@ -188,7 +186,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                     throw new RuntimeException("Couldn't parse out claps params! " + clasp.toString(), e);
                 }
                 final SATFCHydraParams params = new SATFCHydraParams();
-                JCommanderHelper.parseCheckingForHelpAndVersion(commandLine, params);
+                JCommanderHelper.parseCheckingForHelpAndVersion(commandLine.toArray(new String[commandLine.size()]), params);
                 params.claspConfig = claspParams;
                 final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
                         fLibPath,
@@ -245,7 +243,6 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
         final String evalString = "get_commmand(\"" + claspParams + "\")";
         log.info("Eval command: " + evalString);
         final PyObject eval = python.eval(evalString);
-        python.eva
         final String claspConfig = eval.toString();
         log.info("Eval output: " + claspConfig);
         return claspConfig;

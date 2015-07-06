@@ -5,7 +5,6 @@ def get_command_line_cmd(config):
         config: a mapping from parameter name to parameter value
         A command call list to execute the target algorithm.
     '''
-    solver_binary = "target_algorithms/sat/clasp-cssc14/clasp"
     cmd = ""
     
     params = []
@@ -47,7 +46,7 @@ def parse_parameters(params,prefix="--",separator="="):
         while(params != []):
             head = params.pop(0)
             value = params.pop(0).replace("'","")
-            if not "solver" in head: 
+            if not "solver" in head:
                 value = value.replace("__",",")
             value_is_int = False
             try:
