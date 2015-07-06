@@ -202,6 +202,7 @@ def __dic_to_flat_list(adict, prefix, separator):
     return allP
 
 def get_commmand(s):
-    params = s.split(' ')
+    # replace ugly pcs hack for advanced forbidden syntax
+    params = map(lambda s: s.replace('_AT_', '@').replace('_COLON_', ':').replace('_HYPHEN_', '-').replace('_PLUS_', '+'), s.split(' '))
     configMap = dict((name, value) for name, value in zip(params[::2], params[1::2]))
     return get_command_line_cmd(configMap)

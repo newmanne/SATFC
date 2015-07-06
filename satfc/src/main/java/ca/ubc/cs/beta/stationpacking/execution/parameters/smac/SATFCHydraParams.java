@@ -3,12 +3,9 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.smac;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.*;
 
@@ -67,16 +64,7 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        final Map<SolverType, Integer> solverChoiceToPriority = new HashMap<>();
-        if (arcConsistency) {
-            solverChoiceToPriority.put(SolverType.ARC_CONSISTENCY, arcConsistencyPriority);
-        }
-        if (underconstrained) {
-            solverChoiceToPriority.put(SolverType.UNDERCONSTRAINED, underconstrainedPriority);
-        }
-        if (connectedComponents) {
-            solverChoiceToPriority.put(SolverType.CONNECTED_COMPONENTS, connectedComponentsPriority);
-        }
+        final Map<SolverType, Integer> solverChoiceToPriority = getSolverTypePriorityMap();
         solverChoiceToPriority.entrySet().stream().sorted((a, b) -> a.getValue().compareTo(b.getValue())).forEach(entry -> {
             list.add(entry.getKey());
         });
@@ -88,8 +76,24 @@ public class SATFCHydraParams extends AbstractOptions {
         return list;
     }
 
+    private Map<SolverType, Integer> getSolverTypePriorityMap() {
+        final Map<SolverType, Integer> solverChoiceToPriority = new HashMap<>();
+        if (arcConsistency) {
+            solverChoiceToPriority.put(SolverType.ARC_CONSISTENCY, arcConsistencyPriority);
+        }
+        if (underconstrained) {
+            solverChoiceToPriority.put(SolverType.UNDERCONSTRAINED, underconstrainedPriority);
+        }
+        if (connectedComponents) {
+            solverChoiceToPriority.put(SolverType.CONNECTED_COMPONENTS, connectedComponentsPriority);
+        }
+        return solverChoiceToPriority;
+    }
+
     public boolean validate() {
         Preconditions.checkNotNull(claspConfig);
+        final Map<SolverType, Integer> solverTypePriorityMap = getSolverTypePriorityMap();
+        Preconditions.checkState(solverTypePriorityMap.entrySet().size() == new HashSet<>(solverTypePriorityMap.values()).size(), "At least two options have the same priority! " + ImmutableMap.copyOf(solverTypePriorityMap).toString());
         return true;
     }
 

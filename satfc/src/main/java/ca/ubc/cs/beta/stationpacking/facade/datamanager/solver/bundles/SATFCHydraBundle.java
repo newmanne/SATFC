@@ -65,7 +65,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                             solver));
         });
         fSolver = new VoidSolver();
-        log.info(params.getSolverOrder().toString());
+        log.debug(params.getSolverOrder().toString());
         for (SATFCHydraParams.SolverType solverType : params.getSolverOrder()) {
             if (solverType != SATFCHydraParams.SolverType.NONE) {
                 fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
