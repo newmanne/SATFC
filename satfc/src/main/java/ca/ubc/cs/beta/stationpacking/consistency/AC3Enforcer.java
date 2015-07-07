@@ -38,7 +38,7 @@ public class AC3Enforcer {
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
         while (!workList.isEmpty()) {
             final Pair<Station, Station> pair = workList.poll();
-            if (arcReduce(pair, output)) {
+            if (removeInconsistentValues(pair, output)) {
                 final Station referenceStation = pair.getLeft();
                 if (reducedDomains.get(referenceStation).isEmpty()) {
                     log.debug("Reduced a domain to empty! Problem is solved UNSAT");
@@ -54,12 +54,11 @@ public class AC3Enforcer {
 
     private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,
                                            Pair<Station, Station> modifiedPair, NeighborIndex<Station, DefaultEdge> neighborIndex) {
-        final Station referenceStation = modifiedPair.getLeft();
-        final Station modifiedNeighbor = modifiedPair.getRight();
+        final Station x = modifiedPair.getLeft();
+        final Station y = modifiedPair.getRight();
 
-        neighborIndex.neighborsOf(referenceStation).stream().filter(neighbor -> neighbor != modifiedNeighbor).forEach(neighbor -> {
-            interferingStationPairs.add(Pair.of(referenceStation, neighbor));
-            interferingStationPairs.add(Pair.of(neighbor, referenceStation));
+        neighborIndex.neighborsOf(x).stream().filter(neighbor -> !neighbor.equals(y)).forEach(neighbor -> {
+            interferingStationPairs.add(Pair.of(neighbor, x));
         });
     }
 
@@ -74,34 +73,32 @@ public class AC3Enforcer {
         return workList;
     }
 
-    private boolean arcReduce(Pair<Station, Station> pair, AC3Output output) {
+    private boolean removeInconsistentValues(Pair<Station, Station> pair, AC3Output output) {
         boolean change = false;
         final Map<Station, Set<Integer>> domains = output.getReducedDomains();
-        final Station xStation = pair.getLeft();
-        final Station yStation = pair.getRight();
+        final Station x = pair.getLeft();
+        final Station y = pair.getRight();
         final List<Integer> xValuesToPurge = new ArrayList<>();
-        for (int vx : domains.get(xStation)) {
-            if (channelViolatesArcConsistency(xStation, vx, yStation, domains)) {
-                log.debug("Purging channel {} from station {}'s domain", vx, xStation.getID());
+        for (int vx : domains.get(x)) {
+            if (channelViolatesArcConsistency(x, vx, y, domains)) {
+                log.debug("Purging channel {} from station {}'s domain", vx, x.getID());
                 output.setNumReducedChannels(output.getNumReducedChannels() + 1);
                 xValuesToPurge.add(vx);
                 change = true;
             }
         }
-        domains.get(xStation).removeAll(xValuesToPurge);
+        domains.get(x).removeAll(xValuesToPurge);
         return change;
     }
 
-    private boolean channelViolatesArcConsistency(Station xStation, int vx, Station yStation, Map<Station, Set<Integer>> domains) {
-        for (int vy : domains.get(yStation)) {
-            final Map<Integer, Set<Station>> assignment = new HashMap<>();
-            assignment.put(vx, Sets.newHashSet(xStation));
-            assignment.putIfAbsent(vy, new HashSet<>());
-            assignment.get(vy).add(yStation);
-            if (constraintManager.isSatisfyingAssignment(assignment)) {
-                return false;
-            }
-        }
-        return true;
+    private boolean channelViolatesArcConsistency(Station x, int vx, Station y, Map<Station, Set<Integer>> domains) {
+        return domains.get(y).stream().noneMatch(vy -> isSatisfyingAssignment(x, vx, y, vy));
+    }
+
+    private boolean isSatisfyingAssignment(Station x, int vx, Station y, int vy) {
+        final Map<Integer, Set<Station>> assignment = new HashMap<>();
+        assignment.put(vx, Sets.newHashSet(x));
+        assignment.putIfAbsent(vy, new HashSet<>()).add(y);
+        return constraintManager.isSatisfyingAssignment(assignment);
     }
 }
