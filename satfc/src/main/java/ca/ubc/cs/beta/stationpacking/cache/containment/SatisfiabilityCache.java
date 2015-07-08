@@ -133,19 +133,20 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
 
         SATCache.getReadLock().lock();
         try{
-            satEntries.forEach(cacheEntry -> {
-                Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
-                Optional<ContainmentCacheSATEntry> foundSuperset =
-                        StreamSupport.stream(supersets.spliterator(), false)
-                                .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
-                                .findAny();
-                if (foundSuperset.isPresent()) {
-                    prunableEntries.add(cacheEntry);
-                    if (prunableEntries.size() % 2000 == 0) {
-                        log.info("Found " + prunableEntries.size() + " prunables");
-                    }
-                }
-            });
+            StreamSupport.stream(satEntries.spliterator(), true)
+                    .forEach(cacheEntry -> {
+                        Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
+                        Optional<ContainmentCacheSATEntry> foundSuperset =
+                                StreamSupport.stream(supersets.spliterator(), false)
+                                        .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
+                                        .findAny();
+                        if (foundSuperset.isPresent()) {
+                            prunableEntries.add(cacheEntry);
+                            if (prunableEntries.size() % 2000 == 0) {
+                                log.info("Found " + prunableEntries.size() + " prunables");
+                            }
+                        }
+                    });
         } finally {
             SATCache.getReadLock().unlock();
         }
