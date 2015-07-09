@@ -21,12 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.StreamSupport;
 
 import lombok.extern.slf4j.Slf4j;
@@ -128,24 +123,25 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      */
     @Override
     public List<ContainmentCacheSATEntry> filterSAT(){
-        List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
+        List<ContainmentCacheSATEntry> prunableEntries = Collections.synchronizedList(new ArrayList<>());
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
         SATCache.getReadLock().lock();
         try{
-            satEntries.forEach(cacheEntry -> {
-                Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
-                Optional<ContainmentCacheSATEntry> foundSuperset =
-                        StreamSupport.stream(supersets.spliterator(), false)
-                                .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
-                                .findAny();
-                if (foundSuperset.isPresent()) {
-                    prunableEntries.add(cacheEntry);
-                    if (prunableEntries.size() % 2000 == 0) {
-                        log.info("Found " + prunableEntries.size() + " prunables");
-                    }
-                }
-            });
+            StreamSupport.stream(satEntries.spliterator(), true)
+                    .forEach(cacheEntry -> {
+                        Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
+                        Optional<ContainmentCacheSATEntry> foundSuperset =
+                                StreamSupport.stream(supersets.spliterator(), false)
+                                        .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
+                                        .findAny();
+                        if (foundSuperset.isPresent()) {
+                            prunableEntries.add(cacheEntry);
+                            if (prunableEntries.size() % 2000 == 0) {
+                                log.info("Found " + prunableEntries.size() + " prunables");
+                            }
+                        }
+                    });
         } finally {
             SATCache.getReadLock().unlock();
         }
