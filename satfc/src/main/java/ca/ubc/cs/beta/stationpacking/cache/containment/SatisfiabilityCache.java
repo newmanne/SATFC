@@ -21,12 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.StreamSupport;
 
 import lombok.extern.slf4j.Slf4j;
@@ -128,7 +123,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      */
     @Override
     public List<ContainmentCacheSATEntry> filterSAT(){
-        List<ContainmentCacheSATEntry> prunableEntries = new ArrayList<>();
+        List<ContainmentCacheSATEntry> prunableEntries = Collections.synchronizedList(new ArrayList<>());
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
         SATCache.getReadLock().lock();
