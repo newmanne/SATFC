@@ -24,22 +24,26 @@ package ca.ubc.cs.beta.stationpacking.solvers;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import au.com.bytecode.opencsv.CSVReader;
+import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChocoSolverDecorator;
+
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.python.jline.internal.Log;
 
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -56,6 +60,7 @@ import com.google.common.io.Resources;
 /**
  * Created by newmanne on 22/05/15.
  */
+@Slf4j
 public abstract class ASolverBundleTest {
 
     private final String INSTANCE_FILE = "data/ASolverBundleTestInstances.csv";
@@ -90,6 +95,7 @@ public abstract class ASolverBundleTest {
         for (Map.Entry<String, SATResult> entry : instanceFileToAnswers.entrySet()) {
             final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
             final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
+            log.info("Solving instance " + entry.getKey());
             final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new CPUTimeTerminationCriterion(60.0), 1);
             Assert.assertEquals(entry.getValue(), solverResult.getResult());
         }
@@ -118,5 +124,36 @@ public abstract class ASolverBundleTest {
         }
 
     }
+
+//    public static class ChocoSolverBundleTest extends ASolverBundleTest {
+//
+//        public ChocoSolverBundleTest() throws FileNotFoundException {
+//        }
+//
+//        @Override
+//        protected ISolverBundle getBundle() {
+//            return new ISolverBundle() {
+//                @Override
+//                public ISolver getSolver(StationPackingInstance aInstance) {
+//                    return new ChocoSolverDecorator(new VoidSolver(), stationManager, constraintManager);
+//                }
+//
+//                @Override
+//                public IStationManager getStationManager() {
+//                    return null;
+//                }
+//
+//                @Override
+//                public IConstraintManager getConstraintManager() {
+//                    return null;
+//                }
+//
+//                @Override
+//                public void close() throws Exception {
+//
+//                }
+//            };
+//        }
+//    }
 
 }

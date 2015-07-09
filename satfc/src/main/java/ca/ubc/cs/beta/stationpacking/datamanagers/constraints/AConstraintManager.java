@@ -53,12 +53,12 @@ public abstract class AConstraintManager implements IConstraintManager {
     protected final Map<Station, Map<Integer, Set<Station>>> fADJp1Constraints;
     protected String fHash;
 
-    protected AConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
+    protected AConstraintManager() throws FileNotFoundException {
         fCOConstraints = new HashMap<>();
         fADJp1Constraints = new HashMap<>();
     }
 
-    protected enum ConstraintKey {
+    public enum ConstraintKey {
         //Co-channel constraints,
         CO,
         //ADJ+1 channel constraints,

@@ -144,7 +144,7 @@ public class ChannelSpecificConstraintManager extends AConstraintManager {
      * @throws FileNotFoundException - if indicated file cannot be found.
      */
     public ChannelSpecificConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
-        super(aStationManager, aInterferenceConstraintsFilename);
+        super();
         try {
             try (CSVReader reader = new CSVReader(new FileReader(aInterferenceConstraintsFilename))) {
                 String[] line;

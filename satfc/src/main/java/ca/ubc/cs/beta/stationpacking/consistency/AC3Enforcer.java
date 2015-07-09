@@ -4,6 +4,8 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,7 +33,8 @@ public class AC3Enforcer {
      * @param instance
      * @return
      */
-    public AC3Output AC3(StationPackingInstance instance) {
+    public AC3Output AC3(StationPackingInstance instance, ITerminationCriterion criterion) {
+        // TODO: use the termination criterion?
         final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
         final AC3Output output = new AC3Output(reducedDomains);
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
@@ -50,6 +53,10 @@ public class AC3Enforcer {
             }
         }
         return output;
+    }
+
+    public AC3Output AC3(StationPackingInstance instance) {
+        return AC3(instance, new CPUTimeTerminationCriterion(Double.MAX_VALUE));
     }
 
     private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,
@@ -98,7 +105,8 @@ public class AC3Enforcer {
     private boolean isSatisfyingAssignment(Station x, int vx, Station y, int vy) {
         final Map<Integer, Set<Station>> assignment = new HashMap<>();
         assignment.put(vx, Sets.newHashSet(x));
-        assignment.putIfAbsent(vy, new HashSet<>()).add(y);
+        assignment.putIfAbsent(vy, new HashSet<>());
+        assignment.get(vy).add(y);
         return constraintManager.isSatisfyingAssignment(assignment);
     }
 }

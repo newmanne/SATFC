@@ -136,7 +136,7 @@ public class UnabridgedFormatConstraintManager extends AConstraintManager {
      */
     public UnabridgedFormatConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException
     {
-        super(aStationManager, aInterferenceConstraintsFilename);
+        super();
         try
         {
             try(CSVReader reader = new CSVReader(new FileReader(aInterferenceConstraintsFilename)))

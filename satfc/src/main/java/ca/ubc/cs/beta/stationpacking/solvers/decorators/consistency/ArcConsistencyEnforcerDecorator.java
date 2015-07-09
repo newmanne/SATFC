@@ -32,7 +32,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
-        final AC3Output ac3Output = ac3Enforcer.AC3(aInstance);
+        final AC3Output ac3Output = ac3Enforcer.AC3(aInstance, aTerminationCriterion);
         if (ac3Output.isNoSolution()) {
             return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
         } else {
