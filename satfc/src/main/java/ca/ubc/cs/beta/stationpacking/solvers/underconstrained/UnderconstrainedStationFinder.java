@@ -28,6 +28,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.python.google.common.base.Preconditions;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultiset;
+
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -54,7 +59,10 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         log.debug("Finding underconstrained stations in the instance...");
 
-        final Map<Station,Set<Integer>> badChannels = new HashMap<Station,Set<Integer>>();
+        final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
+        final HashMultimap<Station, Station> coBadStations = HashMultimap.create();
+        final HashMultimap<Station, Station> adjBadStations = HashMultimap.create();
+
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
             final Station station = domainEntry.getKey();
@@ -66,42 +74,22 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                 {
                     if(domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel))
                     {
-                        Set<Integer> stationBadChannels = badChannels.get(station);
-                        if(stationBadChannels == null)
-                        {
-                            stationBadChannels = new HashSet<Integer>();
-                        }
-                        stationBadChannels.add(domainChannel);
-                        badChannels.put(station, stationBadChannels);
+                        badChannels.put(station, domainChannel);
+                        badChannels.put(coNeighbour, domainChannel);
 
-                        Set<Integer> coneighbourBadChannels = badChannels.get(coNeighbour);
-                        if(coneighbourBadChannels == null)
-                        {
-                            coneighbourBadChannels = new HashSet<Integer>();
-                        }
-                        coneighbourBadChannels.add(domainChannel);
-                        badChannels.put(coNeighbour, coneighbourBadChannels);
+                        coBadStations.put(station, coNeighbour);
+                        coBadStations.put(coNeighbour, station);
                     }
                 }
                 for(Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
                 {
                     if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
                     {
-                        Set<Integer> stationBadChannels = badChannels.get(station);
-                        if(stationBadChannels == null)
-                        {
-                            stationBadChannels = new HashSet<Integer>();
-                        }
-                        stationBadChannels.add(domainChannel);
-                        badChannels.put(station, stationBadChannels);
+                        badChannels.put(station, domainChannel);
+                        badChannels.put(adjNeighbour, domainChannel + 1);
 
-                        Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
-                        if(adjneighbourBadChannels == null)
-                        {
-                            adjneighbourBadChannels = new HashSet<Integer>();
-                        }
-                        adjneighbourBadChannels.add(domainChannel+1);
-                        badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                        adjBadStations.put(station, adjNeighbour);
+                        adjBadStations.put(adjNeighbour, station);
                     }
                 }
             }
@@ -113,19 +101,24 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             final Set<Integer> domain = domainEntry.getValue();
 
             Set<Integer> stationBadChannels = badChannels.get(station);
-            if(stationBadChannels == null)
-            {
-                stationBadChannels = Collections.emptySet();
-            }
-
             final Set<Integer> stationGoodChannels = Sets.difference(domain, stationBadChannels);
 
             log.trace("Station {} domain channels: {}.",station,domain);
             log.trace("Station {} bad channels: {}.",station,stationBadChannels);
 
-            if(!stationGoodChannels.isEmpty())
-            {
-                log.trace("Station {} is underconstrained has it has {} domain channels ({}) on which it interferes with no one.",station,stationGoodChannels.size(),stationGoodChannels);
+            if(!stationGoodChannels.isEmpty()) {
+                log.trace("Station {} is underconstrained as it has {} domain channels ({}) on which it interferes with no one.", station, stationGoodChannels.size(), stationGoodChannels);
+                underconstrainedStations.add(station);
+                continue;
+            }
+
+            final Set<Station> adjInterferingStations = adjBadStations.get(station);
+            final Set<Station> coInterferingStations = coBadStations.get(station);
+            final int numInterferingStations = Sets.union(adjInterferingStations, coInterferingStations).size();
+            final int interferingStationMaxSpread = numInterferingStations * 3; // At most, an interfering station can wipe out 3 channels from your domain with an ADJp1 constraint. As an upper bound to the worst thing that can possibly happen, assume every station spreads out to 2 unique channels.
+
+            if (interferingStationMaxSpread < domain.size()) {
+                log.info("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numInterferingStations,interferingStationMaxSpread);
                 underconstrainedStations.add(station);
             }
         }
