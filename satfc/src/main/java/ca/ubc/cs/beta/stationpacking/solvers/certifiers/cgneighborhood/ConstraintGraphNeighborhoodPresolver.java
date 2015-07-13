@@ -167,7 +167,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
     private NeighborIndex<Station, DefaultEdge> buildNeighborIndex(StationPackingInstance aInstance) {
         log.debug("Building constraint graph.");
         NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex =
-                new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(aInstance, fConstraintManager));
+                new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(aInstance.getDomains(), fConstraintManager));
         return aConstraintGraphNeighborIndex;
     }
 

@@ -47,17 +47,6 @@ import com.google.common.hash.HashCode;
 @Slf4j
 public class ChannelSpecificConstraintManager extends AConstraintManager {
 
-    /*
-     * Map taking subject station to map taking channel to interfering station that cannot be
-     * on channel concurrently with subject station.
-     */
-
-    /**
-     * Type of possible constraints.
-     *
-     * @author afrechet
-     */
-
     /**
      * Add the constraint to the constraint manager represented by subject station, target station, subject channel and constraint key.
      *

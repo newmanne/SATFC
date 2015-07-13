@@ -37,7 +37,7 @@ public class AC3Enforcer {
         // TODO: use the termination criterion?
         final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
         final AC3Output output = new AC3Output(reducedDomains);
-        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance, constraintManager));
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance.getDomains(), constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
         while (!workList.isEmpty()) {
             final Pair<Station, Station> pair = workList.poll();

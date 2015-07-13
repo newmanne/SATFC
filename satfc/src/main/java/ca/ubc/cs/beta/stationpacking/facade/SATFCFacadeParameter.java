@@ -40,7 +40,7 @@ public class SATFCFacadeParameter {
     private final int numCores;
     private final SATFCHydraParams hydraParams;
 
-	public static enum SolverChoice
+	public enum SolverChoice
 	{
 		SATFC_SEQUENTIAL,
         SATFC_PARALLEL,
@@ -49,9 +49,9 @@ public class SATFCFacadeParameter {
         CACHING_SOLVER_FULL_INSTANCES,
         CACHING_SOLVER_COMPONENTS,
         CACHE_EVERYTHING,
-        CONSISTENCY,
-        HYDRA
-	}
+        STATS,
+        HYDRA;
+    }
 
 }
 

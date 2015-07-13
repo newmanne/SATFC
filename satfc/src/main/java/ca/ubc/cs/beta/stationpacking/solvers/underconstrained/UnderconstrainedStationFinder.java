@@ -21,23 +21,19 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
 
-import java.util.Collections;
-import java.util.HashMap;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
+import org.jgrapht.alg.NeighborIndex;
+import org.jgrapht.graph.DefaultEdge;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.python.google.common.base.Preconditions;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.HashMultiset;
-
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-
-import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 1/8/15.
@@ -60,8 +56,6 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
         log.debug("Finding underconstrained stations in the instance...");
 
         final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
-        final HashMultimap<Station, Station> coBadStations = HashMultimap.create();
-        final HashMultimap<Station, Station> adjBadStations = HashMultimap.create();
 
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
@@ -76,9 +70,6 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                     {
                         badChannels.put(station, domainChannel);
                         badChannels.put(coNeighbour, domainChannel);
-
-                        coBadStations.put(station, coNeighbour);
-                        coBadStations.put(coNeighbour, station);
                     }
                 }
                 for(Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
@@ -87,13 +78,12 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                     {
                         badChannels.put(station, domainChannel);
                         badChannels.put(adjNeighbour, domainChannel + 1);
-
-                        adjBadStations.put(station, adjNeighbour);
-                        adjBadStations.put(adjNeighbour, station);
                     }
                 }
             }
         }
+
+        NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
 
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
@@ -112,13 +102,17 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                 continue;
             }
 
-            final Set<Station> adjInterferingStations = adjBadStations.get(station);
-            final Set<Station> coInterferingStations = coBadStations.get(station);
-            final int numInterferingStations = Sets.union(adjInterferingStations, coInterferingStations).size();
-            final int interferingStationMaxSpread = numInterferingStations * 3; // At most, an interfering station can wipe out 3 channels from your domain with an ADJp1 constraint. As an upper bound to the worst thing that can possibly happen, assume every station spreads out to 2 unique channels.
+            /*
+             * Heuristic #2 for underconstrained:
+             * At most, an interfering station can wipe out 3 channels from your domain with two ADJp1 constraints.
+             * As an upper bound to the worst thing that can possibly happen, assume every station is placed adversarially so that they each wipe out 3 channels
+             * If you still have a free channel, you are underconstrained.
+             */
+            final int numNeighbours = neighborIndex.neighborsOf(station).size();
+            final int interferingStationMaxSpread = numNeighbours * 3;
 
             if (interferingStationMaxSpread < domain.size()) {
-                log.info("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numInterferingStations,interferingStationMaxSpread);
+                log.info("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numNeighbours,interferingStationMaxSpread);
                 underconstrainedStations.add(station);
             }
         }

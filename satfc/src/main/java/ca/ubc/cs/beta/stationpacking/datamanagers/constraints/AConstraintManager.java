@@ -44,6 +44,10 @@ import com.google.common.hash.Hashing;
 @Slf4j
 public abstract class AConstraintManager implements IConstraintManager {
 
+    /*
+     * Map taking subject station to map taking channel to interfering station that cannot be
+     * on channel concurrently with subject station.
+     */
     protected final Map<Station, Map<Integer, Set<Station>>> fCOConstraints;
 
     /*
@@ -58,6 +62,11 @@ public abstract class AConstraintManager implements IConstraintManager {
         fADJp1Constraints = new HashMap<>();
     }
 
+    /**
+     * Type of possible constraints.
+     *
+     * @author afrechet
+     */
     public enum ConstraintKey {
         //Co-channel constraints,
         CO,
