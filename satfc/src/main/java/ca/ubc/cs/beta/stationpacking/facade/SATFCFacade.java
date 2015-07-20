@@ -28,7 +28,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,9 +285,21 @@ public class SATFCFacade implements AutoCloseable {
         ITerminationCriterion WALLtermination = new WalltimeTerminationCriterion(aCutoff);
         ITerminationCriterion termination = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(CPUtermination, WALLtermination));
 
-        SolverResult result;
+
+
+        // Make sure that SATFC doesn't get hung. We give a VERY generous timeout window before throwing an exception
+        final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
+        final long totalTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
+
         //Solve instance.
-        result = solver.solve(instance, termination, aSeed);
+        SolverResult result = null;
+        try {
+            result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, termination, aSeed), totalTimeInMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            throw new RuntimeException("SATFC waited " + totalTimeInMillis + " ms for a result, but no result came back! The given timeout was " + aCutoff + " s, so SATFC appears to be hung. This is probably NOT a recoverable error (e.g. it might mean that threads are stuck permanently in clasp)");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         log.debug("Transforming result into SATFC output...");
         //Transform back solver result to output result.

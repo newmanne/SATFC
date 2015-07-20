@@ -49,5 +49,5 @@ public class SolverResultTest {
     public void testSerializationDeserializationAreInverses() throws Exception {
         assertEquals(result, JSONUtils.toObject(JSONUtils.toString(result), SolverResult.class));
     }
-
+    
 }
