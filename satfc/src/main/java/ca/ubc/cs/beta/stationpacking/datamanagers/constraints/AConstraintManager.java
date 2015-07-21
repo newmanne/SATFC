@@ -21,110 +21,19 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import java.io.FileNotFoundException;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-
-import com.google.common.hash.Funnel;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 
 /**
  * Created by newmanne on 06/03/15.
  */
 @Slf4j
 public abstract class AConstraintManager implements IConstraintManager {
-
-    protected final Map<Station, Map<Integer, Set<Station>>> fCOConstraints;
-
-    /*
-     * Map taking subject station to map taking channel to interfering station that cannot be
-     * on channel+1 concurrently with subject station.
-     */
-    protected final Map<Station, Map<Integer, Set<Station>>> fADJp1Constraints;
-
-    /*
-     * Map taking subject station to map taking channel to interfering station that cannot be
-     * on channel+2 concurrently with subject station.
-     */
-    protected final Map<Station, Map<Integer, Set<Station>>> fADJp2Constraints;
-
-    protected String fHash;
-
-    protected AConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
-        fCOConstraints = new HashMap<>();
-        fADJp1Constraints = new HashMap<>();
-        fADJp2Constraints = new HashMap<>();
-    }
-
-    protected enum ConstraintKey {
-        //Co-channel constraints,
-        CO,
-        //ADJ+1 channel constraints,
-        ADJp1,
-        //ADJ-1 channel constraints (should not appear in new format),
-        ADJm1;
-    }
-
-    @Override
-    public Set<Station> getCOInterferingStations(
-            Station aStation, int aChannel) {
-        Map<Integer, Set<Station>> subjectStationConstraints = fCOConstraints.get(aStation);
-        //No constraint for this station.
-        if (subjectStationConstraints == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Station> interferingStations = subjectStationConstraints.get(aChannel);
-        //No constraint for this station on this channel.
-        if (interferingStations == null) {
-            return Collections.emptySet();
-        }
-        return Collections.unmodifiableSet(interferingStations);
-    }
-
-    @Override
-    public Set<Station> getADJplusOneInterferingStations(
-            Station aStation,
-            int aChannel) {
-        Map<Integer, Set<Station>> subjectStationConstraints = fADJp1Constraints.get(aStation);
-        //No constraint for this station.
-        if (subjectStationConstraints == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Station> interferingStations = subjectStationConstraints.get(aChannel);
-        //No constraint for this station on this channel.
-        if (interferingStations == null) {
-            return Collections.emptySet();
-        }
-        return Collections.unmodifiableSet(interferingStations);
-    }
-
-    @Override
-    public Set<Station> getADJplusTwoInterferingStations(Station aStation, int aChannel) {
-        Map<Integer, Set<Station>> subjectStationConstraints = fADJp2Constraints.get(aStation);
-        //No constraint for this station.
-        if (subjectStationConstraints == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Station> interferingStations = subjectStationConstraints.get(aChannel);
-        //No constraint for this station on this channel.
-        if (interferingStations == null) {
-            return Collections.emptySet();
-        }
-        return Collections.unmodifiableSet(interferingStations);
-    }
 
     @Override
     public boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
@@ -189,29 +98,6 @@ public abstract class AConstraintManager implements IConstraintManager {
             allStations.addAll(channelStations);
         }
         return true;
-    }
-
-    protected HashCode computeHash() {
-        final Funnel<Map<Station, Map<Integer, Set<Station>>>> funnel = (from, into) -> from.keySet().stream().sorted().forEach(s -> {
-            into.putInt(s.getID());
-            from.get(s).keySet().stream().sorted().forEach(c -> {
-                into.putInt(c);
-                from.get(s).get(c).stream().sorted().forEach(s2 -> {
-                    into.putInt(s2.getID());
-                });
-            });
-        });
-
-        HashFunction hf = Hashing.murmur3_32();
-        return hf.newHasher()
-                .putObject(fCOConstraints, funnel)
-                .putObject(fADJp1Constraints, funnel)
-                .hash();
-    }
-
-    @Override
-    public String getHashCode() {
-        return fHash;
     }
 
 }

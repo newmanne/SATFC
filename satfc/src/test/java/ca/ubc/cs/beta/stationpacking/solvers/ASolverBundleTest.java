@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -53,6 +55,7 @@ import com.google.common.io.Resources;
 /**
  * Created by newmanne on 22/05/15.
  */
+@Slf4j
 public abstract class ASolverBundleTest {
 
     private final String INSTANCE_FILE = "data/ASolverBundleTestInstances.csv";
@@ -87,6 +90,7 @@ public abstract class ASolverBundleTest {
         for (Map.Entry<String, SATResult> entry : instanceFileToAnswers.entrySet()) {
             final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
             final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
+            log.info("Solving instance " + entry.getKey());
             final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new CPUTimeTerminationCriterion(60.0), 1);
             Assert.assertEquals(entry.getValue(), solverResult.getResult());
         }
@@ -115,5 +119,36 @@ public abstract class ASolverBundleTest {
         }
 
     }
+
+//    public static class ChocoSolverBundleTest extends ASolverBundleTest {
+//
+//        public ChocoSolverBundleTest() throws FileNotFoundException {
+//        }
+//
+//        @Override
+//        protected ISolverBundle getBundle() {
+//            return new ISolverBundle() {
+//                @Override
+//                public ISolver getSolver(StationPackingInstance aInstance) {
+//                    return new ChocoSolverDecorator(new VoidSolver(), stationManager, constraintManager);
+//                }
+//
+//                @Override
+//                public IStationManager getStationManager() {
+//                    return null;
+//                }
+//
+//                @Override
+//                public IConstraintManager getConstraintManager() {
+//                    return null;
+//                }
+//
+//                @Override
+//                public void close() throws Exception {
+//
+//                }
+//            };
+//        }
+//    }
 
 }

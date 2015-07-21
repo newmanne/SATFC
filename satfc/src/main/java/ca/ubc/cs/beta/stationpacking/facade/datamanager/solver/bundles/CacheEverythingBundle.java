@@ -70,7 +70,7 @@ public class CacheEverythingBundle extends ASolverBundle {
 
         solver = UHFClaspBasedSolver;
 
-        CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+        CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
         CacherProxy cacher = new CacherProxy(serverURL, cacheCoordinate);
         ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
 

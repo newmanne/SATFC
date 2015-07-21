@@ -25,6 +25,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,6 +36,7 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+@Slf4j
 public class SolverResultTest {
 
     @Before

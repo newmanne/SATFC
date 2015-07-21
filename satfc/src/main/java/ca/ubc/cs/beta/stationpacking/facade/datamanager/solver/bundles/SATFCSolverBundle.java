@@ -106,7 +106,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         ICacher cacher = null;
         CacheCoordinate cacheCoordinate = null;
         if (useCache) {
-            cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+            cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
             cacher = new CacherProxy(serverURL, cacheCoordinate);
             containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }

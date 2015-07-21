@@ -28,6 +28,7 @@ import java.net.URL;
 import lombok.NonNull;
 import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 
@@ -51,6 +52,7 @@ public class SATFCFacadeBuilder {
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
     private LogLevel logLevel;
+	private SATFCHydraParams hydraParams;
 
     /**
      * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -65,7 +67,7 @@ public class SATFCFacadeBuilder {
         fUnderconstrained = true;
         fDecompose = true;
         serverURL = null;
-        logLevel = LogLevel.INFO;
+        hydraParams = null;
     }
 
     /**
@@ -144,7 +146,8 @@ public class SATFCFacadeBuilder {
                 CNFSaver,
                 serverURL,
                 parallelismLevel,
-                logLevel
+                LogLevel.INFO,
+                hydraParams
         ));
     }
 
@@ -226,6 +229,8 @@ public class SATFCFacadeBuilder {
         return this;
     }
 
+    private void setHydraParams(@NonNull SATFCHydraParams hydraParams) { this.hydraParams = hydraParams; }
+
     /**
      * Set the maximum number of solvers that SATFC will execute in parallel
      *
@@ -249,7 +254,6 @@ public class SATFCFacadeBuilder {
     }
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
-
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
 
         if (parameters.fClaspLibrary != null) {
@@ -273,6 +277,9 @@ public class SATFCFacadeBuilder {
                 CNFSaver = new CNFSaverSolverDecorator.RedisIndexCNFSaver(CNFSaver, parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
             }
             builder.setCNFSaver(CNFSaver);
+        }
+        if (parameters.fHydraParams != null) {
+            builder.setHydraParams(parameters.fHydraParams);
         }
         return builder.build();
     }

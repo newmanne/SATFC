@@ -39,6 +39,8 @@ public class ProblemGeneratorFactory {
                     parameters.fInstanceParameters.fDataFoldername,
                     null
             ));
+        } else if (parameters.fsrpkFile != null) {
+            reader = new SingleSrpkProblemReader(parameters.fsrpkFile, parameters.fInterferencesFolder);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null && parameters.fSolverOptions.cachingParams.extendedCacheProblem){
             reader = new ExtendedCacheProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {

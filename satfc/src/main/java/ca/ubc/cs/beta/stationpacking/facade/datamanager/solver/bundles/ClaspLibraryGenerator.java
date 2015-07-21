@@ -23,6 +23,8 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
@@ -40,9 +42,12 @@ public class ClaspLibraryGenerator {
     private final String libraryPath;
     private int numClasps;
 
+    private List<File> claspLibFiles;
+
     public ClaspLibraryGenerator(String libraryPath) {
         this.libraryPath = libraryPath;
         numClasps = 0;
+        claspLibFiles = new ArrayList<>();
     }
 
     public Clasp3Library createClaspLibrary() {
@@ -51,10 +56,15 @@ public class ClaspLibraryGenerator {
             File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, "." + Files.getFileExtension(libraryPath));
             Files.copy(origFile, copy);
             copy.deleteOnExit();
+            claspLibFiles.add(copy);
             return (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class, NativeUtils.NATIVE_OPTIONS);
         } catch (IOException e) {
             throw new RuntimeException("Couldn't create a copy of clasp!!!");
         }
+    }
+
+    public void notifyShutdown() {
+        claspLibFiles.forEach(File::delete);
     }
 
 }

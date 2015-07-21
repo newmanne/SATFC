@@ -65,12 +65,14 @@ public interface IConstraintManager {
      */
     Set<Station> getADJplusTwoInterferingStations(Station aStation, int aChannel);
 
-
     /**
 	 * @param aAssignment - an assignment of channels to (set of) stations.
 	 * @return true if and only if the assignment satisfies all the constraints represented by the constraint manager.
 	 */
-	boolean isSatisfyingAssignment(Map<Integer,Set<Station>> aAssignment);
+	boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment);
 	
-    String getHashCode();
+	/**
+	 * @return a hash of the constraints
+	 */
+    String getConstraintHash();
 }

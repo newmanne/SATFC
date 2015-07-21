@@ -21,17 +21,21 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.jgrapht.alg.NeighborIndex;
+import org.jgrapht.graph.DefaultEdge;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -54,7 +58,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         log.debug("Finding underconstrained stations in the instance...");
 
-        final Map<Station,Set<Integer>> badChannels = new HashMap<Station,Set<Integer>>();
+        final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
             final Station station = domainEntry.getKey();
@@ -64,63 +68,35 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             {
                 {
                     for (Station coNeighbour : fConstraintManager.getCOInterferingStations(station, domainChannel)) {
-                        if (domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel)) {
-                            Set<Integer> stationBadChannels = badChannels.get(station);
-                            if (stationBadChannels == null) {
-                                stationBadChannels = new HashSet<Integer>();
-                            }
-                            stationBadChannels.add(domainChannel);
-                            badChannels.put(station, stationBadChannels);
-
-                            Set<Integer> coneighbourBadChannels = badChannels.get(coNeighbour);
-                            if (coneighbourBadChannels == null) {
-                                coneighbourBadChannels = new HashSet<Integer>();
-                            }
-                            coneighbourBadChannels.add(domainChannel);
-                            badChannels.put(coNeighbour, coneighbourBadChannels);
+                        if(domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel))
+                        {
+                            badChannels.put(station, domainChannel);
+                            badChannels.put(coNeighbour, domainChannel);
                         }
                     }
                 }
                 {
                     for (Station adjNeighbour : fConstraintManager.getADJplusOneInterferingStations(station, domainChannel)) {
-                        if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel + 1)) {
-                            Set<Integer> stationBadChannels = badChannels.get(station);
-                            if (stationBadChannels == null) {
-                                stationBadChannels = new HashSet<Integer>();
-                            }
-                            stationBadChannels.add(domainChannel);
-                            badChannels.put(station, stationBadChannels);
-
-                            Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
-                            if (adjneighbourBadChannels == null) {
-                                adjneighbourBadChannels = new HashSet<Integer>();
-                            }
-                            adjneighbourBadChannels.add(domainChannel + 1);
-                            badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                        if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
+                        {
+                            badChannels.put(station, domainChannel);
+                            badChannels.put(adjNeighbour, domainChannel + 1);
                         }
                     }
                 }
                 {
                     for (Station adjNeighbour : fConstraintManager.getADJplusTwoInterferingStations(station, domainChannel)) {
-                        if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel + 2)) {
-                            Set<Integer> stationBadChannels = badChannels.get(station);
-                            if (stationBadChannels == null) {
-                                stationBadChannels = new HashSet<Integer>();
-                            }
-                            stationBadChannels.add(domainChannel);
-                            badChannels.put(station, stationBadChannels);
-
-                            Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
-                            if (adjneighbourBadChannels == null) {
-                                adjneighbourBadChannels = new HashSet<Integer>();
-                            }
-                            adjneighbourBadChannels.add(domainChannel + 2);
-                            badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                        if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+2))
+                        {
+                            badChannels.put(station, domainChannel);
+                            badChannels.put(adjNeighbour, domainChannel + 2);
                         }
                     }
                 }
             }
         }
+
+        NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
 
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
@@ -128,19 +104,28 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             final Set<Integer> domain = domainEntry.getValue();
 
             Set<Integer> stationBadChannels = badChannels.get(station);
-            if(stationBadChannels == null)
-            {
-                stationBadChannels = Collections.emptySet();
-            }
-
             final Set<Integer> stationGoodChannels = Sets.difference(domain, stationBadChannels);
 
             log.trace("Station {} domain channels: {}.",station,domain);
             log.trace("Station {} bad channels: {}.",station,stationBadChannels);
 
-            if(!stationGoodChannels.isEmpty())
-            {
-                log.trace("Station {} is underconstrained has it has {} domain channels ({}) on which it interferes with no one.",station,stationGoodChannels.size(),stationGoodChannels);
+            if(!stationGoodChannels.isEmpty()) {
+                log.trace("Station {} is underconstrained as it has {} domain channels ({}) on which it interferes with no one.", station, stationGoodChannels.size(), stationGoodChannels);
+                underconstrainedStations.add(station);
+                continue;
+            }
+
+            /*
+             * Heuristic #2 for underconstrained:
+             * At most, an interfering station can wipe out 5 channels from your domain with two ADJp2 constraints.
+             * As an upper bound to the worst thing that can possibly happen, assume every station is placed adversarially so that they each wipe out 3 channels
+             * If you still have a free channel, you are underconstrained.
+             */
+            final int numNeighbours = neighborIndex.neighborsOf(station).size();
+            final int interferingStationMaxSpread = numNeighbours * 5;
+
+            if (interferingStationMaxSpread < domain.size()) {
+                log.info("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numNeighbours,interferingStationMaxSpread);
                 underconstrainedStations.add(station);
             }
         }

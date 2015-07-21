@@ -47,7 +47,7 @@ public class ConstraintGrouper implements IComponentGrouper{
 	@Override
 	public Set<Set<Station>> group(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
 		
-		SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance, aConstraintManager);
+		SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance.getDomains(), aConstraintManager);
 		
 		HashSet<Set<Station>> aGroups = new HashSet<Set<Station>>();
 		
@@ -59,22 +59,19 @@ public class ConstraintGrouper implements IComponentGrouper{
 	}
 	
 	/**
-	 * @param aInstance - the instances that form the constraint graph's vertex set.
 	 * @param aConstraintManager - the constraint manager to use to form edges of the constraint graph.
 	 * @return the constraint graph.
 	 */
-	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(StationPackingInstance aInstance, IConstraintManager aConstraintManager)
+	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(Map<Station, Set<Integer>> aDomains, IConstraintManager aConstraintManager)
 	{
-		final Set<Station> aStations = aInstance.getStations();
-		final Map<Station,Set<Integer>> aDomains = aInstance.getDomains();
-		
+		final Set<Station> aStations = aDomains.keySet();
 		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = new SimpleGraph<Station,DefaultEdge>(DefaultEdge.class);
-		
-		for(Station aStation : aStations){
-			aConstraintGraph.addVertex(aStation);
-		}
-		
-		for(Station aStation1 : aStations){
+
+
+        for(Station aStation : aStations){
+            aConstraintGraph.addVertex(aStation);
+        }
+        for(Station aStation1 : aStations){
 			for(Integer channel : aDomains.get(aStation1))
 			{
                 {

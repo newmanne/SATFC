@@ -50,7 +50,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
     public CacheOnlySolverBundle(IStationManager aStationManager, IConstraintManager aConstraintManager, String serverURL, boolean components) {
         super(aStationManager, aConstraintManager);
 
-        CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+        CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
         ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         IComponentGrouper aGrouper = new ConstraintGrouper();
 

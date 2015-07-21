@@ -159,7 +159,7 @@ public class DomainStationManager implements IStationManager{
 		return domainsFromID;
 	}
 
-    public String getHashCode() {
+    public String getDomainHash() {
         return fHash;
     }
 

@@ -49,6 +49,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorat
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
@@ -93,7 +94,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         /**
          * Decorate solvers - remember that the decorator that you put first is applied last
          */
-        final CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getHashCode(), aConstraintManager.getHashCode());
+        final CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
 
         final List<ISolverFactory> parallelUHFSolvers = new ArrayList<>();
 
@@ -103,13 +104,13 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Presolvers: these guys will expand range and use up all available time
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
-            final double SATcertifiercutoff = 5.0;
-            parallelUHFSolvers.add(() -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
+            final double SATcertifiercutoff = 10.0;
+            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
                     Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
         }
 
         // Hit the cache at the instance level
-        parallelUHFSolvers.add(() -> {
+        parallelUHFSolvers.add(s -> {
             ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
             if (useCache) {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
@@ -121,12 +122,12 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
-        parallelUHFSolvers.add(() -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
             final IComponentGrouper aGrouper = new ConstraintGrouper();
-            parallelUHFSolvers.add(() -> {
+            parallelUHFSolvers.add(s -> {
                 ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
                 if (useCache) {
                     final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
@@ -149,6 +150,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Init the parallel solvers
         ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers);
+        UHFsolver = new ArcConsistencyEnforcerDecorator(UHFsolver, aConstraintManager);
         // END UHF
 
         // BEGIN VHF

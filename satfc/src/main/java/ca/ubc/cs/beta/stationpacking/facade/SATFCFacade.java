@@ -40,6 +40,7 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CNFSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheEverythingBundle;
@@ -47,8 +48,10 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnly
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.StatsSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -79,12 +82,16 @@ public class SATFCFacade implements AutoCloseable {
     private final SolverManager fSolverManager;
 
 
+    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
+        this(aSATFCParameters, new DataManager());
+    }
+
     /**
      * Construct a SATFC solver facade, with the option of initializing logging if its not already done.
      *
      * @param aSATFCParameters parameters needed by the facade.
      */
-    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
+    public SATFCFacade(final SATFCFacadeParameter aSATFCParameters, final DataManager dataManager) {
         //Initialize logging.
         if (!logInitialized && aSATFCParameters.isInitializeLogging()) {
             initializeLogging(aSATFCParameters.getLogLevel());
@@ -137,7 +144,7 @@ public class SATFCFacade implements AutoCloseable {
 
 						/*
 						 * SOLVER BUNDLE.
-						 * 
+						 *
 						 * Set what bundle we're using here.
 						 */
                         switch (aSATFCParameters.getSolverChoice()) {
@@ -173,14 +180,16 @@ public class SATFCFacade implements AutoCloseable {
                                 return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case CACHE_EVERYTHING:
                                 return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
+                            case HYDRA:
+                                return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
+                            case STATS:
+                                return new StatsSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getClaspLibrary());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }
-
-
                     }
-                }
-
+                },
+                dataManager
         );
     }
 

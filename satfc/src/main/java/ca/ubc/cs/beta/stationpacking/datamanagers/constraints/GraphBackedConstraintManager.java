@@ -22,7 +22,6 @@
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.jgrapht.alg.NeighborIndex;
@@ -36,7 +35,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
  *  between stations.
  * @author pcernek
  */
-public class GraphBackedConstraintManager implements IConstraintManager {
+public class GraphBackedConstraintManager extends AConstraintManager {
 
     private final NeighborIndex<Station, DefaultEdge> coInterferingStationNeighborIndex;
     private final NeighborIndex<Station, DefaultEdge> adjInterferingStationNeighborIndex;
@@ -92,68 +91,17 @@ public class GraphBackedConstraintManager implements IConstraintManager {
     	}
     	return Collections.emptySet();
     }
+    
+	@Override
+	public Set<Station> getADJplusTwoInterferingStations(Station aStation, int aChannel) {
+		return Collections.emptySet();
+	}
+
+
 
     @Override
-    public boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
-
-        if (violatesCOconstraints(aAssignment)) return false;
-
-        if (violatesADJConstraints(aAssignment)) return false;
-
-        return true;
-    }
-
-    private boolean violatesADJConstraints(Map<Integer, Set<Station>> aAssignment) {
-        for (Integer channel: aAssignment.keySet()) {
-            for (Station station : aAssignment.get(channel)) {
-
-                if (!stationHasADJconstraints(station)) {
-                    continue;
-                }
-
-                Set<Station> stationsOnNextChannel = aAssignment.get(channel + 1);
-
-                // If (channel + 1) is not contained in the assignment, then there can be no adjacency interference
-                if (stationsOnNextChannel == null) {
-                    continue;
-                }
-
-                for (Station neighbor : adjInterferingStationNeighborIndex.neighborsOf(station))
-                    if (stationsOnNextChannel.contains(neighbor))
-                        return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean violatesCOconstraints(Map<Integer, Set<Station>> aAssignment) {
-        for (Integer channel : aAssignment.keySet()) {
-            Set<Station> stationsOnChannel = aAssignment.get(channel);
-            for (Station station : stationsOnChannel) {
-                if (!stationHasCOconstraints(station)) {
-                    continue;
-                }
-                for (Station neighbor : coInterferingStationNeighborIndex.neighborsOf(station))
-                    if (stationsOnChannel.contains(neighbor))
-                        return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean stationHasCOconstraints(Station station) {
-        return this.coInterferingStationGraph.vertexSet().contains(station);
-    }
-
-    private boolean stationHasADJconstraints(Station station) {
-        return adjInterferingStationGraph.vertexSet().contains(station);
-    }
-
-    @Override
-    public String getHashCode() {
-        return this.toString();
+    public String getConstraintHash() {
+        throw new UnsupportedOperationException();
     }
 
 }
