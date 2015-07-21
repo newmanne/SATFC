@@ -174,29 +174,37 @@ public class MIPBasedSolver implements ISolver
 			{
 				 final Integer sourceChannel = entryStationVariables.getKey();
 				 final IloIntVar sourceVariable = entryStationVariables.getValue();
-				
-				//Add CO-constraints.
-				for(Station targetStation : aConstraintManager.getCOInterferingStations(sourceStation, sourceChannel))
-				{
-					if(aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(sourceChannel))
-					{
-						final IloIntVar targetVariable = aVariables.get(targetStation).get(sourceChannel);
-						// x_{s,c} + x_{s',c'} \leq 1
-						aMIP.addLe(aMIP.sum(sourceVariable,targetVariable), 1);
-					}
-				}
-				
-				//Add ADJ-constraints
-				final Integer targetChannel = sourceChannel+1;
-				for(Station targetStation : aConstraintManager.getADJplusInterferingStations(sourceStation, sourceChannel))
-				{
-					if(aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(targetChannel))
-					{
-						final IloIntVar targetVariable = aVariables.get(targetStation).get(targetChannel);
-						// x_{s,c} + x_{s',c'} \leq 1
-						aMIP.addLe(aMIP.sum(sourceVariable,targetVariable), 1);
-					}
-				}
+                {
+                    //Add CO-constraints.
+                    for (Station targetStation : aConstraintManager.getCOInterferingStations(sourceStation, sourceChannel)) {
+                        if (aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(sourceChannel)) {
+                            final IloIntVar targetVariable = aVariables.get(targetStation).get(sourceChannel);
+                            // x_{s,c} + x_{s',c'} \leq 1
+                            aMIP.addLe(aMIP.sum(sourceVariable, targetVariable), 1);
+                        }
+                    }
+                }
+                {
+                    //Add ADJ-constraints
+                    final Integer targetChannel = sourceChannel + 1;
+                    for (Station targetStation : aConstraintManager.getADJplusOneInterferingStations(sourceStation, sourceChannel)) {
+                        if (aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(targetChannel)) {
+                            final IloIntVar targetVariable = aVariables.get(targetStation).get(targetChannel);
+                            // x_{s,c} + x_{s',c'} \leq 1
+                            aMIP.addLe(aMIP.sum(sourceVariable, targetVariable), 1);
+                        }
+                    }
+                }
+                {
+                    final Integer targetChannel = sourceChannel + 2;
+                    for (Station targetStation : aConstraintManager.getADJplusTwoInterferingStations(sourceStation, sourceChannel)) {
+                        if (aVariables.containsKey(targetStation) && aVariables.get(targetStation).containsKey(targetChannel)) {
+                            final IloIntVar targetVariable = aVariables.get(targetStation).get(targetChannel);
+                            // x_{s,c} + x_{s',c'} \leq 1
+                            aMIP.addLe(aMIP.sum(sourceVariable, targetVariable), 1);
+                        }
+                    }
+                }
 			}
 			
 		}

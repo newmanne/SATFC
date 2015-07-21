@@ -51,11 +51,19 @@ public abstract class AConstraintManager implements IConstraintManager {
      * on channel+1 concurrently with subject station.
      */
     protected final Map<Station, Map<Integer, Set<Station>>> fADJp1Constraints;
+
+    /*
+     * Map taking subject station to map taking channel to interfering station that cannot be
+     * on channel+2 concurrently with subject station.
+     */
+    protected final Map<Station, Map<Integer, Set<Station>>> fADJp2Constraints;
+
     protected String fHash;
 
     protected AConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
         fCOConstraints = new HashMap<>();
         fADJp1Constraints = new HashMap<>();
+        fADJp2Constraints = new HashMap<>();
     }
 
     protected enum ConstraintKey {
@@ -85,7 +93,7 @@ public abstract class AConstraintManager implements IConstraintManager {
     }
 
     @Override
-    public Set<Station> getADJplusInterferingStations(
+    public Set<Station> getADJplusOneInterferingStations(
             Station aStation,
             int aChannel) {
         Map<Integer, Set<Station>> subjectStationConstraints = fADJp1Constraints.get(aStation);
@@ -103,13 +111,29 @@ public abstract class AConstraintManager implements IConstraintManager {
     }
 
     @Override
+    public Set<Station> getADJplusTwoInterferingStations(Station aStation, int aChannel) {
+        Map<Integer, Set<Station>> subjectStationConstraints = fADJp2Constraints.get(aStation);
+        //No constraint for this station.
+        if (subjectStationConstraints == null) {
+            return Collections.emptySet();
+        }
+
+        Set<Station> interferingStations = subjectStationConstraints.get(aChannel);
+        //No constraint for this station on this channel.
+        if (interferingStations == null) {
+            return Collections.emptySet();
+        }
+        return Collections.unmodifiableSet(interferingStations);
+    }
+
+    @Override
     public boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
 
-        Set<Station> allStations = new HashSet<Station>();
+        final Set<Station> allStations = new HashSet<Station>();
 
         for(Integer channel : aAssignment.keySet())
         {
-            Set<Station> channelStations = aAssignment.get(channel);
+            final Set<Station> channelStations = aAssignment.get(channel);
 
             for(Station station1 : channelStations)
             {
@@ -120,32 +144,47 @@ public abstract class AConstraintManager implements IConstraintManager {
                     return false;
                 }
 
-                //Make sure current station does not CO interfere with other stations.
-                Collection<Station> coInterferingStations = getCOInterferingStations(station1, channel);
-                for(Station station2 : channelStations)
                 {
-                    if(coInterferingStations.contains(station2))
-                    {
-                        log.debug("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
-                        return false;
-                    }
-                }
-
-                //Make sure current station does not ADJ+1 interfere with other stations.
-                Collection<Station> adjInterferingStations = getADJplusInterferingStations(station1, channel);
-                int channelp1 = channel+1;
-                Set<Station> channelp1Stations = aAssignment.get(channelp1);
-                if(channelp1Stations!=null)
-                {
-                    for(Station station2 : channelp1Stations)
-                    {
-                        if(adjInterferingStations.contains(station2))
-                        {
-                            log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
+                    //Make sure current station does not CO interfere with other stations.
+                    final Collection<Station> coInterferingStations = getCOInterferingStations(station1, channel);
+                    for (Station station2 : channelStations) {
+                        if (coInterferingStations.contains(station2)) {
+                            log.debug("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
                             return false;
                         }
                     }
                 }
+
+                {
+                    //Make sure current station does not ADJ+1 interfere with other stations.
+                    final Collection<Station> adjInterferingStations = getADJplusOneInterferingStations(station1, channel);
+                    int channelp1 = channel + 1;
+                    final Set<Station> channelp1Stations = aAssignment.get(channelp1);
+                    if (channelp1Stations != null) {
+                        for (Station station2 : channelp1Stations) {
+                            if (adjInterferingStations.contains(station2)) {
+                                log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                {
+                    //Make sure current station does not ADJ+2 interfere with other stations.
+                    final Collection<Station> adjPlusTwoInterferingStations = getADJplusTwoInterferingStations(station1, channel);
+                    int channelp2 = channel + 2;
+                    final Set<Station> channelp2Stations = aAssignment.get(channelp2);
+                    if (channelp2Stations != null) {
+                        for (Station station2 : channelp2Stations) {
+                            if (adjPlusTwoInterferingStations.contains(station2)) {
+                                log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+2 interference.", station1, channel, station2, channelp2);
+                                return false;
+                            }
+                        }
+                    }
+                }
+
             }
             allStations.addAll(channelStations);
         }

@@ -62,46 +62,61 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
             for(Integer domainChannel : domain)
             {
-                for(Station coNeighbour : fConstraintManager.getCOInterferingStations(station,domainChannel))
                 {
-                    if(domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel))
-                    {
-                        Set<Integer> stationBadChannels = badChannels.get(station);
-                        if(stationBadChannels == null)
-                        {
-                            stationBadChannels = new HashSet<Integer>();
-                        }
-                        stationBadChannels.add(domainChannel);
-                        badChannels.put(station, stationBadChannels);
+                    for (Station coNeighbour : fConstraintManager.getCOInterferingStations(station, domainChannel)) {
+                        if (domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel)) {
+                            Set<Integer> stationBadChannels = badChannels.get(station);
+                            if (stationBadChannels == null) {
+                                stationBadChannels = new HashSet<Integer>();
+                            }
+                            stationBadChannels.add(domainChannel);
+                            badChannels.put(station, stationBadChannels);
 
-                        Set<Integer> coneighbourBadChannels = badChannels.get(coNeighbour);
-                        if(coneighbourBadChannels == null)
-                        {
-                            coneighbourBadChannels = new HashSet<Integer>();
+                            Set<Integer> coneighbourBadChannels = badChannels.get(coNeighbour);
+                            if (coneighbourBadChannels == null) {
+                                coneighbourBadChannels = new HashSet<Integer>();
+                            }
+                            coneighbourBadChannels.add(domainChannel);
+                            badChannels.put(coNeighbour, coneighbourBadChannels);
                         }
-                        coneighbourBadChannels.add(domainChannel);
-                        badChannels.put(coNeighbour, coneighbourBadChannels);
                     }
                 }
-                for(Station adjNeighbour : fConstraintManager.getADJplusInterferingStations(station, domainChannel))
                 {
-                    if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
-                    {
-                        Set<Integer> stationBadChannels = badChannels.get(station);
-                        if(stationBadChannels == null)
-                        {
-                            stationBadChannels = new HashSet<Integer>();
-                        }
-                        stationBadChannels.add(domainChannel);
-                        badChannels.put(station, stationBadChannels);
+                    for (Station adjNeighbour : fConstraintManager.getADJplusOneInterferingStations(station, domainChannel)) {
+                        if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel + 1)) {
+                            Set<Integer> stationBadChannels = badChannels.get(station);
+                            if (stationBadChannels == null) {
+                                stationBadChannels = new HashSet<Integer>();
+                            }
+                            stationBadChannels.add(domainChannel);
+                            badChannels.put(station, stationBadChannels);
 
-                        Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
-                        if(adjneighbourBadChannels == null)
-                        {
-                            adjneighbourBadChannels = new HashSet<Integer>();
+                            Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
+                            if (adjneighbourBadChannels == null) {
+                                adjneighbourBadChannels = new HashSet<Integer>();
+                            }
+                            adjneighbourBadChannels.add(domainChannel + 1);
+                            badChannels.put(adjNeighbour, adjneighbourBadChannels);
                         }
-                        adjneighbourBadChannels.add(domainChannel+1);
-                        badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                    }
+                }
+                {
+                    for (Station adjNeighbour : fConstraintManager.getADJplusTwoInterferingStations(station, domainChannel)) {
+                        if (domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel + 2)) {
+                            Set<Integer> stationBadChannels = badChannels.get(station);
+                            if (stationBadChannels == null) {
+                                stationBadChannels = new HashSet<Integer>();
+                            }
+                            stationBadChannels.add(domainChannel);
+                            badChannels.put(station, stationBadChannels);
+
+                            Set<Integer> adjneighbourBadChannels = badChannels.get(adjNeighbour);
+                            if (adjneighbourBadChannels == null) {
+                                adjneighbourBadChannels = new HashSet<Integer>();
+                            }
+                            adjneighbourBadChannels.add(domainChannel + 2);
+                            badChannels.put(adjNeighbour, adjneighbourBadChannels);
+                        }
                     }
                 }
             }

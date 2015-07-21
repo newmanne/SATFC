@@ -86,7 +86,7 @@ public class GraphBackedConstraintManager implements IConstraintManager {
      * 	 would interfere with it.
      */
     @Override
-    public Set<Station> getADJplusInterferingStations(Station aStation, int aChannel) {
+    public Set<Station> getADJplusOneInterferingStations(Station aStation, int aChannel) {
     	if (this.adjInterferingStationGraph.containsVertex(aStation)) {
     		return this.adjInterferingStationNeighborIndex.neighborsOf(aStation);
     	}
