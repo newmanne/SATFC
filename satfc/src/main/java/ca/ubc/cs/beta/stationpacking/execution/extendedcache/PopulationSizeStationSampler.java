@@ -1,6 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
-import java.util.BitSet;
+import java.util.Set;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * Created by emily404 on 6/4/15.
@@ -13,8 +15,9 @@ public class PopulationSizeStationSampler implements IStationSampler {
      * @param bitSet a BitSet representing stations that are present in a problem
      * @return stationID of the station to be added
      */
-    @Override
-    public Integer sample(BitSet bitSet) {
-        return 0;
-    }
+	@Override
+	public Station sample(Set<Station> allStations, Set<Station> stationsInProblem) {
+		return null;
+	}
+
 }

@@ -1,7 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.FileNotFoundException;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,8 +17,7 @@ import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Transaction;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IProblemSampler;
@@ -48,6 +46,7 @@ public class ExtendedCacheProblemProducer {
     /**
      * This method takes an existing SAT cache entry and generate a new problem by adding a new station
      * The problem identifier is pushed into jobQueue and the problem json is stored at problemHash
+     *
      * @throws FileNotFoundException
      */
     public static void main(String[] args) throws FileNotFoundException, InterruptedException {
@@ -67,33 +66,41 @@ public class ExtendedCacheProblemProducer {
 
         populatingKeyQueue(parameters, jedis);
 
-        while(true){
-            if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)){
+        while (true) {
+            if (queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)) {
                 log.info("Queue size low, sampling more problems");
                 jedis.lpush(parameters.fRedisParameters.fRedisQueue, problemSampler.sample());
-                if(queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)) {
+                if (queueSizeLow(jedis, parameters.fRedisParameters.fRedisQueue, parameters.fQueueSizeThreshold)) {
                     Thread.sleep(parameters.fSleepInterval);
                 }
             } else {
                 String key;
-                while((key = jedis.lpop(parameters.fRedisParameters.fRedisQueue)) != null){
+                while ((key = jedis.lpop(parameters.fRedisParameters.fRedisQueue)) != null) {
 
-                    final ContainmentCacheSATEntry ccEntry = getContainmentCacheSATEntry(jedis, key);
+                    final SATCacheEntry ccEntry = getContainmentCacheSATEntry(jedis, key);
 
                     //initial stations domains
-                    Set<Integer> stationIDs = ccEntry.getElements().stream().map(station -> station.getID()).collect(Collectors.toSet());
-                    Map<Integer, Set<Integer>> domains = lookUpDomains(parameters.fClearingTarget, stationManager, ccEntry.getElements());
+                    Set<Station> stations = ccEntry.getAssignment().values().stream().reduce(new HashSet<>(), (a, b) -> Sets.union(a, b));
+                    Set<Integer> stationIDs = stations.stream().map(Station::getID).collect(Collectors.toSet());
+                    Map<Integer, Set<Integer>> domains = lookUpDomains(parameters.fClearingTarget, stationManager, stationIDs);
 
                     //add a new station and its domain
-                    Integer stationID = stationSampler.sample((BitSet)ccEntry.getBitSet().clone());
+                    Integer stationID = stationSampler.sample(stationManager.getStations(), stations).getID();
                     stationIDs.add(stationID);
-                    domains.put(stationID, lookUpOneDomain(parameters.fClearingTarget, stationManager, new Station(stationID)));
+                    domains.put(stationID, lookUpOneDomain(parameters.fClearingTarget, stationManager, stationID));
                     Set<Integer> channelsToPackOn = domains.values().stream().reduce(new HashSet<>(), Sets::union);
 
                     //build problem instance
-                    String instanceName = getHashString(domains.toString()+ccEntry.toString());
-                    SATFCFacadeProblem problem =
-                            new SATFCFacadeProblem(stationIDs, channelsToPackOn, domains, ccEntry.getAssignment(), parameters.fInterferencesFolder, instanceName);
+                    String instanceName = getHashString(domains.toString() + ccEntry.toString());
+                    final Map<Integer, Integer> assignment = new HashMap<>();
+                    ccEntry.getAssignment().entrySet().stream()
+                            .forEach(entry -> {
+                                        entry.getValue().forEach(station -> {
+                                            assignment.put(entry.getKey(), station.getID());
+                                        });
+                                    }
+                            );
+                    SATFCFacadeProblem problem = new SATFCFacadeProblem(stationIDs, channelsToPackOn, domains, assignment, parameters.fInterferencesFolder, instanceName);
 
                     enqueueProblem(parameters.fRedisParameters.fRedisQueue, jedis, instanceName, problem);
 
@@ -104,24 +111,23 @@ public class ExtendedCacheProblemProducer {
 
     /**
      * convert entry string to containment cache entry object
+     *
      * @return a ContainmentCacheSATEntry with key
      */
-    private static ContainmentCacheSATEntry getContainmentCacheSATEntry(Jedis jedis, String key) {
+    private static SATCacheEntry getContainmentCacheSATEntry(Jedis jedis, String key) {
         String entry = jedis.get(key);
-        ICacher.SATCacheEntry cacheEntry = JSONUtils.toObject(entry, ICacher.SATCacheEntry.class);
-        return new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key);
+        return JSONUtils.toObject(entry, SATCacheEntry.class);
     }
 
-    private static Map<Integer, Set<Integer>> lookUpDomains(int clearingTarget, IStationManager stationManager, Set<Station> stations) {
+    private static Map<Integer, Set<Integer>> lookUpDomains(int clearingTarget, IStationManager stationManager, Set<Integer> stationIDS) {
         Map<Integer, Set<Integer>> domains = new HashMap<>();
-        StreamSupport.stream(stations.spliterator(), false)
-                .forEach(station -> domains.put(station.getID(), lookUpOneDomain(clearingTarget, stationManager, station)));
+        StreamSupport.stream(stationIDS.spliterator(), false)
+                .forEach(id -> domains.put(id, lookUpOneDomain(clearingTarget, stationManager, id)));
         return domains;
     }
 
-    private static Set<Integer> lookUpOneDomain(int clearingTarget, IStationManager stationManager, Station station){
-        // TODO: filter out the special channel 37?
-        return StreamSupport.stream(stationManager.getDomain(station).spliterator(), false)
+    private static Set<Integer> lookUpOneDomain(int clearingTarget, IStationManager stationManager, Integer station) {
+        return StreamSupport.stream(stationManager.getDomain(stationManager.getStationfromID(station)).spliterator(), false)
                 .filter(channel -> channel <= clearingTarget)
                 .collect(Collectors.toSet());
     }
@@ -142,7 +148,7 @@ public class ExtendedCacheProblemProducer {
      */
     private static void cleanUpAllQueues(Jedis jedis, String fRedisQueue) {
         log.info("Cleaning up related queues");
-        if(!fRedisQueue.isEmpty()){
+        if (!fRedisQueue.isEmpty()) {
             Set<String> queueKeys = jedis.keys("*" + fRedisQueue + "*");
             queueKeys.forEach(key -> jedis.del(key));
         } else {
@@ -157,14 +163,14 @@ public class ExtendedCacheProblemProducer {
         ScanParams params = new ScanParams();
         params.match("*:SAT*");
         ScanResult<String> scanResult = jedis.scan(startAndEndCursor, params);
-        while(!scanResult.getStringCursor().equals(startAndEndCursor)){
+        while (!scanResult.getStringCursor().equals(startAndEndCursor)) {
             scanResult.getResult().forEach(key -> jedis.lpush(parameters.fRedisParameters.fRedisQueue, key));
             scanResult = jedis.scan(scanResult.getStringCursor(), params);
         }
         log.info("Finished populating keyQueue");
     }
 
-    private static boolean queueSizeLow(Jedis jedis, String queue, int threshold){
+    private static boolean queueSizeLow(Jedis jedis, String queue, int threshold) {
         log.info("Checking queue size");
         return jedis.llen(queue) < threshold;
     }

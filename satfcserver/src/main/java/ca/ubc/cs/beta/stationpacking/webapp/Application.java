@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
+import java.util.concurrent.TimeUnit;
+
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.SpringApplication;
@@ -43,8 +45,6 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by newmanne on 23/03/15.

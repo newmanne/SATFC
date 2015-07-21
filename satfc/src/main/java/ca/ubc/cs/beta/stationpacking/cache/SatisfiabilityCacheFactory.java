@@ -22,7 +22,6 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.Collection;
-import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -30,7 +29,9 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-import containmentcache.IContainmentCache;
+
+import com.google.common.collect.ImmutableBiMap;
+
 import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.simple.SimpleBitSetCache;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
@@ -45,12 +46,16 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
     private static final int UNSAT_BUFFER_SIZE = 3;
 
     @Override
-    public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries, Set<Station> universe) {
-        final IContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), SAT_BUFFER_SIZE);
-        SATCache.addAll(SATEntries);
-        final IContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(universe), UNSAT_BUFFER_SIZE);
-        UNSATCache.addAll(UNSATEntries);
-        return new SatisfiabilityCache((ILockableContainmentCache<Station, ContainmentCacheSATEntry>)SATCache, (ILockableContainmentCache<Station, ContainmentCacheUNSATEntry>)UNSATCache);
-    }
+    public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries, ImmutableBiMap<Station, Integer> permutation) {
+        // 1) Create other permutations, if any
 
+        // 2) Create the actual caches and add all the entries
+        final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(permutation), SAT_BUFFER_SIZE);
+        log.info("Adding " + SATEntries.size() + " entries to the SAT cache");
+        SATCache.addAll(SATEntries);
+        final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(new SimpleBitSetCache<>(permutation), UNSAT_BUFFER_SIZE);
+        log.info("Adding " + UNSATEntries.size() + " entries to the UNSAT cache");
+        UNSATCache.addAll(UNSATEntries);
+        return new SatisfiabilityCache(permutation, SATCache, UNSATCache);
+    }
 }
