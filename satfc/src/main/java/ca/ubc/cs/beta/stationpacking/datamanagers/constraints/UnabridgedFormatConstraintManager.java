@@ -97,7 +97,7 @@ public class UnabridgedFormatConstraintManager extends AMapBasedConstraintManage
                 }
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Could not read interference constraints filename.");
+            throw new IllegalArgumentException("Could not read interference constraints filename", e);
         }
     }
 
