@@ -116,6 +116,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      * Domain a has less stations than domain b because of previous method call getSubsets();
      * If each station domain in domain a has same or more channels than the matching station in domain b,
      * then a is superset of b
+     *
      * @param a superset domain
      * @param b subset domain
      * @return true if a's domain is a superset of b's domain
@@ -129,15 +130,16 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
 
     /**
      * removes redundant SAT entries from this SATCache
+     *
      * @return list of cache entries to be removed
      */
     @Override
-    public List<ContainmentCacheSATEntry> filterSAT(){
+    public List<ContainmentCacheSATEntry> filterSAT() {
         List<ContainmentCacheSATEntry> prunableEntries = Collections.synchronizedList(new ArrayList<>());
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
         SATCache.getReadLock().lock();
-        try{
+        try {
             StreamSupport.stream(satEntries.spliterator(), true)
                     .forEach(cacheEntry -> {
                         Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
@@ -162,10 +164,11 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
 
     /**
      * removes redundant UNSAT entries from this UNSATCache
+     *
      * @return list of cache entries to be removed
      */
     @Override
-    public List<ContainmentCacheUNSATEntry> filterUNSAT(){
+    public List<ContainmentCacheUNSATEntry> filterUNSAT() {
         List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
