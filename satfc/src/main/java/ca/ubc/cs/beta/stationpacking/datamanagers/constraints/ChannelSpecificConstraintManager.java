@@ -88,7 +88,7 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                         final String key = line[0].trim();
                         final ConstraintKey constraintKey = ConstraintKey.fromString(key);
                         if (constraintKey.equals(ConstraintKey.ADJm1) || constraintKey.equals(ConstraintKey.ADJm2)) {
-                            throw new IllegalArgumentException("ADJ-1 and ADJ-2 constraints are not part of the compact format!");
+                            throw new IllegalArgumentException("ADJ-1 and ADJ-2 constraints are not part of the compact format, but were seen in line:" + line);
                         }
 
                         final int lowChannel = Integer.valueOf(line[1].trim());
@@ -112,7 +112,7 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                             }
                         }
                     } catch (Exception e) {
-                        log.error("Could not read constraint from line:\n{}", StringUtils.join(line, ','));
+                        log.debug("Could not read constraint from line:\n{}", StringUtils.join(line, ','));
                         throw e;
                     }
                 }

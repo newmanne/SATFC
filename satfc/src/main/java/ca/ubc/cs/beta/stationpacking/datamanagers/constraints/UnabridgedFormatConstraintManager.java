@@ -65,15 +65,15 @@ public class UnabridgedFormatConstraintManager extends AMapBasedConstraintManage
                         final int targetChannel = Integer.valueOf(line[2].trim());
 
                         if (constraintKey.equals(ConstraintKey.CO) && subjectChannel != targetChannel) {
-                            throw new IllegalArgumentException("Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is different than target channel (" + targetChannel + ").");
+                            throw new IllegalArgumentException(line + System.lineSeparator() + "Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is different than target channel (" + targetChannel + ").");
                         } else if (constraintKey.equals(ConstraintKey.ADJp1) && subjectChannel != targetChannel - 1) {
-                            throw new IllegalArgumentException("Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not one less than target channel (" + targetChannel + ").");
+                            throw new IllegalArgumentException(line + System.lineSeparator() + "Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not one less than target channel (" + targetChannel + ").");
                         } else if (constraintKey.equals(ConstraintKey.ADJm1) && subjectChannel != targetChannel + 1) {
-                            throw new IllegalArgumentException("Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not one more than target channel (" + targetChannel + ").");
+                            throw new IllegalArgumentException(line + System.lineSeparator() + "Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not one more than target channel (" + targetChannel + ").");
                         } else if (constraintKey.equals(ConstraintKey.ADJp2) && subjectChannel != targetChannel - 2) {
-                            throw new IllegalArgumentException("Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not two less than target channel (" + targetChannel + ").");
+                            throw new IllegalArgumentException(line + System.lineSeparator() + "Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not two less than target channel (" + targetChannel + ").");
                         } else if (constraintKey.equals(ConstraintKey.ADJm2) && subjectChannel != targetChannel + 2) {
-                            throw new IllegalArgumentException("Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not two more than target channel (" + targetChannel + ").");
+                            throw new IllegalArgumentException(line + System.lineSeparator() + "Constraint key is " + constraintKey + " but subject channel (" + subjectChannel + ") is not two more than target channel (" + targetChannel + ").");
                         }
 
                         final int subjectStationID = Integer.valueOf(line[3].trim());
@@ -89,8 +89,7 @@ public class UnabridgedFormatConstraintManager extends AMapBasedConstraintManage
                             addConstraint(subjectStation, targetStation, subjectChannel, constraintKey);
                         }
                     } catch (Exception e) {
-                        log.debug("Could not parse unabridged format constraint line:");
-                        log.debug(StringUtils.join(line, ","));
+                        log.debug("Could not parse unabridged format constraint line:" + System.lineSeparator() + StringUtils.join(line, ","));
                         throw e;
                     }
 

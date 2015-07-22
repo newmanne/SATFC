@@ -102,7 +102,6 @@ public abstract class AConstraintManager implements IConstraintManager {
 
     @Override
     public Iterable<Constraint> getAllRelevantConstraints(Map<Station, Set<Integer>> domains) {
-        // TODO: it would be better if this actually iterated, rather than storing the whole list up front
         final Set<Station> stations = domains.keySet();
         final Collection<Constraint> constraintCollection = new ArrayList<>();
         for (Station sourceStation : stations) {
