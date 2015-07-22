@@ -66,40 +66,12 @@ public class ConstraintGrouper implements IComponentGrouper{
 	{
 		final Set<Station> aStations = aDomains.keySet();
 		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = new SimpleGraph<Station,DefaultEdge>(DefaultEdge.class);
-
-
         for(Station aStation : aStations){
             aConstraintGraph.addVertex(aStation);
         }
-        for(Station aStation1 : aStations){
-			for(Integer channel : aDomains.get(aStation1))
-			{
-                {
-                    for (Station aStation2 : aConstraintManager.getCOInterferingStations(aStation1, channel)) {
-                        if (aStations.contains(aStation2) && aDomains.get(aStation2).contains(channel)) {
-                            aConstraintGraph.addEdge(aStation1, aStation2);
-                        }
-                    }
-                }
-                {
-                    int channelp1 = channel + 1;
-                    for (Station aStation2 : aConstraintManager.getADJplusOneInterferingStations(aStation1, channel)) {
-                        if (aStations.contains(aStation2) && aDomains.get(aStation2).contains(channelp1)) {
-                            aConstraintGraph.addEdge(aStation1, aStation2);
-                        }
-                    }
-                }
-                {
-                    int channelp2 = channel + 2;
-                    for (Station aStation2 : aConstraintManager.getADJplusTwoInterferingStations(aStation1, channel)) {
-                        if (aStations.contains(aStation2) && aDomains.get(aStation2).contains(channelp2)) {
-                            aConstraintGraph.addEdge(aStation1, aStation2);
-                        }
-                    }
-                }
-			}
-		}
-		
+        aConstraintManager.getAllRelevantConstraints(aDomains).forEach(constraint -> {
+            aConstraintGraph.addEdge(constraint.getSource(), constraint.getTarget());
+        });
 		return aConstraintGraph;
 	}
 

@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 
@@ -98,6 +98,33 @@ public abstract class AConstraintManager implements IConstraintManager {
             allStations.addAll(channelStations);
         }
         return true;
+    }
+
+    @Override
+    public Iterable<Constraint> getAllRelevantConstraints(Map<Station, Set<Integer>> domains) {
+        // TODO: it would be better if this actually iterated, rather than storing the whole list up front
+        final Set<Station> stations = domains.keySet();
+        final Collection<Constraint> constraintCollection = new ArrayList<>();
+        for (Station sourceStation : stations) {
+            for (Integer sourceChannel : domains.get(sourceStation)) {
+                for (Station targetStation : getCOInterferingStations(sourceStation, sourceChannel)) {
+                    if (stations.contains(targetStation) && domains.get(targetStation).contains(sourceChannel)) {
+                        constraintCollection.add(new Constraint(sourceStation, targetStation, sourceChannel, sourceChannel));
+                    }
+                }
+                for (Station targetStation : getADJplusOneInterferingStations(sourceStation, sourceChannel)) {
+                    if (stations.contains(targetStation) && domains.get(targetStation).contains(sourceChannel + 1)) {
+                        constraintCollection.add(new Constraint(sourceStation, targetStation, sourceChannel, sourceChannel + 1));
+                    }
+                }
+                for (Station targetStation : getADJplusTwoInterferingStations(sourceStation, sourceChannel)) {
+                    if (stations.contains(targetStation) && domains.get(targetStation).contains(sourceChannel + 2)) {
+                        constraintCollection.add(new Constraint(sourceStation, targetStation, sourceChannel, sourceChannel + 2));
+                    }
+                }
+            }
+        }
+        return constraintCollection;
     }
 
 }

@@ -15,21 +15,18 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 */
 public class TestConstraintManager extends AMapBasedConstraintManager {
 
-    private final List<Constraint> constraints;
-
-	public TestConstraintManager(List<Constraint> constraints) throws FileNotFoundException {
+	public TestConstraintManager(List<TestConstraint> constraints) throws FileNotFoundException {
         super(null, "");
-		this.constraints = constraints;
-    }
-
-	@Override
-	protected void loadConstraints(IStationManager stationManager, String fileName) throws FileNotFoundException {
         constraints.stream().forEach(c -> {
             final Map<Station, Map<Integer, Set<Station>>> map = c.getKey().equals(ConstraintKey.CO) ? fCOConstraints : c.getKey().equals(ConstraintKey.ADJp1) ? fADJp1Constraints : fADJp2Constraints;
             map.putIfAbsent(c.getReference(), new HashMap<>());
             map.get(c.getReference()).putIfAbsent(c.getChannel(), new HashSet<>());
             map.get(c.getReference()).get(c.getChannel()).addAll(c.getInterfering());
         });
+    }
+
+	@Override
+	protected void loadConstraints(IStationManager stationManager, String fileName) throws FileNotFoundException {
 	}
 
 }

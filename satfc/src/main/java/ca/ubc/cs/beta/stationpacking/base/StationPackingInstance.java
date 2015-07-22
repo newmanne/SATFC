@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.*;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -42,10 +43,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Immutable container class representing a station packing instance.
@@ -184,7 +181,7 @@ public class StationPackingInstance {
 	 * An instance's stations is an unmodifiable set backed up by a hash set.
 	 * @return - get the problem instance's stations.
 	 */
-	public Set<Station> getStations(){
+	public ImmutableSet<Station> getStations(){
 		return domains.keySet();
 	}
 	

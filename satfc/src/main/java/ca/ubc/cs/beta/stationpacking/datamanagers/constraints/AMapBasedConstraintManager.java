@@ -153,7 +153,7 @@ public abstract class AMapBasedConstraintManager extends AConstraintManager {
             });
         });
 
-        HashFunction hf = Hashing.murmur3_32();
+        final HashFunction hf = Hashing.murmur3_32();
         return hf.newHasher()
                 .putObject(fCOConstraints, funnel)
                 .putObject(fADJp1Constraints, funnel)

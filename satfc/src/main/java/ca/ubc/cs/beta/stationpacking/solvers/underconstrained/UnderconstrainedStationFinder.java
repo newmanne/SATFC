@@ -59,44 +59,12 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
         log.debug("Finding underconstrained stations in the instance...");
 
         final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
-        for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
-        {
-            final Station station = domainEntry.getKey();
-            final Set<Integer> domain = domainEntry.getValue();
+        fConstraintManager.getAllRelevantConstraints(domains).forEach(constraint -> {
+            badChannels.put(constraint.getSource(), constraint.getSourceChannel());
+            badChannels.put(constraint.getTarget(), constraint.getTargetChannel());
+        });
 
-            for(Integer domainChannel : domain)
-            {
-                {
-                    for (Station coNeighbour : fConstraintManager.getCOInterferingStations(station, domainChannel)) {
-                        if(domains.keySet().contains(coNeighbour) && domains.get(coNeighbour).contains(domainChannel))
-                        {
-                            badChannels.put(station, domainChannel);
-                            badChannels.put(coNeighbour, domainChannel);
-                        }
-                    }
-                }
-                {
-                    for (Station adjNeighbour : fConstraintManager.getADJplusOneInterferingStations(station, domainChannel)) {
-                        if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+1))
-                        {
-                            badChannels.put(station, domainChannel);
-                            badChannels.put(adjNeighbour, domainChannel + 1);
-                        }
-                    }
-                }
-                {
-                    for (Station adjNeighbour : fConstraintManager.getADJplusTwoInterferingStations(station, domainChannel)) {
-                        if(domains.keySet().contains(adjNeighbour) && domains.get(adjNeighbour).contains(domainChannel+2))
-                        {
-                            badChannels.put(station, domainChannel);
-                            badChannels.put(adjNeighbour, domainChannel + 2);
-                        }
-                    }
-                }
-            }
-        }
-
-        NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
 
         for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
         {
@@ -131,7 +99,6 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
         }
 
         return underconstrainedStations;
-
     }
 
 }

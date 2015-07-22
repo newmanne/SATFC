@@ -9,7 +9,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 * Created by newmanne on 08/07/15.
 */
 @Data
-public class Constraint {
+public class TestConstraint {
     private final ConstraintKey key;
     private final int channel;
     private final Station reference;

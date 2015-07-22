@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraintManager;
 
@@ -37,9 +37,9 @@ public class AC3EnforcerTest {
                         s3, ImmutableSet.of(1, 2, 3)
                 )
         );
-        List<Constraint> constraints = new ArrayList<>();
-        constraints.add(new Constraint(CO, 1, s1, ImmutableSet.of(s2, s3))); // CO,1,1,s1,s2,s3
-        constraints.add(new Constraint(ADJp1, 1, s1, ImmutableSet.of(s2, s3))); // ADJ+1,1,2,s1,s2,s3
+        List<TestConstraint> constraints = new ArrayList<>();
+        constraints.add(new TestConstraint(CO, 1, s1, ImmutableSet.of(s2, s3))); // CO,1,1,s1,s2,s3
+        constraints.add(new TestConstraint(ADJp1, 1, s1, ImmutableSet.of(s2, s3))); // ADJ+1,1,2,s1,s2,s3
         IConstraintManager constraintManager = new TestConstraintManager(constraints);
         final AC3Enforcer ac3 = new AC3Enforcer(constraintManager);
         final AC3Output ac3Output = ac3.AC3(instance);
@@ -58,9 +58,9 @@ public class AC3EnforcerTest {
                         s2, ImmutableSet.of(1, 2)
                 )
         );
-        List<Constraint> constraints = new ArrayList<>();
-        constraints.add(new Constraint(CO, 1, s1, ImmutableSet.of(s2)));
-        constraints.add(new Constraint(ADJp1, 1, s1, ImmutableSet.of(s2)));
+        List<TestConstraint> constraints = new ArrayList<>();
+        constraints.add(new TestConstraint(CO, 1, s1, ImmutableSet.of(s2)));
+        constraints.add(new TestConstraint(ADJp1, 1, s1, ImmutableSet.of(s2)));
         IConstraintManager constraintManager = new TestConstraintManager(constraints);
         final AC3Enforcer ac3 = new AC3Enforcer(constraintManager);
         final AC3Output ac3Output = ac3.AC3(instance);

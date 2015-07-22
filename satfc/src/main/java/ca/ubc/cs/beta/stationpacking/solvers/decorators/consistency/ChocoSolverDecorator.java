@@ -61,28 +61,13 @@ public class ChocoSolverDecorator extends ASolverDecorator {
             final IntVar intVar = VariableFactory.enumerated(Integer.toString(station.getID()), domain, solver);
             stationToVar.put(station, intVar);
         });
-        // TODO: you can greatly reduce this by making sure the interfering channel is actually in the domain
         Map<Pair<Station, Station>, Tuples> pairToTuples = new HashMap<>();
-        aInstance.getStations().forEach(station -> {
-            aInstance.getDomains().get(station).forEach(channel -> {
-                // Find all co constraints
-                constraintManager.getCOInterferingStations(station, channel).stream().filter(interferingStation -> aInstance.getDomains().containsKey(interferingStation)).forEach(interferingStation -> {
-                    Pair<Station, Station> pair = Pair.of(station, interferingStation);
-                    pairToTuples.putIfAbsent(pair, new Tuples(false));
-                    pairToTuples.get(pair).add(channel, channel);
-                });
-                // Do the ADJ constriants
-                constraintManager.getADJplusOneInterferingStations(station, channel).stream().filter(interferingStation -> aInstance.getDomains().containsKey(interferingStation)).forEach(interferingStation -> {
-                    Pair<Station, Station> pair = Pair.of(station, interferingStation);
-                    pairToTuples.putIfAbsent(pair, new Tuples(false));
-                    pairToTuples.get(pair).add(channel, channel + 1);
-                });
-                constraintManager.getADJplusTwoInterferingStations(station, channel).stream().filter(interferingStation -> aInstance.getDomains().containsKey(interferingStation)).forEach(interferingStation -> {
-                    Pair<Station, Station> pair = Pair.of(station, interferingStation);
-                    pairToTuples.putIfAbsent(pair, new Tuples(false));
-                    pairToTuples.get(pair).add(channel, channel + 2);
-                });
-            });
+        constraintManager.getAllRelevantConstraints(aInstance.getDomains()).forEach(constraint -> {
+            // TODO: you need to do something like always put the lower station ID first, this pair thing is likely incorrect
+            Pair<Station, Station> pair = Pair.of(constraint.getSource(), constraint.getTarget());
+            pairToTuples.putIfAbsent(pair, new Tuples(false));
+            pairToTuples.get(pair).add(constraint.getSourceChannel(), constraint.getTargetChannel());
+
         });
         pairToTuples.entrySet().forEach(entry -> {
             IntVar v1 = stationToVar.get(entry.getKey().getLeft());
