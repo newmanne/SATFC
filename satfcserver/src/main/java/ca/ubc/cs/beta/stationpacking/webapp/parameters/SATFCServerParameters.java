@@ -37,7 +37,7 @@ public class SATFCServerParameters extends AbstractOptions {
 
     @Parameter(names = "--cache.permutations", description = "The number of permutations for the containment cache to use. Higher numbers yield better performance with large caches, but are more memory expensive")
     @Getter
-    private int numPermutations = 3;
+    private int numPermutations = 1;
 
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
