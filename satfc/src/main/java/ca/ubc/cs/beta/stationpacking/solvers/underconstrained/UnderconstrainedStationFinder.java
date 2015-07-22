@@ -93,7 +93,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             final int interferingStationMaxSpread = numNeighbours * 5;
 
             if (interferingStationMaxSpread < domain.size()) {
-                log.info("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numNeighbours,interferingStationMaxSpread);
+                log.trace("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numNeighbours,interferingStationMaxSpread);
                 underconstrainedStations.add(station);
             }
         }
