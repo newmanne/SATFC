@@ -115,14 +115,31 @@ public abstract class ConstraintManagerTest {
     public void testGetRelevantConstraints() throws Exception {
         IConstraintManager cm = getConstraintManager();
         IStationManager dm = getDomainManager();
-        final ImmutableMap<Station, Set<Integer>> build = ImmutableMap.<Station, Set<Integer>>builder()
+        final ImmutableMap<Station, Set<Integer>> oneAndTwoAdj = ImmutableMap.<Station, Set<Integer>>builder()
                 .put(s(dm, 1), Sets.newHashSet(7, 8))
                 .put(s(dm, 2), Sets.newHashSet(7, 8))
                 .build();
-        final ArrayList<Constraint> constraints = Lists.newArrayList(cm.getAllRelevantConstraints(build));
+        final ArrayList<Constraint> constraints = Lists.newArrayList(cm.getAllRelevantConstraints(oneAndTwoAdj));
+        assertEquals(3, constraints.size());
         assertTrue(constraints.contains(new Constraint(s(dm, 1), s(dm, 2), 7, 7)));
         assertTrue(constraints.contains(new Constraint(s(dm, 1), s(dm, 2), 8, 8)));
         assertTrue(constraints.contains(new Constraint(s(dm, 1), s(dm, 2), 7, 8)));
+
+        final ImmutableMap<Station, Set<Integer>> oneAndTwoNoIssue = ImmutableMap.<Station, Set<Integer>>builder()
+                .put(s(dm, 1), Sets.newHashSet(7, 8))
+                .put(s(dm, 2), Sets.newHashSet(1))
+                .build();
+        final ArrayList<Constraint> constraints2 = Lists.newArrayList(cm.getAllRelevantConstraints(oneAndTwoNoIssue));
+        assertTrue(constraints2.isEmpty());
+
+        final ImmutableMap<Station, Set<Integer>> fiveSixAdjTwo = ImmutableMap.<Station, Set<Integer>>builder()
+                .put(s(dm, 5), Sets.newHashSet(99))
+                .put(s(dm, 6), Sets.newHashSet(101))
+                .build();
+        final ArrayList<Constraint> constraints3 = Lists.newArrayList(cm.getAllRelevantConstraints(fiveSixAdjTwo));
+        assertEquals(1, constraints3.size());
+        assertTrue(constraints3.contains(new Constraint(s(dm, 5), s(dm, 6), 99, 101)));
+
     }
 
     protected static Station s(IStationManager stationManager, int id) {
