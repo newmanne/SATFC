@@ -95,7 +95,8 @@ public class Application {
 
     @Bean
     ISatisfiabilityCacheFactory satisfiabilityCacheFactory() {
-        return new SatisfiabilityCacheFactory();
+        final SATFCServerParameters satfcServerParameters = satfcServerParameters();
+        return new SatisfiabilityCacheFactory(satfcServerParameters.getNumPermutations(), satfcServerParameters.getSeed());
     }
 
     @Bean

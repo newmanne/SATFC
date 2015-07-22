@@ -72,6 +72,7 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                 // Add impied +1 constraints
                 super.addConstraint(aSubjectStation, aTargetStation, aSubjectChannel, ConstraintKey.ADJp1);
                 super.addConstraint(aSubjectStation, aTargetStation, aSubjectChannel + 1, ConstraintKey.ADJp1);
+                break;
             default:
                 throw new IllegalStateException("Unrecognized constraint key " + aConstraintKey);
         }
@@ -86,6 +87,9 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                     try {
                         final String key = line[0].trim();
                         final ConstraintKey constraintKey = ConstraintKey.fromString(key);
+                        if (constraintKey.equals(ConstraintKey.ADJm1) || constraintKey.equals(ConstraintKey.ADJm2)) {
+                            throw new IllegalArgumentException("ADJ-1 and ADJ-2 constraints are not part of the compact format!");
+                        }
 
                         final int lowChannel = Integer.valueOf(line[1].trim());
                         final int highChannel = Integer.valueOf(line[2].trim());
@@ -114,7 +118,7 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                 }
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException("Could not read interference constraints filename.", e);
+            throw new IllegalArgumentException("Could not read interference constraints file: " + aInterferenceConstraintsFilename, e);
         }
     }
 
