@@ -2,7 +2,6 @@ package ca.ubc.cs.beta.stationpacking.consistency;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -21,8 +20,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
-
-import com.google.common.collect.Sets;
 
 /**
 * Created by newmanne on 10/06/15.
@@ -108,14 +105,7 @@ public class AC3Enforcer {
     }
 
     private boolean channelViolatesArcConsistency(Station x, int vx, Station y, Map<Station, Set<Integer>> domains) {
-        return domains.get(y).stream().noneMatch(vy -> isSatisfyingAssignment(x, vx, y, vy));
+        return domains.get(y).stream().noneMatch(vy -> constraintManager.isSatisfyingAssignment(x, vx, y, vy));
     }
 
-    private boolean isSatisfyingAssignment(Station x, int vx, Station y, int vy) {
-        final Map<Integer, Set<Station>> assignment = new HashMap<>();
-        assignment.put(vx, Sets.newHashSet(x));
-        assignment.putIfAbsent(vy, new HashSet<>());
-        assignment.get(vy).add(y);
-        return constraintManager.isSatisfyingAssignment(assignment);
-    }
 }

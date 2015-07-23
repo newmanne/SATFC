@@ -21,14 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 
-import com.google.common.collect.*;
-
-import org.apache.commons.lang3.tuple.Pair;
+import com.google.common.collect.Sets;
 
 /**
  * Manages co- and adjacent- channel constraints.
@@ -86,5 +86,22 @@ public interface IConstraintManager {
      * @return all the constraints that apply to that problem
      */
     Iterable<Constraint> getAllRelevantConstraints(Map<Station, Set<Integer>> domains);
+
+    /**
+     * A shortcut function to {@link IConstraintManager#isSatisfyingAssignment(Map)} for the case of 2 stations
+     * Essentially tests whether or not a constraint exists
+     * @param s1 The first station
+     * @param c1 The channel the first station is on
+     * @param s2 The second station
+     * @param c2 The channel the second station is on
+     * @return true if and only if the assignment satisfies all the constraints represented by the constraint manager.
+     */
+    default boolean isSatisfyingAssignment(Station s1, int c1, Station s2, int c2) {
+        final Map<Integer, Set<Station>> assignment = new HashMap<>();
+        assignment.put(c1, Sets.newHashSet(s1));
+        assignment.putIfAbsent(c2, new HashSet<>());
+        assignment.get(c2).add(s2);
+        return isSatisfyingAssignment(assignment);
+    }
 
 }

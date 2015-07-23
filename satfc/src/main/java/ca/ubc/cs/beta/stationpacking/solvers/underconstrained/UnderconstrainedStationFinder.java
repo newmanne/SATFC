@@ -53,11 +53,14 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
     @Override
     public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains) {
-        //Find  the under constrained nodes in the instance.
         final Set<Station> underconstrainedStations = new HashSet<Station>();
 
         log.debug("Finding underconstrained stations in the instance...");
 
+        /**
+         * Heuristic #1 for underconstrained:
+         * For every channel in my domain, is there any channel which, if I go on it, I have no interference constraints with anyone?
+         */
         final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
         fConstraintManager.getAllRelevantConstraints(domains).forEach(constraint -> {
             badChannels.put(constraint.getSource(), constraint.getSourceChannel());
@@ -66,34 +69,39 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
 
-        for(final Entry<Station, Set<Integer>> domainEntry : domains.entrySet())
-        {
+        for (final Entry<Station, Set<Integer>> domainEntry : domains.entrySet()) {
             final Station station = domainEntry.getKey();
             final Set<Integer> domain = domainEntry.getValue();
 
-            Set<Integer> stationBadChannels = badChannels.get(station);
+            final Set<Integer> stationBadChannels = badChannels.get(station);
             final Set<Integer> stationGoodChannels = Sets.difference(domain, stationBadChannels);
 
-            log.trace("Station {} domain channels: {}.",station,domain);
-            log.trace("Station {} bad channels: {}.",station,stationBadChannels);
+            log.trace("Station {} domain channels: {}.", station, domain);
+            log.trace("Station {} bad channels: {}.", station, stationBadChannels);
 
-            if(!stationGoodChannels.isEmpty()) {
+            if (!stationGoodChannels.isEmpty()) {
                 log.trace("Station {} is underconstrained as it has {} domain channels ({}) on which it interferes with no one.", station, stationGoodChannels.size(), stationGoodChannels);
                 underconstrainedStations.add(station);
                 continue;
             }
 
             /*
-             * Heuristic #2 for underconstrained:
-             * At most, an interfering station can wipe out 5 channels from your domain with two ADJp2 constraints.
-             * As an upper bound to the worst thing that can possibly happen, assume every station is placed adversarially so that they each wipe out 3 channels
-             * If you still have a free channel, you are underconstrained.
-             */
-            final int numNeighbours = neighborIndex.neighborsOf(station).size();
-            final int interferingStationMaxSpread = numNeighbours * 5;
+            * Heuristic #2 for underconstrained:
+            * For each of my neighbours, count the maximum number of channels in my domain that each neighbour can potentially "block" out. Then assume each neighbour does block out this maximal number of channels. Would I still have a channel left over?
+            */
+            final long interferingStationsMaxChannelSpread = neighborIndex.neighborsOf(station).stream() // for each neighbour
+                    .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
+                                    .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
+                                            .filter(myChannel -> !fConstraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
+                                            .count() // count the number of my channels that would be invalid if my neighbour were assigned to neighbourChannel
+                                    )
+                                    .max() // max over all neighbour's channels
+                                    .getAsLong()
+                    )
+                    .sum();
 
-            if (interferingStationMaxSpread < domain.size()) {
-                log.trace("Station {} is underconstrained as it has {} domain channels, but the {} interfering stations can only spread to a max of {} of them",station,domain.size(),numNeighbours,interferingStationMaxSpread);
+            if (interferingStationsMaxChannelSpread < domain.size()) {
+                log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
                 underconstrainedStations.add(station);
             }
         }
