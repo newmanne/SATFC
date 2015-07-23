@@ -29,6 +29,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -59,6 +60,8 @@ import java.util.List;
  */
 @Slf4j
 public class SATFCParallelSolverBundle extends ASolverBundle {
+
+    public static final int PORTFOLIO_SIZE = 4;
 
     private final ISolver fUHFSolver;
     private final ISolver fVHFSolver;
@@ -108,20 +111,19 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
         }
 
-        // Hit the cache at the instance level
-        parallelUHFSolvers.add(s -> {
-            ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);// offset the seed a bit
-            if (useCache) {
+        // Hit the cache at the instance level - we don't really count this one towards our numCores limit, because it will be I/O bound
+        if (useCache) {
+            parallelUHFSolvers.add(s -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-                UHFSolver = new SubsetCacheUNSATDecorator(UHFSolver, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
-                UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate);
-            }
-            return UHFSolver;
-        });
+                ISolver UHFSolver = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
+                return new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate);
+            });
+        }
 
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
         parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1)); // offset the seed a bit
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
@@ -148,7 +150,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         }
 
         // Init the parallel solvers
-        ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores, parallelUHFSolvers);
+        ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores + 1, parallelUHFSolvers);
         // END UHF
 
         // BEGIN VHF

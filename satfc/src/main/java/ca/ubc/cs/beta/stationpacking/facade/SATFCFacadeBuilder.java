@@ -25,6 +25,7 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import lombok.NonNull;
 import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -61,8 +62,8 @@ public class SATFCFacadeBuilder {
         fInitializeLogging = false;
         fLibrary = findSATFCLibrary();
         fResultFile = null;
-        parallelismLevel = Runtime.getRuntime().availableProcessors();
-        fSolverChoice = parallelismLevel >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
+        parallelismLevel = Math.min(SATFCParallelSolverBundle.PORTFOLIO_SIZE, Runtime.getRuntime().availableProcessors());
+        fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         fPresolve = true;
         fUnderconstrained = true;
         fDecompose = true;
@@ -233,6 +234,7 @@ public class SATFCFacadeBuilder {
 
     /**
      * Set the maximum number of solvers that SATFC will execute in parallel
+     * This will have little effect past {@link SATFCParallelSolverBundle#PORTFOLIO_SIZE}
      *
      * @param parallelismLevel
      * @return this {@code Builder} object

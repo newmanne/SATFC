@@ -29,6 +29,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomiza
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
@@ -70,10 +71,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public String fClaspLibrary;
 	
 	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC")
-	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= 4 ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
+	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
 
-
-    @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. Defaults to all available processors")
+    @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. This defaults to all available processors. This has little effect past " + SATFCParallelSolverBundle.PORTFOLIO_SIZE)
     public int numCores = Runtime.getRuntime().availableProcessors();
 
 	/**
