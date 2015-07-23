@@ -152,8 +152,13 @@ public class RedisCacher {
                 log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
             }
             final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
+            if (permutation == null) {
+                log.warn("Skipping cache entry from key " + key + ". Could not find a permutation known for coordinate " + coordinate + ". This probably means that the cache entry does not correspond to any known constraint folders (" + coordinateToPermutation.keySet() + ")");
+                return; // Skip
+            }
             final SATCacheEntry cacheEntry = getSATSolverResultByKey(key, false).get();
-            final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key, coordinateToPermutation.get(coordinate));
+            final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key, permutation);
             SATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
@@ -168,8 +173,13 @@ public class RedisCacher {
                 log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
             }
             final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
+            if (permutation == null) {
+                log.warn("Skipping cache entry from key " + key + ". Could not find a permutation known for coordinate " + coordinate + ". This probably means that the cache entry does not correspond to any known constraint folders (" + coordinateToPermutation.keySet() + ")");
+                return; // Skip
+            }
             final UNSATCacheEntry cacheEntry = getUNSATSolverResultByKey(key, false).get();
-            final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(cacheEntry.getDomains(), key, coordinateToPermutation.get(coordinate));
+            final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(cacheEntry.getDomains(), key, permutation);
             UNSATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
