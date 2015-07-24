@@ -40,6 +40,31 @@ import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 1/8/15.
+ *
+ * The goal is to find stations for which, no matter how their neighbours are arranged, there will always be a channel
+ * to put them onto. Then, you can remove them from the problem, and simply add them back afterwards by iterating
+ * through their domain until you find a satisfying assignment.
+ *
+ * One helpful framework for thinking about this problem is to think of the question as:
+ * If all of my neighbours were placed adversarially to block out the maximum number of channels from my domain,
+ * how many could they block out? If the answer is less than my domain's size, then I am underconstrained.
+ *
+ * For example,
+ * Neighbour A can block out {1, 2} or {2, 3}
+ * Neighbour B can block out {2} or {2, 3}
+ * Then the worst case is when neighbour A blocks out {1,2} and neighbour B blocks out {2,3}
+ *
+ * Slightly more formally:
+ * There are N groups of sets
+ * You have to choose exactly one set from each group
+ * Your goal is to maximize the size of the union of the groups that you choose
+ * (Note that we don't need the actual values of the choices, just the size)
+ *
+ * This problem seems to be a variant of the Maximum Coverage Problem
+ *
+ * We do not solve the problem exactly, but rely instead take the minimum of two heuristics that are upper bounds to this question
+ * 1) The size of the union of all the sets in every group
+ * 2) The sum of the sizes of the largest set in every group
  */
 @Slf4j
 public class UnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
@@ -50,7 +75,6 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
         fConstraintManager = aConstraintManger;
     }
 
-
     @Override
     public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains) {
         final Set<Station> underconstrainedStations = new HashSet<Station>();
@@ -59,7 +83,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         /**
          * Heuristic #1 for underconstrained:
-         * For every channel in my domain, is there any channel which, if I go on it, I have no interference constraints with anyone?
+         * Take the union of all the channels that my neighbours can block and see if its smaller than my domain
          */
         final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
         fConstraintManager.getAllRelevantConstraints(domains).forEach(constraint -> {
@@ -89,7 +113,12 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             * Heuristic #2 for underconstrained:
             * For each of my neighbours, count the maximum number of channels in my domain that each neighbour can potentially "block" out. Then assume each neighbour does block out this maximal number of channels. Would I still have a channel left over?
             */
-            final long interferingStationsMaxChannelSpread = neighborIndex.neighborsOf(station).stream() // for each neighbour
+            final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+            if (neighbours.size() >= domain.size()) {
+                log.trace("Station {} has {} neighbours but only {} channels, so the channel counting heuristic will not work", station, neighbours.size(), domain.size());
+                continue;
+            }
+            final long interferingStationsMaxChannelSpread = neighbours.stream() // for each neighbour
                     .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
                                     .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
                                             .filter(myChannel -> !fConstraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
