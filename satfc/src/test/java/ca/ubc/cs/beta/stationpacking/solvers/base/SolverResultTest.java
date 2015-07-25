@@ -23,8 +23,15 @@ package ca.ubc.cs.beta.stationpacking.solvers.base;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
+import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
+import com.google.common.io.Resources;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.NativeLibrary;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Before;
@@ -51,6 +58,20 @@ public class SolverResultTest {
     @Test
     public void testSerializationDeserializationAreInverses() throws Exception {
         assertEquals(result, JSONUtils.toObject(JSONUtils.toString(result), SolverResult.class));
+    }
+
+    public static interface DCCA extends Library {
+        public void helloFromC();
+    }
+
+    @Test
+    public void t() throws Exception {
+//        final String path = "/home/newmanne/research/dccasat/sources/DCCASat_with_cutoff_and_for_random_instances_sources/";
+//        NativeLibrary.addSearchPath("DCCASat", path);
+        final File libFile = new File(Resources.getResource("DCCASat").getFile());
+        log.info(libFile.getPath());
+        final DCCA dcca = (DCCA) Native.loadLibrary(libFile.getPath(), DCCA.class, NativeUtils.NATIVE_OPTIONS);
+        dcca.helloFromC();
     }
     
 }

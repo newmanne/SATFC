@@ -21,13 +21,18 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Sets;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -63,18 +68,63 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
  * @author afrechet
  * @author pcernek
  */
+@Slf4j
 public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
-    public static final int A_FEW_MISSING_STATIONS = 10;
-    // TODO: This arbitrary constant needs to be validated empirically.
-    public static final int MAX_MISSING_STATIONS = 20;
-    public static final int UNLIMITED_NEIGHBOR_LAYERS = -1;
+    public interface IStationAddingStrategy {
 
-    private static Logger log = LoggerFactory.getLogger(ConstraintGraphNeighborhoodPresolver.class);
+        Iterable<StationPackingConfiguration> getConfigurations(ITerminationCriterion terminationCriterion, StationPackingInstance stationPackingInstance);
+
+    }
+
+    @Value
+    public static class StationPackingConfiguration {
+        private final double cutoff;
+        private final Set<Station> packingStations;
+    }
+
+    @RequiredArgsConstructor
+    public static class AddNeighbourLayerStrategy extends AStationAddingStrategy {
+
+        private final int maxLayers;
+
+        @Override
+        public Iterable<StationPackingConfiguration> getConfigurations(ITerminationCriterion criterion, StationPackingInstance stationPackingInstance, NeighborIndex<Station, DefaultEdge> neighbourIndex, Set<Station> missingStations) {
+            final AtomicReference<StationPackingConfiguration> currentReference = new AtomicReference<>();
+            final AtomicInteger neighbourLayer = new AtomicInteger();
+            return () -> new AbstractIterator<StationPackingConfiguration>() {
+
+                int numIters = 0;
+
+                @Override
+                protected StationPackingConfiguration computeNext() {
+                    StationPackingConfiguration prev = currentReference.get();
+                    final Set<Station> newToPack;
+                    if (prev == null) {
+                        // First round! Just grab the neighbours
+                        newToPack = missingStations.stream().map(neighbourIndex::neighborsOf).flatMap(Collection::stream).collect(Collectors.toSet());
+                    } else {
+                        final Set<Station> packingStations = prev.getPackingStations();
+                        newToPack = packingStations.stream().map(neighbourIndex::neighborsOf).flatMap(Collection::stream).collect(Collectors.toSet());
+                        if (packingStations.addAll(newToPack)) {
+                            numIters++;
+                        } else {
+                            return endOfData();
+                        }
+                    }
+                    numIters++;
+                    return new StationPackingConfiguration(criterion.getRemainingTime(), newToPack);
+                }
+
+            };
+        }
+    }
+
+    public static final int UNLIMITED_NEIGHBOR_LAYERS = -1;
 
     private final IConstraintManager fConstraintManager;
     private final List<IStationSubsetCertifier> fCertifiers;
-    private final int maxLayersOfNeighbors;
+    private final IStationAddingStrategy fStationAddingStrategy;
 
     /**
      * <p>
@@ -89,9 +139,9 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
      * @param aConstraintManager - indicates the interference constraints between stations.
      * @param aCertifiers        - the list of certifiers to use to evaluate the satisfiability of station subsets.
      */
-    public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers) {
-        this(aConstraintManager, aCertifiers, UNLIMITED_NEIGHBOR_LAYERS);
-    }
+//    public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers) {
+//        this(aConstraintManager, aCertifiers, UNLIMITED_NEIGHBOR_LAYERS);
+//    }
 
     /**
      * @param aConstraintManager   - indicates the interference constraints between stations.
@@ -104,38 +154,21 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
      *                             exhaustively search neighbors of neighbors until there are no more neighbors left
      *                             to add (unless a SAT solution is found first).
      */
-    public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers,
-                                                int maxLayersOfNeighbors) {
+    public ConstraintGraphNeighborhoodPresolver(IConstraintManager aConstraintManager, List<IStationSubsetCertifier> aCertifiers, IStationAddingStrategy aStationAddingStrategy) {
         this.fConstraintManager = aConstraintManager;
         this.fCertifiers = aCertifiers;
-        if (maxLayersOfNeighbors < 0 && maxLayersOfNeighbors != UNLIMITED_NEIGHBOR_LAYERS) {
-            throw new IllegalArgumentException("Maximum number of neighbor layers must be non-negative. " +
-                    "Value specified was " + maxLayersOfNeighbors);
-        }
-        this.maxLayersOfNeighbors = maxLayersOfNeighbors;
+        this.fStationAddingStrategy = aStationAddingStrategy;
     }
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        Watch watch = Watch.constructAutoStartWatch();
-
-        if (aInstance.getStations().isEmpty()) {
-            log.debug("Presolver was given an empty StationPackingInstance.");
-            return SolverResult.createTimeoutResult(watch.getElapsedTime());
-        }
-
-        Collection<Station> missingStations = getStationsNotInPreviousAssignment(aInstance);
-
-        if (missingStations.isEmpty()) {
-            log.debug("No new stations were added this round. Presolver is returning SAT trivially.");
-            return new SolverResult(SATResult.SAT, watch.getElapsedTime(), Assignment.fromStationChannelMap(aInstance.getPreviousAssignment()).toChannelStationMap());
-        }
-
-        logNumberOfMissingStations(missingStations);
+        final Watch watch = Watch.constructAutoStartWatch();
+        final Set<Station> stationsWithNoPreviousAssignment = getStationsNotInPreviousAssignment(aInstance);
+        log.debug("There are {} stations that are not part of previous assignment.", stationsWithNoPreviousAssignment.size());
 
         // Check if there are too many stations to make this procedure worthwhile.
-        if (missingStations.size() > MAX_MISSING_STATIONS) {
-            log.debug("Too many missing stations in previous assignment ({}).", missingStations.size());
+        if (stationsWithNoPreviousAssignment.size() == aInstance.getDomains().size()) {
+            log.debug("Too many missing stations in previous assignment ({}).", stationsWithNoPreviousAssignment.size());
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
 
@@ -151,8 +184,26 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
 
-        SolverData arguments = new SolverData(aInstance, aTerminationCriterion, aSeed, watch);
-        SolverResult combinedResult = runPresolver(arguments, missingStations, constraintGraphNeighborIndex);
+        final List<SolverResult> results = new ArrayList<>();
+        for (final StationPackingConfiguration configuration : fStationAddingStrategy.getConfigurations(aTerminationCriterion, aInstance)) {
+            for (int i = 0; i < fCertifiers.size() && !aTerminationCriterion.hasToStop(); i++) {
+                log.debug("Trying constraint graph neighborhood certifier {}.", i + 1);
+
+                IStationSubsetCertifier certifier = fCertifiers.get(i);
+                final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new CPUTimeTerminationCriterion(configuration.getCutoff())));
+
+                watch.stop();
+                final SolverResult result = certifier.certify(aInstance, configuration.getPackingStations(), criterion, aSeed);
+                watch.start();
+
+                results.add(result);
+
+                if (result.getResult().isConclusive()) {
+                    SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, result.getResult()));
+                    return result.getResult().equals(SATResult.SAT);
+                }
+            }
+        }
 
         logResult(combinedResult);
 
@@ -166,121 +217,11 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
     private NeighborIndex<Station, DefaultEdge> buildNeighborIndex(StationPackingInstance aInstance) {
         log.debug("Building constraint graph.");
-        NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex =
-                new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(aInstance.getDomains(), fConstraintManager));
-        return aConstraintGraphNeighborIndex;
+        return new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(aInstance.getDomains(), fConstraintManager));
     }
 
-    private SolverResult runPresolver(SolverData arguments, Collection<Station> missingStations,
-                                      NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex) {
-        List<SolverResult> results = iterateSolverOverNeighbors(arguments, missingStations,
-                aConstraintGraphNeighborIndex);
-
-        SolverResult combinedResult = SolverHelper.combineResults(results);
-
-        arguments.getWatch().stop();
-        double extraTime = arguments.getWatch().getElapsedTime();
-        combinedResult = SolverResult.addTime(combinedResult, extraTime);
-
-        return combinedResult;
-    }
-
-    private List<SolverResult> iterateSolverOverNeighbors(SolverData arguments,
-                                                          Collection<Station> missingStations,
-                                                          NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex) {
-        List<SolverResult> results = new LinkedList<>();
-
-        int neighborLayer = 1;
-        HashSet<Station> toPackStations = new HashSet<>();
-
-        toPackStations.addAll(missingStations);
-        boolean satResultFound = false;
-
-        // Keep expanding neighbors until either a SAT result is found or we are forced to stop
-        while (!arguments.getTerminationCriterion().hasToStop() && !satResultFound) {
-
-            if (maxLayersOfNeighbors != UNLIMITED_NEIGHBOR_LAYERS) {
-                if (neighborLayer > maxLayersOfNeighbors) {
-                    break;
-                }
-            }
-
-            log.debug("Adding level {} of neighbors.", neighborLayer);
-            HashSet<Station> currentNeighbors = getCurrentNeighbors(aConstraintGraphNeighborIndex, toPackStations);
-            log.debug("Done adding level {} of neighbors", neighborLayer);
-
-            // Only run the solver if new neighbors are actually added to the stations to pack,
-            //   unless it's the first layer (in this case we have one or more disconnected components)
-            if (toPackStations.addAll(currentNeighbors) || neighborLayer == 1) {
-                satResultFound = doCertifiersFindSATResult(arguments, results, toPackStations);
-                neighborLayer++;
-            } else {
-                break;
-            }
-        }
-
-        return results;
-    }
-
-    private HashSet<Station> getCurrentNeighbors(NeighborIndex<Station, DefaultEdge> aConstraintGraphNeighborIndex,
-                                                 HashSet<Station> toPackStations) {
-        HashSet<Station> currentNeighbors = new HashSet<>();
-        for (Station unpackedStation : toPackStations) {
-            Set<Station> neighborStations = aConstraintGraphNeighborIndex.neighborsOf(unpackedStation);
-            currentNeighbors.addAll(neighborStations);
-        }
-        return currentNeighbors;
-    }
-
-    private void logNumberOfMissingStations(Collection<Station> missingStations) {
-        if (missingStations.size() < A_FEW_MISSING_STATIONS) {
-            log.debug("Stations {} are not part of previous assignment.", missingStations);
-        } else {
-            log.debug("There are {} stations that are not part of previous assignment.", missingStations.size());
-        }
-    }
-
-    private Collection<Station> getStationsNotInPreviousAssignment(StationPackingInstance aInstance) {
-
-        Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
-        Collection<Station> missingStations = new HashSet<>();
-
-        for (Station station : aInstance.getStations()) {
-            if (!previousAssignment.containsKey(station)) {
-                missingStations.add(station);
-            }
-        }
-
-        return missingStations;
-    }
-
-    private boolean doCertifiersFindSATResult(SolverData arguments, List<SolverResult> results,
-                                              HashSet<Station> toPackStations) {
-        // Unpack arguments
-        ITerminationCriterion aTerminationCriterion = arguments.getTerminationCriterion();
-        StationPackingInstance aInstance = arguments.getInstance();
-        Watch watch = arguments.getWatch();
-        long aSeed = arguments.getSeed();
-
-        // Run all certifiers
-        for (int i = 0; i < fCertifiers.size() && !aTerminationCriterion.hasToStop(); i++) {
-            log.debug("Trying constraint graph neighborhood certifier {}.", i + 1);
-
-            IStationSubsetCertifier certifier = fCertifiers.get(i);
-
-            watch.stop();
-            SolverResult result = certifier.certify(aInstance, toPackStations, aTerminationCriterion, aSeed);
-            watch.start();
-
-            results.add(result);
-
-            if (result.getResult().isConclusive()) {
-                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, result.getResult()));
-                return result.getResult().equals(SATResult.SAT);
-            }
-        }
-
-        return false;
+    private Set<Station> getStationsNotInPreviousAssignment(StationPackingInstance aInstance) {
+        return aInstance.getStations().stream().filter(station -> !aInstance.getPreviousAssignment().containsKey(station)).collect(Collectors.toSet());
     }
 
     @Override
