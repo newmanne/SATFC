@@ -84,7 +84,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
     }
 
     @RequiredArgsConstructor
-    public static class AddNeighbourLayerStrategy extends AStationAddingStrategy {
+    public static class AddNeighbourLayerStrategy implements IStationAddingStrategy {
 
         private final int maxLayers;
 
@@ -98,7 +98,10 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
                 @Override
                 protected StationPackingConfiguration computeNext() {
-                    StationPackingConfiguration prev = currentReference.get();
+                    if (numIters > maxLayers) {
+                        return endOfData();
+                    }
+                    final StationPackingConfiguration prev = currentReference.get();
                     final Set<Station> newToPack;
                     if (prev == null) {
                         // First round! Just grab the neighbours
@@ -106,14 +109,14 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
                     } else {
                         final Set<Station> packingStations = prev.getPackingStations();
                         newToPack = packingStations.stream().map(neighbourIndex::neighborsOf).flatMap(Collection::stream).collect(Collectors.toSet());
-                        if (packingStations.addAll(newToPack)) {
-                            numIters++;
-                        } else {
+                        if (!packingStations.addAll(newToPack)) {
                             return endOfData();
                         }
                     }
                     numIters++;
-                    return new StationPackingConfiguration(criterion.getRemainingTime(), newToPack);
+                    final StationPackingConfiguration newConfiguration = new StationPackingConfiguration(criterion.getRemainingTime(), newToPack);
+                    currentReference.set(newConfiguration);
+                    return newConfiguration;
                 }
 
             };
@@ -177,7 +180,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
 
-        NeighborIndex<Station, DefaultEdge> constraintGraphNeighborIndex = buildNeighborIndex(aInstance);
+        final NeighborIndex<Station, DefaultEdge> constraintGraphNeighborIndex = buildNeighborIndex(aInstance);
 
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
