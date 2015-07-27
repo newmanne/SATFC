@@ -15,8 +15,8 @@ import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraintManager;
 
 import com.google.common.collect.ImmutableMap;

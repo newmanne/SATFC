@@ -21,7 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +33,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterionFactory;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.collect.Sets;
@@ -51,21 +48,18 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
     public static final String STATION_SUBSET_SATCERTIFIER = "_StationSubsetSATCertifier";
     private final ISolver fSolver;
-    private final ITerminationCriterionFactory fTerminationCriterionFactory;
 
-    public StationSubsetSATCertifier(ISolver aSolver, ITerminationCriterionFactory aTerminationCriterionFactory) {
+    public StationSubsetSATCertifier(ISolver aSolver) {
         fSolver = aSolver;
-        fTerminationCriterionFactory = aTerminationCriterionFactory;
     }
 
     @Override
     public SolverResult certify(StationPackingInstance aInstance,
                                 Set<Station> aToPackStations,
-                                ITerminationCriterion aTerminationCriterion, long aSeed) {
+                                ITerminationCriterion aTerminationCriterion,
+                                long aSeed) {
 
         Watch watch = Watch.constructAutoStartWatch();
-
-        ITerminationCriterion terminationCriterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(fTerminationCriterionFactory.getTerminationCriterion(), aTerminationCriterion));
 
         Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
 
@@ -105,10 +99,10 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_SATCERTIFIER);
         StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
 
-        if (!terminationCriterion.hasToStop()) {
+        if (!aTerminationCriterion.hasToStop()) {
             watch.stop();
             log.debug("Going off to SAT solver...");
-            SolverResult SATboundResult = fSolver.solve(SATboundInstance, terminationCriterion, aSeed);
+            SolverResult SATboundResult = fSolver.solve(SATboundInstance, aTerminationCriterion, aSeed);
             log.debug("Back from SAT solver... SAT bound result was {}", SATboundResult.getResult());
             watch.start();
 

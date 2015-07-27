@@ -21,11 +21,12 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 

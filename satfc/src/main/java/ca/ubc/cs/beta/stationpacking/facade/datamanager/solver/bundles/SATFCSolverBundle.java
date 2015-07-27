@@ -34,6 +34,8 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSAT
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
@@ -47,7 +49,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCachePr
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
@@ -138,22 +139,20 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (presolve)
         {
             log.debug("Adding neighborhood presolvers.");
-            UHFsolver = new SequentialSolversComposite(
-                    Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                    Arrays.asList(
-                                            new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
-                                    ), 1),
-                            UHFsolver
-                    )
+            UHFsolver = new SequentialSolversComposite(Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(
+                                new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
+                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                            ),
+                            UHFsolver)
             );
 
             VHFsolver = new SequentialSolversComposite(
                     Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                    Arrays.asList(
-                                            new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
-                                    ), 1),
+                            new ConstraintGraphNeighborhoodPresolver(
+                                    new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
+                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                            ),
                             VHFsolver
                     )
             );

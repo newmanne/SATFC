@@ -26,12 +26,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
-import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
-import com.google.common.io.Resources;
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.NativeLibrary;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Before;
@@ -39,9 +33,13 @@ import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
 
 @Slf4j
 public class SolverResultTest {

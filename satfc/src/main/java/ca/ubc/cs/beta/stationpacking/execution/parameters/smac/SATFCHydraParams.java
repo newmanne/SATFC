@@ -44,7 +44,7 @@ public class SATFCHydraParams extends AbstractOptions {
             return config;
         }
     }
-
+    
     @Parameter(names = "-presolver")
     public boolean presolver;
     @Parameter(names = "-presolverCutoff")

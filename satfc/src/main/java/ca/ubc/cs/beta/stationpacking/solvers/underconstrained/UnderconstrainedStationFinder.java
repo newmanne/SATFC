@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jgrapht.alg.NeighborIndex;
@@ -35,6 +34,7 @@ import org.jgrapht.graph.DefaultEdge;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Sets;

@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -14,6 +13,8 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3I
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
@@ -22,7 +23,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupi
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -52,16 +53,12 @@ public class SATFCHydraBundle extends ASolverBundle {
             return clasp3ISolverFactory.create(params.claspConfig);
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
+        	
             return new SequentialSolversComposite(
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(
-                                    aConstraintManager,
-                                    Arrays.asList(
-                                            new StationSubsetSATCertifier(
-                                                    clasp3ISolverFactory.create(params.claspConfig),
-                                                    new CPUTimeTerminationCriterionFactory(params.presolverCutoff)
-                                            )
-                                    )
+                                new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
+                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), true, 1.0, 5.0)
                             ),
                             solver));
         });

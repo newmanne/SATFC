@@ -21,6 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
@@ -31,6 +36,8 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3I
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
@@ -47,14 +54,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Created by newmanne on 14/05/15.
@@ -109,8 +110,10 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
             final double SATcertifiercutoff = 10.0;
-            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                    Arrays.asList(new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff)))));
+            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(
+                    new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
+                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), true, SATcertifiercutoff, 0)
+                    ));
         }
 
         // Hit the cache at the instance level - we don't really count this one towards our numCores limit, because it will be I/O bound
@@ -169,12 +172,12 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         if (presolve) {
             VHFsolver = new SequentialSolversComposite(
                     Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(aConstraintManager,
-                                    Arrays.asList(
-                                            new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED), new CPUTimeTerminationCriterionFactory(SATcertifiercutoff))
-                                    ), 1),
-                            VHFsolver
-                    ));
+                            new ConstraintGraphNeighborhoodPresolver(
+                                            new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
+                                            new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                            ),
+                            VHFsolver)
+                    );
         }
         // END VHF
 
