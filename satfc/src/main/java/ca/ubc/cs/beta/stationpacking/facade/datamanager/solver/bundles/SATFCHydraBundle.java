@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -45,7 +46,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.UNDERCONSTRAINED, solver -> {
-            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager());
+            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), params.underconstrainedExpensive));
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);

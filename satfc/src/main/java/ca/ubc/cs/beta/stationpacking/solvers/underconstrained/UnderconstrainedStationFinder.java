@@ -70,10 +70,12 @@ import com.google.common.collect.Sets;
 @Slf4j
 public class UnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
 
-    private final IConstraintManager fConstraintManager;
+    private final IConstraintManager constraintManager;
+    private final boolean performExpensiveAnalysis;
 
-    public UnderconstrainedStationFinder(IConstraintManager aConstraintManger) {
-        fConstraintManager = aConstraintManger;
+    public UnderconstrainedStationFinder(IConstraintManager constraintManager, boolean performExpensiveAnalysis) {
+        this.constraintManager = constraintManager;
+        this.performExpensiveAnalysis = performExpensiveAnalysis;
     }
 
     @Override
@@ -87,12 +89,12 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
          * Take the union of all the channels that my neighbours can block and see if its smaller than my domain
          */
         final HashMultimap<Station, Integer> badChannels = HashMultimap.create();
-        fConstraintManager.getAllRelevantConstraints(domains).forEach(constraint -> {
+        constraintManager.getAllRelevantConstraints(domains).forEach(constraint -> {
             badChannels.put(constraint.getSource(), constraint.getSourceChannel());
             badChannels.put(constraint.getTarget(), constraint.getTargetChannel());
         });
 
-        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, constraintManager));
 
         for (final Entry<Station, Set<Integer>> domainEntry : domains.entrySet()) {
             if (terminationCriterion.hasToStop()) {
@@ -113,30 +115,32 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                 underconstrainedStations.add(station);
                 continue;
             }
+            
+            if (performExpensiveAnalysis) {
+                /*
+                 * Heuristic #2 for underconstrained:
+                 * For each of my neighbours, count the maximum number of channels in my domain that each neighbour can potentially "block" out. Then assume each neighbour does block out this maximal number of channels. Would I still have a channel left over?
+                 */
+                 final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+                 if (neighbours.size() >= domain.size()) {
+                     log.trace("Station {} has {} neighbours but only {} channels, so the channel counting heuristic will not work", station, neighbours.size(), domain.size());
+                     continue;
+                 }
+                 final long interferingStationsMaxChannelSpread = neighbours.stream() // for each neighbour
+                         .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
+                                         .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
+                                                 .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
+                                                 .count() // count the number of my channels that would be invalid if my neighbour were assigned to neighbourChannel
+                                         )
+                                         .max() // max over all neighbour's channels
+                                         .getAsLong()
+                         )
+                         .sum();
 
-            /*
-            * Heuristic #2 for underconstrained:
-            * For each of my neighbours, count the maximum number of channels in my domain that each neighbour can potentially "block" out. Then assume each neighbour does block out this maximal number of channels. Would I still have a channel left over?
-            */
-            final Set<Station> neighbours = neighborIndex.neighborsOf(station);
-            if (neighbours.size() >= domain.size()) {
-                log.trace("Station {} has {} neighbours but only {} channels, so the channel counting heuristic will not work", station, neighbours.size(), domain.size());
-                continue;
-            }
-            final long interferingStationsMaxChannelSpread = neighbours.stream() // for each neighbour
-                    .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
-                                    .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
-                                            .filter(myChannel -> !fConstraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
-                                            .count() // count the number of my channels that would be invalid if my neighbour were assigned to neighbourChannel
-                                    )
-                                    .max() // max over all neighbour's channels
-                                    .getAsLong()
-                    )
-                    .sum();
-
-            if (interferingStationsMaxChannelSpread < domain.size()) {
-                log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
-                underconstrainedStations.add(station);
+                 if (interferingStationsMaxChannelSpread < domain.size()) {
+                     log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
+                     underconstrainedStations.add(station);
+                 }
             }
         }
 

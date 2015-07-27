@@ -59,6 +59,9 @@ public class SATFCHydraParams extends AbstractOptions {
     public boolean underconstrained;
     @Parameter(names = "-underconstrainedPriority")
     public int underconstrainedPriority;
+    @Parameter(names = "-underconstrainedExpensive")
+    public boolean underconstrainedExpensive;
+
 
     @Parameter(names = "-connectedComponents")
     public boolean connectedComponents;

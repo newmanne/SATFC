@@ -43,7 +43,6 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSAT
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CNFSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheEverythingBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnlySolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
@@ -178,8 +177,6 @@ public class SATFCFacade implements AutoCloseable {
                             case CACHING_SOLVER_FULL_INSTANCES:
                             case CACHING_SOLVER_COMPONENTS:
                                 return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
-                            case CACHE_EVERYTHING:
-                                return new CacheEverythingBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
                             case HYDRA:
                                 return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             case STATS:

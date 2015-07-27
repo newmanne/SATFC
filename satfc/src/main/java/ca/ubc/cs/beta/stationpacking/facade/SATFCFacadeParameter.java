@@ -50,7 +50,6 @@ public class SATFCFacadeParameter {
         CNF,
         CACHING_SOLVER_FULL_INSTANCES,
         CACHING_SOLVER_COMPONENTS,
-        CACHE_EVERYTHING,
         STATS,
         HYDRA;
     }

@@ -56,13 +56,13 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecorator {
 
-	private final IConstraintManager fConstraintManager;
-	private final IUnderconstrainedStationFinder fUnderconstrainedStationFinder;
+	private final IUnderconstrainedStationFinder underconstrainedStationFinder;
+	private final IConstraintManager constraintManager;
 	
-	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager aConstraintManager) {
+	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager constraintManager, IUnderconstrainedStationFinder underconstrainedStationFinder) {
 		super(aSolver);
-		fConstraintManager = aConstraintManager;
-		fUnderconstrainedStationFinder = new UnderconstrainedStationFinder(fConstraintManager);
+		this.underconstrainedStationFinder = underconstrainedStationFinder;
+		this.constraintManager = constraintManager;
 	}
 	
 	@Override
@@ -74,7 +74,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
             log.debug("All time spent.");
             return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
         }
-		final Set<Station> underconstrainedStations = fUnderconstrainedStationFinder.getUnderconstrainedStations(domains, aTerminationCriterion);
+		final Set<Station> underconstrainedStations = underconstrainedStationFinder.getUnderconstrainedStations(domains, aTerminationCriterion);
         SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
         if (aTerminationCriterion.hasToStop()) {
@@ -134,7 +134,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 					}
 					
 					alteredAssignment.get(channel).add(station);
-					final boolean addedSAT = fConstraintManager.isSatisfyingAssignment(alteredAssignment);
+					final boolean addedSAT = constraintManager.isSatisfyingAssignment(alteredAssignment);
 					
 					if(addedSAT)
 					{
