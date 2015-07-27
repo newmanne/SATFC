@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import com.google.common.collect.AbstractIterator;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.math.util.FastMath;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -13,7 +14,6 @@ import java.util.Set;
 * Created by newmanne on 27/07/15.
 * Iterate through an IStationAddingStrategy, starting with quick cutoffs and then looping back with larger ones
 */
-@RequiredArgsConstructor
 public class IterativeDeepeningConfigurationStrategy implements IStationPackingConfigurationStrategy {
 
     // Strategy for adding the next set of stations to pack
@@ -22,6 +22,18 @@ public class IterativeDeepeningConfigurationStrategy implements IStationPackingC
     private final boolean loop;
     private final double baseCutoff;
     private final double scalingFactor;
+
+    // Create a non-iterative version
+    public IterativeDeepeningConfigurationStrategy(IStationAddingStrategy stationAddingStrategy, double baseCutoff) {
+        this(stationAddingStrategy, baseCutoff, 0);
+    }
+
+    public IterativeDeepeningConfigurationStrategy(IStationAddingStrategy stationAddingStrategy, double baseCutoff, double scalingFactor) {
+        this.stationAddingStrategy = stationAddingStrategy;
+        this.baseCutoff = baseCutoff;
+        this.scalingFactor = scalingFactor;
+        this.loop = scalingFactor != 0;
+    }
 
     @Override
     public Iterable<StationPackingConfiguration> getConfigurations(ITerminationCriterion terminationCriterion, StationPackingInstance stationPackingInstance, Set<Station> missingStations) {
@@ -45,7 +57,7 @@ public class IterativeDeepeningConfigurationStrategy implements IStationPackingC
                     }
                 }
                 final Set<Station> toPack = stationsToPackIterator.next();
-                final double cutoff = baseCutoff + iteration * scalingFactor;
+                final double cutoff = baseCutoff + FastMath.pow(scalingFactor, iteration);
                 return new StationPackingConfiguration(cutoff, toPack);
             }
         };

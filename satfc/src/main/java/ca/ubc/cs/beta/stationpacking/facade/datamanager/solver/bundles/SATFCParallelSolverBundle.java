@@ -109,10 +109,9 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Presolvers: these guys will expand range and use up all available time
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
-            final double SATcertifiercutoff = 10.0;
             parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(
                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), true, SATcertifiercutoff, 0)
+                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 1.0, 5.0)
                     ));
         }
 
@@ -174,7 +173,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(
                                             new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
-                                            new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                                            new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
                             ),
                             VHFsolver)
                     );

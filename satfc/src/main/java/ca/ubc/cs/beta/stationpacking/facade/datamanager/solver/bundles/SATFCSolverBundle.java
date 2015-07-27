@@ -142,7 +142,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             UHFsolver = new SequentialSolversComposite(Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
                             ),
                             UHFsolver)
             );
@@ -151,7 +151,7 @@ public class SATFCSolverBundle extends ASolverBundle {
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(
                                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
-                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), false, SATcertifiercutoff, 0)
+                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
                             ),
                             VHFsolver
                     )

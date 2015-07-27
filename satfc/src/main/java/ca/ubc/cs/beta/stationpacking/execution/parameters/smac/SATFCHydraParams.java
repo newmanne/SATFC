@@ -44,11 +44,25 @@ public class SATFCHydraParams extends AbstractOptions {
             return config;
         }
     }
+
+    public enum PresolverExpansion {
+        NEIGHBOURHOOD, UNIFORM_RANDOM
+    }
     
     @Parameter(names = "-presolver")
     public boolean presolver;
+    @Parameter(names = "-presolverExpansionMethod")
+    public PresolverExpansion presolverExpansionMethod;
+    @Parameter(names = "-presolverNumNeighbours")
+    public int presolverNumNeighbours;
+    @Parameter(names = "-presolverIterativelyDeepen")
+    public boolean presolverIterativelyDeepen;
     @Parameter(names = "-presolverCutoff")
     public double presolverCutoff;
+    @Parameter(names = "-presolverBaseCutoff")
+    public double presolverBaseCutoff;
+    @Parameter(names = "-presolverScaleFactor")
+    public double presolverScaleFactor;
 
     @Parameter(names = "-arcConsistency")
     public boolean arcConsistency;
