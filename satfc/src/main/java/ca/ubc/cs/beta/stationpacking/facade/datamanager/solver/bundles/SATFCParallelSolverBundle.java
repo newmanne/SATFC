@@ -45,6 +45,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorat
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterionFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
@@ -146,6 +147,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     log.debug("Decorate solver to first remove underconstrained stations.");
                     UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), true));
                 }
+                UHFSolver = new ArcConsistencyEnforcerDecorator(UHFSolver, getConstraintManager());
                 return UHFSolver;
             });
         }
