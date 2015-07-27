@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -66,8 +67,9 @@ public class UnderconstrainedStationFinderTest {
                 .put(s3, ImmutableSet.of(1, 2))
                 .build();
 
-        final Set<Station> underconstrainedStations = finder.getUnderconstrainedStations(domains);
+        final Set<Station> underconstrainedStations = finder.getUnderconstrainedStations(domains, new CPUTimeTerminationCriterion(1000));
         // Regardless of how stations 2 and 3 rearrange themselves, station 1 always has a good channel
         assertEquals(ImmutableSet.of(s1), underconstrainedStations);
     }
+
 }

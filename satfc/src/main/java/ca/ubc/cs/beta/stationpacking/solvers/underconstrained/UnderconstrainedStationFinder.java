@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jgrapht.alg.NeighborIndex;
@@ -76,7 +77,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
     }
 
     @Override
-    public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains) {
+    public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion terminationCriterion) {
         final Set<Station> underconstrainedStations = new HashSet<Station>();
 
         log.debug("Finding underconstrained stations in the instance...");
@@ -94,6 +95,10 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, fConstraintManager));
 
         for (final Entry<Station, Set<Integer>> domainEntry : domains.entrySet()) {
+            if (terminationCriterion.hasToStop()) {
+                log.debug("Underconstrained stations timed out. Returned set will be only a partial set");
+                break;
+            }
             final Station station = domainEntry.getKey();
             final Set<Integer> domain = domainEntry.getValue();
 

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 1/8/15.
@@ -32,6 +33,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 public interface IUnderconstrainedStationFinder {
 
     /** Returns the set of stations that are underconstrained (they will ALWAYS have a feasible channel) */
-    Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains);
+    Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion criterion);
 
 }

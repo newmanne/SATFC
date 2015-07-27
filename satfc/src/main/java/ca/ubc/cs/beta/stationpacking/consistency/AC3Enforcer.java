@@ -40,12 +40,16 @@ public class AC3Enforcer {
      * @return
      */
     public AC3Output AC3(StationPackingInstance instance, ITerminationCriterion criterion) {
-        // TODO: use the termination criterion?
         final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
         final AC3Output output = new AC3Output(reducedDomains);
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance.getDomains(), constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
         while (!workList.isEmpty()) {
+            if (criterion.hasToStop()) {
+                log.debug("AC3 timed out");
+                output.setTimedOut(true);
+                return output;
+            }
             final Pair<Station, Station> pair = workList.poll();
             if (removeInconsistentValues(pair, output)) {
                 final Station referenceStation = pair.getLeft();

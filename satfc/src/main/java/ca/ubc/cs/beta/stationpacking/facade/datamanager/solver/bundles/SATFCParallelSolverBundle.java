@@ -175,7 +175,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         }
         // END VHF
 
-
         // Save results, if needed.
         if (aResultFile != null) {
             log.debug("Decorate solver to save results.");
