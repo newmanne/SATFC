@@ -48,12 +48,10 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
     private static Logger log = LoggerFactory.getLogger(StationSubsetUNSATCertifier.class);
 
     private final ISolver fSolver;
-    private final ITerminationCriterionFactory fTerminationCriterionFactory;
 
-    public StationSubsetUNSATCertifier(ISolver aSolver, ITerminationCriterionFactory aTerminationCriterionFactory)
+    public StationSubsetUNSATCertifier(ISolver aSolver)
     {
         fSolver = aSolver;
-        fTerminationCriterionFactory = aTerminationCriterionFactory;
     }
 
     @Override
@@ -62,8 +60,6 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
                                 ITerminationCriterion aTerminationCriterion, long aSeed) {
 
         Watch watch = Watch.constructAutoStartWatch();
-
-        ITerminationCriterion terminationCriterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(fTerminationCriterionFactory.getTerminationCriterion(),aTerminationCriterion));
 
         log.debug("Evaluating if stations not in previous assignment ({}) with their neighborhood are unpackable.",aToPackStations.size());
 
@@ -77,7 +73,7 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
         StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
         watch.stop();
-        SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, terminationCriterion, aSeed);
+        SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, aTerminationCriterion, aSeed);
         watch.start();
 
         if(UNSATboundResult.getResult().equals(SATResult.UNSAT))

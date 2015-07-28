@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -67,7 +68,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new SequentialSolversComposite(
                     Arrays.asList(
                             new ConstraintGraphNeighborhoodPresolver(
-                                    new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
+                                    new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
                                     stationPackingConfigurationStrategy
                             ),
                             solver));
