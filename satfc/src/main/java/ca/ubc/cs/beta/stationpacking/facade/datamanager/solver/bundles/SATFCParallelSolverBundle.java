@@ -111,7 +111,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             log.debug("Adding neighborhood presolvers.");
             parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(
                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 1.0, 5.0)
+                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 10.0)
                     ));
         }
 

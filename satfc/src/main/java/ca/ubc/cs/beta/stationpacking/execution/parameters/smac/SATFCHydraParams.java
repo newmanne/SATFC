@@ -26,6 +26,7 @@ public class SATFCHydraParams extends AbstractOptions {
         UNDERCONSTRAINED,
         CONNECTED_COMPONENTS,
         ARC_CONSISTENCY,
+        UNSAT_PRESOLVER,
         NONE
     }
 
@@ -64,6 +65,21 @@ public class SATFCHydraParams extends AbstractOptions {
     @Parameter(names = "-presolverScaleFactor")
     public double presolverScaleFactor;
 
+    @Parameter(names = "-UNSATpresolver")
+    public boolean UNSATpresolver;
+    @Parameter(names = "-UNSATpresolverExpansionMethod")
+    public PresolverExpansion UNSATpresolverExpansionMethod;
+    @Parameter(names = "-UNSATpresolverNumNeighbours")
+    public int UNSATpresolverNumNeighbours;
+    @Parameter(names = "-UNSATpresolverIterativelyDeepen")
+    public boolean UNSATpresolverIterativelyDeepen;
+    @Parameter(names = "-UNSATpresolverCutoff")
+    public double UNSATpresolverCutoff;
+    @Parameter(names = "-UNSATpresolverBaseCutoff")
+    public double UNSATpresolverBaseCutoff;
+    @Parameter(names = "-UNSATpresolverScaleFactor")
+    public double UNSATpresolverScaleFactor;
+
     @Parameter(names = "-arcConsistency")
     public boolean arcConsistency;
     @Parameter(names = "-arcConsistencyPriority")
@@ -90,9 +106,10 @@ public class SATFCHydraParams extends AbstractOptions {
         solverChoiceToPriority.entrySet().stream().sorted((a, b) -> a.getValue().compareTo(b.getValue())).forEach(entry -> {
             list.add(entry.getKey());
         });
-
         if (presolver) {
             list.add(SolverType.PRESOLVER);
+        } else if (UNSATpresolver) {
+            list.add(SolverType.UNSAT_PRESOLVER);
         }
         list.add(SolverType.CLASP);
         return list;
@@ -114,6 +131,7 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public boolean validate() {
         Preconditions.checkNotNull(claspConfig);
+        Preconditions.checkState(!(presolver && UNSATpresolver), "Can only use one presolver!");
         final Map<SolverType, Integer> solverTypePriorityMap = getSolverTypePriorityMap();
         Preconditions.checkState(solverTypePriorityMap.entrySet().size() == new HashSet<>(solverTypePriorityMap.values()).size(), "At least two options have the same priority! " + ImmutableMap.copyOf(solverTypePriorityMap).toString());
         return true;

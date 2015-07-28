@@ -89,19 +89,19 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
                 log.debug("All time spent.");
                 break;
             }
+            log.debug("Configuration is {} stations to pack, and {} seconds cutoff", configuration.getPackingStations().size(), configuration.getCutoff());
             final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new CPUTimeTerminationCriterion(configuration.getCutoff())));
 
             result = fCertifier.certify(aInstance, configuration.getPackingStations(), criterion, aSeed);
 
-            // Only a SAT result means that we have solved anything. UNSAT is not conclusive
-            if (result.getResult().equals(SATResult.SAT)) {
-                log.debug("SAT result from certifier");
+            if (result.getResult().isConclusive()) {
+                log.debug("Conclusive result from certifier");
                 SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, result.getResult()));
                 break;
             }
         }
 
-        if (result == null || !result.getResult().equals(SATResult.SAT)) {
+        if (result == null || !result.isConclusive()) {
             result = SolverResult.createTimeoutResult(watch.getElapsedTime());
         } else {
             result = new SolverResult(result.getResult(), watch.getElapsedTime(), result.getAssignment());

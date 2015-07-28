@@ -51,6 +51,27 @@ public class SATFCHydraBundle extends ASolverBundle {
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);
         });
+        solverTypeToFactory.put(SATFCHydraParams.SolverType.UNSAT_PRESOLVER, solver -> {
+            final IStationAddingStrategy stationAddingStrategy;
+            switch (params.UNSATpresolverExpansionMethod) {
+                case NEIGHBOURHOOD:
+                    stationAddingStrategy = new AddNeighbourLayerStrategy(getConstraintManager());
+                    break;
+                case UNIFORM_RANDOM:
+                    stationAddingStrategy = new AddRandomNeighboursStrategy(getConstraintManager(), params.UNSATpresolverNumNeighbours, 1);
+                    break;
+                default:
+                    throw new IllegalStateException("Unrecognized presolver expansion method " + params.UNSATpresolverExpansionMethod);
+            }
+            final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.UNSATpresolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverBaseCutoff, params.UNSATpresolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverCutoff);
+            return new SequentialSolversComposite(
+                    Arrays.asList(
+                            new ConstraintGraphNeighborhoodPresolver(
+                                    new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
+                                    stationPackingConfigurationStrategy
+                            ),
+                            solver));
+        });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.presolverExpansionMethod) {
