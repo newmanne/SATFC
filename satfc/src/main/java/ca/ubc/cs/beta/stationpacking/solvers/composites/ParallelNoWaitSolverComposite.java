@@ -113,8 +113,8 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         final SolverResult solverResult = solver.solve(aInstance, interruptibleCriterion, aSeed);
                         log.debug("End solve {}", solver.getClass().getSimpleName());
                         solversSolvingCurrentProblem.remove(solver);
-                        // Interrupt only if the result is conclusive. Only the first one will go through this block
-                        if (solverResult.isConclusive() && interruptibleCriterion.interrupt()) {
+                        // Interrupt if the result is conclusive OR if the timeout has expired. Only the first one will go through this block
+                        if ((solverResult.isConclusive() || interruptibleCriterion.hasToStop()) && interruptibleCriterion.interrupt()) {
                             log.debug("Found a conclusive result, interrupting other concurrent solvers");
                             synchronized (solversSolvingCurrentProblem) {
                                 solversSolvingCurrentProblem.forEach(ISolver::interrupt);

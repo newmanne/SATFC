@@ -50,8 +50,8 @@ public class AddNeighbourLayerStrategy implements IStationAddingStrategy {
                     return endOfData();
                 }
                 Set<Station> newToPack = Sets.union(prev, getNeighbours(prev));
-                // If nothing new was added, we are done
-                if (prev.equals(newToPack)) {
+                // If nothing new was added, we are done. Make sure we iterate at least once though, because the newly added station could be an island
+                if (prev.equals(newToPack) && currentLayer > 1) {
                     return endOfData();
                 }
                 currentLayer++;

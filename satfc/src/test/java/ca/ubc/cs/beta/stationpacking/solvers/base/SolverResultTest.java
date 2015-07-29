@@ -24,8 +24,18 @@ package ca.ubc.cs.beta.stationpacking.solvers.base;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.stream.IntStream;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Before;
@@ -58,18 +68,28 @@ public class SolverResultTest {
         assertEquals(result, JSONUtils.toObject(JSONUtils.toString(result), SolverResult.class));
     }
 
-    public static interface DCCA extends Library {
-        public void helloFromC();
-    }
-
     @Test
     public void t() throws Exception {
-//        final String path = "/home/newmanne/research/dccasat/sources/DCCASat_with_cutoff_and_for_random_instances_sources/";
-//        NativeLibrary.addSearchPath("DCCASat", path);
-        final File libFile = new File(Resources.getResource("DCCASat").getFile());
-        log.info(libFile.getPath());
-        final DCCA dcca = (DCCA) Native.loadLibrary(libFile.getPath(), DCCA.class, NativeUtils.NATIVE_OPTIONS);
-        dcca.helloFromC();
+        ITerminationCriterion CPUtermination = new CPUTimeTerminationCriterion(60);
+        ITerminationCriterion WALLtermination = new WalltimeTerminationCriterion(60);
+        ITerminationCriterion termination = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(CPUtermination, WALLtermination));
+        final ExecutorService executorService = Executors.newFixedThreadPool(4);
+        for (int i = 0; i < 4; i++) {
+            executorService.submit(() -> {
+                int j = 0;
+                while (true) {
+                    j++;
+                }
+            });
+        }
+        executorService.shutdown();
+        final Watch watch = Watch.constructAutoStartWatch();
+        while (!termination.hasToStop()) {
+            log.info(""+termination.getRemainingTime());
+            Thread.sleep(1000);
+        }
+        final double elapsedTime = watch.getElapsedTime();
+        log.info("ELAPSED: " + elapsedTime);
     }
-    
+
 }
