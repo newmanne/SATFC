@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.StationPackingConfiguration;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -90,7 +91,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
                 break;
             }
             log.debug("Configuration is {} stations to pack, and {} seconds cutoff", configuration.getPackingStations().size(), configuration.getCutoff());
-            final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new CPUTimeTerminationCriterion(configuration.getCutoff())));
+            final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new WalltimeTerminationCriterion(configuration.getCutoff())));
 
             result = fCertifier.certify(aInstance, configuration.getPackingStations(), criterion, aSeed);
 

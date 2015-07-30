@@ -8,6 +8,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -66,7 +67,7 @@ public class AC3Enforcer {
     }
 
     public AC3Output AC3(StationPackingInstance instance) {
-        return AC3(instance, new CPUTimeTerminationCriterion(Double.MAX_VALUE));
+        return AC3(instance, new NeverEndingTerminationCriterion());
     }
 
     private void reenqueueAllAffectedPairs(Queue<Pair<Station, Station>> interferingStationPairs,

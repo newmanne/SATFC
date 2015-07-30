@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
@@ -74,7 +76,7 @@ public abstract class ASolverBundleTest {
     public void testSimplestProblemPossible() {
         ISolverBundle bundle = getBundle();
         final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
-        final SolverResult solve = bundle.getSolver(instance).solve(instance, new CPUTimeTerminationCriterion(60.0), 1);
+        final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
         Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
     }
 
@@ -91,7 +93,7 @@ public abstract class ASolverBundleTest {
             final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
             final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
             log.info("Solving instance " + entry.getKey());
-            final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new CPUTimeTerminationCriterion(60.0), 1);
+            final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60.0), 1);
             Assert.assertEquals(entry.getValue(), solverResult.getResult());
         }
     }

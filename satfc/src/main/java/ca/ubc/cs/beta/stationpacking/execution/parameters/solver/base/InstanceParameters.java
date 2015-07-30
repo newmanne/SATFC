@@ -128,7 +128,7 @@ public class InstanceParameters extends AbstractOptions {
 	}
 
 	/**
-     * The instance's cutoff time (s).
+     * The instance's cutoff time (s). This is walltime.
      */
 	@Parameter(names = "-CUTOFF", description = "Time allowed to the feasibility checker (in seconds).")
 	public double Cutoff = 60.0;

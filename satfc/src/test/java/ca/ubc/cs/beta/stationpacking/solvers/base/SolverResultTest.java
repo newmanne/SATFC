@@ -68,28 +68,4 @@ public class SolverResultTest {
         assertEquals(result, JSONUtils.toObject(JSONUtils.toString(result), SolverResult.class));
     }
 
-    @Test
-    public void t() throws Exception {
-        ITerminationCriterion CPUtermination = new CPUTimeTerminationCriterion(60);
-        ITerminationCriterion WALLtermination = new WalltimeTerminationCriterion(60);
-        ITerminationCriterion termination = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(CPUtermination, WALLtermination));
-        final ExecutorService executorService = Executors.newFixedThreadPool(4);
-        for (int i = 0; i < 4; i++) {
-            executorService.submit(() -> {
-                int j = 0;
-                while (true) {
-                    j++;
-                }
-            });
-        }
-        executorService.shutdown();
-        final Watch watch = Watch.constructAutoStartWatch();
-        while (!termination.hasToStop()) {
-            log.info(""+termination.getRemainingTime());
-            Thread.sleep(1000);
-        }
-        final double elapsedTime = watch.getElapsedTime();
-        log.info("ELAPSED: " + elapsedTime);
-    }
-
 }

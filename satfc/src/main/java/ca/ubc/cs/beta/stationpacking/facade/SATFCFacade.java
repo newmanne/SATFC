@@ -286,11 +286,7 @@ public class SATFCFacade implements AutoCloseable {
 
         log.debug("Setting termination criterion...");
         //Set termination criterion.
-        ITerminationCriterion CPUtermination = new CPUTimeTerminationCriterion(aCutoff);
-        ITerminationCriterion WALLtermination = new WalltimeTerminationCriterion(aCutoff);
-        ITerminationCriterion termination = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(CPUtermination, WALLtermination));
-
-
+        ITerminationCriterion termination = new WalltimeTerminationCriterion(aCutoff);
 
         // Make sure that SATFC doesn't get hung. We give a VERY generous timeout window before throwing an exception
         final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;

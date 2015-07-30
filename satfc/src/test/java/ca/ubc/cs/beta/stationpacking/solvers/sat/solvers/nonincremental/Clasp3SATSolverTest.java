@@ -24,6 +24,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.math3.util.Pair;
@@ -78,14 +80,14 @@ public class Clasp3SATSolverTest {
     @Test(timeout = 3000)
     public void testTimeout() {
         final Clasp3SATSolver clasp3SATSolver = new Clasp3SATSolver(libraryPath, parameters);
-        final ITerminationCriterion terminationCriterion = new CPUTimeTerminationCriterion(1.0);
+        final ITerminationCriterion terminationCriterion = new WalltimeTerminationCriterion(1.0);
         clasp3SATSolver.solve(hardCNF, terminationCriterion, 1);
     }
 
     @Test(timeout = 3000)
     public void testInterrupt() {
         final Clasp3SATSolver clasp3SATSolver = new Clasp3SATSolver(libraryPath, parameters);
-        final ITerminationCriterion.IInterruptibleTerminationCriterion terminationCriterion = new InterruptibleTerminationCriterion(new CPUTimeTerminationCriterion(60.0));
+        final ITerminationCriterion.IInterruptibleTerminationCriterion terminationCriterion = new InterruptibleTerminationCriterion(new NeverEndingTerminationCriterion());
         new Thread(() -> {
             try {
                 Thread.sleep(2000);

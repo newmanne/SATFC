@@ -119,7 +119,7 @@ public class SolverResult implements Serializable {
 	}
 	
 	/**
-	 * @return the runtime (s).
+	 * @return the runtime (s). This is walltime.
 	 */
 	public double getRuntime()
 	{

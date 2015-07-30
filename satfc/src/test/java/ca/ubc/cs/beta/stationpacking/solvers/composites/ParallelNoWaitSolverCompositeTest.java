@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Test;
@@ -62,7 +63,7 @@ public class ParallelNoWaitSolverCompositeTest {
         // construct a solver that just returns the answer immediately
         solvers.add(s->(aInstance, aTerminationCriterion, aSeed) -> new SolverResult(SATResult.SAT, 32.0, StationPackingTestUtils.getSimpleInstanceAnswer()));
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(nThreads, solvers);
-        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
+        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new NeverEndingTerminationCriterion(), 1);
         assertEquals(SATResult.SAT, solve.getResult());
     }
 
@@ -78,7 +79,7 @@ public class ParallelNoWaitSolverCompositeTest {
             });
         }
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);
-        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
+        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new NeverEndingTerminationCriterion(), 1);
         assertEquals(numCalls.get(), N_SOLVERS); // every solver should be asked
         assertEquals(solve.getResult(), SATResult.TIMEOUT);
     }
@@ -95,7 +96,7 @@ public class ParallelNoWaitSolverCompositeTest {
             return new SolverResult(SATResult.TIMEOUT, 1.0);
         });
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);
-        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
+        final SolverResult solve = parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new NeverEndingTerminationCriterion(), 1);
         assertEquals(SATResult.SAT, solve.getResult());
     }
 
@@ -106,7 +107,7 @@ public class ParallelNoWaitSolverCompositeTest {
             throw new IllegalArgumentException();
         });
         final ParallelNoWaitSolverComposite parallelSolverComposite = new ParallelNoWaitSolverComposite(1, solvers);
-        parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new CPUTimeTerminationCriterion(60), 1);
+        parallelSolverComposite.solve(StationPackingTestUtils.getSimpleInstance(), new NeverEndingTerminationCriterion(), 1);
     }
 
 }
