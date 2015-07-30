@@ -173,9 +173,10 @@ public class ParallelNoWaitSolverComposite implements ISolver {
      * So we set a variable when an error occurs, and check it here.
      */
     private void checkForErrors() {
-        if (error.get() != null) {
-            log.error("Error occured while executing a task", error.get());
-            throw new RuntimeException("Error occurred while executing a task", error.get());
+    	final Throwable e = error.getAndSet(null); // clear error for future uses
+        if (e != null) {
+            log.error("Error occured while executing a task", e);
+            throw new RuntimeException("Error occurred while executing a task", e);
         }
     }
 
