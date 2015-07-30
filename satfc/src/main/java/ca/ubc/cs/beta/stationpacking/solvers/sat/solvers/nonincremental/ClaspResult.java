@@ -22,6 +22,7 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import com.google.common.base.Preconditions;
 
 /**
  * Clasp library result.
@@ -35,6 +36,7 @@ public class ClaspResult {
 	
 	public ClaspResult(SATResult satResult, int[] assignment, double runtime)
 	{
+        Preconditions.checkState(runtime >= 0, "Runtime must be >= 0 (was " + runtime + " )");
 		fSATResult = satResult;
 		fAssignment = assignment;
 		fRuntime = runtime;

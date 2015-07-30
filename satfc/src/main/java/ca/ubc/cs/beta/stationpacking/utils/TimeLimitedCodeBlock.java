@@ -10,6 +10,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * See http://stackoverflow.com/questions/5715235/java-set-timeout-on-a-certain-block-of-code
+ * Run a block of code until it either completes, or a certain amount of time has passed. Afterwards, continue. Note that the code might still continue running the background
  */
 public class TimeLimitedCodeBlock {
 

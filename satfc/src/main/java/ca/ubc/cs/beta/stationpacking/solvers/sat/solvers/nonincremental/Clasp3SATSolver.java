@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -94,19 +95,12 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         final String params = fParameters + " --seed=" + seed;
         try {
             // create the problem - config params have already been validated in the constructor, so this should work
-            if (currentProblemPointer != null) {
-                throw new IllegalStateException("Went to solve a new problem, but there is a problem in progress!");
-            }
+            Preconditions.checkState(currentProblemPointer == null, "Went to solve a new problem, but there is a problem in progress!");
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
             currentProblemPointer = fClaspLibrary.initConfig(params);
-
-            if (aTerminationCriterion.hasToStop()) {
-                return SATSolverResult.timeout(watch.getElapsedTime());
-            }
-
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
 
             if (aTerminationCriterion.hasToStop()) {
@@ -118,7 +112,6 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             isCurrentlySolving.set(true);
             lock.unlock();
 
-            double preTime = watch.getElapsedTime();
             final double cutoff = aTerminationCriterion.getRemainingTime();
             if (cutoff <= 0 || aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
@@ -126,10 +119,9 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
             // Start solving
             log.debug("Send problem to clasp cutting off after " + cutoff + "s");
-
+            final Watch runtime = Watch.constructAutoStartWatch();
             fClaspLibrary.solveProblem(currentProblemPointer, cutoff);
-            final double runtime = watch.getElapsedTime() - preTime;
-            log.debug("Came back from clasp after {}s.", runtime);
+            log.debug("Came back from clasp after {}s.", runtime.getElapsedTime());
             lock.lock();
             isCurrentlySolving.set(false);
             lock.unlock();
@@ -137,21 +129,17 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
-
-            final ClaspResult claspResult = getSolverResult(fClaspLibrary, currentProblemPointer, runtime);
-            final double timeToParseClaspResult = watch.getElapsedTime() - runtime - preTime;
-            log.trace("Time to parse clasp result: {} s.", timeToParseClaspResult);
-
+            
+            final Watch postTime = Watch.constructAutoStartWatch();
+            final ClaspResult claspResult = getSolverResult(fClaspLibrary, currentProblemPointer, runtime.getElapsedTime());
+            log.trace("Time to parse clasp result: {} s.", postTime.getElapsedTime());
             final HashSet<Literal> assignment = parseAssignment(claspResult.getAssignment());
-
-            log.trace("Time to parse assignment: {} s.", watch.getElapsedTime() - runtime - preTime - timeToParseClaspResult);
-            final double postTime = watch.getElapsedTime() - runtime - preTime;
-            log.trace("Total post time: {} s.", postTime);
-            if (postTime > 60) {
+            log.trace("Total post time (parsing result + assignment): {} s.", postTime.getElapsedTime());
+            if (postTime.getElapsedTime() > 60) {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), claspResult.getRuntime() + preTime + postTime, assignment);
+            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment);
             log.debug("Returning result: {}.", output);
             return output;
         } finally {
