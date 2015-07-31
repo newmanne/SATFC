@@ -139,23 +139,13 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (presolve)
         {
             log.debug("Adding neighborhood presolvers.");
-            UHFsolver = new SequentialSolversComposite(Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(
+            UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
-                            ),
-                            UHFsolver)
-            );
+                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff));
 
-            VHFsolver = new SequentialSolversComposite(
-                    Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(
+            VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,
                                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
-                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
-                            ),
-                            VHFsolver
-                    )
-            );
+                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff));
         }
 
         if (useCache) {

@@ -25,8 +25,10 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ASolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.StationPackingConfiguration;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,7 +60,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
  * @author pcernek
  */
 @Slf4j
-public class ConstraintGraphNeighborhoodPresolver implements ISolver {
+public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
 
     private final IStationSubsetCertifier fCertifier;
     private final IStationPackingConfigurationStrategy fStationAddingStrategy;
@@ -67,7 +69,8 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
      * @param aCertifier             -the certifier to use to evaluate the satisfiability of station subsets.
      * @param aStationAddingStrategy - determines which stations to fix / unfix, and how long to attempt at each expansion
      */
-    public ConstraintGraphNeighborhoodPresolver(IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy) {
+    public ConstraintGraphNeighborhoodPresolver(ISolver decoratedSolver, IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy) {
+        super(decoratedSolver);
         this.fCertifier = aCertifier;
         this.fStationAddingStrategy = aStationAddingStrategy;
     }
@@ -88,7 +91,7 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
         for (final StationPackingConfiguration configuration : fStationAddingStrategy.getConfigurations(aTerminationCriterion, aInstance, stationsWithNoPreviousAssignment)) {
             if (aTerminationCriterion.hasToStop()) {
                 log.debug("All time spent.");
-                break;
+                return SolverResult.createTimeoutResult(watch.getElapsedTime());
             }
             log.debug("Configuration is {} stations to pack, and {} seconds cutoff", configuration.getPackingStations().size(), configuration.getCutoff());
             final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new WalltimeTerminationCriterion(configuration.getCutoff())));
@@ -103,7 +106,9 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
         }
 
         if (result == null || !result.isConclusive()) {
-            result = SolverResult.createTimeoutResult(watch.getElapsedTime());
+            log.debug("Ran out of of configurations to try and no conclusive results. Passing onto next decorator...");
+            final SolverResult decoratedResult = fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
+            return new SolverResult(decoratedResult.getResult(), watch.getElapsedTime(), decoratedResult.getAssignment());
         } else {
             result = new SolverResult(result.getResult(), watch.getElapsedTime(), result.getAssignment());
         }
@@ -119,11 +124,13 @@ public class ConstraintGraphNeighborhoodPresolver implements ISolver {
 
     @Override
     public void notifyShutdown() {
+        super.notifyShutdown();
         fCertifier.notifyShutdown();
     }
 
     @Override
     public void interrupt() {
+        super.interrupt();
         fCertifier.interrupt();
     }
 

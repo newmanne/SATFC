@@ -65,13 +65,10 @@ public class SATFCHydraBundle extends ASolverBundle {
                     throw new IllegalStateException("Unrecognized presolver expansion method " + params.UNSATpresolverExpansionMethod);
             }
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.UNSATpresolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverBaseCutoff, params.UNSATpresolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverCutoff);
-            return new SequentialSolversComposite(
-                    Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(
+            return new ConstraintGraphNeighborhoodPresolver(solver,
                                     new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
                                     stationPackingConfigurationStrategy
-                            ),
-                            solver));
+                            );
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
@@ -86,13 +83,10 @@ public class SATFCHydraBundle extends ASolverBundle {
                     throw new IllegalStateException("Unrecognized presolver expansion method " + params.presolverExpansionMethod);
             }
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.presolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverBaseCutoff, params.presolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverCutoff);
-            return new SequentialSolversComposite(
-                    Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(
+            return new ConstraintGraphNeighborhoodPresolver(solver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
                                     stationPackingConfigurationStrategy
-                            ),
-                            solver));
+                            );
         });
         fSolver = new VoidSolver();
         log.debug(params.getSolverOrder().toString());

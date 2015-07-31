@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -109,7 +110,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Presolvers: these guys will expand range and use up all available time
         if (presolve) {
             log.debug("Adding neighborhood presolvers.");
-            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(
+            parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(s,
                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
                     new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 10.0)
                     ));
@@ -119,7 +120,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         if (useCache) {
             parallelUHFSolvers.add(s -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-                ISolver UHFSolver = new SubsetCacheUNSATDecorator(new VoidSolver(), containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
+                ISolver UHFSolver = new SubsetCacheUNSATDecorator(s, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
                 return new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate);
             });
         }
@@ -156,6 +157,10 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Init the parallel solvers
         ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores + 1, parallelUHFSolvers);
+        UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
+                new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
+                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 10.0)
+        );
         // END UHF
 
         // BEGIN VHF
@@ -169,14 +174,9 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), false));
         }
         if (presolve) {
-            VHFsolver = new SequentialSolversComposite(
-                    Arrays.asList(
-                            new ConstraintGraphNeighborhoodPresolver(
+            VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,
                                             new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
-                                            new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff)
-                            ),
-                            VHFsolver)
-                    );
+                                            new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff));
         }
         // END VHF
 

@@ -140,7 +140,8 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             }
 
             final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment);
-            log.debug("Returning result: {}.", output);
+            log.debug("Returning result: {}, {}s.", output.getResult(), output.getRuntime());
+            log.trace("Full result: {}", output);
             return output;
         } finally {
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
