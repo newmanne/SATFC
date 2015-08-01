@@ -157,10 +157,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Init the parallel solvers
         ISolver UHFsolver = new ParallelNoWaitSolverComposite(numCores + 1, parallelUHFSolvers);
-        UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
-                new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager()), 10.0)
-        );
         // END UHF
 
         // BEGIN VHF
