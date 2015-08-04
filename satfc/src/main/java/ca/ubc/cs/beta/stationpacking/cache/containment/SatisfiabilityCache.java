@@ -21,14 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -104,12 +101,22 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     @Override
     public void add(StationPackingInstance aInstance, SolverResult result, String key) {
         if (result.getResult().equals(SATResult.SAT)) {
-            SATCache.add(new ContainmentCacheSATEntry(result.getAssignment(), key, permutation));
+            add(new ContainmentCacheSATEntry(result.getAssignment(), key, permutation));
         } else if (result.getResult().equals(SATResult.UNSAT)) {
-            UNSATCache.add(new ContainmentCacheUNSATEntry(aInstance.getDomains(), key, permutation));
+            add(new ContainmentCacheUNSATEntry(aInstance.getDomains(), key, permutation));
         } else {
             throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
         }
+    }
+
+    @Override
+    public void add(ContainmentCacheSATEntry SATEntry) {
+        SATCache.add(SATEntry);
+    }
+
+    @Override
+    public void add(ContainmentCacheUNSATEntry UNSATEntry) {
+        UNSATCache.add(UNSATEntry);
     }
 
     /**
@@ -192,6 +199,39 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
 
         prunableEntries.forEach(UNSATCache::remove);
         return prunableEntries;
+    }
+
+    @Override
+    public List<ContainmentCacheSATEntry> findMaxIntersections(StationPackingInstance instance, int k) {
+        BitSet bitSet = new SimpleCacheSet<>(instance.getStations(), permutation).getBitSet();
+        ImmutableMap<Station, Set<Integer>> domains = instance.getDomains();
+        SATCache.getReadLock().lock();
+        try {
+            return StreamSupport.stream(SATCache.getSets().spliterator(), false)
+                    .sorted((a, b) -> {
+                        final BitSet aCopy = (BitSet) a.getBitSet().clone();
+                        final BitSet bCopy = (BitSet) b.getBitSet().clone();
+                        aCopy.and(bitSet);
+                        bCopy.and(bitSet);
+                        aCopy.stream().forEach(i -> {
+                            Station station = permutation.inverse().get(i);
+                            if (!domains.get(station).contains(a.getAssignment().get(station.getID()))) {
+                                aCopy.clear(i);
+                            }
+                        });
+                        bCopy.stream().forEach(i -> {
+                            Station station = permutation.inverse().get(i);
+                            if (!domains.get(station).contains(b.getAssignment().get(station.getID()))) {
+                                bCopy.clear(i);
+                            }
+                        });
+                        return Integer.compare(aCopy.cardinality(), bCopy.cardinality());
+                    })
+                    .limit(k)
+                    .collect(Collectors.toList());
+        } finally {
+            SATCache.getReadLock().unlock();
+        }
     }
 
 }

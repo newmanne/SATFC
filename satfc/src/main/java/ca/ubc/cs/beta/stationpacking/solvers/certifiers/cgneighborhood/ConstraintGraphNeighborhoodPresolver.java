@@ -86,7 +86,7 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
 
         if (aInstance.getPreviousAssignment().isEmpty()) {
             log.debug("No previous assignment given!");
-            return SolverResult.createTimeoutResult(watch.getElapsedTime());
+            return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         }
 
         final Set<Station> stationsWithNoPreviousAssignment = getStationsNotInPreviousAssignment(aInstance);

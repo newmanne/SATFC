@@ -34,5 +34,5 @@ import com.google.common.collect.ImmutableBiMap;
 * Created by newmanne on 22/04/15.
 */
 public interface ISatisfiabilityCacheFactory {
-    ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries, ImmutableBiMap<Station, Integer> permutation);
+    ISatisfiabilityCache create(ImmutableBiMap<Station, Integer> permutation);
 }

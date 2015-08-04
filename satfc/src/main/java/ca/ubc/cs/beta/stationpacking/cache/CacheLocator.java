@@ -111,19 +111,13 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         log.info("Beginning to init caches");
         final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(coordinateToPermutation);
         coordinateToBundle.keySet().forEach(cacheCoordinate -> {
-            final List<ContainmentCacheSATEntry> SATEntries;
-            final List<ContainmentCacheUNSATEntry> UNSATEntries;
-            if (containmentCacheInitData.getCaches().contains(cacheCoordinate)) {
-                SATEntries = containmentCacheInitData.getSATResults().get(cacheCoordinate);
-                UNSATEntries = containmentCacheInitData.getUNSATResults().get(cacheCoordinate);
-            } else {
-                // empty cache
-                SATEntries = new ArrayList<>();
-                UNSATEntries = new ArrayList<>();
-            }
-            ISatisfiabilityCache cache = cacheFactory.create(SATEntries, UNSATEntries, coordinateToPermutation.get(cacheCoordinate));
+            final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
             log.info("Cache created for coordinate " + cacheCoordinate);
             caches.put(cacheCoordinate, cache);
+            if (containmentCacheInitData.getCaches().contains(cacheCoordinate)) {
+                cache.addAllSAT(containmentCacheInitData.getSATResults().get(cacheCoordinate));
+                cache.addAllUNSAT(containmentCacheInitData.getUNSATResults().get(cacheCoordinate));
+            }
         });
     }
 

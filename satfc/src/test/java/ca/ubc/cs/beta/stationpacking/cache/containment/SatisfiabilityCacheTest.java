@@ -33,9 +33,8 @@ public class SatisfiabilityCacheTest {
     public void testProveSATBySuperset() throws Exception {
         final SatisfiabilityCacheFactory factory = new SatisfiabilityCacheFactory(3, 0);
         final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(UNIVERSE);
-        final ArrayList<ContainmentCacheSATEntry> containmentCacheSATEntries = Lists.newArrayList(
-                new ContainmentCacheSATEntry(ImmutableMap.of(1, UNIVERSE), "", permutation));
-        final ISatisfiabilityCache satisfiabilityCache = factory.create(containmentCacheSATEntries, Collections.emptyList(), permutation);
+        final ISatisfiabilityCache satisfiabilityCache = factory.create(permutation);
+        satisfiabilityCache.add(new ContainmentCacheSATEntry(ImmutableMap.of(1, UNIVERSE), "", permutation));
 
         // Expected superset
         final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1)));
@@ -53,9 +52,8 @@ public class SatisfiabilityCacheTest {
     public void testProveUNSATBySubset() throws Exception {
         final SatisfiabilityCacheFactory factory = new SatisfiabilityCacheFactory(3, 0);
         final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(UNIVERSE);
-        final ArrayList<ContainmentCacheUNSATEntry> containmentCacheUNSATEntries = Lists.newArrayList(
-                new ContainmentCacheUNSATEntry(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1)), "", permutation));
-        final ISatisfiabilityCache satisfiabilityCache = factory.create(Collections.emptyList(), containmentCacheUNSATEntries, permutation);
+        final ISatisfiabilityCache satisfiabilityCache = factory.create(permutation);
+        satisfiabilityCache.add(new ContainmentCacheUNSATEntry(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1)), "", permutation));
 
         // Expected subset
         final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1), s3, Sets.newHashSet(1)));

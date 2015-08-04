@@ -61,7 +61,7 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
     }
 
     @Override
-    public ISatisfiabilityCache create(Collection<ContainmentCacheSATEntry> SATEntries, Collection<ContainmentCacheUNSATEntry> UNSATEntries, ImmutableBiMap<Station, Integer> permutation) {
+    public ISatisfiabilityCache create(ImmutableBiMap<Station, Integer> permutation) {
         // 1) Create other permutations, if any
         final List<BiMap<Station, Integer>> permutations;
         if (numPermutations > 1) {
@@ -73,12 +73,8 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
         // 2) Create the actual caches and add all the entries
         final IContainmentCache<Station, ContainmentCacheSATEntry> undecoratedSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
         final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedSATCache, SAT_BUFFER_SIZE);
-        log.info("Adding " + SATEntries.size() + " entries to the SAT cache");
-        SATCache.addAll(SATEntries);
         final IContainmentCache<Station, ContainmentCacheUNSATEntry> undecoratedUNSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
         final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedUNSATCache, UNSAT_BUFFER_SIZE);
-        log.info("Adding " + UNSATEntries.size() + " entries to the UNSAT cache");
-        UNSATCache.addAll(UNSATEntries);
         return new SatisfiabilityCache(permutation, SATCache, UNSATCache);
     }
 }
