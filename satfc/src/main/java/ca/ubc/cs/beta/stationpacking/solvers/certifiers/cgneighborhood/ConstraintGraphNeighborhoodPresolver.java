@@ -25,9 +25,13 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ASolverBundle;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
+
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.StationPackingConfiguration;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
@@ -36,11 +40,9 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
@@ -64,15 +66,18 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
 
     private final IStationSubsetCertifier fCertifier;
     private final IStationPackingConfigurationStrategy fStationAddingStrategy;
+    private final IConstraintManager constraintManager;
 
     /**
      * @param aCertifier             -the certifier to use to evaluate the satisfiability of station subsets.
      * @param aStationAddingStrategy - determines which stations to fix / unfix, and how long to attempt at each expansion
+     * @param constraintManager
      */
-    public ConstraintGraphNeighborhoodPresolver(ISolver decoratedSolver, IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy) {
+    public ConstraintGraphNeighborhoodPresolver(ISolver decoratedSolver, IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy, IConstraintManager constraintManager) {
         super(decoratedSolver);
         this.fCertifier = aCertifier;
         this.fStationAddingStrategy = aStationAddingStrategy;
+        this.constraintManager = constraintManager;
     }
 
     @Override
@@ -88,7 +93,8 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
         log.debug("There are {} stations that are not part of previous assignment.", stationsWithNoPreviousAssignment.size());
 
         SolverResult result = null;
-        for (final StationPackingConfiguration configuration : fStationAddingStrategy.getConfigurations(aTerminationCriterion, aInstance, stationsWithNoPreviousAssignment)) {
+        final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(aInstance.getDomains(), constraintManager);
+        for (final StationPackingConfiguration configuration : fStationAddingStrategy.getConfigurations(constraintGraph, stationsWithNoPreviousAssignment)) {
             if (aTerminationCriterion.hasToStop()) {
                 log.debug("All time spent.");
                 return SolverResult.createTimeoutResult(watch.getElapsedTime());

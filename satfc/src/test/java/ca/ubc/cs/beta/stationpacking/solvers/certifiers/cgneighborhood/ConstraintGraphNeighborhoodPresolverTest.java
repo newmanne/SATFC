@@ -26,13 +26,16 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.GraphBackedConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 import ca.ubc.cs.beta.stationpacking.test.StationWholeSetSATCertifier;
+import com.google.common.collect.Sets;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 import org.junit.Before;
@@ -42,7 +45,6 @@ import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author pcernek
@@ -60,9 +62,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
     public void setUp() throws Exception {
 
         // This mock termination criterion is never met.
-        mockTerminationCriterion = mock(ITerminationCriterion.class);
-        when(mockTerminationCriterion.hasToStop()).thenReturn(false);
-
+        mockTerminationCriterion = new NeverEndingTerminationCriterion();
         // Completely random seed; value is not actually used since we never use any actual solvers here
         arbitrarySeed = 17;
 
@@ -74,7 +74,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
     @Test
     public void testEmptyGraph() throws Exception {
         // We expect the solver to return immediately since the previous assignment will be empty.
-        testGraph(graphLoader.getEmptyGraph(), Collections.emptySet(), 0, SATResult.TIMEOUT);
+        testGraph(graphLoader.getEmptyGraph(), Sets.newHashSet(new Station(3)), 0, SATResult.TIMEOUT);
     }
 
     @Test
@@ -239,7 +239,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
         StationWholeSetSATCertifier certifier = new StationWholeSetSATCertifier(Arrays.asList(coGraph, adjGraph), startingStations);
 
         ConstraintGraphNeighborhoodPresolver presolver =
-                new ConstraintGraphNeighborhoodPresolver(certifier, new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(constraintManager, maxLayersOfNeighbors), Double.MAX_VALUE));
+                new ConstraintGraphNeighborhoodPresolver(new VoidSolver(), certifier, new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(maxLayersOfNeighbors), Double.MAX_VALUE), constraintManager);
         SolverResult result = presolver.solve(instance, mockTerminationCriterion, arbitrarySeed);
         assertEquals(expectedNumberOfLayers, certifier.getNumberOfTimesCalled());
         assertEquals(expectedResult, result.getResult());

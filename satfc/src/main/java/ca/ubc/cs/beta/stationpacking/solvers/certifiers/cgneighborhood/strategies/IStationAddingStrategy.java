@@ -2,6 +2,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategi
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 import java.util.Set;
 
@@ -10,6 +12,6 @@ import java.util.Set;
 */
 public interface IStationAddingStrategy {
 
-    Iterable<Set<Station>> getStationsToPack(StationPackingInstance stationPackingInstance, Set<Station> missingStations);
+    Iterable<Set<Station>> getStationsToPack(SimpleGraph<Station,DefaultEdge> graph, Set<Station> missingStations);
 
 }

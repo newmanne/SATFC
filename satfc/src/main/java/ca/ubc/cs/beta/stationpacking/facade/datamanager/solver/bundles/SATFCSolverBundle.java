@@ -21,8 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.Arrays;
-
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -39,7 +37,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategie
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
@@ -141,11 +138,11 @@ public class SATFCSolverBundle extends ASolverBundle {
             log.debug("Adding neighborhood presolvers.");
             UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
-                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff));
+                                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(1), SATcertifiercutoff), getConstraintManager());
 
             VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,
                                     new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.HVHF_CONFIG_09_13_MODIFIED)),
-                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(getConstraintManager(), 1), SATcertifiercutoff));
+                                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(1), SATcertifiercutoff), getConstraintManager());
         }
 
         if (useCache) {

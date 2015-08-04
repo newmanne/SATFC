@@ -2,10 +2,13 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategi
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import com.google.common.collect.AbstractIterator;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.math.util.FastMath;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -36,8 +39,8 @@ public class IterativeDeepeningConfigurationStrategy implements IStationPackingC
     }
 
     @Override
-    public Iterable<StationPackingConfiguration> getConfigurations(ITerminationCriterion terminationCriterion, StationPackingInstance stationPackingInstance, Set<Station> missingStations) {
-        final Iterable<Set<Station>> stationsToPackIterable = stationAddingStrategy.getStationsToPack(stationPackingInstance, missingStations);
+    public Iterable<StationPackingConfiguration> getConfigurations(SimpleGraph<Station, DefaultEdge> graph, Set<Station> missingStations) {
+        final Iterable<Set<Station>> stationsToPackIterable = stationAddingStrategy.getStationsToPack(graph, missingStations);
         return () -> new AbstractIterator<StationPackingConfiguration>() {
 
             Iterator<Set<Station>> stationsToPackIterator = stationsToPackIterable.iterator();

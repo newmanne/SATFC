@@ -1,6 +1,5 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,7 +17,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.Constrain
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.solvers.composites.SequentialSolversComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
@@ -56,10 +54,10 @@ public class SATFCHydraBundle extends ASolverBundle {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.UNSATpresolverExpansionMethod) {
                 case NEIGHBOURHOOD:
-                    stationAddingStrategy = new AddNeighbourLayerStrategy(getConstraintManager());
+                    stationAddingStrategy = new AddNeighbourLayerStrategy();
                     break;
                 case UNIFORM_RANDOM:
-                    stationAddingStrategy = new AddRandomNeighboursStrategy(getConstraintManager(), params.UNSATpresolverNumNeighbours, 1);
+                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.UNSATpresolverNumNeighbours, 1);
                     break;
                 default:
                     throw new IllegalStateException("Unrecognized presolver expansion method " + params.UNSATpresolverExpansionMethod);
@@ -67,17 +65,17 @@ public class SATFCHydraBundle extends ASolverBundle {
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.UNSATpresolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverBaseCutoff, params.UNSATpresolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverCutoff);
             return new ConstraintGraphNeighborhoodPresolver(solver,
                                     new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
-                                    stationPackingConfigurationStrategy
-                            );
+                                    stationPackingConfigurationStrategy,
+                    getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.presolverExpansionMethod) {
                 case NEIGHBOURHOOD:
-                    stationAddingStrategy = new AddNeighbourLayerStrategy(getConstraintManager());
+                    stationAddingStrategy = new AddNeighbourLayerStrategy();
                     break;
                 case UNIFORM_RANDOM:
-                    stationAddingStrategy = new AddRandomNeighboursStrategy(getConstraintManager(), params.presolverNumNeighbours, 1);
+                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.presolverNumNeighbours, 1);
                     break;
                 default:
                     throw new IllegalStateException("Unrecognized presolver expansion method " + params.presolverExpansionMethod);
@@ -85,8 +83,8 @@ public class SATFCHydraBundle extends ASolverBundle {
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.presolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverBaseCutoff, params.presolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverCutoff);
             return new ConstraintGraphNeighborhoodPresolver(solver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
-                                    stationPackingConfigurationStrategy
-                            );
+                                    stationPackingConfigurationStrategy,
+                    getConstraintManager());
         });
         fSolver = new VoidSolver();
         log.debug(params.getSolverOrder().toString());

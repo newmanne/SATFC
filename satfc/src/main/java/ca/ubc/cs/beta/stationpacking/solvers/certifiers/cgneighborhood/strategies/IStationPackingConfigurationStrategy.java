@@ -3,6 +3,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategi
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 import java.util.Set;
 
@@ -11,6 +13,6 @@ import java.util.Set;
 */
 public interface IStationPackingConfigurationStrategy {
 
-    Iterable<StationPackingConfiguration> getConfigurations(ITerminationCriterion terminationCriterion, StationPackingInstance stationPackingInstance, Set<Station> missingStations);
+    Iterable<StationPackingConfiguration> getConfigurations(SimpleGraph<Station, DefaultEdge> graph, Set<Station> missingStations);
 
 }

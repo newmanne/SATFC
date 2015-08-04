@@ -10,6 +10,7 @@ import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -23,22 +24,20 @@ import java.util.stream.Collectors;
 public class AddNeighbourLayerStrategy implements IStationAddingStrategy {
 
     private final int maxLayers;
-    private final IConstraintManager fConstraintManager;
 
-    public AddNeighbourLayerStrategy(IConstraintManager constraintManager, int maxLayers) {
-        this.fConstraintManager = constraintManager;
+    public AddNeighbourLayerStrategy(int maxLayers) {
         Preconditions.checkArgument(maxLayers > 0, "max layers must be > 0");
         this.maxLayers = maxLayers;
     }
 
-    public AddNeighbourLayerStrategy(IConstraintManager constraintManager) {
-        this(constraintManager, Integer.MAX_VALUE);
+    public AddNeighbourLayerStrategy() {
+        this(Integer.MAX_VALUE);
     }
 
     @Override
-    public Iterable<Set<Station>> getStationsToPack(StationPackingInstance instance, Set<Station> missingStations) {
-        log.debug("Building constraint graph.");
-        final NeighborIndex<Station, DefaultEdge> neighbourIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance.getDomains(), fConstraintManager));
+    public Iterable<Set<Station>> getStationsToPack(SimpleGraph<Station, DefaultEdge> graph, Set<Station> missingStations) {
+        Preconditions.checkArgument(missingStations.size() > 0, "Cannot provide empty missing stations");
+        final NeighborIndex<Station, DefaultEdge> neighbourIndex = new NeighborIndex<>(graph);
         return () -> new AbstractIterator<Set<Station>>() {
 
             Set<Station> prev = new HashSet<>(missingStations);
@@ -65,4 +64,5 @@ public class AddNeighbourLayerStrategy implements IStationAddingStrategy {
 
         };
     }
+
 }
