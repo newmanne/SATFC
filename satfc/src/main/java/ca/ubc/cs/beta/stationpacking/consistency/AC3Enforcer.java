@@ -1,12 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.consistency;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +37,8 @@ public class AC3Enforcer {
      * @return
      */
     public AC3Output AC3(StationPackingInstance instance, ITerminationCriterion criterion) {
-        final Map<Station, Set<Integer>> reducedDomains = new HashMap<>(instance.getDomains());
+        // Deep copy map
+        final Map<Station, Set<Integer>> reducedDomains = instance.getDomains().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> new HashSet<>(entry.getValue())));
         final AC3Output output = new AC3Output(reducedDomains);
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance.getDomains(), constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
