@@ -27,7 +27,6 @@ public class StationSamplerParameters extends AbstractOptions {
     }
 
     public enum StationSamplingMethod {
-        POPULATION_SIZE,
-        ADD_SMALLEST
+        POPULATION_SIZE
     }
 }
