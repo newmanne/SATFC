@@ -47,9 +47,6 @@ import com.google.common.collect.Maps;
  * A station is underconstrained if no matter what channels the other stations are assigned to, the station will always have a feasible
  * channel to be packed on.
  * 
- * We "approximately" find underconstrained stations by limiting to stations that have more domain channels than sum of stations that CO- or ADJ+1-
- * interfering with them (double counting stations that interferes the two ways).
- * 
  * @author afrechet
  */
 @Slf4j
