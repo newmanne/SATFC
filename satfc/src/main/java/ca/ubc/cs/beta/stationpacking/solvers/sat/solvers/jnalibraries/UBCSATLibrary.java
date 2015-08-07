@@ -3,33 +3,62 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries;
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.LongByReference;
 
 /**
- * Created by pcernek on 7/27/15.
+ * This is the Java half of the JNA bridge used to run any legal configuration of UBCSAT/SATenstein from SATFC.
+ *
+ * ***WARNING***: Due to conventions involving the use of global variables in UBCSAT, it is NOT
+ *  safe to instantiate multiple configurations in succession that use different algorithms of UBCSAT in succession
+ *  (i.e. they pass different values to the "-alg" command-line parameter).
+ *
+ *  If one wants to run multiple different algorithms, these should be instantiated separately
+ *  via multiple calls to {@link com.sun.jna.Native#loadLibrary}, passing the
+ *  {@link ca.ubc.cs.beta.stationpacking.utils.NativeUtils#NATIVE_OPTIONS} argument each time.
+ *
+ *  Example: <code>Native.loadLibrary(pathToUBCSATLibrary, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS);</code>
+ *
+ * @author pcernek on 7/27/15.
  */
 public interface UBCSATLibrary extends Library {
 
-    /**
-     * Begin solving a problem by calling this method. The reference returned here is used in all subsequent methods.
+     /**
+     * First step in solving a problem. The reference returned here is used in all subsequent methods.
      * This should be called for every problem you want to solve - don't re-use the pointer returned across problems!
-     * @param params The arguments to clasp
+     * @param params The arguments to UBCSAT
      * @return A pointer to a JNAProblem
      */
     Pointer initConfig(final String params);
 
     /**
-     * Pass a problem to the solver. Does not start solving the problem
+     Pass a problem to the solver. Does not start solving the problem.
      * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
      * @param problemString CNF of the problem to solve
+     * @return True if returned error free
      */
-    void initProblem(Pointer jnaProblemPointer, final String problemString);
+    boolean initProblem(Pointer jnaProblemPointer, final String problemString);
+
+    /**
+     * Set the values of the variables for a given problem.
+     * Must be called after {@link #initProblem(Pointer, String)}
+     * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
+     * @param initialAssignment reference to an array of longs, where the magnitude of each number corresponds
+     *                          to a variable id, and the sign corresponds to the assignment for that variable.
+     *                          Positive vars get initialized to True, negative vars to False.
+     *                          Note that this can be a partial initial assignment, so any variable not mentioned
+     *                          in this initial assignment gets randomly initiated by default. (Random initial
+     *                          assignment happens in {@link #initProblem(Pointer, String)}
+     * @return True if returned error free
+     */
+    boolean initAssignment(Pointer jnaProblemPointer, long[] initialAssignment, int numberOfVars);
 
     /**
      * Actually solve the problem. Must have previously called {@link #initProblem(com.sun.jna.Pointer, String)} or this has undefined behavior
      * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
-     * @param timeoutTime How long to try solving the problem for before returning a timeout
+     * @param timeoutTime How long to try solving the problem for before returning a timeout (in seconds)
+     * @return True if returned error free
      */
-    void solveProblem(Pointer jnaProblemPointer, double timeoutTime);
+    boolean solveProblem(Pointer jnaProblemPointer, double timeoutTime);
 
     /**
      * Destroy the problem and all associated information. Should always be called to clean up.
@@ -42,19 +71,13 @@ public interface UBCSATLibrary extends Library {
      * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
      * @return false is the interrupt was successful
      */
-    boolean interrupt(Pointer jnaProblemPointer);
+    void interrupt(Pointer jnaProblemPointer);
 
     /**
      * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
-     * @return 0 if UNSAT, 1 if SAT, 2 if TIMEOUT, 3 if INTERRUPTED, 4 otherwise
+     * @return 1 if SAT, 2 if TIMEOUT, 3 if INTERRUPTED, 4 otherwise
      */
     int getResultState(Pointer jnaProblemPointer);
-
-    /**
-     * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
-     * @return 0 if unconfigured, 1 if configured, 2 if error
-     */
-    int getConfigState(Pointer jnaProblemPointer);
 
     /**
      * Only call this if the problem is SAT
@@ -68,6 +91,6 @@ public interface UBCSATLibrary extends Library {
      * @param jnaProblemPointer A pointer from having previously called {@link #initConfig(String)} method
      * @return The configuration error message
      */
-    String getConfigErrorMessage(Pointer jnaProblemPointer);
+    String getErrorMessage(Pointer jnaProblemPointer);
 
 }
