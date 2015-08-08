@@ -22,15 +22,14 @@
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
-import ilog.cplex.IloCplex.Status;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.output.NullOutputStream;
 import org.jgrapht.alg.NeighborIndex;
@@ -65,10 +64,8 @@ import java.util.stream.Collectors;
  * <p/>
  * This problem seems to be a variant of the Maximum Coverage Problem
  * <p/>
- * We do not solve the problem exactly, but rely instead take the minimum of two
- * heuristics that are upper bounds to this question 1) The size of the union of
- * all the sets in every group 2) The sum of the sizes of the largest set in
- * every group
+ * We do not solve the program exactly, but instead solve a relaxed linear program in which a station can choice a fractional amount of of each of its sets.
+ * Note that to truly solve the underconstrained problem, you would also have to make sure that the corresponding choices from the neighbours channels were actually satisfying assignments
  */
 @Slf4j
 public class UnderconstrainedStationFinder implements
@@ -82,114 +79,64 @@ public class UnderconstrainedStationFinder implements
 
     @Override
     public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion terminationCriterion) {
-        final Set<Station> underconstrainedStations = new HashSet<Station>();
+        // TODO: the outer loop should be a decorator
+        final Set<Station> underconstrainedStations = new HashSet<>();
+        final Map<Station, Set<Integer>> domainsCopy = new HashMap<>(domains);
         log.debug("Finding underconstrained stations in the instance...");
-
-        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, constraintManager));
-        for (final Entry<Station, Set<Integer>> domainEntry : domains.entrySet()) {
-            final Station station = domainEntry.getKey();
-            final Set<Integer> domain = domainEntry.getValue();
-            final Set<Station> neighbours = neighborIndex.neighborsOf(station);
-            log.debug("Station {} has {} neighbours, {}", station, neighbours.size(), neighbours);
-            if (!neighbours.isEmpty()) {
-                // Fill up the initial map
-                final Map<Station, Set<Set<Integer>>> channelsThatANeighbourCanBlockOut = neighbours.stream()
-                    .collect(
-                            Collectors.toMap(
-                                    Function.identity(),
-                                    neighbour -> domains.get(neighbour)
-                                            .stream()
-                                            .map(neighbourChannel -> domain.stream()
-                                                    .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
-                                                    .collect(Collectors.toSet()))
-                                            .collect(Collectors.toSet())
-                            )
-                    );
-                int maxSpread;
-                try {
-//                    maxSpread = encodeILP(domain, channelsThatANeighbourCanBlockOut);
-                	maxSpread = (int) Math.floor(encodeMip(domain, channelsThatANeighbourCanBlockOut));
-                } catch (IloException e) {
-                    throw new RuntimeException(e);
+        boolean changed = true;
+        int roundCounter = 0;
+        while (changed) { // TODO: in subsequent rounds, you only need to check neighbours of removed underconstrained stations (otherwise nothing's changed)  - this should dramaticlaly speed up later rounds
+            final Set<Station> roundUnderconstrainedStations = new HashSet<>();
+            final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domainsCopy, constraintManager));
+            for (final Entry<Station, Set<Integer>> domainEntry : domainsCopy.entrySet()) {
+                final Station station = domainEntry.getKey();
+                final Set<Integer> domain = domainEntry.getValue();
+                final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+                log.debug("Station {} has {} neighbours, {}", station, neighbours.size(), neighbours);
+                if (neighbours.isEmpty()) {
+                    log.debug("Station {} has no neighbours and is therefore trivially underconstrained", station);
+                    roundUnderconstrainedStations.add(station);
+                } else {
+                    // Create a map of which channels on the station's domain each of its neighbours can block it given all of their choices
+                    final Map<Station, Map<Integer, Set<Integer>>> channelsThatANeighbourCanBlockOut = neighbours.stream() // Map<Neighbour, Map<NeigbhournCHannel, Set<MyBadChannel>>
+                            .collect(
+                                    Collectors.toMap(
+                                            Function.identity(),
+                                            neighbour -> domainsCopy.get(neighbour).stream()
+                                                    .collect(
+                                                            Collectors.toMap(
+                                                                    Function.identity(),
+                                                                    neighbourChannel -> domain.stream()
+                                                                            .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, (int) neighbourChannel))
+                                                                            .collect(Collectors.toSet())
+                                                            )
+                                                    )
+                                    )
+                            ); // TODO: filter empty entries or subsets?
+                    int maxSpread;
+                    try {
+                        maxSpread = (int) Math.floor(encodeAndSolveAsLinearProgram(domain, channelsThatANeighbourCanBlockOut, domainsCopy));
+                    } catch (IloException e) {
+                        throw new RuntimeException(e);
+                    }
+                    log.trace("Max spread is upper bounded at {}, and the domain is of size {}", maxSpread, domain.size());
+                    if (maxSpread < domain.size()) {
+                        log.debug("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
+                        roundUnderconstrainedStations.add(station);
+                    }
                 }
-                // log.info("Max spread is upper bounded at {}, and the domain is of size {}",
-                // maxSpread, domain.size());
-                if (maxSpread < domain.size()) {
-                    log.debug("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
-                    underconstrainedStations.add(station);
-                }
-            } else {
-                // No neighbours, trivially underconstrained
-                log.debug("Station {} has no neighbours, underconstrained", station);
-                underconstrainedStations.add(station);
             }
+            changed = underconstrainedStations.addAll(roundUnderconstrainedStations);
+            domainsCopy.keySet().removeAll(roundUnderconstrainedStations);
+            log.info("Found {} new underconstrained stations in round {}", roundUnderconstrainedStations.size(), roundCounter++);
         }
         log.info("Found {} underconstrained stations", underconstrainedStations.size());
         return underconstrainedStations;
     }
 
-    public int encodeILP(Set<Integer> domain, Map<Station, Set<Set<Integer>>> channels) throws IloException {
-        final IloCplex cplex = new IloCplex();
-        // Squash logging
-        cplex.setOut(new NullOutputStream());
-        final List<Integer> domainAsList = new ArrayList<>(domain);
-        final IloLinearNumExpr[] constraints = new IloLinearNumExpr[domain.size()];
-        for (int i = 0; i < domain.size(); i++) {
-            constraints[i] = cplex.linearNumExpr();
-        }
-        for (Set<Set<Integer>> c : channels.values()) {
-            final IloIntVar[] sjk = cplex.boolVarArray(c.size());
-            final Iterator<Set<Integer>> iterator = c.iterator();
-            int m = 0;
-            while (iterator.hasNext()) {
-                final Set<Integer> c2 = iterator.next();
-                for (final Integer i : c2) {
-                    final int ind = domainAsList.indexOf(i);
-                    constraints[ind].addTerm(1.0, sjk[m]);
-                }
-                m++;
-            }
-            cplex.addEq(cplex.sum(sjk), 1.0);
-        }
-        final IloIntVar[] uArray = cplex.boolVarArray(domain.size());
-        final IloIntVar[] qArray = cplex.intVarArray(domain.size(), -Integer.MAX_VALUE, 0);
-        final double epsilon = 10e-3;
-        final IloLinearNumExpr obj = cplex.linearNumExpr();
-        final double[] uCoeffs = new double[uArray.length];
-        Arrays.fill(uCoeffs, 1);
-        obj.addTerms(uArray, uCoeffs);
-        final double[] qCoeffs = new double[qArray.length];
-        Arrays.fill(uCoeffs, epsilon);
-        obj.addTerms(qArray, qCoeffs);
-        cplex.addMaximize(obj);
-        for (int i = 0; i < domainAsList.size(); i++) {
-            final IloIntVar u = uArray[i];
-            final IloIntVar q = qArray[i];
-            final IloLinearNumExpr justu = cplex.linearNumExpr();
-            justu.addTerm(1.0, u);
-            IloLinearNumExpr qSide = cplex.linearNumExpr();
-            qSide.addTerm(1.0, q);
-            qSide.add(constraints[i]);
-            cplex.addEq(qSide, justu);
-        }
-        final boolean feasible = cplex.solve();
-        log.debug("Solution status = " + cplex.getStatus());
-        Integer d = null;
-        if (feasible && cplex.getStatus().equals(Status.Optimal)) {
-            log.trace("Solution objective function value = " + cplex.getObjValue());
-            double[] val = cplex.getValues(uArray);
-            double sum = Arrays.stream(val).sum();
-            log.trace("U values sum is {}", sum);
-            d = (int) sum;
-        } else {
-            log.info("Could not solve MIP");
-        }
-        cplex.end();
-        return d != null ? d : Integer.MAX_VALUE;
-    }
-
-    public double encodeMip(Set<Integer> domain,
-                            Map<Station, Set<Set<Integer>>> channels) throws IloException {
+    public double encodeAndSolveAsLinearProgram(Set<Integer> domain,
+                                                Map<Station, Map<Integer, Set<Integer>>> channels,
+                                                Map<Station, Set<Integer>> domains) throws IloException {
         IloCplex cplex = new IloCplex();
         cplex.setOut(new NullOutputStream());
         final List<Integer> domainAsList = new ArrayList<>(domain);
@@ -197,14 +144,19 @@ public class UnderconstrainedStationFinder implements
         for (int i = 0; i < domain.size(); i++) {
             constraints[i] = cplex.linearNumExpr();
         }
-        for (Set<Set<Integer>> c : channels.values()) {
+        final Map<Station, Map<Integer, IloNumVar>> stationToChannelToVar = new HashMap<>();
+        for (Entry<Station, Map<Integer, Set<Integer>>> entry : channels.entrySet()) {
+            final Station station = entry.getKey();
+            stationToChannelToVar.put(station, new HashMap<>());
+            Collection<Entry<Integer, Set<Integer>>> c = entry.getValue().entrySet();
             int size = c.size();
             IloNumVar[] sjk = cplex.numVarArray(size, 0, 1.0);
-            final Iterator<Set<Integer>> iterator = c.iterator();
+            final Iterator<Entry<Integer, Set<Integer>>> iterator = c.iterator();
             int m = 0;
             while (iterator.hasNext()) {
-                Set<Integer> c2 = iterator.next();
-                for (Integer i : c2) {
+                Entry<Integer, Set<Integer>> c2 = iterator.next();
+                stationToChannelToVar.get(station).put(c2.getKey(), sjk[m]);
+                for (Integer i : c2.getValue()) {
                     int ind = domainAsList.indexOf(i);
                     constraints[ind].addTerm(1.0, sjk[m]);
                 }
@@ -233,6 +185,18 @@ public class UnderconstrainedStationFinder implements
             qSide.addTerm(1.0, q);
             qSide.add(constraints[i]);
             cplex.addEq(qSide, justu);
+        }
+        
+        for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains)) {
+        	Map<Integer, IloNumVar> channelToVarSource = stationToChannelToVar.get(constraint.getSource());
+        	Map<Integer, IloNumVar> channelToVarTarget = stationToChannelToVar.get(constraint.getTarget());
+        	if (channelToVarSource != null && channelToVarTarget != null) {
+                IloNumVar sourceSjk = channelToVarSource.get(constraint.getSourceChannel());
+                IloNumVar targetSjk = channelToVarTarget.get(constraint.getTargetChannel());
+                if (sourceSjk != null && targetSjk != null) {
+                	cplex.addLe(cplex.sum(sourceSjk, targetSjk), 1.0);
+                }
+        	}
         }
 
         // Solve the MIP.
