@@ -5,10 +5,9 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.ConditionallyUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
 
 /**
@@ -25,7 +24,7 @@ public class StatsSolverBundle extends ASolverBundle {
             ) {
         super(aStationManager, aConstraintManager);
         solver = new VoidSolver();
-        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), true));
+        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new ConditionallyUnderconstrainedStationFinder(new UnderconstrainedStationFinder(getConstraintManager()), getConstraintManager()));
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
     }
 

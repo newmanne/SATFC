@@ -144,7 +144,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 if (underconstrained) {
                     //Remove unconstrained stations.
                     log.debug("Decorate solver to first remove underconstrained stations.");
-                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), true));
+                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()));
                 }
                 UHFSolver = new ArcConsistencyEnforcerDecorator(UHFSolver, getConstraintManager());
                 return UHFSolver;
@@ -163,7 +163,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
         if (underconstrained) {
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), false));
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()));
         }
         if (presolve) {
             VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,

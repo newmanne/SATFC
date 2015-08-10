@@ -37,7 +37,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ConstraintKey;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.TestConstraintManager;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -60,7 +59,7 @@ public class UnderconstrainedStationFinderTest {
          });
     	});
         IConstraintManager constraintManager = new TestConstraintManager(testConstraints);
-        UnderconstrainedStationFinder finder = new UnderconstrainedStationFinder(constraintManager, false);
+        UnderconstrainedStationFinder finder = new UnderconstrainedStationFinder(constraintManager);
 
         final Map<Station, Set<Integer>> domains = ImmutableMap.<Station, Set<Integer>>builder()
                 .put(s1, ImmutableSet.of(1, 2, 3))
