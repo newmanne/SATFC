@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
@@ -43,7 +44,7 @@ public class ConditionallyUnderconstrainedStationFinder implements IUnderconstra
             if (changed) {
                 domainsCopy.keySet().removeAll(roundUnderconstrainedStations);
                 // You only need to recheck a station that might be underconstrained because some of his neigbhours have disappeared
-                stationsToRecheck.addAll(roundUnderconstrainedStations.stream().map(neighborIndex::neighborsOf).flatMap(Collection::stream).collect(Collectors.toSet()));
+                stationsToRecheck.addAll(Sets.difference(roundUnderconstrainedStations.stream().map(neighborIndex::neighborsOf).flatMap(Collection::stream).collect(Collectors.toSet()), roundUnderconstrainedStations));
             }
             log.info("Found {} new underconstrained stations in round {}", roundUnderconstrainedStations.size(), roundCounter++);
         }
