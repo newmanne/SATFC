@@ -94,7 +94,7 @@ public abstract class ASolverBundleTest {
             final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
             final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
             log.info("Solving instance " + entry.getKey());
-            final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60.0), 1);
+            final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new NeverEndingTerminationCriterion(), 1);
 //            Assert.assertEquals(entry.getValue(), solverResult.getResult());
         }
     }

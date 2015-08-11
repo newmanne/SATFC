@@ -129,8 +129,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         {
             //Remove unconstrained stations.
             log.debug("Decorate solver to first remove underconstrained stations.");
-            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()));
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()));
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
         }
 
         if (presolve)

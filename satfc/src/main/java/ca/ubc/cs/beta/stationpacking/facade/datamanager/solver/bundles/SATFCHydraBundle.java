@@ -45,7 +45,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.UNDERCONSTRAINED, solver -> {
-            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()));
+            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);

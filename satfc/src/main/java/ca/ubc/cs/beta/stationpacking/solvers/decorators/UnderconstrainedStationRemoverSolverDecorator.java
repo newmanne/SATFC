@@ -56,11 +56,13 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 
 	private final IUnderconstrainedStationFinder underconstrainedStationFinder;
 	private final IConstraintManager constraintManager;
+    private final boolean recurse;
 	
-	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager constraintManager, IUnderconstrainedStationFinder underconstrainedStationFinder) {
+	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager constraintManager, IUnderconstrainedStationFinder underconstrainedStationFinder, boolean recurse) {
 		super(aSolver);
 		this.underconstrainedStationFinder = underconstrainedStationFinder;
 		this.constraintManager = constraintManager;
+        this.recurse = recurse;
 	}
 	
 	@Override
@@ -96,7 +98,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
             StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
             preTime = watch.getElapsedTime();
             log.trace("{} s spent on underconstrained pre-solving setup.",preTime);
-            if (!underconstrainedStations.isEmpty()) {
+            if (recurse && !underconstrainedStations.isEmpty()) {
                 log.debug("Going one layer deeper with underconstrained station removal");
                 // You only need to recheck a station that might be underconstrained because some of his neigbhours have disappeared
                 final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);

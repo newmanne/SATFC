@@ -58,7 +58,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
         cacheOnlySolver = new VoidSolver();
         cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
         cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager(), components);
-        cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager, new UnderconstrainedStationFinder(aConstraintManager));
+        cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager, new UnderconstrainedStationFinder(aConstraintManager), false);
         if (!components) {
             cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
             cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);

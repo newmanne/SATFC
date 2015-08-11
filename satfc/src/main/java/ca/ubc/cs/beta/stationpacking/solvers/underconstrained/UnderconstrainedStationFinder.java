@@ -71,9 +71,15 @@ import java.util.stream.Collectors;
 public class UnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
 
     private final IConstraintManager constraintManager;
+    private boolean exact;
 
-    public UnderconstrainedStationFinder(IConstraintManager constraintManager) {
+    public UnderconstrainedStationFinder(IConstraintManager constraintManager, boolean exact) {
         this.constraintManager = constraintManager;
+        this.exact = exact;
+    }
+    
+    public UnderconstrainedStationFinder(IConstraintManager constraintManager) {
+    	this(constraintManager, false);
     }
 
     @Override
@@ -99,7 +105,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                                                         Collectors.toMap(
                                                                 Function.identity(),
                                                                 neighbourChannel -> domain.stream()
-                                                                        .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour,(int) neighbourChannel))
+                                                                        .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, (int) neighbourChannel))
                                                                         .collect(Collectors.toSet())
                                                         )
                                                 )
@@ -138,7 +144,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             stationToChannelToVar.put(station, new HashMap<>());
             Collection<Entry<Integer, Set<Integer>>> c = entry.getValue().entrySet();
             int size = c.size();
-            IloNumVar[] sjk = cplex.numVarArray(size, 0, 1.0);
+            IloNumVar[] sjk = exact ? cplex.boolVarArray(size) : cplex.numVarArray(size, 0, 1.0);
             final Iterator<Entry<Integer, Set<Integer>>> iterator = c.iterator();
             int m = 0;
             while (iterator.hasNext()) {
@@ -152,8 +158,8 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             }
             cplex.addEq(cplex.sum(sjk), 1.0);
         }
-        IloNumVar[] uArray = cplex.numVarArray(domain.size(), 0, 1);
-        IloNumVar[] qArray = cplex.numVarArray(domain.size(), -Double.MAX_VALUE, 0);
+        IloNumVar[] uArray = exact ? cplex.boolVarArray(domain.size()) : cplex.numVarArray(domain.size(), 0, 1);
+        IloNumVar[] qArray = exact ? cplex.intVarArray(domain.size(), -Integer.MAX_VALUE, 0) : cplex.numVarArray(domain.size(), -Double.MAX_VALUE, 0);
         final double epsilon = 10e-3;
         final IloLinearNumExpr obj = cplex.linearNumExpr();
         final double[] uCoeffs = new double[uArray.length];
@@ -199,7 +205,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
             double[] val = cplex.getValues(uArray);
             double sum = Arrays.stream(val).sum();
             d = sum;
-            // log.info("Sum is {}", sum);
+            log.trace("Sum is {}", sum);
         } else {
             log.info("Could not solve MIP");
             // cplex.exportModel("/home/newmanne/test.lp");
