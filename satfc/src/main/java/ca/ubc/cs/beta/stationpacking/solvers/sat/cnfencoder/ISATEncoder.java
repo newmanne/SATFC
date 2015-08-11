@@ -42,6 +42,11 @@ public interface ISATEncoder {
 	 */
 	public Pair<CNF,ISATDecoder> encode(StationPackingInstance aInstance);
 
-	
+	/**
+	 *
+	 * @param aInstance
+	 * @return
+	 */
+	public SATEncoder.CNFEncodedProblem encodeWithAssignment(StationPackingInstance aInstance);
 	
 }

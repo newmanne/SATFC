@@ -63,6 +63,7 @@ public class SATEncoder implements ISATEncoder {
         fBijection = aBijection;
     }
 
+    @Override
     public CNFEncodedProblem encodeWithAssignment(StationPackingInstance aInstance) {
         Pair<CNF, ISATDecoder> enconding = encode(aInstance);
         /**

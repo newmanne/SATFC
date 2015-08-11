@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,9 +68,9 @@ public class GenericSATBasedSolver implements ISolver {
         log.debug("Solving instance of {}...", aInstance.getInfo());
 
         log.debug("Encoding subproblem in CNF...");
-        Pair<CNF, ISATDecoder> aEncoding = fSATEncoder.encode(aInstance);
-        CNF aCNF = aEncoding.getKey();
-        ISATDecoder aDecoder = aEncoding.getValue();
+        SATEncoder.CNFEncodedProblem aEncoding = fSATEncoder.encodeWithAssignment(aInstance);
+        CNF aCNF = aEncoding.getCnf();
+        ISATDecoder aDecoder = aEncoding.getDecoder();
         log.debug("CNF has {} clauses.", aCNF.size());
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
@@ -78,7 +79,7 @@ public class GenericSATBasedSolver implements ISolver {
         else
         {
             log.debug("Solving the subproblem CNF with " + aTerminationCriterion.getRemainingTime() + " s remaining.");
-            SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aTerminationCriterion, aSeed);
+            SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aEncoding.getInitialAssignment(), aTerminationCriterion, aSeed);
             log.debug("Parsing result.");
             Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
             if (satSolverResult.getResult().equals(SATResult.SAT)) {
