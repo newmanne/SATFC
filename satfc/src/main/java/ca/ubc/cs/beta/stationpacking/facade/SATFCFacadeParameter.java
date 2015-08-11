@@ -38,6 +38,7 @@ public class SATFCFacadeParameter {
 
     // public options
 	private final String claspLibrary;
+	private final String ubcsatLibrary;
 	private final String resultFile;
 	private final SolverChoice solverChoice;
     private final String serverURL;
@@ -66,6 +67,7 @@ public class SATFCFacadeParameter {
         STATS,
         HYDRA,
         LONG_CUTOFF;
+        UBCSAT
     }
 
 }

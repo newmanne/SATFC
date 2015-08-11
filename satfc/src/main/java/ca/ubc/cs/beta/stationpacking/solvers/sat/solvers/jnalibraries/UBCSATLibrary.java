@@ -9,7 +9,7 @@ import com.sun.jna.ptr.LongByReference;
  * This is the Java half of the JNA bridge used to run any legal configuration of UBCSAT/SATenstein from SATFC.
  *
  * ***WARNING***: Due to conventions involving the use of global variables in UBCSAT, it is NOT
- *  safe to instantiate multiple configurations in succession that use different algorithms of UBCSAT in succession
+ *  safe to instantiate multiple configurations in succession that use different algorithms of UBCSAT
  *  (i.e. they pass different values to the "-alg" command-line parameter).
  *
  *  If one wants to run multiple different algorithms, these should be instantiated separately

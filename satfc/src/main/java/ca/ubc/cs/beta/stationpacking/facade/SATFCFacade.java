@@ -141,6 +141,8 @@ public class SATFCFacade implements AutoCloseable {
                                 return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             case STATS:
                                 return new StatsSolverBundle(dataBundle, aSATFCParameters.getClaspLibrary());
+                            case UBCSAT:
+                                return new UBCSATSolverBundle(aStationManager, aConstraintManager);
                             case LONG_CUTOFF:
                                 return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
                             default:
