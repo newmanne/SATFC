@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2015, Auctionomics, Alexandre FrÃ©chette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -80,44 +80,44 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
     public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion terminationCriterion, Set<Station> stationsToCheck) {
         final Set<Station> underconstrainedStations = new HashSet<>();
         log.debug("Finding underconstrained stations in the instance...");
-            final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, constraintManager));
-            for (final Station station : stationsToCheck) {
-                final Set<Integer> domain = domains.get(station);
-                final Set<Station> neighbours = neighborIndex.neighborsOf(station);
-                log.debug("Station {} has {} neighbours, {}", station, neighbours.size(), neighbours);
-                if (neighbours.isEmpty()) {
-                    log.debug("Station {} has no neighbours and is therefore trivially underconstrained", station);
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, constraintManager));
+        for (final Station station : stationsToCheck) {
+            final Set<Integer> domain = domains.get(station);
+            final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+            log.debug("Station {} has {} neighbours, {}", station, neighbours.size(), neighbours);
+            if (neighbours.isEmpty()) {
+                log.debug("Station {} has no neighbours and is therefore trivially underconstrained", station);
+                underconstrainedStations.add(station);
+            } else {
+                // Create a map of which channels on the station's domain each of its neighbours can block it given all of their choices
+                final Map<Station, Map<Integer, Set<Integer>>> channelsThatANeighbourCanBlockOut = neighbours.stream() // Map<Neighbour, Map<NeigbhournCHannel, Set<MyBadChannel>>
+                        .collect(
+                                Collectors.toMap(
+                                        Function.identity(),
+                                        neighbour -> domains.get(neighbour).stream()
+                                                .collect(
+                                                        Collectors.toMap(
+                                                                Function.identity(),
+                                                                neighbourChannel -> domain.stream()
+                                                                        .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour,(int) neighbourChannel))
+                                                                        .collect(Collectors.toSet())
+                                                        )
+                                                )
+                                )
+                        ); // TODO: filter empty entries or subsets?
+                double maxSpread;
+                try {
+                    maxSpread = encodeAndSolveAsLinearProgram(domain, channelsThatANeighbourCanBlockOut, domains);
+                } catch (IloException e) {
+                    throw new RuntimeException(e);
+                }
+                log.trace("Max spread is upper bounded at {}, and the domain is of size {}", maxSpread, domain.size());
+                if (maxSpread < domain.size()) {
+                    log.debug("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
                     underconstrainedStations.add(station);
-                } else {
-                    // Create a map of which channels on the station's domain each of its neighbours can block it given all of their choices
-                    final Map<Station, Map<Integer, Set<Integer>>> channelsThatANeighbourCanBlockOut = neighbours.stream() // Map<Neighbour, Map<NeigbhournCHannel, Set<MyBadChannel>>
-                            .collect(
-                                    Collectors.toMap(
-                                            Function.identity(),
-                                            neighbour -> domains.get(neighbour).stream()
-                                                    .collect(
-                                                            Collectors.toMap(
-                                                                    Function.identity(),
-                                                                    neighbourChannel -> domain.stream()
-                                                                            .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
-                                                                            .collect(Collectors.toSet())
-                                                            )
-                                                    )
-                                    )
-                            ); // TODO: filter empty entries or subsets?
-                    double maxSpread;
-                    try {
-                        maxSpread = encodeAndSolveAsLinearProgram(domain, channelsThatANeighbourCanBlockOut, domains);
-                    } catch (IloException e) {
-                        throw new RuntimeException(e);
-                    }
-                    log.trace("Max spread is upper bounded at {}, and the domain is of size {}", maxSpread, domain.size());
-                    if (maxSpread < domain.size()) {
-                        log.debug("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
-                        underconstrainedStations.add(station);
-                    }
                 }
             }
+        }
         log.debug("Found {} underconstrained stations", underconstrainedStations.size());
         return underconstrainedStations;
     }
@@ -176,9 +176,9 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         // TODO: these don't seem to be doing anything
         for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains)) {
-        	Map<Integer, IloNumVar> channelToVarSource = stationToChannelToVar.get(constraint.getSource());
-        	Map<Integer, IloNumVar> channelToVarTarget = stationToChannelToVar.get(constraint.getTarget());
-        	if (channelToVarSource != null && channelToVarTarget != null) {
+            Map<Integer, IloNumVar> channelToVarSource = stationToChannelToVar.get(constraint.getSource());
+            Map<Integer, IloNumVar> channelToVarTarget = stationToChannelToVar.get(constraint.getTarget());
+            if (channelToVarSource != null && channelToVarTarget != null) {
                 IloNumVar sourceSjk = channelToVarSource.get(constraint.getSourceChannel());
                 IloNumVar targetSjk = channelToVarTarget.get(constraint.getTargetChannel());
                 if (sourceSjk != null && targetSjk != null) {
@@ -187,7 +187,7 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                     iloLinearNumExpr.addTerm(1.0, targetSjk);
                     cplex.addLe(iloLinearNumExpr, 1.0);
                 }
-        	}
+            }
         }
 
         // Solve the MIP.

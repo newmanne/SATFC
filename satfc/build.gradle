@@ -98,7 +98,7 @@ applicationName = 'SATFC'
 jar.baseName = applicationName
 version = "$SATFCVersion-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
-applicationDefaultJvmArgs = ['-Xmx2048m']
+applicationDefaultJvmArgs = ['-Djava.library.path=/ubc/cs/research/arrow/software/CPLEX_Studio126/cplex/bin/x86-64_linux','-Xmx2048m']
 
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()

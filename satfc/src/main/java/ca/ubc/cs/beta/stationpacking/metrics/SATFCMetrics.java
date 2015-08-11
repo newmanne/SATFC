@@ -44,6 +44,7 @@ import com.codahale.metrics.jvm.BufferPoolMetricSet;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
@@ -212,7 +213,7 @@ public class SATFCMetrics {
         @Subscribe
         public void onUnderconstrainedStationsRemovedEvent(UnderconstrainedStationsRemovedEvent event) {
             safeMetricEdit(event.getName(), info -> {
-                info.setUnderconstrainedStations(event.getUnderconstrainedStations().stream().map(Station::getID).collect(Collectors.toSet()));
+                info.getUnderconstrainedStations().addAll(event.getUnderconstrainedStations().stream().map(Station::getID).collect(Collectors.toSet()));
             });
         }
 
