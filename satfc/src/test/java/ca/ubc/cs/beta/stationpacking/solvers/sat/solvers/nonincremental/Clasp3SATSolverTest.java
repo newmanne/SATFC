@@ -53,7 +53,7 @@ import com.google.common.io.Resources;
 public class Clasp3SATSolverTest {
 
     private static CNF hardCNF;
-    final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary();
+    final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.CLASP);
     final String parameters = ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1;
 
     @BeforeClass
@@ -69,7 +69,7 @@ public class Clasp3SATSolverTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testFailOnInvalidParameters() {
-        final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary();
+        final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.CLASP);
         final String parameters = "these are not valid parameters";
         log.info(libraryPath);
         new Clasp3SATSolver(libraryPath, parameters);

@@ -81,8 +81,13 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
 	public String fClaspLibrary;
-	
-	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC: Note that options other than SATFC_SEQUENTIAL and SATFC_PARALLEL are for developer purposes only")
+
+     * UBCSAT library to use (optional - can be automatically detected).
+     */
+    @Parameter(names = "-UBCSAT-LIBRARY",description = "UBCSAT library file")
+    public String fUBCSATLibrary;
+
+	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC")
 	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
 
     @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. This defaults to all available processors. This has little effect past " + SATFCParallelSolverBundle.PORTFOLIO_SIZE)
@@ -102,5 +107,4 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	
     @ParametersDelegate
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
-
 }

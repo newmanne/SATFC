@@ -38,6 +38,7 @@ public class SATFCProblemDriver {
     @Test
     public void driver() throws Exception {
         SATFCFacadeBuilder b = new SATFCFacadeBuilder();
+        b.setClaspLibrary("/ubc/cs/research/arrow/satfc/public/libjnaclasp.so");
         try (SATFCFacade facade = b.build()) {
             final String interference = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M";
             final Set<Integer> allChannels = Sets.union(StationPackingUtils.LVHF_CHANNELS, Sets.union(StationPackingUtils.UHF_CHANNELS, StationPackingUtils.HVHF_CHANNELS))
