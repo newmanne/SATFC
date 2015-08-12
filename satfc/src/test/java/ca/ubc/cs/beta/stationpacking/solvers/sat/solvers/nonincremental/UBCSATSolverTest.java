@@ -43,10 +43,6 @@ public class UBCSATSolverTest {
     private static SATEncoder.CNFEncodedProblem moderateProblem;
     private static SATEncoder.CNFEncodedProblem otherProblem;
 
-    private static String config1 = "-alg satenstein -adaptive 0 -alpha 1.3 -clausepen 0 -heuristic 5 -maxinc 10 -novnoise 0.3 -performrandomwalk 1 -pflat 0.15  -promisinglist 0 -randomwalk 4 -rfp 0.07 -rho 0.8 -sapsthresh -0.1 -scoringmeasure 1 -selectclause 1  -singleclause 1 -tabusearch 0  -varinfalse 1";
-    private static String config2 = "-alg satenstein -adaptivenoisescheme 1 -adaptiveprom 0 -adaptpromwalkprob 0 -adaptwalkprob 0 -alpha 1.126 -decreasingvariable 3 -dp 0.05 -heuristic 2 -novnoise 0.5 -performalternatenovelty 1 -phi 5 -promdp 0.05 -promisinglist 0 -promnovnoise 0.5 -promphi 5 -promtheta 6 -promwp 0.01 -rho 0.17 -scoringmeasure 3 -selectclause 1 -theta 6 -tiebreaking 1 -updateschemepromlist 3 -wp 0.03 -wpwalk 0.3 -adaptive 1 -clausepen 1 -performrandomwalk 0 -singleclause 0 -smoothingscheme 1 -tabusearch 0 -varinfalse 1";
-    private static String config3 = "-alg satenstein -adaptivenoisescheme 2 -adaptiveprom 0 -adaptpromwalkprob 0 -adaptwalkprob 0 -alpha 1.126 -c 0.0001 -decreasingvariable 3 -dp 0.05 -heuristic 2 -novnoise 0.5 -performalternatenovelty 1 -phi 5 -promdp 0.05 -promisinglist 0 -promnovnoise 0.5 -promphi 5 -promtheta 6 -promwp 0.01 -ps 0.033 -rho 0.8 -s 0.001 -scoringmeasure 3 -selectclause 1 -theta 6 -tiebreaking 3 -updateschemepromlist 3 -wp 0.04  -wpwalk 0.3 -adaptive 0 -clausepen 1 -performrandomwalk 0 -singleclause 0 -smoothingscheme 1 -tabusearch 0 -varinfalse 1";
-
     @BeforeClass
     public static void init() throws IOException {
         final IStationManager stationManager = new DomainStationManager(Resources.getResource("data/021814SC3M/Domain.csv").getFile());
@@ -75,16 +71,16 @@ public class UBCSATSolverTest {
     public void testTimeout() throws Exception {
         UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
 
-//        Watch watch = Watch.constructAutoStartWatch();
+        Watch watch = Watch.constructAutoStartWatch();
 
         ITerminationCriterion terminationCriterion = new WalltimeTerminationCriterion(0.5);
         SATSolverResult result = solver.solve(unsatProblem.getCnf(), unsatProblem.getInitialAssignment(), terminationCriterion, 1);
-//        double solvingTime = watch.getElapsedTime();
-//        System.out.println("Solving time: " + solvingTime);
-//        watch.stop();
+        double solvingTime = watch.getElapsedTime();
+        System.out.println("Solving time: " + solvingTime);
+        watch.stop();
 
         assertEquals(SATResult.TIMEOUT, result.getResult());
-//        assertTrue(solvingTime < 1);
+        assertTrue(solvingTime < 2);
     }
 
     @Test
@@ -106,11 +102,11 @@ public class UBCSATSolverTest {
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
         // Problem 3
-//        currentProblem = otherProblem;
-//        terminationCriterion = new CPUTimeTerminationCriterion(10.0);
-//        result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
-//        assertEquals(SATResult.SAT, result.getResult());
-//        checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
+        currentProblem = otherProblem;
+        terminationCriterion = new CPUTimeTerminationCriterion(10.0);
+        result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
+        assertEquals(SATResult.SAT, result.getResult());
+        checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
     }
 
@@ -120,26 +116,26 @@ public class UBCSATSolverTest {
         ITerminationCriterion terminationCriterion;
         SATSolverResult result;
 
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, config1);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_QCP_PARAMILS);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
-        solver = new UBCSATSolver(libraryPath, config2);
+        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_R3SAT_PARAMILS);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
-        solver = new UBCSATSolver(libraryPath, config3);
+        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
     }
 
-    @Test @Ignore
+    @Test
     public void testSameProblemHundredTimes() {
 //        SATEncoder.CNFEncodedProblem currentProblem = otherProblem;
         SATEncoder.CNFEncodedProblem currentProblem = easyProblem;
@@ -149,8 +145,7 @@ public class UBCSATSolverTest {
         SATSolverResult result;
 
         for (int i=0; i < 100; i++) {
-            solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
-//            solver = new UBCSATSolver(libraryPath, config3);
+            solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS);
             terminationCriterion = new CPUTimeTerminationCriterion(1.0);
             result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
             assertEquals(SATResult.SAT, result.getResult());

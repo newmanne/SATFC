@@ -87,29 +87,18 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
-            double preInit = watch.getElapsedTime();
-            log.debug("Preinit {}", preInit);
             fState = fLibrary.initConfig(fParameters);
-            double postInit = watch.getElapsedTime() - preInit;
-            log.debug("Initializing UBCSAT took {}", postInit);
 
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
-            double preProblem = watch.getElapsedTime();
             status = fLibrary.initProblem(fState, aCNF.toDIMACS(null));
-            double postProblem = watch.getElapsedTime() - preProblem;
-            log.debug("Initializing problem took {}", postProblem);
             checkStatus(status,fLibrary, fState);
 
-            double preAssignment = watch.getElapsedTime();
-            double postAssignment = 0;
             if (aPreviousAssignment != null) {
                 setPreviousAssignment(aPreviousAssignment);
             }
-            postAssignment = watch.getElapsedTime() - preAssignment;
-            log.debug("Setting previous assignment took {}", postAssignment);
 
             preTime = watch.getElapsedTime();
             log.debug("PreTime: {}", preTime);
@@ -129,9 +118,6 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             log.debug("Came back from UBCSAT after {}s.", runTime);
 
             final SATSolverResult result = getSolverResult(fLibrary, fState, runTime);
-            log.debug("Returning result: {}.", result);
-            postTime = watch.getElapsedTime() - (runTime + preTime);
-            log.debug("Post-ubcsat time: {}", postTime);
             return result;
         } finally {
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
@@ -142,8 +128,6 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             }
             log.debug("Total solver time: {}", watch.getElapsedTime());
             watch.stop();
-            final double cleanupTime = watch.getElapsedTime() - (postTime + runTime + preTime);
-            log.debug("Cleanup time: {}", cleanupTime);
         }
 
     }
