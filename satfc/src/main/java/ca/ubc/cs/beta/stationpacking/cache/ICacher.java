@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +46,21 @@ public interface ICacher {
     public static class SATCacheEntry {
         private Map<String, Object> metadata;
         private Map<Integer, Set<Station>> assignment;
+
+        public Set<Station> getStations() {
+            Set<Station> uniqueStations = new HashSet<>();
+            assignment.values().forEach(stationList -> uniqueStations.addAll(stationList));
+            return uniqueStations;
+        }
+
+        public Map<Integer, Integer> getStationToChannel() {
+            Map<Integer, Integer> stationToChannel = new HashMap<>();
+            assignment.entrySet().forEach(
+                    entry -> entry.getValue().forEach(
+                            station -> stationToChannel.put(station.getID(), entry.getKey())
+                    ));
+            return stationToChannel;
+        }
     }
 
     @Data
