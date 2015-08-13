@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 
@@ -39,7 +40,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class InstanceInfo {
 
     private int numStations;
-    private Set<Integer> stations;
+    private Set<Station> stations;
     private String name;
     private Double runtime;
     private SATResult result;
@@ -48,5 +49,6 @@ public class InstanceInfo {
     private String solvedBy;
     private Map<String, Double> timingInfo = new HashMap<>();
     private String cacheResultUsed;
+    private Map<Station, Integer> stationToDegree = new HashMap<>();
 
 }

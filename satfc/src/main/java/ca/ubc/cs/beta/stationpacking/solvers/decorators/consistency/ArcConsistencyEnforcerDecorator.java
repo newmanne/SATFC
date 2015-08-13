@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
@@ -43,11 +44,12 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
         else if (ac3Output.isNoSolution()) {
-            return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+            final SolverResult result = new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.ARC_CONSISTENCY, result.getResult()));
+            return result;
         } else {
-            // Remove any previous assignments that are no longer on their domains!
-            final ImmutableMap<Station, Integer> reducedAssignment = aInstance.getPreviousAssignment().entrySet().stream().filter(entry -> ac3Output.getReducedDomains().get(entry.getKey()).contains(entry.getValue())).collect(GuavaCollectors.toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-            final StationPackingInstance reducedInstance = new StationPackingInstance(ac3Output.getReducedDomains(), reducedAssignment, aInstance.getMetadata());
+        	log.debug("Removed {} channels", ac3Output.getNumReducedChannels());
+            final StationPackingInstance reducedInstance = new StationPackingInstance(ac3Output.getReducedDomains(), aInstance.getPreviousAssignment(), aInstance.getMetadata());
             final SolverResult solve = fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
             return new SolverResult(solve.getResult(), watch.getElapsedTime(), solve.getAssignment());
         }

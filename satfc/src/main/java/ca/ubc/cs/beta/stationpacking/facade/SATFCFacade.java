@@ -23,7 +23,6 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,10 +30,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import lombok.extern.slf4j.Slf4j;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -56,15 +57,13 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -73,11 +72,9 @@ import com.google.common.io.Resources;
  *
  * @author afrechet
  */
+@Slf4j
 public class SATFCFacade implements AutoCloseable {
 
-    private final Logger log;
-
-    private volatile static boolean logInitialized = false;
     private final SolverManager fSolverManager;
 
 
@@ -91,16 +88,6 @@ public class SATFCFacade implements AutoCloseable {
      * @param aSATFCParameters parameters needed by the facade.
      */
     public SATFCFacade(final SATFCFacadeParameter aSATFCParameters, final DataManager dataManager) {
-        //Initialize logging.
-        if (!logInitialized && aSATFCParameters.isInitializeLogging()) {
-            initializeLogging(aSATFCParameters.getLogLevel());
-            log = LoggerFactory.getLogger(getClass());
-            log.warn("Logging initialized by default to INFO.");
-
-        } else {
-            log = LoggerFactory.getLogger(getClass());
-        }
-
         //Check provided library.
         if (aSATFCParameters.getClaspLibrary() == null) {
             throw new IllegalArgumentException("Cannot provide null library.");
@@ -257,6 +244,7 @@ public class SATFCFacade implements AutoCloseable {
         for (Station station : domains.keySet()) {
             Integer previousChannel = aPreviousAssignment.get(station.getID());
             if (previousChannel != null && previousChannel > 0) {
+                Preconditions.checkState(domains.get(station).contains(previousChannel), "Provided previous assignment assigned channel " + previousChannel + " to station "+station+" which is not in its problem domain "+ domains.get(station)+".");
                 previousAssignment.put(station, previousChannel);
             }
         }
@@ -268,6 +256,7 @@ public class SATFCFacade implements AutoCloseable {
             metadata.put(StationPackingInstance.NAME_KEY, instanceName);
         }
         StationPackingInstance instance = new StationPackingInstance(domains, previousAssignment, metadata);
+        SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(instance, bundle.getConstraintManager()));
 
         log.debug("Getting solver...");
         //Get solver
@@ -415,37 +404,5 @@ public class SATFCFacade implements AutoCloseable {
         fSolverManager.close();
         log.info("Goodbye!");
     }
-
-
-    private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";
-
-    /**
-     * Initialize logging.
-     *
-     * @param logLevel - logging level to use.
-     */
-    public static synchronized void initializeLogging(LogLevel logLevel) {
-        if (logInitialized) return;
-
-        System.setProperty("LOGLEVEL", logLevel.name());
-        if (System.getProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY) != null) {
-            Logger log = LoggerFactory.getLogger(SATFCFacade.class);
-            log.debug("System property for logback.configurationFile has been found already set as {} , logging will follow this file.", System.getProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY));
-        } else {
-
-            String logback = Resources.getResource("logback.xml").toString();
-            System.setProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY, logback);
-
-            Logger log = LoggerFactory.getLogger(SATFCFacade.class);
-            if (log.isDebugEnabled()) {
-                log.debug("Logging initialized to use file:" + logback);
-            } else {
-                log.debug("Logging initialized");
-            }
-
-        }
-        logInitialized = true;
-    }
-
 
 }

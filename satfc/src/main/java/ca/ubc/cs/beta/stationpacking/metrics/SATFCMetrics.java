@@ -28,8 +28,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -47,6 +50,9 @@ import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import org.jgrapht.alg.NeighborIndex;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 /**
  * Created by newmanne on 15/01/15.
@@ -88,8 +94,8 @@ public class SATFCMetrics {
 
     @Data
     public static class NewStationPackingInstanceEvent {
-        private final Set<Integer> stations;
-        private final String name;
+        private final StationPackingInstance instance;
+        private final IConstraintManager constraintManager;
     }
 
     @Data
@@ -130,6 +136,7 @@ public class SATFCMetrics {
         public final static String SUPERSET_CACHE = "superset_cache";
         public final static String CLASP = "clasp";
         public final static String CONNECTED_COMPONENTS = "connected_components";
+        public final static String ARC_CONSISTENCY = "arc_consistency";
 
         private final String name;
         private final String solvedBy;
@@ -197,9 +204,15 @@ public class SATFCMetrics {
                 throw new IllegalStateException("Metrics already in progress!");
             }
             activeProblemMetrics = new InstanceInfo();
-            activeProblemMetrics.setName(event.getName());
-            activeProblemMetrics.setStations(event.getStations());
-            activeProblemMetrics.setNumStations(event.getStations().size());
+            final StationPackingInstance instance = event.getInstance();
+            activeProblemMetrics.setName(instance.getName());
+            activeProblemMetrics.setStations(instance.getStations());
+            activeProblemMetrics.setNumStations(instance.getStations().size());
+
+            // Calculate degrees. May be a bit expensive...
+            final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(instance.getDomains(), event.getConstraintManager());
+            final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
+            activeProblemMetrics.setStationToDegree(instance.getStations().stream().collect(Collectors.toMap(Function.identity(), s -> neighborIndex.neighborsOf(s).size())));
         }
 
         @Subscribe
@@ -225,7 +238,7 @@ public class SATFCMetrics {
                     outerInfo.getComponents().put(component.getName(), instanceInfo);
                     instanceInfo.setName(component.getName());
                     instanceInfo.setNumStations(component.getStations().size());
-                    instanceInfo.setStations(component.getStations().stream().map(Station::getID).collect(Collectors.toSet()));
+                    instanceInfo.setStations(component.getStations());
                 });
             });
         }

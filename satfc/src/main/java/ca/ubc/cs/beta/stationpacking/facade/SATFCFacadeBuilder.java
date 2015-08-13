@@ -25,6 +25,7 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import ch.qos.logback.classic.Level;
 import lombok.NonNull;
 import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -45,21 +46,19 @@ public class SATFCFacadeBuilder {
     private boolean fPresolve;
     private boolean fUnderconstrained;
     private boolean fDecompose;
-    private boolean fInitializeLogging;
     private String fLibrary;
     private String fResultFile;
     private SATFCFacadeParameter.SolverChoice fSolverChoice;
     private String serverURL;
     private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private int parallelismLevel;
-    private LogLevel logLevel;
+    private Level logLevel;
 	private SATFCHydraParams hydraParams;
 
     /**
      * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
      */
     public SATFCFacadeBuilder() {
-        fInitializeLogging = false;
         fLibrary = findSATFCLibrary();
         fResultFile = null;
         parallelismLevel = Math.min(SATFCParallelSolverBundle.PORTFOLIO_SIZE, Runtime.getRuntime().availableProcessors());
@@ -69,6 +68,7 @@ public class SATFCFacadeBuilder {
         fDecompose = true;
         serverURL = null;
         hydraParams = null;
+        logLevel = Level.INFO;
     }
 
     /**
@@ -136,9 +136,9 @@ public class SATFCFacadeBuilder {
                 throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SolverChoice.SATFC_SEQUENTIAL + " solver instead. We recommend the " + SolverChoice.SATFC_PARALLEL + " solver with >= than 4 threads");
             }
         }
+        initializeLogging(logLevel);
         return new SATFCFacade(new SATFCFacadeParameter(
                 fLibrary,
-                fInitializeLogging,
                 fResultFile,
                 fSolverChoice,
                 fPresolve,
@@ -147,20 +147,12 @@ public class SATFCFacadeBuilder {
                 CNFSaver,
                 serverURL,
                 parallelismLevel,
-                LogLevel.INFO,
                 hydraParams
         ));
     }
-
-    /**
-     * Set whether SATFC should initialize the logging on construction.
-     *
-     * @param aInitializeLogging
-     * @return this {@code Builder} object
-     */
-    public SATFCFacadeBuilder setInitializeLogging(boolean aInitializeLogging) {
-        fInitializeLogging = aInitializeLogging;
-        return this;
+    
+    public static void initializeLogging(Level logLevel) {
+        System.setProperty("SATFC.root.log.level", logLevel.toString());
     }
 
     /**
@@ -250,7 +242,7 @@ public class SATFCFacadeBuilder {
      * @param logLevel
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setLogLevel(LogLevel logLevel) {
+    public SATFCFacadeBuilder setLogLevel(Level logLevel) {
     	this.logLevel = logLevel;
     	return this;
     }
@@ -262,12 +254,11 @@ public class SATFCFacadeBuilder {
             builder.setLibrary(parameters.fClaspLibrary);
         }
         builder.setParallelismLevel(parameters.numCores);
-        builder.setInitializeLogging(true);
         builder.setSolverChoice(parameters.fSolverChoice);
         builder.setDecompose(parameters.fSolverOptions.decomposition);
         builder.setUnderconstrained(parameters.fSolverOptions.underconstrained);
         builder.setPresolve(parameters.fSolverOptions.presolve);
-        builder.setLogLevel(parameters.fLoggingOptions.logLevel);
+        builder.setLogLevel(parameters.getLogLevel());
         if (parameters.fSolverOptions.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
         }

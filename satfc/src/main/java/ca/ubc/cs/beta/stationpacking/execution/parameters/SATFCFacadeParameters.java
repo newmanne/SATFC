@@ -22,6 +22,9 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
 import ca.ubc.cs.beta.aeatk.logging.ComplexLoggingOptions;
+import ca.ubc.cs.beta.aeatk.logging.LogLevel;
+import ca.ubc.cs.beta.aeatk.misc.options.CommandLineOnly;
+import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
@@ -29,6 +32,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomiza
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
+import ch.qos.logback.classic.Level;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
@@ -79,9 +83,12 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	/**
 	 * Logging options.
 	 */
-	@ParametersDelegate
-	public ComplexLoggingOptions fLoggingOptions = new ComplexLoggingOptions();
-
+	@Parameter(names={"--log-level","--logLevel"},description="messages will only be logged if they are of this severity or higher.")
+	private String logLevel = "INFO";
+    public Level getLogLevel() {
+        return Level.valueOf(logLevel);
+    }
+	
     @ParametersDelegate
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
 
