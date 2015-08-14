@@ -46,7 +46,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCachePr
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 /**
@@ -129,8 +129,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         {
             //Remove unconstrained stations.
             log.debug("Decorate solver to first remove underconstrained stations.");
-            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
         }
 
         if (presolve)

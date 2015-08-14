@@ -4,4 +4,4 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
-root(INFO, ["CONSOLE", "FILE"])
+root(INFO, ["CONSOLE"])

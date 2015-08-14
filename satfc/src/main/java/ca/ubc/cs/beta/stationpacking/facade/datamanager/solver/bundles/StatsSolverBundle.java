@@ -14,7 +14,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKille
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedStationFinder;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 
 /**
  * Created by newmanne on 2015-07-12.
@@ -35,10 +35,8 @@ public class StatsSolverBundle extends ASolverBundle {
 
         solver = new VoidSolver();
         final IUnderconstrainedStationFinder heuristicFinder = new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true);
-//        final IUnderconstrainedStationFinder lpFinder = new UnderconstrainedStationFinder(getConstraintManager(), false);
-//        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), lpFinder, true);
-//        
-//        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), heuristicFinder, false);
+        final IUnderconstrainedStationFinder lpFinder = new MIPUnderconstrainedStationFinder(getConstraintManager(), true);
+        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), lpFinder, false);
         solver = new ChannelKillerDecorator(solver, clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), getConstraintManager());
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager());

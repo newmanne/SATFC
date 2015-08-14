@@ -59,7 +59,7 @@ public class UnderconstrainedStationFinderTest {
          });
     	});
         IConstraintManager constraintManager = new TestConstraintManager(testConstraints);
-        UnderconstrainedStationFinder finder = new UnderconstrainedStationFinder(constraintManager);
+        IUnderconstrainedStationFinder finder = new HeuristicUnderconstrainedStationFinder(constraintManager, true);
 
         final Map<Station, Set<Integer>> domains = ImmutableMap.<Station, Set<Integer>>builder()
                 .put(s1, ImmutableSet.of(1, 2, 3))

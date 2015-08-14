@@ -26,9 +26,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ilog.concert.IloException;
-import ilog.concert.IloLinearNumExpr;
-import ilog.concert.IloNumVar;
+import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.output.NullOutputStream;
@@ -68,17 +66,17 @@ import java.util.stream.Collectors;
  * Note that to truly solve the underconstrained problem, you would also have to make sure that the corresponding choices from the neighbours channels were actually satisfying assignments
  */
 @Slf4j
-public class UnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
+public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
 
     private final IConstraintManager constraintManager;
     private boolean exact;
 
-    public UnderconstrainedStationFinder(IConstraintManager constraintManager, boolean exact) {
+    public MIPUnderconstrainedStationFinder(IConstraintManager constraintManager, boolean exact) {
         this.constraintManager = constraintManager;
         this.exact = exact;
     }
     
-    public UnderconstrainedStationFinder(IConstraintManager constraintManager) {
+    public MIPUnderconstrainedStationFinder(IConstraintManager constraintManager) {
     	this(constraintManager, false);
     }
 
@@ -110,22 +108,95 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                                                         )
                                                 )
                                 )
-                        ); // TODO: filter empty entries or subsets?
+                        ); 
                 double maxSpread;
                 try {
-                    maxSpread = encodeAndSolveAsLinearProgram(domain, channelsThatANeighbourCanBlockOut, domains);
+                    maxSpread = dumbIP(station, domain, channelsThatANeighbourCanBlockOut, domains);
                 } catch (IloException e) {
                     throw new RuntimeException(e);
                 }
                 log.trace("Max spread is upper bounded at {}, and the domain is of size {}", maxSpread, domain.size());
-                if (maxSpread < domain.size()) {
-                    log.debug("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
+                if ((int) (maxSpread + 0.5) < domain.size()) {
+                    log.info("Station {} is underconstrained as it has {} domain channels, but the {} neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), neighbours.size(), maxSpread);
                     underconstrainedStations.add(station);
                 }
             }
         }
         log.debug("Found {} underconstrained stations", underconstrainedStations.size());
         return underconstrainedStations;
+    }
+
+    public double dumbIP(
+    		Station theStation,
+    		Set<Integer> domain,
+            Map<Station, Map<Integer, Set<Integer>>> channels,
+            Map<Station, Set<Integer>> domains) throws IloException {
+
+        IloCplex cplex = new IloCplex();
+        cplex.setOut(new NullOutputStream());
+
+        final List<Integer> domainAsList = new ArrayList<>(domain);
+        final IloLinearIntExpr[] bucketTerms = new IloLinearIntExpr[domain.size()];
+        for (int i = 0; i < bucketTerms.length; i++) {
+        	bucketTerms[i] = cplex.linearIntExpr();
+        }
+
+        // Create all of the variables
+        final Map<Station, Map<Integer, IloIntVar>> stationToChannelToVar = new HashMap<>();
+        for (Entry<Station, Set<Integer>> entry : domains.entrySet()) {
+            final Station station = entry.getKey();
+            if (station.equals(theStation)) {
+            	continue;
+            }
+        	stationToChannelToVar.put(station, new HashMap<>());
+        	for (Integer c : entry.getValue()) {
+                final IloIntVar iloIntVar = cplex.boolVar();
+                stationToChannelToVar.get(station).put(c, iloIntVar); // sjk in 0, 1
+                if (channels.containsKey(station)) { // neighbour
+                    for (Entry<Integer, Set<Integer>> innerEntry : channels.get(station).entrySet()) {
+                        for (int chan : innerEntry.getValue()) {
+                            bucketTerms[domainAsList.indexOf(chan)].addTerm(1, iloIntVar);
+                        }
+                    }
+                }
+        	}
+            final Collection<IloIntVar> stationVars = stationToChannelToVar.get(station).values();
+            cplex.addEq(cplex.sum(stationVars.toArray(new IloNumVar[stationVars.size()])), 1); // sum sjk is le 1
+        }
+        
+        for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains)) { // Don't violate constraints
+            Map<Integer, IloIntVar> channelToVarSource = stationToChannelToVar.get(constraint.getSource());
+            Map<Integer, IloIntVar> channelToVarTarget = stationToChannelToVar.get(constraint.getTarget());
+            if (channelToVarSource != null && channelToVarTarget != null) {
+                IloIntVar sourceSjk = channelToVarSource.get(constraint.getSourceChannel());
+                IloIntVar targetSjk = channelToVarTarget.get(constraint.getTargetChannel());
+                if (sourceSjk != null && targetSjk != null) {
+                     cplex.addLe(cplex.sum(new IloNumVar[] {sourceSjk, targetSjk}), 1);
+                }
+            }
+        }
+
+        final IloNumExpr[] mins = new IloNumVar[domain.size()];
+        for (int i = 0; i < domain.size(); i++) {
+            mins[i] = cplex.min(1, bucketTerms[i]);
+        }
+        cplex.addMaximize(cplex.sum(mins));
+
+        // Solve the MIP.
+        final boolean feasible = cplex.solve();
+        // log.info("Solution status = " + cplex.getStatus());
+        Double d = null;
+        if (feasible) {
+        	// TODO: NUMERICAL ACCURACY IS A REAL ISSUE
+        	log.info("Solution is {}, and quality is {}", cplex.getObjValue(), cplex.getStatus());
+            d = cplex.getObjValue();
+            log.trace("Sum is {}", d);
+        } else {
+            log.info("MIP is infeasible");
+            // cplex.exportModel("/home/newmanne/test.lp");
+        }
+        cplex.end();
+        return d != null ? d : Double.MAX_VALUE;
     }
 
     public double encodeAndSolveAsLinearProgram(Set<Integer> domain,

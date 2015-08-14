@@ -51,7 +51,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 /**
@@ -144,7 +144,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 if (underconstrained) {
                     //Remove unconstrained stations.
                     log.debug("Decorate solver to first remove underconstrained stations.");
-                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
+                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
                 }
                 UHFSolver = new ArcConsistencyEnforcerDecorator(UHFSolver, getConstraintManager());
                 return UHFSolver;
@@ -163,7 +163,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
         if (underconstrained) {
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager()), false);
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
         }
         if (presolve) {
             VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,

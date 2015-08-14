@@ -111,6 +111,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
                 neighbourDomains.remove(station);
             }
             domain.removeAll(UNSATChannels);
+            log.info("Done with station {}, now with domain {}", station, domain);
             if (domain.isEmpty()) {
             	log.debug("Station {} has an empty domain, instance is UNSAT", station);
             	return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
@@ -122,6 +123,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
         }
         log.info("Removed {} channels from {} stations, had {} timeouts", numChannelsRemoved, changedStations.size(), numTimeouts);
         final StationPackingInstance reducedInstance = new StationPackingInstance(domainsCopy, aInstance.getPreviousAssignment(), aInstance.getMetadata());
+        // TODO: time is wrong
         return fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
     }
 
