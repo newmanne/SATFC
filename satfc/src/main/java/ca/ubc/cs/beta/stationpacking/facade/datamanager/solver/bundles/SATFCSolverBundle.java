@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -129,8 +130,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         {
             //Remove unconstrained stations.
             log.debug("Decorate solver to first remove underconstrained stations.");
-            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
+            UHFsolver = new UnderconstrainedStationRemoverSolverDecorator(UHFsolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), false), false);
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), false), false);
         }
 
         if (presolve)

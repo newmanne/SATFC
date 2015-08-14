@@ -7,7 +7,7 @@ public class NeverEndingTerminationCriterion implements ITerminationCriterion {
 
     @Override
     public double getRemainingTime() {
-        return Double.MAX_VALUE;
+        return 10800; // arbitrary big number
     }
 
     @Override
