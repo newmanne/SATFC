@@ -59,7 +59,7 @@ public abstract class AConstraintManager implements IConstraintManager {
                     final Collection<Station> coInterferingStations = getCOInterferingStations(station1, channel);
                     for (Station station2 : channelStations) {
                         if (coInterferingStations.contains(station2)) {
-                            log.debug("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
+                            log.trace("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
                             return false;
                         }
                     }
@@ -73,7 +73,7 @@ public abstract class AConstraintManager implements IConstraintManager {
                     if (channelp1Stations != null) {
                         for (Station station2 : channelp1Stations) {
                             if (adjInterferingStations.contains(station2)) {
-                                log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
+                                log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
                                 return false;
                             }
                         }
@@ -88,7 +88,7 @@ public abstract class AConstraintManager implements IConstraintManager {
                     if (channelp2Stations != null) {
                         for (Station station2 : channelp2Stations) {
                             if (adjPlusTwoInterferingStations.contains(station2)) {
-                                log.debug("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+2 interference.", station1, channel, station2, channelp2);
+                                log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+2 interference.", station1, channel, station2, channelp2);
                                 return false;
                             }
                         }

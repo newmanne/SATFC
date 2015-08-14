@@ -1,43 +1,18 @@
-/**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
- * This file is part of SATFC.
- *
- * SATFC is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * SATFC is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
- * For questions, contact us at:
- * afrechet@cs.ubc.ca
- */
 package ca.ubc.cs.beta.stationpacking.solvers.underconstrained;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.jgrapht.alg.NeighborIndex;
-import org.jgrapht.graph.DefaultEdge;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
+import org.jgrapht.alg.NeighborIndex;
+import org.jgrapht.graph.DefaultEdge;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by newmanne on 1/8/15.
@@ -68,19 +43,19 @@ import com.google.common.collect.Sets;
  * 2) The sum of the sizes of the largest set in every group
  */
 @Slf4j
-public class UnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
+public class HeuristicUnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
 
     private final IConstraintManager constraintManager;
     private final boolean performExpensiveAnalysis;
 
-    public UnderconstrainedStationFinder(IConstraintManager constraintManager, boolean performExpensiveAnalysis) {
+    public HeuristicUnderconstrainedStationFinder(IConstraintManager constraintManager, boolean performExpensiveAnalysis) {
         this.constraintManager = constraintManager;
         this.performExpensiveAnalysis = performExpensiveAnalysis;
     }
 
     @Override
-    public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion terminationCriterion) {
-        final Set<Station> underconstrainedStations = new HashSet<Station>();
+    public Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion criterion, Set<Station> stationsToCheck) {
+        final Set<Station> underconstrainedStations = new HashSet<>();
 
         log.debug("Finding underconstrained stations in the instance...");
 
@@ -96,13 +71,12 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
 
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(domains, constraintManager));
 
-        for (final Entry<Station, Set<Integer>> domainEntry : domains.entrySet()) {
-            if (terminationCriterion.hasToStop()) {
+        for (final Station station : stationsToCheck) {
+            if (criterion.hasToStop()) {
                 log.debug("Underconstrained stations timed out. Returned set will be only a partial set");
                 break;
             }
-            final Station station = domainEntry.getKey();
-            final Set<Integer> domain = domainEntry.getValue();
+            final Set<Integer> domain = domains.get(station);
 
             final Set<Integer> stationBadChannels = badChannels.get(station);
             final Set<Integer> stationGoodChannels = Sets.difference(domain, stationBadChannels);
@@ -115,36 +89,37 @@ public class UnderconstrainedStationFinder implements IUnderconstrainedStationFi
                 underconstrainedStations.add(station);
                 continue;
             }
-            
+
             if (performExpensiveAnalysis) {
                 /*
                  * Heuristic #2 for underconstrained:
                  * For each of my neighbours, count the maximum number of channels in my domain that each neighbour can potentially "block" out. Then assume each neighbour does block out this maximal number of channels. Would I still have a channel left over?
                  */
-                 final Set<Station> neighbours = neighborIndex.neighborsOf(station);
-                 if (neighbours.size() >= domain.size()) {
-                     log.trace("Station {} has {} neighbours but only {} channels, so the channel counting heuristic will not work", station, neighbours.size(), domain.size());
-                     continue;
-                 }
-                 final long interferingStationsMaxChannelSpread = neighbours.stream() // for each neighbour
-                         .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
-                                         .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
-                                                 .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
-                                                 .count() // count the number of my channels that would be invalid if my neighbour were assigned to neighbourChannel
-                                         )
-                                         .max() // max over all neighbour's channels
-                                         .getAsLong()
-                         )
-                         .sum();
+                final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+                if (neighbours.size() >= domain.size()) {
+                    log.trace("Station {} has {} neighbours but only {} channels, so the channel counting heuristic will not work", station, neighbours.size(), domain.size());
+                    continue;
+                }
+                final long interferingStationsMaxChannelSpread = neighbours.stream() // for each neighbour
+                        .mapToLong(neighbour -> domains.get(neighbour).stream() // for each channel in the neighbour's domain
+                                        .mapToLong(neighbourChannel -> domain.stream() // for each of my channel's
+                                                .filter(myChannel -> !constraintManager.isSatisfyingAssignment(station, myChannel, neighbour, neighbourChannel))
+                                                .count() // count the number of my channels that would be invalid if my neighbour were assigned to neighbourChannel
+                                        )
+                                        .max() // max over all neighbour's channels
+                                        .getAsLong()
+                        )
+                        .sum();
 
-                 if (interferingStationsMaxChannelSpread < domain.size()) {
-                     log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
-                     underconstrainedStations.add(station);
-                 }
+                if (interferingStationsMaxChannelSpread < domain.size()) {
+                    log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
+                    underconstrainedStations.add(station);
+                }
             }
         }
 
         return underconstrainedStations;
     }
+
 
 }

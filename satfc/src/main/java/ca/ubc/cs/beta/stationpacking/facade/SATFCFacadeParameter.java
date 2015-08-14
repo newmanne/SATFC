@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ch.qos.logback.classic.Level;
 import lombok.Data;
 import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
@@ -30,7 +31,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 public class SATFCFacadeParameter {
 
 	private final String claspLibrary;
-	private final boolean initializeLogging;
 	private final String resultFile;
 	private final SolverChoice solverChoice;
     private final boolean presolve;
@@ -39,7 +39,6 @@ public class SATFCFacadeParameter {
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final String serverURL;
     private final int numCores;
-    private final LogLevel logLevel;
     private final SATFCHydraParams hydraParams;
 
 	public enum SolverChoice

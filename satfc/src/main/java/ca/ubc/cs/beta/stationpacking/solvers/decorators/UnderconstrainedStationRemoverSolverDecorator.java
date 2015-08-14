@@ -21,11 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -39,6 +38,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedS
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.collect.Maps;
+import org.jgrapht.alg.NeighborIndex;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
 /**
  * Solver decorator that removes underconstrained stations from the instance, solve the sub-instance and then add back
@@ -47,9 +49,6 @@ import com.google.common.collect.Maps;
  * A station is underconstrained if no matter what channels the other stations are assigned to, the station will always have a feasible
  * channel to be packed on.
  * 
- * We "approximately" find underconstrained stations by limiting to stations that have more domain channels than sum of stations that CO- or ADJ+1-
- * interfering with them (double counting stations that interferes the two ways).
- * 
  * @author afrechet
  */
 @Slf4j
@@ -57,23 +56,28 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 
 	private final IUnderconstrainedStationFinder underconstrainedStationFinder;
 	private final IConstraintManager constraintManager;
+    private final boolean recurse;
 	
-	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager constraintManager, IUnderconstrainedStationFinder underconstrainedStationFinder) {
+	public UnderconstrainedStationRemoverSolverDecorator(ISolver aSolver, IConstraintManager constraintManager, IUnderconstrainedStationFinder underconstrainedStationFinder, boolean recurse) {
 		super(aSolver);
 		this.underconstrainedStationFinder = underconstrainedStationFinder;
 		this.constraintManager = constraintManager;
+        this.recurse = recurse;
 	}
 	
 	@Override
-	public SolverResult solve(StationPackingInstance aInstance,
-			ITerminationCriterion aTerminationCriterion, long aSeed) {
+	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) { 
+		return solve(aInstance, aTerminationCriterion, aSeed, aInstance.getStations());
+	}
+	
+	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, Set<Station> stationsToCheck) {
 		Watch watch = Watch.constructAutoStartWatch();
 		final Map<Station,Set<Integer>> domains = aInstance.getDomains();
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
             return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
         }
-		final Set<Station> underconstrainedStations = underconstrainedStationFinder.getUnderconstrainedStations(domains, aTerminationCriterion);
+		final Set<Station> underconstrainedStations = underconstrainedStationFinder.getUnderconstrainedStations(domains, aTerminationCriterion, stationsToCheck);
         SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
         SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
         if (aTerminationCriterion.hasToStop()) {
@@ -81,23 +85,32 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
             return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
         }
 
-		log.debug("Removing {} underconstrained stations...",underconstrainedStations.size());
+		log.info("Removing {} underconstrained stations...", underconstrainedStations.size());
 		
 		//Remove the nodes from the instance.
 		Map<Station,Set<Integer>> alteredDomains = new HashMap<>(domains);
-		alteredDomains = Maps.filterKeys(alteredDomains, station -> !underconstrainedStations.contains(station));
-
+		alteredDomains.keySet().removeAll(underconstrainedStations);
+		
 		final SolverResult subResult;
 		final double preTime;
 		if(!alteredDomains.isEmpty())
 		{
-			//Solve the reduced instance.
-			log.debug("Solving the sub-instance...");
-			StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
-			watch.stop();
-			preTime = watch.getElapsedTime();
-			log.trace("{} s spent on underconstrained pre-solving setup.",preTime);
-			subResult = fDecoratedSolver.solve(alteredInstance, aTerminationCriterion, aSeed);
+            StationPackingInstance alteredInstance = new StationPackingInstance(alteredDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
+            preTime = watch.getElapsedTime();
+            log.trace("{} s spent on underconstrained pre-solving setup.",preTime);
+            if (recurse && !underconstrainedStations.isEmpty()) {
+                log.debug("Going one layer deeper with underconstrained station removal");
+                // You only need to recheck a station that might be underconstrained because some of his neigbhours have disappeared
+                final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
+                final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
+                final Set<Station> stationsToRecheck = underconstrainedStations.stream().map(neighborIndex::neighborsOf).flatMap(Collection::stream).filter(s -> !underconstrainedStations.contains(s)).collect(Collectors.toSet());
+                subResult = solve(alteredInstance, aTerminationCriterion, aSeed, stationsToRecheck);
+            } else { // we bottomed out
+                //Solve the reduced instance.
+                log.debug("Solving the sub-instance...");
+                watch.stop();
+                subResult = fDecoratedSolver.solve(alteredInstance, aTerminationCriterion, aSeed);
+            }
 		}
 		else
 		{

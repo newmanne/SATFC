@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.NonNull;
@@ -39,6 +40,8 @@ import lombok.NonNull;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -82,15 +85,12 @@ public class StationPackingInstance {
 	 */
 	public StationPackingInstance(Map<Station,Set<Integer>> aDomains, Map<Station,Integer> aPreviousAssignment, @NonNull Map<String, Object> metadata){
 		this.metadata = new ConcurrentHashMap<>(metadata);
+		// Remove any previous assignment info for stations that aren't present
+		previousAssignment = aPreviousAssignment.entrySet().stream().filter(entry -> aDomains.keySet().contains(entry.getKey())).collect(GuavaCollectors.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue()));
+		
 		//Validate assignment domain.
 		for(Station station : aDomains.keySet())
 		{
-			Integer previousChannel = aPreviousAssignment.get(station);
-			if(previousChannel != null && !aDomains.get(station).contains(previousChannel))
-			{
-				throw new IllegalArgumentException("Provided previous assignment assigned channel "+previousChannel+" to station "+station+" which is not in its problem domain "+aDomains.get(station)+".");
-			}
-
 			if(aDomains.get(station).isEmpty())
 			{
 				throw new IllegalArgumentException("Domain for station "+station+" is empty.");
@@ -105,7 +105,6 @@ public class StationPackingInstance {
 			tempDomains.put(station, Sets.newLinkedHashSet(channels));
 		});
 		this.domains = ImmutableMap.copyOf(tempDomains);
-		previousAssignment = ImmutableMap.copyOf(aPreviousAssignment);
 	}
 	
 	/**

@@ -22,9 +22,11 @@
 package ca.ubc.cs.beta.stationpacking.metrics;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 
@@ -38,14 +40,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class InstanceInfo {
 
     private int numStations;
-    private Set<Integer> stations;
+    private Set<Station> stations;
     private String name;
     private Double runtime;
     private SATResult result;
-    private Set<Integer> underconstrainedStations;
+    private Set<Integer> underconstrainedStations = new HashSet<>();
     private Map<String, InstanceInfo> components = new HashMap<>();
     private String solvedBy;
     private Map<String, Double> timingInfo = new HashMap<>();
     private String cacheResultUsed;
+    private Map<Station, Integer> stationToDegree = new HashMap<>();
 
 }

@@ -21,7 +21,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupi
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.UnderconstrainedStationFinder;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -45,7 +45,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.UNDERCONSTRAINED, solver -> {
-            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new UnderconstrainedStationFinder(getConstraintManager(), params.underconstrainedExpensive));
+            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);

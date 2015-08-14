@@ -33,6 +33,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 public interface IUnderconstrainedStationFinder {
 
     /** Returns the set of stations that are underconstrained (they will ALWAYS have a feasible channel) */
-    Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion criterion);
+    default Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion criterion) {
+        return getUnderconstrainedStations(domains, criterion, domains.keySet());
+    }
+
+    Set<Station> getUnderconstrainedStations(Map<Station, Set<Integer>> domains, ITerminationCriterion criterion, Set<Station> stationsToCheck);
 
 }

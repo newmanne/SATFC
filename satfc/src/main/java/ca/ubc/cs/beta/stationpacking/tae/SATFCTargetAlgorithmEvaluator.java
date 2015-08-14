@@ -64,6 +64,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ch.qos.logback.classic.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -203,7 +204,6 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 params.validate();
                 final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
                         fLibPath,
-                        false, // logging
                         null, // result file
                         SATFCFacadeParameter.SolverChoice.HYDRA,
                         false, // unused flag
@@ -212,7 +212,6 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                         null, // cnf
                         null, // server
                         1,
-                        LogLevel.DEBUG, // log level
                         params);
                 try (final SATFCFacade facade = new SATFCFacade(satfcFacadeParameter, dataManager)) {
                     log.debug("Giving problem to SATFC facade...");

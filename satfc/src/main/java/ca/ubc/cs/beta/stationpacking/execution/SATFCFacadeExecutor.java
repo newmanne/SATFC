@@ -69,7 +69,6 @@ public class SATFCFacadeExecutor {
                 IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
                 SATFCFacadeProblem problem;
                 while ((problem = problemReader.getNextProblem()) != null) {
-                    SATFCMetrics.postEvent(new SATFCMetrics.NewStationPackingInstanceEvent(problem.getStationsToPack(), problem.getInstanceName()));
                     log.info("Beginning problem {}", problem.getInstanceName());
                     log.info("Solving ...");
                     SATFCResult result = satfc.solve(
@@ -119,7 +118,7 @@ public class SATFCFacadeExecutor {
         try {
             //Check for help
             JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters, TargetAlgorithmEvaluatorLoader.getAvailableTargetAlgorithmEvaluators());
-            SATFCFacade.initializeLogging(parameters.fLoggingOptions.logLevel);
+            SATFCFacadeBuilder.initializeLogging(parameters.getLogLevel());
             JCommanderHelper.logCallString(args, SATFCFacadeExecutor.class);
         } finally {
             log = LoggerFactory.getLogger(SATFCFacadeExecutor.class);

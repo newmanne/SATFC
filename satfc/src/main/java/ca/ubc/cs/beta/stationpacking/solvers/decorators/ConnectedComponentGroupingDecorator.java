@@ -94,7 +94,8 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                     .stream()
                     .filter(entry -> stationComponent.contains(entry.getKey()))
                     .collect(toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-            final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
+            // Filter previous assignment to only have relevant stations
+            final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment().entrySet().stream().filter(entry -> subDomains.keySet().contains(entry.getKey())).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
             final String name = aInstance.getName() + "_component" + componentIndex;
             // update name to include a component prefix
             Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
