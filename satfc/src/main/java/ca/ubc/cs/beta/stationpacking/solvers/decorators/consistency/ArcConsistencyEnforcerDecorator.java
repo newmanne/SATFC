@@ -42,13 +42,12 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
         final AC3Output ac3Output = ac3Enforcer.AC3(aInstance, aTerminationCriterion);
         if (ac3Output.isTimedOut()) {
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
-        }
-        else if (ac3Output.isNoSolution()) {
+        } else if (ac3Output.isNoSolution()) {
             final SolverResult result = new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
             SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.ARC_CONSISTENCY, result.getResult()));
             return result;
         } else {
-        	log.debug("Removed {} channels", ac3Output.getNumReducedChannels());
+            log.debug("Removed {} channels", ac3Output.getNumReducedChannels());
             final StationPackingInstance reducedInstance = new StationPackingInstance(ac3Output.getReducedDomains(), aInstance.getPreviousAssignment(), aInstance.getMetadata());
             final SolverResult solve = fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
             return new SolverResult(solve.getResult(), watch.getElapsedTime(), solve.getAssignment());

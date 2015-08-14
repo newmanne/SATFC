@@ -41,8 +41,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
-* Created by newmanne on 28/01/15.
-*/
+ * Created by newmanne on 28/01/15.
+ */
 @Slf4j
 public class SupersetCacheSATDecorator extends ASolverDecorator {
 

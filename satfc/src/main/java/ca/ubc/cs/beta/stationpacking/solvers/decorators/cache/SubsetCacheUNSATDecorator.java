@@ -34,8 +34,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
-* Created by newmanne on 28/01/15.
-*/
+ * Created by newmanne on 28/01/15.
+ */
 @Slf4j
 public class SubsetCacheUNSATDecorator extends ASolverDecorator {
     private final ContainmentCacheProxy containmentCache;

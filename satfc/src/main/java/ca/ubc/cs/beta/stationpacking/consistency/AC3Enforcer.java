@@ -31,10 +31,8 @@ public class AC3Enforcer {
     }
 
     /**
+     * Enforces arc consistency using AC3 (see https://en.wikipedia.org/wiki/AC-3_algorithm)
      * Will fail at the first indication of inconsistency.
-     *
-     * @param instance
-     * @return
      */
     public AC3Output AC3(StationPackingInstance instance, ITerminationCriterion criterion) {
         // Deep copy map
@@ -77,8 +75,7 @@ public class AC3Enforcer {
         });
     }
 
-    private LinkedBlockingQueue<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex,
-                                                                                   StationPackingInstance instance) {
+    private LinkedBlockingQueue<Pair<Station, Station>> getInterferingStationPairs(NeighborIndex<Station, DefaultEdge> neighborIndex, StationPackingInstance instance) {
         final LinkedBlockingQueue<Pair<Station, Station>> workList = new LinkedBlockingQueue<>();
         for (Station referenceStation : instance.getStations()) {
             for (Station neighborStation : neighborIndex.neighborsOf(referenceStation)) {
@@ -88,26 +85,26 @@ public class AC3Enforcer {
         return workList;
     }
 
+    /**
+     * @return true if x's domain changed
+     */
     private boolean removeInconsistentValues(Pair<Station, Station> pair, AC3Output output) {
-        boolean change = false;
         final Map<Station, Set<Integer>> domains = output.getReducedDomains();
         final Station x = pair.getLeft();
         final Station y = pair.getRight();
         final List<Integer> xValuesToPurge = new ArrayList<>();
         for (int vx : domains.get(x)) {
-            if (channelViolatesArcConsistency(x, vx, y, domains)) {
+            if (channelViolatesArcConsistency(x, vx, y, domains.get(y))) {
                 log.debug("Purging channel {} from station {}'s domain", vx, x.getID());
                 output.setNumReducedChannels(output.getNumReducedChannels() + 1);
                 xValuesToPurge.add(vx);
-                change = true;
             }
         }
-        domains.get(x).removeAll(xValuesToPurge);
-        return change;
+        return domains.get(x).removeAll(xValuesToPurge);
     }
 
-    private boolean channelViolatesArcConsistency(Station x, int vx, Station y, Map<Station, Set<Integer>> domains) {
-        return domains.get(y).stream().noneMatch(vy -> constraintManager.isSatisfyingAssignment(x, vx, y, vy));
+    private boolean channelViolatesArcConsistency(Station x, int vx, Station y, Set<Integer> yDomain) {
+        return yDomain.stream().noneMatch(vy -> constraintManager.isSatisfyingAssignment(x, vx, y, vy));
     }
 
 }

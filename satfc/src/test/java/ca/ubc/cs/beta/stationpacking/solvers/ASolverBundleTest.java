@@ -78,7 +78,7 @@ public abstract class ASolverBundleTest {
         ISolverBundle bundle = getBundle();
         final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
         final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
-//        Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
+        Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
     }
 
     @Test
@@ -95,7 +95,7 @@ public abstract class ASolverBundleTest {
             final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
             log.info("Solving instance " + entry.getKey());
             final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new NeverEndingTerminationCriterion(), 1);
-//            Assert.assertEquals(entry.getValue(), solverResult.getResult());
+            Assert.assertEquals(entry.getValue(), solverResult.getResult());
         }
     }
 
@@ -123,15 +123,15 @@ public abstract class ASolverBundleTest {
 
     }
     
-    public static class StatsSolverBundleTest extends ASolverBundleTest {
-
-		public StatsSolverBundleTest() throws FileNotFoundException {
-		}
-
-		@Override
-		protected ISolverBundle getBundle() {
-			return new StatsSolverBundle(stationManager, constraintManager, SATFCFacadeBuilder.findSATFCLibrary());
-		}
-    }
+//    public static class StatsSolverBundleTest extends ASolverBundleTest {
+//
+//		public StatsSolverBundleTest() throws FileNotFoundException {
+//		}
+//
+//		@Override
+//		protected ISolverBundle getBundle() {
+//			return new StatsSolverBundle(stationManager, constraintManager, SATFCFacadeBuilder.findSATFCLibrary());
+//		}
+//    }
 
 }

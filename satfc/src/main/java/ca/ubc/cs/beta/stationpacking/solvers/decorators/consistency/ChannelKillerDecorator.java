@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class ChannelKillerDecorator extends ASolverDecorator {
 
     private final double subProblemCutoff;
-	private final ISolver SATSolver;
+    private final ISolver SATSolver;
     private final IConstraintManager constraintManager;
 
     public ChannelKillerDecorator(ISolver aSolver, ISolver SATSolver, IConstraintManager constraintManager, double subProblemCutoff) {
@@ -44,14 +44,14 @@ public class ChannelKillerDecorator extends ASolverDecorator {
         this.constraintManager = constraintManager;
         this.subProblemCutoff = subProblemCutoff;
     }
-    
+
     public ChannelKillerDecorator(ISolver aSolver, ISolver SATSolver, IConstraintManager constraintManager) {
-    	this(aSolver, SATSolver, constraintManager, 0.01);
+        this(aSolver, SATSolver, constraintManager, 0.01);
     }
-    
+
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-    	final Watch watch = Watch.constructAutoStartWatch();
+        final Watch watch = Watch.constructAutoStartWatch();
         // Deep copy map
         final Map<Station, Set<Integer>> domainsCopy = aInstance.getDomains().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> new HashSet<>(entry.getValue())));
         final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domainsCopy, constraintManager);
@@ -61,7 +61,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
         int numTimeouts = 0;
         final Set<Station> changedStations = new HashSet<>();
         while (!stationQueue.isEmpty()) {
-        	final Station station = stationQueue.iterator().next();
+            final Station station = stationQueue.iterator().next();
             final Set<Integer> domain = domainsCopy.get(station);
             log.info("Beginning station {} with domain {}", station, domain);
             final Set<Station> neighbours = neighborIndex.neighborsOf(station);
@@ -85,8 +85,8 @@ public class ChannelKillerDecorator extends ASolverDecorator {
                     changed = true;
                     changedStations.add(station);
                 } else if (subResult.getResult().equals(SATResult.SAT)) {
-                	// What other channels would have also satisfied this assignment? We can skip those
-                	SATChannels.add(channel);
+                    // What other channels would have also satisfied this assignment? We can skip those
+                    SATChannels.add(channel);
                     final Set<Integer> unknownChannels = domain.stream().filter(c -> !SATChannels.contains(c) && !UNSATChannels.contains(c)).collect(Collectors.toSet());
                     final Map<Integer, Set<Station>> mutableAssignment = subResult.getAssignment().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> new HashSet<>(entry.getValue())));
                     mutableAssignment.get(channel).remove(station);
@@ -96,28 +96,28 @@ public class ChannelKillerDecorator extends ASolverDecorator {
                         if (constraintManager.isSatisfyingAssignment(mutableAssignment)) {
                             log.trace("No need to check channel {} for station {} because it also a SAT to the previously checked problem", unknownChannel, station);
                             SATChannels.add(unknownChannel);
-                        } 
+                        }
                         mutableAssignment.get(unknownChannel).remove(station);
                         if (mutableAssignment.get(unknownChannel).isEmpty()) {
                             mutableAssignment.remove(unknownChannel);
                         }
                     });
                 } else {
-                	if (subResult.getResult().equals(SATResult.TIMEOUT)) {
-                		numTimeouts++;
-                	}
-                	log.trace("Sub result was {}", subResult.getResult());
+                    if (subResult.getResult().equals(SATResult.TIMEOUT)) {
+                        numTimeouts++;
+                    }
+                    log.trace("Sub result was {}", subResult.getResult());
                 }
                 neighbourDomains.remove(station);
             }
             domain.removeAll(UNSATChannels);
             log.info("Done with station {}, now with domain {}", station, domain);
             if (domain.isEmpty()) {
-            	log.debug("Station {} has an empty domain, instance is UNSAT", station);
-            	return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+                log.debug("Station {} has an empty domain, instance is UNSAT", station);
+                return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
             } else if (changed) {
-            	// re-enqueue all neighbors
-            	stationQueue.addAll(neighborIndex.neighborsOf(station));
+                // re-enqueue all neighbors
+                stationQueue.addAll(neighborIndex.neighborsOf(station));
             }
             stationQueue.remove(station);
         }

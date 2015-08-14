@@ -40,7 +40,7 @@ public class ChocoSolverDecorator extends ASolverDecorator {
     final IConstraintManager constraintManager;
 
     /**
-     * @param aSolver - decorated ISolver.
+     * @param aSolver           - decorated ISolver.
      * @param stationManager
      * @param constraintManager
      */

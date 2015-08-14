@@ -40,30 +40,7 @@ import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 1/8/15.
- * <p/>
- * The goal is to find stations for which, no matter how their neighbours are
- * arranged, there will always be a channel to put them onto. Then, you can
- * remove them from the problem, and simply add them back afterwards by
- * iterating through their domain until you find a satisfying assignment.
- * <p/>
- * One helpful framework for thinking about this problem is to think of the
- * question as: If all of my neighbours were placed adversarially to block out
- * the maximum number of channels from my domain, how many could they block out?
- * If the answer is less than my domain's size, then I am underconstrained.
- * <p/>
- * For example, Neighbour A can block out {1, 2} or {2, 3} Neighbour B can block
- * out {2} or {2, 3} Then the worst case is when neighbour A blocks out {1,2}
- * and neighbour B blocks out {2,3}
- * <p/>
- * Slightly more formally: There are N groups of sets You have to choose exactly
- * one set from each group Your goal is to maximize the size of the union of the
- * groups that you choose (Note that we don't need the actual values of the
- * choices, just the size)
- * <p/>
- * This problem seems to be a variant of the Maximum Coverage Problem
- * <p/>
- * We do not solve the program exactly, but instead solve a relaxed linear program in which a station can choice a fractional amount of of each of its sets.
- * Note that to truly solve the underconstrained problem, you would also have to make sure that the corresponding choices from the neighbours channels were actually satisfying assignments
+ * Beta idea about using linear programs to find underconstrained stations
  */
 @Slf4j
 public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStationFinder {
@@ -111,7 +88,7 @@ public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStatio
                         ); 
                 double maxSpread;
                 try {
-                    maxSpread = dumbIP(station, domain, channelsThatANeighbourCanBlockOut, domains);
+                    maxSpread = encodeAndSolveAsLinearProgram(domain, channelsThatANeighbourCanBlockOut, domains);
                 } catch (IloException e) {
                     throw new RuntimeException(e);
                 }
@@ -126,7 +103,7 @@ public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStatio
         return underconstrainedStations;
     }
 
-    public double dumbIP(
+    public double trueIP(
     		Station theStation,
     		Set<Integer> domain,
             Map<Station, Map<Integer, Set<Integer>>> channels,
@@ -193,7 +170,6 @@ public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStatio
             log.trace("Sum is {}", d);
         } else {
             log.info("MIP is infeasible");
-            // cplex.exportModel("/home/newmanne/test.lp");
         }
         cplex.end();
         return d != null ? d : Double.MAX_VALUE;
@@ -279,7 +255,6 @@ public class MIPUnderconstrainedStationFinder implements IUnderconstrainedStatio
             log.trace("Sum is {}", sum);
         } else {
             log.info("Could not solve MIP");
-            // cplex.exportModel("/home/newmanne/test.lp");
         }
         cplex.end();
         return d != null ? d : Double.MAX_VALUE;

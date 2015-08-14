@@ -35,8 +35,8 @@ public class StatsSolverBundle extends ASolverBundle {
 
         solver = new VoidSolver();
         final IUnderconstrainedStationFinder heuristicFinder = new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true);
-        final IUnderconstrainedStationFinder lpFinder = new MIPUnderconstrainedStationFinder(getConstraintManager(), true);
-        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), lpFinder, false);
+//        final IUnderconstrainedStationFinder lpFinder = new MIPUnderconstrainedStationFinder(getConstraintManager(), true);
+        solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), heuristicFinder, true);
         solver = new ChannelKillerDecorator(solver, clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), getConstraintManager());
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager());

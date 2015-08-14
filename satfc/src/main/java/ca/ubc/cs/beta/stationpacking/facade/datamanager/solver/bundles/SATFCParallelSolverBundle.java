@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.ArrayList;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -142,9 +143,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     UHFSolver = new ConnectedComponentGroupingDecorator(UHFSolver, aGrouper, getConstraintManager());
                 }
                 if (underconstrained) {
-                    //Remove unconstrained stations.
                     log.debug("Decorate solver to first remove underconstrained stations.");
-                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
+                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), false), false);
                 }
                 UHFSolver = new ArcConsistencyEnforcerDecorator(UHFSolver, getConstraintManager());
                 return UHFSolver;
@@ -163,7 +163,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             VHFsolver = new ConnectedComponentGroupingDecorator(VHFsolver, aGrouper, getConstraintManager());
         }
         if (underconstrained) {
-            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
+            VHFsolver = new UnderconstrainedStationRemoverSolverDecorator(VHFsolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), false), false);
         }
         if (presolve) {
             VHFsolver = new ConstraintGraphNeighborhoodPresolver(VHFsolver,

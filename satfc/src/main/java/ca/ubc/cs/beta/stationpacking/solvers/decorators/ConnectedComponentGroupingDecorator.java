@@ -85,11 +85,11 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
 
         // sort the components in ascending order of size. The idea is that this would decrease runtime if one of the small components was UNSAT
         final List<Set<Station>> sortedStationComponents = stationComponents.stream().sorted((o1, o2) -> Integer.compare(o1.size(), o2.size())).collect(Collectors.toList());
-        
+
         // convert components into station packing problems
         final AtomicInteger componentIndex = new AtomicInteger();
         final List<StationPackingInstance> componentInstances = sortedStationComponents.stream().map(stationComponent -> {
-        	componentIndex.incrementAndGet();
+            componentIndex.incrementAndGet();
             final ImmutableMap<Station, Set<Integer>> subDomains = aInstance.getDomains().entrySet()
                     .stream()
                     .filter(entry -> stationComponent.contains(entry.getKey()))
@@ -109,23 +109,22 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         final Map<Integer, SolverResult> solverResults = Maps.newLinkedHashMap();
         watch.stop();
         componentInstances.stream()
-            // Note that anyMatch is a short-circuiting operation
-            // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
-            .anyMatch(stationComponent -> {
-                int id = idTracker.getAndIncrement();
-                log.debug("Solving component {}...", id);
-                log.debug("Component {} has {} stations.", id, stationComponent.getStations().size());
-                final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
-                SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult.getResult(), componentResult.getRuntime()));
-                solverResults.put(id, componentResult);
-                return !componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything;
-            });
+                // Note that anyMatch is a short-circuiting operation
+                // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
+                .anyMatch(stationComponent -> {
+                    int id = idTracker.getAndIncrement();
+                    log.debug("Solving component {}...", id);
+                    log.debug("Component {} has {} stations.", id, stationComponent.getStations().size());
+                    final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
+                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult.getResult(), componentResult.getRuntime()));
+                    solverResults.put(id, componentResult);
+                    return !componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything;
+                });
         SolverResult result = SolverHelper.mergeComponentResults(solverResults.values());
         result = SolverResult.addTime(result, watch.getElapsedTime());
         SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CONNECTED_COMPONENTS, result.getResult()));
 
-        if (result.getResult() == SATResult.SAT)
-        {
+        if (result.getResult() == SATResult.SAT) {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
         }
         log.debug("Result:" + System.lineSeparator() + result.toParsableString());
