@@ -70,7 +70,7 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
             permutations = ImmutableList.of();
         }
 
-        // 2) Create the actual caches and add all the entries
+        // 2) Create the actual caches
         final IContainmentCache<Station, ContainmentCacheSATEntry> undecoratedSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
         final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedSATCache, SAT_BUFFER_SIZE);
         final IContainmentCache<Station, ContainmentCacheUNSATEntry> undecoratedUNSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);

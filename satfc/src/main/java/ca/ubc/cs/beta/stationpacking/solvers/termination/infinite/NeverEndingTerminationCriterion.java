@@ -1,4 +1,6 @@
-package ca.ubc.cs.beta.stationpacking.solvers.termination;
+package ca.ubc.cs.beta.stationpacking.solvers.termination.infinite;
+
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 29/07/15.

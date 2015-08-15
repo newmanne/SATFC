@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;

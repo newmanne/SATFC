@@ -21,11 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -38,65 +34,46 @@ public abstract class AConstraintManager implements IConstraintManager {
 
     @Override
     public boolean isSatisfyingAssignment(Map<Integer, Set<Station>> aAssignment) {
-
         final Set<Station> allStations = new HashSet<Station>();
-
-        for(Integer channel : aAssignment.keySet())
-        {
+        for (Map.Entry<Integer, Set<Station>> entry : aAssignment.entrySet()) {
+            final int channel = entry.getKey();
             final Set<Station> channelStations = aAssignment.get(channel);
 
-            for(Station station1 : channelStations)
-            {
-                //Check if we have already seen station1
-                if(allStations.contains(station1))
-                {
-                    log.debug("Station {} is assigned to multiple channels.");
+            for (Station station1 : channelStations) {
+                //Check if we have already seen station1, and add it to the set of seen stations
+                if (!allStations.add(station1)) {
+                    log.error("Station {} is assigned to multiple channels", station1);
                     return false;
                 }
-
-                {
-                    //Make sure current station does not CO interfere with other stations.
-                    final Collection<Station> coInterferingStations = getCOInterferingStations(station1, channel);
-                    for (Station station2 : channelStations) {
-                        if (coInterferingStations.contains(station2)) {
-                            log.trace("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
-                            return false;
-                        }
+                //Make sure current station does not CO interfere with other stations.
+                final Set<Station> coInterferingStations = getCOInterferingStations(station1, channel);
+                for (Station station2 : channelStations) {
+                    if (coInterferingStations.contains(station2)) {
+                        log.trace("Station {} and {} share channel {} on which they CO interfere.", station1, station2, channel);
+                        return false;
                     }
                 }
-
-                {
-                    //Make sure current station does not ADJ+1 interfere with other stations.
-                    final Collection<Station> adjInterferingStations = getADJplusOneInterferingStations(station1, channel);
-                    int channelp1 = channel + 1;
-                    final Set<Station> channelp1Stations = aAssignment.get(channelp1);
-                    if (channelp1Stations != null) {
-                        for (Station station2 : channelp1Stations) {
-                            if (adjInterferingStations.contains(station2)) {
-                                log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
-                                return false;
-                            }
-                        }
+                //Make sure current station does not ADJ+1 interfere with other stations.
+                final Set<Station> adjInterferingStations = getADJplusOneInterferingStations(station1, channel);
+                int channelp1 = channel + 1;
+                final Set<Station> channelp1Stations = aAssignment.getOrDefault(channelp1, Collections.emptySet());
+                for (Station station2 : channelp1Stations) {
+                    if (adjInterferingStations.contains(station2)) {
+                        log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+1 interference.", station1, channel, station2, channelp1);
+                        return false;
                     }
                 }
-
-                {
-                    //Make sure current station does not ADJ+2 interfere with other stations.
-                    final Collection<Station> adjPlusTwoInterferingStations = getADJplusTwoInterferingStations(station1, channel);
-                    int channelp2 = channel + 2;
-                    final Set<Station> channelp2Stations = aAssignment.get(channelp2);
-                    if (channelp2Stations != null) {
-                        for (Station station2 : channelp2Stations) {
-                            if (adjPlusTwoInterferingStations.contains(station2)) {
-                                log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+2 interference.", station1, channel, station2, channelp2);
-                                return false;
-                            }
-                        }
+                //Make sure current station does not ADJ+2 interfere with other stations.
+                final Collection<Station> adjPlusTwoInterferingStations = getADJplusTwoInterferingStations(station1, channel);
+                int channelp2 = channel + 2;
+                final Set<Station> channelp2Stations = aAssignment.getOrDefault(channelp2, Collections.emptySet());
+                for (Station station2 : channelp2Stations) {
+                    if (adjPlusTwoInterferingStations.contains(station2)) {
+                        log.trace("Station {} is on channel {}, and station {} is on channel {}, causing ADJ+2 interference.", station1, channel, station2, channelp2);
+                        return false;
                     }
                 }
-
             }
-            allStations.addAll(channelStations);
         }
         return true;
     }

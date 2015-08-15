@@ -22,26 +22,28 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 
-import static com.google.common.base.Preconditions.checkState;
-
-import com.google.common.base.Preconditions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Verifies the assignments returned by decorated solver for satisfiability.
  *
  * @author afrechet
  */
+@Slf4j
 public class AssignmentVerifierDecorator extends ASolverDecorator {
-    private static final Logger log = LoggerFactory.getLogger(AssignmentVerifierDecorator.class);
 
     private final IConstraintManager fConstraintManager;
 
@@ -58,7 +60,16 @@ public class AssignmentVerifierDecorator extends ASolverDecorator {
 
             //Check that the assignment assigns every station to a channel
             final int assignmentSize = result.getAssignment().keySet().stream().mapToInt(channel -> result.getAssignment().get(channel).size()).sum();
-            checkState(assignmentSize == aInstance.getStations().size(), "Merged station assignment doesn't assign exactly the stations in the instance.");
+            Preconditions.checkState(assignmentSize == aInstance.getStations().size(), "Merged station assignment doesn't assign exactly the stations in the instance.");
+
+            // Check that the every station is on its domain
+            final Map<Station, Integer> stationToChannel = StationPackingUtils.stationToChannelFromChannelToStation(result.getAssignment());
+            final ImmutableMap<Station, Set<Integer>> domains = aInstance.getDomains();
+            for (Map.Entry<Station, Integer> entry : stationToChannel.entrySet()) {
+                final Station station = entry.getKey();
+                final int channel = entry.getValue();
+                Preconditions.checkState(domains.get(station).contains(channel), "Station %s is assigned to channel %s which is not in its domain %s", station, channel, domains.get(station));
+            }
 
             Preconditions.checkState(fConstraintManager.isSatisfyingAssignment(result.getAssignment()), "Solver returned SAT, but assignment is not satisfiable.");
             log.debug("Assignment was independently verified to be satisfiable.");

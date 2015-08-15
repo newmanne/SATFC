@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.execution.parameters;
+package ca.ubc.cs.beta.stationpacking.execution.parameters.extendedcache;
 
 import java.util.concurrent.TimeUnit;
 
@@ -6,6 +6,7 @@ import ca.ubc.cs.beta.aeatk.logging.ComplexLoggingOptions;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.*;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.RedisParameters;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 

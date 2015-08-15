@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.Data;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -60,7 +61,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     	this.permutation = ImmutableBiMap.copyOf(permutation);
     	this.key = key;
         this.bitSet = CacheUtils.toBitSet(answer, permutation);
-        final Map<Station, Integer> stationToChannel = CacheUtils.stationToChannelFromChannelToStation(answer);
+        final Map<Station, Integer> stationToChannel = StationPackingUtils.stationToChannelFromChannelToStation(answer);
         final int numStations = this.bitSet.cardinality();
         channels = new byte[numStations];
         int j = 0;

@@ -19,7 +19,9 @@
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
-package ca.ubc.cs.beta.stationpacking.solvers.termination;
+package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
+
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

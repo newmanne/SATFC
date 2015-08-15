@@ -23,10 +23,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -87,44 +84,40 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         final List<Set<Station>> sortedStationComponents = stationComponents.stream().sorted((o1, o2) -> Integer.compare(o1.size(), o2.size())).collect(Collectors.toList());
 
         // convert components into station packing problems
-        final AtomicInteger componentIndex = new AtomicInteger();
-        final List<StationPackingInstance> componentInstances = sortedStationComponents.stream().map(stationComponent -> {
-            componentIndex.incrementAndGet();
+        final List<StationPackingInstance> componentInstances = new ArrayList<>();
+        for (int i = 0; i < sortedStationComponents.size(); i++) {
+            final Set<Station> stationComponent = sortedStationComponents.get(i);
             final ImmutableMap<Station, Set<Integer>> subDomains = aInstance.getDomains().entrySet()
                     .stream()
                     .filter(entry -> stationComponent.contains(entry.getKey()))
                     .collect(toImmutableMap(Map.Entry::getKey, Map.Entry::getValue));
-            // Filter previous assignment to only have relevant stations
-            final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment().entrySet().stream().filter(entry -> subDomains.keySet().contains(entry.getKey())).collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-            final String name = aInstance.getName() + "_component" + componentIndex;
+            final String name = aInstance.getName() + "_component" + i;
             // update name to include a component prefix
-            Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
+            final Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
             metadata.put(StationPackingInstance.NAME_KEY, name);
-            return new StationPackingInstance(subDomains, previousAssignment, metadata);
-        }).collect(GuavaCollectors.toImmutableList());
+            componentInstances.add(new StationPackingInstance(subDomains, aInstance.getPreviousAssignment(), metadata));
+        }
 
         SATFCMetrics.postEvent(new SATFCMetrics.SplitIntoConnectedComponentsEvent(aInstance.getName(), componentInstances));
 
-        final AtomicInteger idTracker = new AtomicInteger();
-        final Map<Integer, SolverResult> solverResults = Maps.newLinkedHashMap();
+        final List<SolverResult> solverResults = new ArrayList<>();
         watch.stop();
-        componentInstances.stream()
-                // Note that anyMatch is a short-circuiting operation
-                // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
-                .anyMatch(stationComponent -> {
-                    int id = idTracker.getAndIncrement();
-                    log.debug("Solving component {}...", id);
-                    log.debug("Component {} has {} stations.", id, stationComponent.getStations().size());
-                    final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
-                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult.getResult(), componentResult.getRuntime()));
-                    solverResults.put(id, componentResult);
-                    return !componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything;
-                });
-        SolverResult result = SolverHelper.mergeComponentResults(solverResults.values());
-        result = SolverResult.addTime(result, watch.getElapsedTime());
+        for (int i = 0; i < componentInstances.size(); i++) {
+            final StationPackingInstance stationComponent = componentInstances.get(i);
+            log.debug("Solving component {}...", i);
+            log.debug("Component {} has {} stations.", i, stationComponent.getStations().size());
+            final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
+            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult.getResult(), componentResult.getRuntime()));
+            solverResults.add(componentResult);
+            // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
+            if (!componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything) {
+                break;
+            }
+        }
+        final SolverResult result = SolverResult.addTime(SolverHelper.mergeComponentResults(solverResults), watch.getElapsedTime());
         SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CONNECTED_COMPONENTS, result.getResult()));
 
-        if (result.getResult() == SATResult.SAT) {
+        if (result.getResult().equals(SATResult.SAT)) {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
         }
         log.debug("Result:" + System.lineSeparator() + result.toParsableString());

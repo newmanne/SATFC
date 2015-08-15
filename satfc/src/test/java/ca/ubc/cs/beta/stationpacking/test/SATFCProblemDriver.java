@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.test;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -32,19 +34,17 @@ public class SATFCProblemDriver {
 
     final int clearingTarget = 31;
 
-    @Ignore
     @Test
     public void driver() throws Exception {
         SATFCFacadeBuilder b = new SATFCFacadeBuilder();
-        b.setLibrary("/ubc/cs/research/arrow/satfc/public/libjnaclasp.so");
         try (SATFCFacade facade = b.build()) {
             final String interference = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M";
             final Set<Integer> allChannels = Sets.union(StationPackingUtils.LVHF_CHANNELS, Sets.union(StationPackingUtils.UHF_CHANNELS, StationPackingUtils.HVHF_CHANNELS))
                     .stream().filter(c -> c <= clearingTarget).collect(Collectors.toSet());
-            final IStationManager manager = new DomainStationManager(interference + "/" + "Domain.csv");
+            final IStationManager manager = new DomainStationManager(interference + File.separator + DataManager.DOMAIN_FILE);
             final Set<Station> forbiddenStations = new HashSet<>();
             final List<Station> stations = manager.getStations().stream().collect(Collectors.toList());
-            final int cutoff = 3600;
+            final int cutoff = 60;
             while (true) {
                 final Map<Integer, Set<Integer>> domains = getDomains(manager, allChannels, forbiddenStations);
                 log.info("Solving problem with " + domains.size() + " stations");
@@ -58,7 +58,6 @@ public class SATFCProblemDriver {
                 if (solve.getResult().equals(SATResult.SAT)) {
                     log.info("SAT result with " + forbiddenStations.size() + " stations forbidden");
                     log.info(solve.toString());
-                    // start a new path
                     forbiddenStations.clear();
                     forbiddenStations.add(stations.get(RandomUtils.nextInt(0, stations.size())));
                 } else {

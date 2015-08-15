@@ -41,21 +41,13 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
  * @author afrechet
  */
 @ThreadSafe
-public class ConstraintGrouper implements IComponentGrouper{
+public class ConstraintGrouper implements IComponentGrouper {
 	
-	//NA - just assume that at least two feasible channels are adjacent (so that ADJ constraints are relevant).
 	@Override
 	public Set<Set<Station>> group(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
-		
-		SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance.getDomains(), aConstraintManager);
-		
-		HashSet<Set<Station>> aGroups = new HashSet<Set<Station>>();
-		
-		ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<Station,DefaultEdge>(aConstraintGraph);
-
-        aGroups.addAll(aConnectivityInspector.connectedSets().stream().collect(Collectors.toList()));
-		
-		return aGroups;
+		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance.getDomains(), aConstraintManager);
+        final ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<>(aConstraintGraph);
+        return aConnectivityInspector.connectedSets().stream().collect(Collectors.toSet());
 	}
 	
 	/**

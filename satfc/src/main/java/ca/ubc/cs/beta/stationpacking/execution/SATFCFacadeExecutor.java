@@ -63,8 +63,7 @@ public class SATFCFacadeExecutor {
         logVersionInfo(log);
         try {
             log.info("Initializing facade.");
-            SATFCFacadeBuilder satfcBuilder = new SATFCFacadeBuilder();
-            try(final SATFCFacade satfc = satfcBuilder.buildFromParameters(parameters)) {
+            try(final SATFCFacade satfc = SATFCFacadeBuilder.buildFromParameters(parameters)) {
                 IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
                 IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
                 SATFCFacadeProblem problem;
@@ -72,8 +71,6 @@ public class SATFCFacadeExecutor {
                     log.info("Beginning problem {}", problem.getInstanceName());
                     log.info("Solving ...");
                     SATFCResult result = satfc.solve(
-                            problem.getStationsToPack(),
-                            problem.getChannelsToPackOn(),
                             problem.getDomains(),
                             problem.getPreviousAssignment(),
                             parameters.fInstanceParameters.Cutoff,

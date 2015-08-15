@@ -2,13 +2,11 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategi
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,7 +14,6 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 

@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,6 +41,17 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
  */
 @Slf4j
 public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager {
+
+    /**
+     * Construct a Channel Specific Constraint Manager from a station manager and an interference constraints filename.
+     *
+     * @param aStationManager                  - station manager.
+     * @param aInterferenceConstraintsFilename - name of the file containing interference constraints.
+     * @throws FileNotFoundException - if indicated file cannot be found.
+     */
+    public ChannelSpecificConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
+        super(aStationManager, aInterferenceConstraintsFilename);
+    }
 
     /**
      * Add the constraint to the constraint manager represented by subject station, target station, subject channel and constraint key.
@@ -88,13 +100,13 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
                         final String key = line[0].trim();
                         final ConstraintKey constraintKey = ConstraintKey.fromString(key);
                         if (constraintKey.equals(ConstraintKey.ADJm1) || constraintKey.equals(ConstraintKey.ADJm2)) {
-                            throw new IllegalArgumentException("ADJ-1 and ADJ-2 constraints are not part of the compact format, but were seen in line:" + line);
+                            throw new IllegalArgumentException("ADJ-1 and ADJ-2 constraints are not part of the compact format, but were seen in line:" + Arrays.toString(line));
                         }
 
                         final int lowChannel = Integer.valueOf(line[1].trim());
                         final int highChannel = Integer.valueOf(line[2].trim());
                         if (lowChannel > highChannel) {
-                            throw new IllegalStateException("Low channel greater than high channel on line " + line);
+                            throw new IllegalStateException("Low channel greater than high channel on line " + Arrays.toString(line));
                         }
 
                         final int subjectStationID = Integer.valueOf(line[3].trim());
@@ -120,17 +132,6 @@ public class ChannelSpecificConstraintManager extends AMapBasedConstraintManager
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not read interference constraints file: " + aInterferenceConstraintsFilename, e);
         }
-    }
-
-    /**
-     * Construct a Channel Specific Constraint Manager from a station manager and an interference constraints filename.
-     *
-     * @param aStationManager                  - station manager.
-     * @param aInterferenceConstraintsFilename - name of the file containing interference constraints.
-     * @throws FileNotFoundException - if indicated file cannot be found.
-     */
-    public ChannelSpecificConstraintManager(IStationManager aStationManager, String aInterferenceConstraintsFilename) throws FileNotFoundException {
-        super(aStationManager, aInterferenceConstraintsFilename);
     }
 
 }

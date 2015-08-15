@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import ca.ubc.cs.beta.stationpacking.facade.SolverChoice;
 import lombok.Data;
 
 import org.python.core.PyObject;
@@ -50,7 +51,6 @@ import ca.ubc.cs.beta.aeatk.algorithmrunresult.RunStatus;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.RunningAlgorithmRunResult;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.kill.StatusVariableKillHandler;
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
-import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.watch.StopWatch;
 import ca.ubc.cs.beta.aeatk.parameterconfigurationspace.ParameterConfiguration;
@@ -64,7 +64,6 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ch.qos.logback.classic.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -205,7 +204,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
                         fLibPath,
                         null, // result file
-                        SATFCFacadeParameter.SolverChoice.HYDRA,
+                        SolverChoice.HYDRA,
                         false, // unused flag
                         false, // unused flag
                         false, // unused flag

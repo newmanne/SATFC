@@ -19,7 +19,7 @@
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
-package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
+package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories;
 
 import java.io.File;
 import java.io.IOException;

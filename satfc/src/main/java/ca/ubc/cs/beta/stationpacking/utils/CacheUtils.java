@@ -46,16 +46,6 @@ public class CacheUtils {
         return bitSet;
     }
 
-    public static Map<Station, Integer> stationToChannelFromChannelToStation(Map<Integer, Set<Station>> channelToStation) {
-        final Map<Station, Integer> stationToChannel = new HashMap<>();
-        channelToStation.entrySet().forEach(entry -> {
-            entry.getValue().forEach(station -> {
-                stationToChannel.put(station, entry.getKey());
-            });
-        });
-        return stationToChannel;
-    }
-
     public static RestTemplate getRestTemplate() {
         if (restTemplate == null) {
             restTemplate = new RestTemplate();

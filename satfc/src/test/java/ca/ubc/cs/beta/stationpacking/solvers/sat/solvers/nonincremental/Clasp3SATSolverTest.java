@@ -24,7 +24,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,8 +45,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.InterruptibleTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.InterruptibleTerminationCriterion;
 
 import com.google.common.io.Resources;
 

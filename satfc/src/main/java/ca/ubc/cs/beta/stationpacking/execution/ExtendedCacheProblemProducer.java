@@ -20,7 +20,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IProblemSampler;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.ExtendedCacheProblemProducerParameters;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.extendedcache.ExtendedCacheProblemProducerParameters;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;

@@ -47,17 +47,8 @@ public abstract class AMapBasedConstraintManager extends AConstraintManager {
     }
 
     private Set<Station> getInterferingStations(Station aStation, int aChannel, Map<Station, Map<Integer, Set<Station>>> constraintMap) {
-        final Map<Integer, Set<Station>> subjectStationConstraints = constraintMap.get(aStation);
-        //No constraint for this station.
-        if (subjectStationConstraints == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Station> interferingStations = subjectStationConstraints.get(aChannel);
-        //No constraint for this station on this channel.
-        if (interferingStations == null) {
-            return Collections.emptySet();
-        }
+        final Map<Integer, Set<Station>> subjectStationConstraints = constraintMap.getOrDefault(aStation, Collections.emptyMap());
+        final Set<Station> interferingStations = subjectStationConstraints.getOrDefault(aChannel, Collections.emptySet());
         return Collections.unmodifiableSet(interferingStations);
     }
 
@@ -88,8 +79,8 @@ public abstract class AMapBasedConstraintManager extends AConstraintManager {
                                  Station aTargetStation,
                                  Integer aSubjectChannel,
                                  ConstraintKey aConstraintKey) {
-        Map<Integer, Set<Station>> subjectStationConstraints;
-        Set<Station> interferingStations;
+        final Map<Integer, Set<Station>> subjectStationConstraints;
+        final Set<Station> interferingStations;
 
         switch (aConstraintKey) {
             case CO:
@@ -111,9 +102,7 @@ public abstract class AMapBasedConstraintManager extends AConstraintManager {
                 subjectStationConstraints.put(aSubjectChannel, interferingStations);
                 fCOConstraints.put(aSubjectStation, subjectStationConstraints);
                 break;
-
             case ADJp1:
-
                 //Add +1 constraint;
                 subjectStationConstraints = fADJp1Constraints.getOrDefault(aSubjectStation, new HashMap<>());
                 interferingStations = subjectStationConstraints.getOrDefault(aSubjectChannel, new HashSet<>());
@@ -128,7 +117,7 @@ public abstract class AMapBasedConstraintManager extends AConstraintManager {
                 addConstraint(aTargetStation, aSubjectStation, aSubjectChannel - 1, ConstraintKey.ADJp1);
                 break;
             case ADJp2:
-                //Add +1 constraint;
+                //Add +2 constraint;
                 subjectStationConstraints = fADJp2Constraints.getOrDefault(aSubjectStation, new HashMap<>());
                 interferingStations = subjectStationConstraints.getOrDefault(aSubjectChannel, new HashSet<>());
 

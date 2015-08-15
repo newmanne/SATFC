@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,60 +42,44 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * UNSAT certifier. Checks if a given neighborhood of instances cannot be packed together.
+ *
  * @author afrechet
  */
+@Slf4j
 public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
-
-    private static Logger log = LoggerFactory.getLogger(StationSubsetUNSATCertifier.class);
 
     private final ISolver fSolver;
 
-    public StationSubsetUNSATCertifier(ISolver aSolver)
-    {
+    public StationSubsetUNSATCertifier(ISolver aSolver) {
         fSolver = aSolver;
     }
 
     @Override
-    public SolverResult certify(StationPackingInstance aInstance,
-                                Set<Station> aToPackStations,
-                                ITerminationCriterion aTerminationCriterion, long aSeed) {
-
-        Watch watch = Watch.constructAutoStartWatch();
-
-        log.debug("Evaluating if stations not in previous assignment ({}) with their neighborhood are unpackable.",aToPackStations.size());
-
-        Map<Station,Set<Integer>> domains = aInstance.getDomains();
-        Map<Station,Set<Integer>> toPackDomains = new HashMap<Station,Set<Integer>>();
-        for(Station station : aToPackStations)
-        {
+    public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        final Watch watch = Watch.constructAutoStartWatch();
+        log.debug("Evaluating if stations not in previous assignment ({}) with their neighborhood are unpackable.", aToPackStations.size());
+        final Map<Station, Set<Integer>> domains = aInstance.getDomains();
+        final Map<Station, Set<Integer>> toPackDomains = new HashMap<>();
+        for (Station station : aToPackStations) {
             toPackDomains.put(station, domains.get(station));
         }
 
-        StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
+        // TODO; this will screw up metadata, no?
+        final StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
-        watch.stop();
-        SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, aTerminationCriterion, aSeed);
-        watch.start();
+        final SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, aTerminationCriterion, aSeed);
 
-        if(UNSATboundResult.getResult().equals(SATResult.UNSAT))
-        {
+        if (UNSATboundResult.getResult().equals(SATResult.UNSAT)) {
             log.debug("Stations not in previous assignment cannot be packed with their neighborhood.");
-
-            watch.stop();
-            double extraTime = watch.getElapsedTime();
-            return new SolverResult(SATResult.UNSAT,UNSATboundResult.getRuntime()+extraTime);
-        }
-        else
-        {
-            watch.stop();
-            double extraTime = watch.getElapsedTime();
-            return new SolverResult(SATResult.TIMEOUT, UNSATboundResult.getRuntime()+extraTime);
+            return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+        } else {
+            return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
     }
 
     @Override
     public void notifyShutdown() {
-        log.debug("Not shutting down associated solver as it may be used elsewhere.");
+        fSolver.interrupt();
     }
 
     @Override
