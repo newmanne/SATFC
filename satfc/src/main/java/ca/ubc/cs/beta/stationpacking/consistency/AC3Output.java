@@ -3,8 +3,8 @@ package ca.ubc.cs.beta.stationpacking.consistency;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Data;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.Data;
 
 /**
 * Created by newmanne on 10/06/15.

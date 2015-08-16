@@ -21,10 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.tae;
 
+import com.beust.jcommander.Parameter;
+
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-
-import com.beust.jcommander.Parameter;
 
 @UsageTextField(title="SATFC Target Algorithm Evaluator Options",description="Options needed to create a SATFC target algorithm evaluator.",
 claimRequired="--satfctae-config-folder,--satfctae-library")

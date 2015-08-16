@@ -25,12 +25,12 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import ch.qos.logback.classic.Level;
-import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ch.qos.logback.classic.Level;
+import lombok.NonNull;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.

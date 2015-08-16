@@ -21,6 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
+
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
@@ -30,22 +34,23 @@ import ca.ubc.cs.beta.stationpacking.facade.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ch.qos.logback.classic.Level;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-
 /**
  * SATFC facade parameters.
  * @author afrechet
  */
 @UsageTextField(title="SATFC Facade Parameters",description="Parameters needed to execute SATFC facade on a single instance.")
 public class SATFCFacadeParameters extends AbstractOptions {
-    
+
+    @Parameter(names={"--help-level"}, description="Show options at this level or lower")
+    public OptionLevel helpLevel = OptionLevel.BASIC;
+
     /**
      * Parameters for the instance to solve.
      */
 	@ParametersDelegate
 	public InstanceParameters fInstanceParameters = new InstanceParameters();
 
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
     public String fCNFDir;
 
@@ -53,14 +58,21 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();
 
     @ParametersDelegate
+    public SATFCCachingParameters cachingParams = new SATFCCachingParameters();
+
+    @ParametersDelegate
     public RedisParameters fRedisParameters = new RedisParameters();
 
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-SRPK-FILE", description = "single srpk file to run")
     public String fsrpkFile;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
     public String fFileOfInstanceFiles;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = {"-METRICS-FILE", "-OUTPUT-FILE"}, description = "Causes the FileMetricWriter to be used, outputs a file with metrics (may cause performance loss)")
     public String fMetricsFile;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
     public String fInterferencesFolder;
 

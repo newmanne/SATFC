@@ -21,12 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.componentgrouper;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import net.jcip.annotations.ThreadSafe;
 
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
@@ -35,6 +32,7 @@ import org.jgrapht.graph.SimpleGraph;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * Groups the stations in a station packing instance based on connected components in interference constraint graph.

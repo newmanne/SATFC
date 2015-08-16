@@ -2,7 +2,6 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import lombok.Data;
 import lombok.experimental.Builder;
 
 /**

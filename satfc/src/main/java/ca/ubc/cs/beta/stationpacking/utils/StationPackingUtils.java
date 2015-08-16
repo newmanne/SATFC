@@ -21,9 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.utils;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-import java.util.*;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 public class StationPackingUtils {
 

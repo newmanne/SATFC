@@ -1,21 +1,21 @@
 /**
  * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
+ * <p>
  * This file is part of SATFC.
- *
+ * <p>
  * SATFC is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * SATFC is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * <p>
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
@@ -25,7 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
+import com.google.common.collect.Sets;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
@@ -34,8 +35,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-
-import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * SAT certifier. Pre-solver that checks whether the missing stations plus their neighborhood are packable when all other stations are fixed
@@ -54,35 +54,28 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
     }
 
     @Override
-    public SolverResult certify(StationPackingInstance aInstance,
-                                Set<Station> aToPackStations,
-                                ITerminationCriterion aTerminationCriterion,
-                                long aSeed) {
+    public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
-        Watch watch = Watch.constructAutoStartWatch();
+        final Watch watch = Watch.constructAutoStartWatch();
 
-        Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
+        final Map<Station, Integer> previousAssignment = aInstance.getPreviousAssignment();
 
 		/*
-		 * Try the SAT bound, namely to see if the missing stations plus their neighborhood are packable when all other stations are fixed
+         * Try the SAT bound, namely to see if the missing stations plus their neighborhood are packable when all other stations are fixed
 		 * to their previous assignment values.
 		 */
         //Change station packing instance so that the 'not to pack' stations have reduced domain.
-        Map<Station, Set<Integer>> domains = aInstance.getDomains();
-        Map<Station, Set<Integer>> reducedDomains = new HashMap<Station, Set<Integer>>();
+        final Map<Station, Set<Integer>> domains = aInstance.getDomains();
+        final Map<Station, Set<Integer>> reducedDomains = new HashMap<>();
 
-
-        for (Station station : aInstance.getStations()) {
-            Set<Integer> domain = domains.get(station);
+        for (final Station station : aInstance.getStations()) {
+            final Set<Integer> domain = domains.get(station);
 
             if (!aToPackStations.contains(station)) {
-                Integer previousChannel = previousAssignment.get(station);
+                final Integer previousChannel = previousAssignment.get(station);
                 if (!domain.contains(previousChannel)) {
-                    //One empty domain station, cannot affirm anything.
                     log.warn("Station {} in previous assignment is assigned to channel {} not in current domain {} - SAT certifier is indecisive.", station, previousChannel, domain);
-                    watch.stop();
-                    double extraTime = watch.getElapsedTime();
-                    return new SolverResult(SATResult.TIMEOUT, extraTime);
+                    return SolverResult.createTimeoutResult(watch.getElapsedTime());
                 }
                 reducedDomains.put(station, Sets.newHashSet(previousChannel));
             } else {
@@ -91,38 +84,23 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         }
         log.debug("Evaluating if stations not in previous assignment with their neighborhood are packable when all other stations are fixed to previous assignment.");
 
-        if (aToPackStations.size() < 10) {
-            log.debug("Missing station and neighborhood: {} .", aToPackStations);
-        }
-
-        Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
+        final Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
         metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_SATCERTIFIER);
-        StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
+        final StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
 
-        if (!aTerminationCriterion.hasToStop()) {
-            watch.stop();
-            log.debug("Going off to SAT solver...");
-            SolverResult SATboundResult = fSolver.solve(SATboundInstance, aTerminationCriterion, aSeed);
-            log.debug("Back from SAT solver... SAT bound result was {}", SATboundResult.getResult());
-            watch.start();
+        log.debug("Going off to SAT solver...");
+        final SolverResult SATboundResult = fSolver.solve(SATboundInstance, aTerminationCriterion, aSeed);
+        log.debug("Back from SAT solver... SAT bound result was {}", SATboundResult.getResult());
 
-            if (SATboundResult.getResult().equals(SATResult.SAT)) {
-                log.debug("Stations not in previous assignment can be packed with their neighborhood when all other stations are fixed to their previous assignment..");
-
-                watch.stop();
-                double extraTime = watch.getElapsedTime();
-                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, SATboundResult.getResult()));
-                return SolverResult.addTime(SATboundResult, extraTime);
-            } else {
-                watch.stop();
-                double extraTime = watch.getElapsedTime();
-                return new SolverResult(SATResult.TIMEOUT, SATboundResult.getRuntime() + extraTime);
-            }
+        final SolverResult result;
+        if (SATboundResult.getResult().equals(SATResult.SAT)) {
+            log.debug("Stations not in previous assignment can be packed with their neighborhood when all other stations are fixed to their previous assignment..");
+            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, SATboundResult.getResult()));
+            result = SolverResult.withTime(SATboundResult, watch.getElapsedTime());
         } else {
-            watch.stop();
-            double extraTime = watch.getElapsedTime();
-            return new SolverResult(SATResult.TIMEOUT, extraTime);
+            result = SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
+        return result;
     }
 
     @Override

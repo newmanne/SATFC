@@ -22,11 +22,13 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ExtendedCacheProblemReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.ParameterException;
+import com.google.common.base.Charsets;
+import com.google.common.io.Resources;
 
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.returnvalues.AEATKReturnValues;
@@ -41,10 +43,6 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-
-import com.beust.jcommander.ParameterException;
-import com.google.common.base.Charsets;
-import com.google.common.io.Resources;
 
 /**
  * Executes a SATFC facade built from parameters on an instance given in parameters.

@@ -21,14 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.common.collect.ImmutableMap;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -36,9 +35,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterionFactory;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * UNSAT certifier. Checks if a given neighborhood of instances cannot be packed together.
@@ -47,6 +45,8 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
  */
 @Slf4j
 public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
+
+    public static final String STATION_SUBSET_UNSATCERTIFIER = "_StationSubsetUNSATCertifier";
 
     private final ISolver fSolver;
 
@@ -57,14 +57,12 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
     @Override
     public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
+        final ImmutableMap<Station, Set<Integer>> domains = aInstance.getDomains();
         log.debug("Evaluating if stations not in previous assignment ({}) with their neighborhood are unpackable.", aToPackStations.size());
-        final Map<Station, Set<Integer>> domains = aInstance.getDomains();
-        final Map<Station, Set<Integer>> toPackDomains = new HashMap<>();
-        for (Station station : aToPackStations) {
-            toPackDomains.put(station, domains.get(station));
-        }
+        final Map<Station, Set<Integer>> toPackDomains = aToPackStations.stream().collect(Collectors.toMap(Function.identity(), domains::get));
 
-        // TODO; this will screw up metadata, no?
+        final Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
+        metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_UNSATCERTIFIER);
         final StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
         final SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, aTerminationCriterion, aSeed);

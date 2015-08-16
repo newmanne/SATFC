@@ -1,8 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -10,9 +12,15 @@ import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
+import com.beust.jcommander.ParameterException;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Sets;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
+
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher.SATCacheEntry;
@@ -25,17 +33,8 @@ import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProb
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-
-import com.beust.jcommander.ParameterException;
-import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
-import org.springframework.util.Assert;
-
-import java.io.IOException;
-import java.util.*;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 
 /**
  * Created by emily404 on 5/28/15.

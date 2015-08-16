@@ -1,11 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import java.util.Set;
+
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import java.util.Set;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
 * Created by newmanne on 27/07/15.
