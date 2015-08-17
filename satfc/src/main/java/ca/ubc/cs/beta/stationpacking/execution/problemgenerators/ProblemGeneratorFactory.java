@@ -41,7 +41,7 @@ public class ProblemGeneratorFactory {
             ));
         } else if (parameters.fsrpkFile != null) {
             reader = new SingleSrpkProblemReader(parameters.fsrpkFile, parameters.fInterferencesFolder);
-        } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null && parameters.fSolverOptions.cachingParams.extendedCacheProblem){
+        } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null && parameters.cachingParams.extendedCacheProblem){
             reader = new ExtendedCacheProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
             reader = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);

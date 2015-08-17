@@ -41,6 +41,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import ilog.concert.IloException;
@@ -226,7 +227,7 @@ public class MIPBasedSolver implements ISolver
     	if(cutoff <= 0 )
     	{
     		log.debug("Already have spent all the allocated time.");
-    		return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+    		return SolverResult.createTimeoutResult(watch.getElapsedTime());
     	}
     	
     	try {
@@ -305,11 +306,11 @@ public class MIPBasedSolver implements ISolver
     	
     	if(assignment == null)
     	{
-    		return new SolverResult(satisfiability, runtime);
+    		return SolverResult.createNonSATResult(satisfiability, runtime, SolvedBy.MIP);
     	}
     	else
     	{
-    		return new SolverResult(satisfiability, runtime, assignment);
+    		return new SolverResult(satisfiability, runtime, assignment, SolvedBy.MIP);
     	}
     }
     

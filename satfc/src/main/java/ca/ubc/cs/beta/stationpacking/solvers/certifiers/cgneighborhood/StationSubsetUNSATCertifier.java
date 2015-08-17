@@ -34,6 +34,7 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.extern.slf4j.Slf4j;
@@ -61,15 +62,13 @@ public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
         log.debug("Evaluating if stations not in previous assignment ({}) with their neighborhood are unpackable.", aToPackStations.size());
         final Map<Station, Set<Integer>> toPackDomains = aToPackStations.stream().collect(Collectors.toMap(Function.identity(), domains::get));
 
-        final Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
-        metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_UNSATCERTIFIER);
         final StationPackingInstance UNSATboundInstance = new StationPackingInstance(toPackDomains, aInstance.getPreviousAssignment(), aInstance.getMetadata());
 
         final SolverResult UNSATboundResult = fSolver.solve(UNSATboundInstance, aTerminationCriterion, aSeed);
 
         if (UNSATboundResult.getResult().equals(SATResult.UNSAT)) {
             log.debug("Stations not in previous assignment cannot be packed with their neighborhood.");
-            return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+            return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolvedBy.UNSAT_PRESOLVER);
         } else {
             return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }

@@ -39,6 +39,7 @@ import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.IUnderconstrainedStationFinder;
@@ -78,13 +79,13 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
         final Map<Station, Set<Integer>> domains = aInstance.getDomains();
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
-            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+            return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
         final Set<Station> underconstrainedStations = underconstrainedStationFinder.getUnderconstrainedStations(domains, aTerminationCriterion, stationsToCheck);
         SATFCMetrics.postEvent(new SATFCMetrics.UnderconstrainedStationsRemovedEvent(aInstance.getName(), underconstrainedStations));
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
-            return new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime());
+            return SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
 
         log.debug("Removing {} underconstrained stations...", underconstrainedStations.size());
@@ -110,16 +111,14 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
                 //Solve the reduced instance.
                 SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
                 log.debug("Solving the sub-instance...");
-                watch.stop();
                 subResult = fDecoratedSolver.solve(alteredInstance, aTerminationCriterion, aSeed);
             }
         } else {
             log.debug("All stations were underconstrained!");
             preTime = watch.getElapsedTime();
             log.trace("{} s spent on underconstrained pre-solving setup.", preTime);
-            subResult = new SolverResult(SATResult.SAT, 0.0, new HashMap<>());
+            subResult = new SolverResult(SATResult.SAT, 0.0, new HashMap<>(), SolvedBy.UNDERCONSTRAINED);
         }
-        watch.start();
 
         if (subResult.getResult().equals(SATResult.SAT)) {
             log.debug("Sub-instance is packable, adding back the underconstrained stations...");
@@ -159,18 +158,11 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
                     throw new IllegalStateException("Could not add unconstrained station " + station + " on any of its domain channels.");
                 }
             }
-            watch.stop();
-            final double postTime = watch.getElapsedTime();
-            log.trace("{} s spent on underconstrained post-solving wrap up.", postTime);
-            return new SolverResult(SATResult.SAT, subResult.getRuntime() + preTime + postTime, alteredAssignment);
-
+            return new SolverResult(SATResult.SAT, watch.getElapsedTime(), alteredAssignment, subResult.getSolvedBy());
         } else {
             log.debug("Sub-instance was not satisfiable, no need to consider adding back underconstrained stations.");
             //Not satisfiable, so re-adding the underconstrained nodes cannot change anything.
-            watch.stop();
-            final double postTime = watch.getElapsedTime();
-            log.trace("{} s spent on underconstrained post-solving wrap up.", postTime);
-            return SolverResult.addTime(subResult, preTime + postTime);
+            return SolverResult.withTime(subResult, watch.getElapsedTime());
         }
     }
 

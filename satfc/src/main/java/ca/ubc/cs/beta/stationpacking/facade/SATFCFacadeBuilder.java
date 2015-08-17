@@ -24,10 +24,15 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
+import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Value;
+import lombok.experimental.Builder;
 
 import java.io.File;
 import java.net.URISyntaxException;
@@ -52,13 +57,19 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private int parallelismLevel;
     private Level logLevel;
+    private DeveloperOptions developerOptions;
 
     // developer params
-    private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
-    private boolean fPresolve;
-    private boolean fUnderconstrained;
-    private boolean fDecompose;
-    private SATFCHydraParams hydraParams;
+    @Builder
+    @Data
+    public static class DeveloperOptions {
+    	private CNFSaverSolverDecorator.ICNFSaver CNFSaver = null;
+        private boolean presolve = true;
+        private boolean underconstrained = true;
+        private boolean decompose = true;
+        private SATFCHydraParams hydraParams = null;
+        private DataManager dataManager;
+    }
 
     /**
      * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
@@ -71,12 +82,7 @@ public class SATFCFacadeBuilder {
         fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         serverURL = null;
         logLevel = Level.INFO;
-
-        // developer params
-        hydraParams = null;
-        fPresolve = true;
-        fUnderconstrained = true;
-        fDecompose = true;
+        developerOptions = DeveloperOptions.builder().build();
     }
 
     /**
@@ -152,11 +158,12 @@ public class SATFCFacadeBuilder {
                         .solverChoice(fSolverChoice)
                         .serverURL(serverURL)
                         .parallelismLevel(parallelismLevel)
-                        .hydraParams(hydraParams)
-                        .presolve(fPresolve)
-                        .decompose(fDecompose)
-                        .underconstrained(fUnderconstrained)
-                        .build());
+                        .hydraParams(developerOptions.getHydraParams())
+                        .presolve(developerOptions.isPresolve())
+                        .decompose(developerOptions.isDecompose())
+                        .underconstrained(developerOptions.isUnderconstrained())
+                        .build()
+                        );
     }
     
     public static void initializeLogging(Level logLevel) {
@@ -235,29 +242,9 @@ public class SATFCFacadeBuilder {
 
 
     // Developer methods
-    private SATFCFacadeBuilder setPresolve(boolean presolve) {
-        this.fPresolve = presolve;
-        return this;
-    }
-
-    private SATFCFacadeBuilder setUnderconstrained(boolean underconstrained) {
-        this.fUnderconstrained = underconstrained;
-        return this;
-    }
-
-    private SATFCFacadeBuilder setDecompose(boolean decompose) {
-        this.fDecompose = decompose;
-        return this;
-    }
-
-    private SATFCFacadeBuilder setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
-        this.CNFSaver = CNFSaver;
-        return this;
-    }
-
-    private SATFCFacadeBuilder setHydraParams(@NonNull SATFCHydraParams hydraParams) {
-        this.hydraParams = hydraParams;
-        return this;
+    public SATFCFacadeBuilder setDeveloperOptions(DeveloperOptions developerOptions) {
+    	this.developerOptions = developerOptions;
+    	return this;
     }
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
@@ -270,27 +257,31 @@ public class SATFCFacadeBuilder {
         builder.setParallelismLevel(parameters.numCores);
         builder.setSolverChoice(parameters.fSolverChoice);
         builder.setLogLevel(parameters.getLogLevel());
-        if (parameters.fSolverOptions.cachingParams.serverURL != null) {
-            builder.setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
+        if (parameters.cachingParams.serverURL != null) {
+            builder.setServerURL(parameters.cachingParams.serverURL);
         }
 
-        // developer parameters
-        builder.setDecompose(parameters.fSolverOptions.decomposition);
-        builder.setUnderconstrained(parameters.fSolverOptions.underconstrained);
-        builder.setPresolve(parameters.fSolverOptions.presolve);
+        CNFSaverSolverDecorator.ICNFSaver CNFSaver = null;
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
             System.out.println("Saving CNFs to disk in " + parameters.fCNFDir);
-            CNFSaverSolverDecorator.ICNFSaver CNFSaver = new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir);
+            CNFSaver = new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir);
             if (parameters.fRedisParameters.areValid()) {
                 System.out.println("Saving CNF index to redis");
                 CNFSaver = new CNFSaverSolverDecorator.RedisIndexCNFSaver(CNFSaver, parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
             }
-            builder.setCNFSaver(CNFSaver);
         }
-        if (parameters.fHydraParams != null) {
-            builder.setHydraParams(parameters.fHydraParams);
-        }
-
+        
+        // developer parameters
+        builder.setDeveloperOptions(
+        		DeveloperOptions
+        		.builder()
+        		.decompose(parameters.fSolverOptions.decomposition)
+        		.presolve(parameters.fSolverOptions.presolve)
+        		.underconstrained(parameters.fSolverOptions.underconstrained)
+        		.hydraParams(parameters.fHydraParams)
+        		.CNFSaver(CNFSaver)
+        		.build()
+        		);
         return builder.build();
     }
 

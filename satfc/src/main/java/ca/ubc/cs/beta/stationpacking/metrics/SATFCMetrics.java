@@ -130,20 +130,6 @@ public class SATFCMetrics {
     }
 
     @Data
-    public static class SolvedByEvent {
-        public final static String PRESOLVER = "presolver";
-        public final static String SUBSET_CACHE = "subset_cache";
-        public final static String SUPERSET_CACHE = "superset_cache";
-        public final static String CLASP = "clasp";
-        public final static String CONNECTED_COMPONENTS = "connected_components";
-        public final static String ARC_CONSISTENCY = "arc_consistency";
-
-        private final String name;
-        private final String solvedBy;
-        private final SATResult result;
-    }
-
-    @Data
     public static class JustifiedByCacheEvent {
         private final String name;
         private final String key;
@@ -240,15 +226,6 @@ public class SATFCMetrics {
                     instanceInfo.setNumStations(component.getStations().size());
                     instanceInfo.setStations(component.getStations());
                 });
-            });
-        }
-
-        @Subscribe
-        public void onSolvedByEvent(SolvedByEvent event) {
-            safeMetricEdit(event.getName(), info -> {
-                if (event.getSolvedBy() != null && event.getResult().isConclusive()) {
-                    info.setSolvedBy(event.getSolvedBy());
-                }
             });
         }
 

@@ -25,7 +25,6 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
-import lombok.Data;
 import lombok.Value;
 import lombok.experimental.Builder;
 
@@ -41,7 +40,7 @@ public class SATFCFacadeParameter {
     private final int parallelismLevel;
     private Level logLevel;
 
-    // private options
+    // developer options
     private final boolean presolve;
     private final boolean underconstrained;
     private final boolean decompose;
@@ -51,8 +50,10 @@ public class SATFCFacadeParameter {
 
 	public enum SolverChoice
 	{
+		// Public:
 		SATFC_SEQUENTIAL,
         SATFC_PARALLEL,
+        // Developer:
 		MIPFC,
         CNF,
         CACHING_SOLVER_FULL_INSTANCES,

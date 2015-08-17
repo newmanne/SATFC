@@ -36,12 +36,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import lombok.Data;
+
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 import ca.ubc.cs.beta.aeatk.algorithmrunconfiguration.AlgorithmRunConfiguration;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.AlgorithmRunResult;
@@ -61,12 +61,13 @@ import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProb
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SingleSrpkProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder.DeveloperOptions;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.facade.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import lombok.Data;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Target algorithm evaluator that wraps around the SATFC facade and only
@@ -173,7 +174,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final String srpkFile = instance.getInstanceName();
                 final SATFCFacadeProblem problem = new SingleSrpkProblemReader(srpkFile, fStationConfigFolder).getNextProblem();
 
-                log.debug("Parameters are :" + System.lineSeparator() +  config.getParameterConfiguration().getFormattedParameterString(ParameterConfiguration.ParameterStringFormat.NODB_SYNTAX));
+                log.debug("Parameters are :" + System.lineSeparator() + config.getParameterConfiguration().getFormattedParameterString(ParameterConfiguration.ParameterStringFormat.NODB_SYNTAX));
 
                 //Read the straightforward parameters from the problem instance.
                 final double cutoff = config.getCutoffTime();
@@ -202,14 +203,16 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 JCommanderHelper.parseCheckingForHelpAndVersion(commandLine.toArray(new String[commandLine.size()]), params);
                 params.claspConfig = claspParams;
                 params.validate();
-                final SATFCFacadeParameter satfcFacadeParameter = SATFCFacadeParameter.builder()
-                        .claspLibrary(fLibPath)
-                        .solverChoice(SolverChoice.HYDRA)
-                        .parallelismLevel(1)
-                        .hydraParams(params)
-                        .dataManager(dataManager)
-                        .build();
-                try (final SATFCFacade facade = SATFCFacadeBuilder.buildFromParameters(satfcFacadeParameter)) {
+                SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
+                        .setLibrary(fLibPath)
+                        .setSolverChoice(SolverChoice.HYDRA)
+                        .setParallelismLevel(1)
+                        .setDeveloperOptions(DeveloperOptions
+                                .builder()
+                                .dataManager(dataManager)
+                                .hydraParams(params)
+                                .build());
+                try (final SATFCFacade facade = satfcFacadeBuilder.build()) {
                     log.debug("Giving problem to SATFC facade...");
                     // Solve the problem.
                     final SATFCResult result = facade.solve(

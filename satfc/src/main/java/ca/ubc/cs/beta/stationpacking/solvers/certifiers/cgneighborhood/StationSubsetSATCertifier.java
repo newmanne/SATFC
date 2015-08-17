@@ -84,9 +84,7 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         }
         log.debug("Evaluating if stations not in previous assignment with their neighborhood are packable when all other stations are fixed to previous assignment.");
 
-        final Map<String, Object> metadata = new HashMap<>(aInstance.getMetadata());
-        metadata.put(StationPackingInstance.NAME_KEY, aInstance.getName() + STATION_SUBSET_SATCERTIFIER);
-        final StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment, metadata);
+        final StationPackingInstance SATboundInstance = new StationPackingInstance(reducedDomains, previousAssignment);
 
         log.debug("Going off to SAT solver...");
         final SolverResult SATboundResult = fSolver.solve(SATboundInstance, aTerminationCriterion, aSeed);
@@ -95,8 +93,7 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         final SolverResult result;
         if (SATboundResult.getResult().equals(SATResult.SAT)) {
             log.debug("Stations not in previous assignment can be packed with their neighborhood when all other stations are fixed to their previous assignment..");
-            SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, SATboundResult.getResult()));
-            result = SolverResult.withTime(SATboundResult, watch.getElapsedTime());
+            result = SolverResult.withTimeAndName(SATboundResult, watch.getElapsedTime(), SolverResult.SolvedBy.SAT_PRESOLVER);
         } else {
             result = SolverResult.createTimeoutResult(watch.getElapsedTime());
         }

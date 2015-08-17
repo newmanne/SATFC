@@ -20,6 +20,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -114,7 +115,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
             log.info("Done with station {}, now with domain {}", station, domain);
             if (domain.isEmpty()) {
                 log.debug("Station {} has an empty domain, instance is UNSAT", station);
-                return new SolverResult(SATResult.UNSAT, watch.getElapsedTime());
+                return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolvedBy.CHANNEL_KILLER);
             } else if (changed) {
                 // re-enqueue all neighbors
                 stationQueue.addAll(neighborIndex.neighborsOf(station));

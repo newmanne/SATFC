@@ -71,8 +71,8 @@ public class ParallelSolverComposite implements ISolver {
                         })
                         .filter(result -> result.getResult().isConclusive())
                         .findAny();
-            }).get().orElse(new SolverResult(SATResult.TIMEOUT, watch.getElapsedTime()));
-            return new SolverResult(endResult.getResult(), watch.getElapsedTime(), endResult.getAssignment());
+            }).get().orElse(SolverResult.createTimeoutResult(watch.getElapsedTime()));
+            return SolverResult.withTime(endResult, watch.getElapsedTime());
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error processing jobs in parallel!", e);
         }

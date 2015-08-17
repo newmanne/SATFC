@@ -104,7 +104,6 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
 
             if (result.getResult().isConclusive()) {
                 log.debug("Conclusive result from certifier");
-                SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.PRESOLVER, result.getResult()));
                 break;
             }
         }

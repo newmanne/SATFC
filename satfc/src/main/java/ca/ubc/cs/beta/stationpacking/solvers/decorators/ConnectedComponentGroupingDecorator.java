@@ -102,7 +102,6 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
         SATFCMetrics.postEvent(new SATFCMetrics.SplitIntoConnectedComponentsEvent(aInstance.getName(), componentInstances));
 
         final List<SolverResult> solverResults = new ArrayList<>();
-        watch.stop();
         for (int i = 0; i < componentInstances.size(); i++) {
             final StationPackingInstance stationComponent = componentInstances.get(i);
             log.debug("Solving component {}...", i);
@@ -115,8 +114,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 break;
             }
         }
-        final SolverResult result = SolverResult.addTime(SolverHelper.mergeComponentResults(solverResults), watch.getElapsedTime());
-        SATFCMetrics.postEvent(new SATFCMetrics.SolvedByEvent(aInstance.getName(), SATFCMetrics.SolvedByEvent.CONNECTED_COMPONENTS, result.getResult()));
+        final SolverResult result = SolverResult.withTimeAndName(SolverHelper.mergeComponentResults(solverResults), watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
 
         if (result.getResult().equals(SATResult.SAT)) {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");
