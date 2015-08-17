@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.ArrayList;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -125,7 +126,14 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
         parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
-        parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1)); // offset the seed a bit
+        parallelUHFSolvers.add(s -> {
+            ISolver solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 1);
+            solver = new ConstraintGraphNeighborhoodPresolver(s,
+                    new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
+                    new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(), 10.0),
+                    getConstraintManager());
+            return solver;
+        }); // offset the seed a bit
 
         // Decompose the problem and then hit the cache and then clasp
         if (decompose || underconstrained) {
@@ -144,7 +152,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 }
                 if (underconstrained) {
                     log.debug("Decorate solver to first remove underconstrained stations.");
-                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), false), false);
+                    UHFSolver = new UnderconstrainedStationRemoverSolverDecorator(UHFSolver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
                 }
                 UHFSolver = new ArcConsistencyEnforcerDecorator(UHFSolver, getConstraintManager());
                 return UHFSolver;

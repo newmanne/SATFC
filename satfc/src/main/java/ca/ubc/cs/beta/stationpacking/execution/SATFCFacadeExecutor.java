@@ -80,7 +80,6 @@ public class SATFCFacadeExecutor {
                     System.out.println(result.getResult());
                     System.out.println(result.getRuntime());
                     System.out.println(result.getWitnessAssignment());
-                    SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(problem.getInstanceName(), result.getResult(), result.getRuntime()));
                     problemReader.onPostProblem(problem, result);
                     metricWriter.writeMetrics();
                     SATFCMetrics.clear();

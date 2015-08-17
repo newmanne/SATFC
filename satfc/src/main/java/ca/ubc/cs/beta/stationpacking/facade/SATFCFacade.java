@@ -262,6 +262,8 @@ public class SATFCFacade implements AutoCloseable {
             throw new RuntimeException(e);
         }
 
+        SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
+
         log.debug("Transforming result into SATFC output...");
         //Transform back solver result to output result.
         final Map<Integer, Integer> witness = new HashMap<>();

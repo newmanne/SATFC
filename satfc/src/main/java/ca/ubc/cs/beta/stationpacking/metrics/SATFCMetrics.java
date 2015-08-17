@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -102,8 +103,7 @@ public class SATFCMetrics {
     @Data
     public static class InstanceSolvedEvent {
         private final String name;
-        private final SATResult result;
-        private final double runtime;
+        private final SolverResult solverResult;
     }
 
     @Data
@@ -205,8 +205,9 @@ public class SATFCMetrics {
         @Subscribe
         public void onInstanceSolvedEvent(InstanceSolvedEvent event) {
             safeMetricEdit(event.getName(), info -> {
-                info.setResult(event.getResult());
-                info.setRuntime(event.getRuntime());
+                info.setResult(event.getSolverResult().getResult());
+                info.setRuntime(event.getSolverResult().getRuntime());
+                info.setSolvedBy(event.getSolverResult().getSolvedBy().toString());
             });
         }
 
