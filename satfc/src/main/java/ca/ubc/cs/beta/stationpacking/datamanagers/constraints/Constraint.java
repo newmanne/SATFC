@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
-import lombok.Value;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.Value;
 
 /**
  * Representation of a binary constraint

@@ -21,23 +21,28 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
-import lombok.extern.slf4j.Slf4j;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-
 import containmentcache.ILockableContainmentCache;
 import containmentcache.SimpleCacheSet;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 19/04/15.

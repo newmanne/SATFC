@@ -1,17 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import com.google.common.collect.AbstractIterator;
-import lombok.RequiredArgsConstructor;
+import java.util.Iterator;
+import java.util.Set;
+
 import org.apache.commons.math.util.FastMath;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import java.util.Iterator;
-import java.util.Set;
+import com.google.common.collect.AbstractIterator;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
 * Created by newmanne on 27/07/15.

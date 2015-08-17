@@ -1,21 +1,23 @@
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 
 /**
  * Created by newmanne on 2015-08-03.

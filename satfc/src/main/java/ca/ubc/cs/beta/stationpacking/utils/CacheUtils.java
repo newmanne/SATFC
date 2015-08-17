@@ -22,16 +22,15 @@
 package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * Created by newmanne on 19/03/15.

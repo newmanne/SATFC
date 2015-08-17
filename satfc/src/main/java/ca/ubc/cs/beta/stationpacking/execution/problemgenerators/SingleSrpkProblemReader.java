@@ -5,11 +5,11 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
+import com.google.common.collect.Sets;
+
 import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
-
-import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 11/06/15.

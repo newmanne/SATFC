@@ -1,14 +1,13 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by emily404 on 6/5/15.

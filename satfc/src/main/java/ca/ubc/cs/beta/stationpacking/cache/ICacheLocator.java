@@ -23,8 +23,8 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.Set;
 
-import net.jcip.annotations.ThreadSafe;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * Created by newmanne on 20/03/15.

@@ -21,8 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.termination.walltime;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import org.apache.commons.math.util.FastMath;
+
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 public class WalltimeTerminationCriterion implements ITerminationCriterion {
 

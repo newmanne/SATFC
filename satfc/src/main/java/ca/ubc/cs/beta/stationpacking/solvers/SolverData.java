@@ -21,10 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers;
 
-import lombok.Value;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import lombok.Value;
 
 @Value
 public class SolverData {

@@ -21,9 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**`
  * Created by newmanne on 13/05/15.

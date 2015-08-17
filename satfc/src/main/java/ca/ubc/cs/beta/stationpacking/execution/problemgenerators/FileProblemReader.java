@@ -27,13 +27,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.Converter;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+
+import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.Converter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 12/05/15.

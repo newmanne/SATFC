@@ -24,23 +24,25 @@ package ca.ubc.cs.beta.stationpacking.base;
 
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.*;
-import lombok.Getter;
-import lombok.NonNull;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Immutable container class representing a station packing instance.

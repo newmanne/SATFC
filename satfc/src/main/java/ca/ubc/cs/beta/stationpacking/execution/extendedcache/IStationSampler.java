@@ -1,7 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
 import java.util.Set;
-import java.util.BitSet;
 
 /**
  * Created by emily404 on 6/4/15.

@@ -27,12 +27,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.EqualsAndHashCode;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.EqualsAndHashCode;
 
 
 /**
@@ -111,6 +111,10 @@ public class SolverResult implements Serializable {
     {
         return new SolverResult(aResult.getResult(), aResult.getRuntime()+aTime,aResult.getAssignment());
     }
+
+	public static SolverResult withTime(SolverResult aResult, double aTime) {
+		return new SolverResult(aResult.getResult(), aTime, aResult.getAssignment());
+	}
     
 	
 	/**

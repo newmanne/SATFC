@@ -23,11 +23,11 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
+
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Container for the result returned by a SATFC facade.

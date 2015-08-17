@@ -21,10 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
+import com.beust.jcommander.Parameter;
+
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-
-import com.beust.jcommander.Parameter;
 
 /**
  * Created by newmanne on 04/12/14.
@@ -35,6 +36,7 @@ public class SATFCCachingParameters extends AbstractOptions {
     @Parameter(names = {"--serverURL", "-SERVER-URL"}, description = "base URL for the SATFC server", required = false)
     public String serverURL;
 
+    @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "--extendedCacheProblem", description = "solve extended cache problem in redis queue", required = false)
     public boolean extendedCacheProblem = false;
 

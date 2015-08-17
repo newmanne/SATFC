@@ -6,18 +6,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
-import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-
+import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
+import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+
 /**
  * Created by newmanne on 11/06/15.
  */
-@UsageTextField(title="SMAC PARAMETERS", description = "Not intended for human use")
+@UsageTextField(title="SMAC PARAMETERS", description = "Not intended for human use", level = OptionLevel.DEVELOPER)
 public class SATFCHydraParams extends AbstractOptions {
 
     public enum SolverType {

@@ -29,13 +29,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.Data;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.Data;
 
 /**
  * Created by newmanne on 01/12/14.

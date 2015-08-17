@@ -23,33 +23,17 @@ package ca.ubc.cs.beta.stationpacking.solvers.base;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.IntStream;
-
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.cputime.CPUTimeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
-import com.sun.jna.Library;
-import com.sun.jna.Native;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SolverResultTest {
