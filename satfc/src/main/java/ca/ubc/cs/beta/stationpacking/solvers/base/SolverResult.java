@@ -51,6 +51,8 @@ public class SolverResult implements Serializable {
 	private SATResult fResult;
 	private double fRuntime;
 	private ImmutableMap<Integer,Set<Station>> fAssignment;
+    @JsonIgnore
+    private final String solvedBy;
 	
 	/**
 	 * @param aResult - solver result satisfiability.
@@ -97,7 +99,7 @@ public class SolverResult implements Serializable {
 	 */
 	public static SolverResult createTimeoutResult(double aRuntime)
 	{
-		return new SolverResult(SATResult.TIMEOUT,aRuntime,new HashMap<Integer,Set<Station>>());
+		return new SolverResult(SATResult.TIMEOUT,aRuntime,new HashMap<>());
 	}
 	
     /**

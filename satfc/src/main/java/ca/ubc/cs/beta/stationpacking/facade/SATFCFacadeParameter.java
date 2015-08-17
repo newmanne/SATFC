@@ -21,15 +21,45 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ch.qos.logback.classic.Level;
 import lombok.Data;
+import lombok.Value;
+import lombok.experimental.Builder;
 
-@Data
+@Value
+@Builder
 public class SATFCFacadeParameter {
 
+    // public options
 	private final String claspLibrary;
 	private final String resultFile;
 	private final SolverChoice solverChoice;
     private final String serverURL;
-    private final int numCores;
+    private final int parallelismLevel;
+    private Level logLevel;
+
+    // private options
+    private final boolean presolve;
+    private final boolean underconstrained;
+    private final boolean decompose;
+    private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+    private final SATFCHydraParams hydraParams;
+    private final DataManager dataManager;
+
+	public enum SolverChoice
+	{
+		SATFC_SEQUENTIAL,
+        SATFC_PARALLEL,
+		MIPFC,
+        CNF,
+        CACHING_SOLVER_FULL_INSTANCES,
+        CACHING_SOLVER_COMPONENTS,
+        STATS,
+        HYDRA;
+    }
 
 }
+

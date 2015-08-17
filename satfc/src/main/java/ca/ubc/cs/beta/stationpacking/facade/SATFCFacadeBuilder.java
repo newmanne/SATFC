@@ -21,16 +21,19 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ch.qos.logback.classic.Level;
+import lombok.NonNull;
+
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import ch.qos.logback.classic.Level;
-import lombok.NonNull;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.*;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -42,6 +45,7 @@ public class SATFCFacadeBuilder {
 
     public static final String SATFC_CLASP_LIBRARY_ENV_VAR = "SATFC_CLASP_LIBRARY";
 
+    // public params
     private String fLibrary;
     private String fResultFile;
     private SolverChoice fSolverChoice;
@@ -49,16 +53,30 @@ public class SATFCFacadeBuilder {
     private int parallelismLevel;
     private Level logLevel;
 
+    // developer params
+    private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+    private boolean fPresolve;
+    private boolean fUnderconstrained;
+    private boolean fDecompose;
+    private SATFCHydraParams hydraParams;
+
     /**
      * Create a SATFCFacadeBuilder with the default parameters - no logging initialized, autodetected clasp library, no saving of CNFs and results.
      */
     public SATFCFacadeBuilder() {
+        // public params
         fLibrary = findSATFCLibrary();
         fResultFile = null;
         parallelismLevel = Math.min(SATFCParallelSolverBundle.PORTFOLIO_SIZE, Runtime.getRuntime().availableProcessors());
         fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         serverURL = null;
         logLevel = Level.INFO;
+
+        // developer params
+        hydraParams = null;
+        fPresolve = true;
+        fUnderconstrained = true;
+        fDecompose = true;
     }
 
     /**
@@ -121,19 +139,24 @@ public class SATFCFacadeBuilder {
         if (fLibrary == null) {
             throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
         }
-        if (fSolverChoice.equals(SolverChoice.SATFC_PARALLEL)) {
+        if (fSolverChoice.equals(SATFC_PARALLEL)) {
             if (parallelismLevel < 4) {
-                throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SolverChoice.SATFC_SEQUENTIAL + " solver instead. We recommend the " + SolverChoice.SATFC_PARALLEL + " solver with >= than 4 threads");
+                throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SATFC_SEQUENTIAL + " solver instead. We recommend the " + SATFC_PARALLEL + " solver with >= than 4 threads");
             }
         }
         initializeLogging(logLevel);
-        return new SATFCFacade(new SATFCFacadeParameter(
-                fLibrary,
-                fResultFile,
-                fSolverChoice,
-                serverURL,
-                parallelismLevel
-        ));
+        return new SATFCFacade(
+                SATFCFacadeParameter.builder()
+                        .claspLibrary(fLibrary)
+                        .resultFile(fResultFile)
+                        .solverChoice(fSolverChoice)
+                        .serverURL(serverURL)
+                        .parallelismLevel(parallelismLevel)
+                        .hydraParams(hydraParams)
+                        .presolve(fPresolve)
+                        .decompose(fDecompose)
+                        .underconstrained(fUnderconstrained)
+                        .build());
     }
     
     public static void initializeLogging(Level logLevel) {
@@ -210,60 +233,37 @@ public class SATFCFacadeBuilder {
     	return this;
     }
 
-    /**
-     * Experimental options here. Not tested. Not intended for public use.
-     */
-    public static class ExperimentalSATFCFacadeBuilder extends SATFCFacadeBuilder {
 
-        private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
-        private boolean fPresolve;
-        private boolean fUnderconstrained;
-        private boolean fDecompose;
-        private SATFCHydraParams hydraParams;
-
-        public ExperimentalSATFCFacadeBuilder() {
-            super();
-            hydraParams = null;
-            fPresolve = true;
-            fUnderconstrained = true;
-            fDecompose = true;
-        }
-
-        private SATFCFacadeBuilder setPresolve(boolean presolve) {
-            this.fPresolve = presolve;
-            return this;
-        }
-
-        private SATFCFacadeBuilder setUnderconstrained(boolean underconstrained) {
-            this.fUnderconstrained = underconstrained;
-            return this;
-        }
-
-        private SATFCFacadeBuilder setDecompose(boolean decompose) {
-            this.fDecompose = decompose;
-            return this;
-        }
-
-        private SATFCFacadeBuilder setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
-            this.CNFSaver = CNFSaver;
-            return this;
-        }
-
-        private SATFCFacadeBuilder setHydraParams(@NonNull SATFCHydraParams hydraParams) {
-            this.hydraParams = hydraParams;
-            return this;
-        }
-
-        public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
-            return null;
-        }
-
+    // Developer methods
+    private SATFCFacadeBuilder setPresolve(boolean presolve) {
+        this.fPresolve = presolve;
+        return this;
     }
 
+    private SATFCFacadeBuilder setUnderconstrained(boolean underconstrained) {
+        this.fUnderconstrained = underconstrained;
+        return this;
+    }
+
+    private SATFCFacadeBuilder setDecompose(boolean decompose) {
+        this.fDecompose = decompose;
+        return this;
+    }
+
+    private SATFCFacadeBuilder setCNFSaver(@NonNull CNFSaverSolverDecorator.ICNFSaver CNFSaver) {
+        this.CNFSaver = CNFSaver;
+        return this;
+    }
+
+    private SATFCFacadeBuilder setHydraParams(@NonNull SATFCHydraParams hydraParams) {
+        this.hydraParams = hydraParams;
+        return this;
+    }
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
 
+        // regular parameters
         if (parameters.fClaspLibrary != null) {
             builder.setLibrary(parameters.fClaspLibrary);
         }
@@ -273,8 +273,8 @@ public class SATFCFacadeBuilder {
         if (parameters.fSolverOptions.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.fSolverOptions.cachingParams.serverURL);
         }
-        return builder.build();
 
+        // developer parameters
         builder.setDecompose(parameters.fSolverOptions.decomposition);
         builder.setUnderconstrained(parameters.fSolverOptions.underconstrained);
         builder.setPresolve(parameters.fSolverOptions.presolve);
@@ -291,6 +291,7 @@ public class SATFCFacadeBuilder {
             builder.setHydraParams(parameters.fHydraParams);
         }
 
+        return builder.build();
     }
 
 }

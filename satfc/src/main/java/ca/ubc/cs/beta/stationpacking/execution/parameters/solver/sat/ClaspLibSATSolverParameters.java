@@ -33,7 +33,7 @@ import com.beust.jcommander.Parameter;
  * @author afrechet
  */
 @UsageTextField(title="FCC Station Packing Packing Clasp Library Based SAT Solver Parameters",description="Parameters defining a Clasp library based SAT solver.")
-public class ClaspLibSATSolverParameters extends AbstractOptions implements ISATSolverParameters{
+public class ClaspLibSATSolverParameters extends AbstractOptions {
 	
     /**
 	 * Clasp3 configurations
@@ -68,9 +68,4 @@ public class ClaspLibSATSolverParameters extends AbstractOptions implements ISAT
 	@Parameter(names = "--configuration", description = "clasp configuration to use (may not be used).")
 	public String Configuration = UHF_CONFIG_04_15_h1;
 	
-	@Override
-	public AbstractCompressedSATSolver getSATSolver() {
-		return new Clasp3SATSolver(Library, Configuration);
-	}
-
 }

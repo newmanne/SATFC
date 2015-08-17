@@ -73,17 +73,12 @@ public class SATFCFacade implements AutoCloseable {
 
     private final SolverManager fSolverManager;
 
-
-    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
-        this(aSATFCParameters, new DataManager());
-    }
-
     /**
      * Construct a SATFC solver facade
      *
      * @param aSATFCParameters parameters needed by the facade.
      */
-    SATFCFacade(final SATFCFacadeParameter aSATFCParameters, final DataManager dataManager) {
+    SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
         //Check provided library.
         Preconditions.checkNotNull(aSATFCParameters.getClaspLibrary(), "Cannot provide null library.");
         final File libraryFile = new File(aSATFCParameters.getClaspLibrary());
@@ -138,7 +133,7 @@ public class SATFCFacade implements AutoCloseable {
                                     aSATFCParameters.isDecompose(),
                                     aSATFCParameters.isUnderconstrained(),
                                     aSATFCParameters.getServerURL(),
-                                    aSATFCParameters.getNumCores()
+                                    aSATFCParameters.getParallelismLevel()
                                 );
                             case MIPFC:
                                 return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
@@ -146,7 +141,7 @@ public class SATFCFacade implements AutoCloseable {
                                 return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFSaver());
                             case CACHING_SOLVER_FULL_INSTANCES:
                             case CACHING_SOLVER_COMPONENTS:
-                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SolverChoice.CACHING_SOLVER_COMPONENTS);
+                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case HYDRA:
                                 return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             case STATS:
@@ -156,7 +151,7 @@ public class SATFCFacade implements AutoCloseable {
                         }
                     }
                 },
-                dataManager
+                aSATFCParameters.getDataManager()
         );
     }
 

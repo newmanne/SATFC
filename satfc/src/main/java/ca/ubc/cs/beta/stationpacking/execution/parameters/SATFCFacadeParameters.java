@@ -26,7 +26,8 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SolverChoice;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ch.qos.logback.classic.Level;
 

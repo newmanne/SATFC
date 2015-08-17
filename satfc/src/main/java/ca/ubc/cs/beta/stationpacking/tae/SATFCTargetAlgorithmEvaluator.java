@@ -36,7 +36,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import ca.ubc.cs.beta.stationpacking.facade.SolverChoice;
 import lombok.Data;
 
 import org.python.core.PyObject;
@@ -61,7 +60,9 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SingleSrpkProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
@@ -201,18 +202,14 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 JCommanderHelper.parseCheckingForHelpAndVersion(commandLine.toArray(new String[commandLine.size()]), params);
                 params.claspConfig = claspParams;
                 params.validate();
-                final SATFCFacadeParameter satfcFacadeParameter = new SATFCFacadeParameter(
-                        fLibPath,
-                        null, // result file
-                        SolverChoice.HYDRA,
-                        false, // unused flag
-                        false, // unused flag
-                        false, // unused flag
-                        null, // cnf
-                        null, // server
-                        1,
-                        params);
-                try (final SATFCFacade facade = new SATFCFacade(satfcFacadeParameter, dataManager)) {
+                final SATFCFacadeParameter satfcFacadeParameter = SATFCFacadeParameter.builder()
+                        .claspLibrary(fLibPath)
+                        .solverChoice(SolverChoice.HYDRA)
+                        .parallelismLevel(1)
+                        .hydraParams(params)
+                        .dataManager(dataManager)
+                        .build();
+                try (final SATFCFacade facade = SATFCFacadeBuilder.buildFromParameters(satfcFacadeParameter)) {
                     log.debug("Giving problem to SATFC facade...");
                     // Solve the problem.
                     final SATFCResult result = facade.solve(
