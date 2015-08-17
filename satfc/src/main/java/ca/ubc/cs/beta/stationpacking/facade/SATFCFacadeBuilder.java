@@ -21,6 +21,16 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.SATFC_PARALLEL;
+import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.SATFC_SEQUENTIAL;
+
+import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
+
+import lombok.Data;
+import lombok.NonNull;
+import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
@@ -28,17 +38,6 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Value;
-import lombok.experimental.Builder;
-
-import java.io.File;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.*;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -162,6 +161,7 @@ public class SATFCFacadeBuilder {
                         .presolve(developerOptions.isPresolve())
                         .decompose(developerOptions.isDecompose())
                         .underconstrained(developerOptions.isUnderconstrained())
+                        .dataManager(developerOptions.getDataManager())
                         .build()
                         );
     }

@@ -26,11 +26,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manages the solvers & data corresponding to different directories to make sure it is only read once.

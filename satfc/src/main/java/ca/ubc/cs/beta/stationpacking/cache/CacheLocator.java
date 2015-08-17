@@ -28,21 +28,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+import net.jcip.annotations.ThreadSafe;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
-
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableSet;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
+
 import containmentcache.util.PermutationUtils;
-import lombok.extern.slf4j.Slf4j;
-import net.jcip.annotations.ThreadSafe;
 
 /**
  * Created by newmanne on 25/03/15.

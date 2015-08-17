@@ -23,23 +23,24 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.List;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableList;
-
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.SatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
+
 import containmentcache.IContainmentCache;
 import containmentcache.ILockableContainmentCache;
 import containmentcache.bitset.opt.MultiPermutationBitSetCache;
 import containmentcache.bitset.opt.sortedset.redblacktree.RedBlackTree;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 import containmentcache.util.PermutationUtils;
-import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 22/04/15.

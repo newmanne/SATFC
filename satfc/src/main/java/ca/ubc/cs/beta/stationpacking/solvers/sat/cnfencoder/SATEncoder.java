@@ -27,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.Data;
+
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -37,7 +39,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Clause;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IBijection;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IdentityBijection;
-import lombok.Data;
 
 /**
  * Encodes a problem instance as a propositional satisfiability problem.

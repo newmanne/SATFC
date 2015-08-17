@@ -27,11 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Preconditions;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.IntByReference;
-
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
@@ -41,7 +37,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Libr
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.base.Preconditions;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
 
 @Slf4j
 public class Clasp3SATSolver extends AbstractCompressedSATSolver {

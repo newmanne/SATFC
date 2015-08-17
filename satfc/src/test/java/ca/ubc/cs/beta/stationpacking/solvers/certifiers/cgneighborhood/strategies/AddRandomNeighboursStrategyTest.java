@@ -11,13 +11,11 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
+
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 
 /**
  * Created by newmanne on 2015-08-03.
@@ -26,18 +24,8 @@ public class AddRandomNeighboursStrategyTest {
 
     GraphLoader graphLoader;
 
-    private static final int ARBITRARY_CHANNEL = 42;
-    private static ITerminationCriterion mockTerminationCriterion;
-    private static long arbitrarySeed;
-
     @Before
     public void setUp() throws Exception {
-
-        // This mock termination criterion is never met.
-        mockTerminationCriterion = new NeverEndingTerminationCriterion();
-        // Completely random seed; value is not actually used since we never use any actual solvers here
-        arbitrarySeed = 17;
-
         graphLoader = new GraphLoader();
         graphLoader.loadAllGraphs();
     }

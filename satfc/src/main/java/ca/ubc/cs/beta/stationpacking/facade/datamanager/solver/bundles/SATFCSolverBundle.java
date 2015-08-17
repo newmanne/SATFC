@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
@@ -48,7 +49,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.

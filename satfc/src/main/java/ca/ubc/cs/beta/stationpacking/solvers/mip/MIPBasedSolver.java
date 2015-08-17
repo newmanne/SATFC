@@ -21,6 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.mip;
 
+import ilog.concert.IloException;
+import ilog.concert.IloIntVar;
+import ilog.cplex.IloCplex;
+import ilog.cplex.IloCplex.Status;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,10 +49,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
-import ilog.cplex.IloCplex;
-import ilog.cplex.IloCplex.Status;
 
 /**
  * A MIP based feasibility checker. Encodes a feasibility checking instance in the feasibility MIP

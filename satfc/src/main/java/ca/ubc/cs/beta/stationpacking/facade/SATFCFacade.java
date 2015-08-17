@@ -31,10 +31,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -59,8 +57,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -152,7 +152,7 @@ public class SATFCFacade implements AutoCloseable {
                         }
                     }
                 },
-                aSATFCParameters.getDataManager()
+                aSATFCParameters.getDataManager() == null ? new DataManager() : aSATFCParameters.getDataManager()
         );
     }
 

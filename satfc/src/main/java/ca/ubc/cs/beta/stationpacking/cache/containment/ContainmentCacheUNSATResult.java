@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache.containment;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
 * Created by newmanne on 25/03/15.

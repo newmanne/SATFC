@@ -27,20 +27,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import lombok.Data;
+import lombok.NonNull;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimaps;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import containmentcache.ICacheEntry;
-import lombok.Data;
-import lombok.NonNull;
 
 /**
 * Created by newmanne on 25/03/15.

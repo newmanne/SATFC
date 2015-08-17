@@ -22,18 +22,17 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ch.qos.logback.classic.Level;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 
 /**
  * SATFC facade parameters.

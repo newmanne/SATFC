@@ -28,12 +28,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.base.Splitter;
-import com.google.common.io.Files;
-import com.google.common.io.Resources;
 
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -49,7 +47,10 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolv
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.base.Splitter;
+import com.google.common.io.Files;
+import com.google.common.io.Resources;
 
 /**
  * Created by newmanne on 22/05/15.

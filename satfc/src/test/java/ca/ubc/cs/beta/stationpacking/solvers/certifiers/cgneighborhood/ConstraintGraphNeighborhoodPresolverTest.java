@@ -36,8 +36,6 @@ import org.jgrapht.graph.SimpleGraph;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.GraphBackedConstraintManager;
@@ -51,6 +49,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 import ca.ubc.cs.beta.stationpacking.test.StationWholeSetSATCertifier;
+
+import com.google.common.collect.Sets;
 
 /**
  * @author pcernek
@@ -210,12 +210,6 @@ public class ConstraintGraphNeighborhoodPresolverTest {
 
     private void testGraph(SimpleGraph<Station, DefaultEdge> graph, Set<Station> startingStations, int numberOfTimesToCall) {
         testGraph(graph, startingStations, numberOfTimesToCall, SATResult.SAT);
-
-    }
-
-    private void testGraph(SimpleGraph<Station, DefaultEdge> graph,
-                           Station station, int numberOfTimesToCall, SATResult result) {
-        testGraph(graph, Collections.singleton(station), numberOfTimesToCall, result);
 
     }
 

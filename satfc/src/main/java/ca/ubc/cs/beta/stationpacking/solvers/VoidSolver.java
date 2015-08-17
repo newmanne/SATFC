@@ -22,7 +22,6 @@
 package ca.ubc.cs.beta.stationpacking.solvers;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 

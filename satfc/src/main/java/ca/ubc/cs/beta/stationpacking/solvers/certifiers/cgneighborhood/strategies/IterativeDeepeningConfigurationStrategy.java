@@ -7,9 +7,9 @@ import org.apache.commons.math.util.FastMath;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import com.google.common.collect.AbstractIterator;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
+
+import com.google.common.collect.AbstractIterator;
 
 /**
 * Created by newmanne on 27/07/15.

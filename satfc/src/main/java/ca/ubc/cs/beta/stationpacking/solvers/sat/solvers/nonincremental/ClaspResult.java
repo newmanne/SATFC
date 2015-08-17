@@ -21,9 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
-import com.google.common.base.Preconditions;
-
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Clasp library result.

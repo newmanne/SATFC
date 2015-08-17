@@ -8,10 +8,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.RandomUtils;
-import org.junit.Test;
+import lombok.extern.slf4j.Slf4j;
 
-import com.google.common.collect.Sets;
+import org.apache.commons.lang3.RandomUtils;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
@@ -22,7 +23,8 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 29/06/15.
@@ -32,6 +34,7 @@ public class SATFCProblemDriver {
 
     final int clearingTarget = 31;
 
+    @Ignore
     @Test
     public void driver() throws Exception {
         SATFCFacadeBuilder b = new SATFCFacadeBuilder();

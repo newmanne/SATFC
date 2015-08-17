@@ -23,12 +23,12 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.io.IOException;
 
+import lombok.Getter;
+import ca.ubc.cs.beta.stationpacking.base.StationDeserializer.StationJacksonModule;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-
-import ca.ubc.cs.beta.stationpacking.base.StationDeserializer.StationJacksonModule;
-import lombok.Getter;
 
 /**
  * Created by newmanne on 02/12/14.

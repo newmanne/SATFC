@@ -2,13 +2,13 @@ package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Transaction;
 import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Transaction;
 
 /**
  * Created by emily404 on 5/20/15.

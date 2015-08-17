@@ -26,15 +26,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import lombok.Data;
+import lombok.NonNull;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import containmentcache.ICacheEntry;
-import lombok.Data;
-import lombok.NonNull;
 
 /**
 * Created by newmanne on 25/03/15.

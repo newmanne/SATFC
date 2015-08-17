@@ -26,14 +26,14 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
-
+import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-import lombok.extern.slf4j.Slf4j;
-import redis.clients.jedis.Jedis;
+
+import com.google.common.collect.Sets;
 
 /**
 * Created by newmanne on 12/05/15.

@@ -21,12 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat;
 
-import com.beust.jcommander.Parameter;
-
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Clasp SAT solver library parameters.

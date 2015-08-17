@@ -22,12 +22,10 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters.solver;
 
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCCachingParameters;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Created by newmanne on 13/01/15.

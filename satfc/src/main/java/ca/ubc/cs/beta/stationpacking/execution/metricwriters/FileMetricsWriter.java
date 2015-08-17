@@ -24,12 +24,12 @@ package ca.ubc.cs.beta.stationpacking.execution.metricwriters;
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 /**
  * Created by newmanne on 29/05/15.

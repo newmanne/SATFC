@@ -2,8 +2,8 @@ package ca.ubc.cs.beta.stationpacking.datamanagers.constraints;
 
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import lombok.Data;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
 * Created by newmanne on 08/07/15.

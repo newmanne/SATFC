@@ -24,11 +24,11 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.math3.util.Pair;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.common.io.Resources;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
@@ -46,7 +46,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.InterruptibleTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.io.Resources;
 
 @Slf4j
 public class Clasp3SATSolverTest {

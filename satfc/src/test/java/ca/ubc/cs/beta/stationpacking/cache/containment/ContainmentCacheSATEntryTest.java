@@ -30,9 +30,9 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableBiMap;
-
 import ca.ubc.cs.beta.stationpacking.base.Station;
+
+import com.google.common.collect.ImmutableBiMap;
 
 /**
  * Created by emily404 on 5/12/15.

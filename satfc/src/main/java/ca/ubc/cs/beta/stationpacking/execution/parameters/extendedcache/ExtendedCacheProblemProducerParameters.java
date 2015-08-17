@@ -2,16 +2,16 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters.extendedcache;
 
 import java.util.concurrent.TimeUnit;
 
-import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-
 import ca.ubc.cs.beta.aeatk.logging.ComplexLoggingOptions;
+import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.ProblemSamplerParameters;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.StationSamplerParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.RedisParameters;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 
 /**
  * Created by emily404 on 5/28/15.

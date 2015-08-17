@@ -7,13 +7,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 
 public abstract class AMapBasedConstraintManager extends AConstraintManager {
 

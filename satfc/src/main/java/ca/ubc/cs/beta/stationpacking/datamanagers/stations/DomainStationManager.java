@@ -30,14 +30,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import au.com.bytecode.opencsv.CSVReader;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.hash.PrimitiveSink;
-
-import au.com.bytecode.opencsv.CSVReader;
-import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
  * In charge of managing collections of stations read from a domain file.

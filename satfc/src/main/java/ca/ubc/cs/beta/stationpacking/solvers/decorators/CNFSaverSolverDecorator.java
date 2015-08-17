@@ -25,10 +25,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+
 import org.apache.commons.io.FileUtils;
 
-import com.google.common.base.Joiner;
-
+import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -38,9 +40,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import redis.clients.jedis.Jedis;
+
+import com.google.common.base.Joiner;
 
 /**
  * Solver decorator that saves CNFs on solve query.

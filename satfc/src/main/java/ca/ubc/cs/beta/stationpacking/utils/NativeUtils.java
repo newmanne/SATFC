@@ -23,9 +23,9 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
-
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Created by newmanne on 20/05/15.

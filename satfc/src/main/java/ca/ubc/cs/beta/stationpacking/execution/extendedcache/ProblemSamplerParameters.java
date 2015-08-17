@@ -1,9 +1,9 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
-import com.beust.jcommander.Parameter;
-
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.RedisParameters;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Created by emily404 on 6/17/15.

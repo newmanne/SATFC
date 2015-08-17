@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
-import com.beust.jcommander.Parameter;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+
+import com.beust.jcommander.Parameter;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Created by newmanne on 11/06/15.

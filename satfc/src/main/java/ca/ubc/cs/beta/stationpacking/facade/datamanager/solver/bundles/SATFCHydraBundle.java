@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -26,7 +27,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationR
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 11/06/15.
