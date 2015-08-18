@@ -85,7 +85,8 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             final boolean decompose,
             final boolean underconstrained,
             final String serverURL,
-            int numCores
+            int numCores,
+            final boolean cacheResults
     ) {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
@@ -143,8 +144,10 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 if (useCache) {
                     final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
                     UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-                    UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
-                    UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
+                    if (cacheResults) {
+                        UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+                        UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
+                    }
                 }
                 if (decompose) {
                     log.debug("Decorate solver to split the graph into connected components and then merge the results");
@@ -195,7 +198,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
-        if (useCache) {
+        if (useCache && cacheResults) {
             UHFsolver = new CacheResultDecorator(UHFsolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
         }
 

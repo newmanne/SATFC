@@ -207,7 +207,7 @@ public class SATFCMetrics {
             safeMetricEdit(event.getName(), info -> {
                 info.setResult(event.getSolverResult().getResult());
                 info.setRuntime(event.getSolverResult().getRuntime());
-                info.setSolvedBy(event.getSolverResult().getSolvedBy().toString());
+                info.setSolvedBy(event.getSolverResult().getSolvedBy());
             });
         }
 

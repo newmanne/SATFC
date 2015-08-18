@@ -77,7 +77,8 @@ public class SATFCSolverBundle extends ASolverBundle {
             boolean presolve,
             boolean decompose,
             boolean underconstrained,
-            String serverURL
+            String serverURL,
+            boolean cacheResults
     ) {
         super(aStationManager, aConstraintManager);
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
@@ -113,8 +114,10 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (useCache) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
-            UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
+            if (cacheResults) {
+                UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+                UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
+            }
         }
 
         if (decompose)
@@ -166,7 +169,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
-        if (useCache) {
+        if (useCache && cacheResults) {
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 

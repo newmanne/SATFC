@@ -56,6 +56,7 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private int parallelismLevel;
     private Level logLevel;
+    private boolean cacheResults;
     private DeveloperOptions developerOptions;
 
     // developer params
@@ -81,6 +82,7 @@ public class SATFCFacadeBuilder {
         fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         serverURL = null;
         logLevel = Level.INFO;
+        cacheResults = true;
         developerOptions = DeveloperOptions.builder().build();
     }
 
@@ -157,6 +159,8 @@ public class SATFCFacadeBuilder {
                         .solverChoice(fSolverChoice)
                         .serverURL(serverURL)
                         .parallelismLevel(parallelismLevel)
+                        .cacheResults(cacheResults)
+                        // developer
                         .hydraParams(developerOptions.getHydraParams())
                         .presolve(developerOptions.isPresolve())
                         .decompose(developerOptions.isDecompose())
@@ -247,6 +251,11 @@ public class SATFCFacadeBuilder {
     	return this;
     }
 
+    public SATFCFacadeBuilder setCacheResults(boolean cacheResults) {
+        this.cacheResults = cacheResults;
+        return this;
+    }
+
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
 
@@ -260,6 +269,7 @@ public class SATFCFacadeBuilder {
         if (parameters.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.cachingParams.serverURL);
         }
+        builder.setCacheResults(parameters.cachingParams.cacheResults);
 
         CNFSaverSolverDecorator.ICNFSaver CNFSaver = null;
         if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {

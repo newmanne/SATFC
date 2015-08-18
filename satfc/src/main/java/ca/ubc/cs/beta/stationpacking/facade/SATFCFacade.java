@@ -122,7 +122,8 @@ public class SATFCFacade implements AutoCloseable {
                                         aSATFCParameters.isPresolve(),
                                         aSATFCParameters.isDecompose(),
                                         aSATFCParameters.isUnderconstrained(),
-                                        aSATFCParameters.getServerURL()
+                                        aSATFCParameters.getServerURL(),
+                                        aSATFCParameters.isCacheResults()
                                 		);
                             case SATFC_PARALLEL:
                                 return new SATFCParallelSolverBundle(
@@ -134,7 +135,8 @@ public class SATFCFacade implements AutoCloseable {
                                     aSATFCParameters.isDecompose(),
                                     aSATFCParameters.isUnderconstrained(),
                                     aSATFCParameters.getServerURL(),
-                                    aSATFCParameters.getParallelismLevel()
+                                    aSATFCParameters.getParallelismLevel(),
+                                    aSATFCParameters.isCacheResults()
                                 );
                             case MIPFC:
                                 return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
