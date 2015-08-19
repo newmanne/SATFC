@@ -51,7 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 @Slf4j
 @SpringBootApplication
-public class Application {
+public class SATFCServerApplication {
 
     private final static SATFCServerParameters parameters = new SATFCServerParameters();
 
@@ -60,7 +60,7 @@ public class Application {
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         parameters.validate();
         log.info("Using the following command line parameters " + System.lineSeparator() + parameters.toString());
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(SATFCServerApplication.class, args);
     }
 
     @Bean
