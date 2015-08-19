@@ -56,6 +56,7 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private int parallelismLevel;
     private Level logLevel;
+    private String logFileName;
     private boolean cacheResults;
     private DeveloperOptions developerOptions;
 
@@ -82,6 +83,7 @@ public class SATFCFacadeBuilder {
         fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         serverURL = null;
         logLevel = Level.INFO;
+        logFileName = "SATFC.log";
         cacheResults = true;
         developerOptions = DeveloperOptions.builder().build();
     }
@@ -151,7 +153,7 @@ public class SATFCFacadeBuilder {
                 throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SATFC_SEQUENTIAL + " solver instead. We recommend the " + SATFC_PARALLEL + " solver with >= than 4 threads");
             }
         }
-        initializeLogging(logLevel);
+        initializeLogging(logLevel, logFileName);
         return new SATFCFacade(
                 SATFCFacadeParameter.builder()
                         .claspLibrary(fLibrary)
@@ -170,8 +172,9 @@ public class SATFCFacadeBuilder {
                         );
     }
     
-    public static void initializeLogging(Level logLevel) {
+    public static void initializeLogging(Level logLevel, String logFileName) {
         System.setProperty("SATFC.root.log.level", logLevel.toString());
+        System.setProperty("SATFC.log.filename", logFileName);
     }
 
     /**
@@ -253,6 +256,11 @@ public class SATFCFacadeBuilder {
 
     public SATFCFacadeBuilder setCacheResults(boolean cacheResults) {
         this.cacheResults = cacheResults;
+        return this;
+    }
+
+    public SATFCFacadeBuilder setLogFileName(@NonNull String logFileName) {
+        this.logFileName = logFileName;
         return this;
     }
 

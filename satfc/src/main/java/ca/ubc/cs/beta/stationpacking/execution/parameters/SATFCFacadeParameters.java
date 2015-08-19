@@ -93,6 +93,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@Parameter(names={"--log-level","--logLevel"},description="messages will only be logged if they are of this severity or higher.")
 	private String logLevel = "INFO";
+    @Parameter(names={"-LOG-FILE"},description="Log file name")
+    public String logFileName= "SATFC.log";
+
     public Level getLogLevel() {
         return Level.valueOf(logLevel);
     }
