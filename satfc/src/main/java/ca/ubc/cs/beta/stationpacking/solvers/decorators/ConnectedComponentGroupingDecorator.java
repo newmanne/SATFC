@@ -21,16 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -42,9 +32,14 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
 /**
  * Created by newmanne on 28/11/14.
@@ -114,7 +109,8 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 break;
             }
         }
-        final SolverResult result = SolverResult.withTimeAndName(SolverHelper.mergeComponentResults(solverResults), watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
+        final SolverResult mergedResult = SolverHelper.mergeComponentResults(solverResults);
+        final SolverResult result = SolverResult.relabelTimeAndSolvedBy(mergedResult, watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
 
         if (result.getResult().equals(SATResult.SAT)) {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");

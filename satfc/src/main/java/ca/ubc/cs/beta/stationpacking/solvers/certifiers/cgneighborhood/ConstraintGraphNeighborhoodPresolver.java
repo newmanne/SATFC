@@ -110,9 +110,9 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
 
         if (result == null || !result.isConclusive()) {
             log.debug("Ran out of of configurations to try and no conclusive results. Passing onto next decorator...");
-            result = SolverResult.withTime(fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
+            result = SolverResult.relabelTime(fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
         } else {
-            result = SolverResult.withTime(result, watch.getElapsedTime());
+            result = SolverResult.relabelTime(result, watch.getElapsedTime());
         }
 
         log.debug("Result:" + System.lineSeparator() + result.toParsableString());

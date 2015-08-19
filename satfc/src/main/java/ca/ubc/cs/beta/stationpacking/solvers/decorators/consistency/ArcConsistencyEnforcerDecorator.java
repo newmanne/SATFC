@@ -40,7 +40,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
         } else {
             log.debug("Removed {} channels", ac3Output.getNumReducedChannels());
             final StationPackingInstance reducedInstance = new StationPackingInstance(ac3Output.getReducedDomains(), aInstance.getPreviousAssignment(), aInstance.getMetadata());
-            return SolverResult.withTime(fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
+            return SolverResult.relabelTime(fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
         }
     }
 
