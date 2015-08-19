@@ -45,6 +45,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import org.chocosolver.solver.Solver;
 
 /**
  * Created by newmanne on 28/11/14.
@@ -114,7 +115,8 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 break;
             }
         }
-        final SolverResult result = SolverResult.withTimeAndName(SolverHelper.mergeComponentResults(solverResults), watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
+        final SolverResult mergedResult = SolverHelper.mergeComponentResults(solverResults);
+        final SolverResult result = SolverResult.relabelTimeAndSolvedBy(mergedResult, watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
 
         if (result.getResult().equals(SATResult.SAT)) {
             Preconditions.checkState(solverResults.size() == stationComponents.size(), "Determined result was SAT without looking at every component!");

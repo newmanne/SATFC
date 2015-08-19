@@ -88,7 +88,7 @@ public class SolverResult implements Serializable {
 		fResult = aResult;
 		fRuntime = aRuntime;
 		fAssignment = ImmutableMap.copyOf(aAssignment);
-        solvedBy = aSolvedBy;
+        solvedBy = aResult.isConclusive() ? aSolvedBy : SolvedBy.UNSOLVED;
 	}
 	
 	/**
@@ -111,11 +111,11 @@ public class SolverResult implements Serializable {
 		return SolverResult.createNonSATResult(SATResult.TIMEOUT,aRuntime, SolvedBy.UNSOLVED);
 	}
 	
-	public static SolverResult withTime(SolverResult aResult, double aTime) {
+	public static SolverResult relabelTime(SolverResult aResult, double aTime) {
 		return new SolverResult(aResult.getResult(), aTime, aResult.getAssignment(), aResult.getSolvedBy());
 	}
 
-    public static SolverResult withTimeAndName(SolverResult aResult, double aTime, SolvedBy aSolvedBy) {
+    public static SolverResult relabelTimeAndSolvedBy(SolverResult aResult, double aTime, SolvedBy aSolvedBy) {
         return new SolverResult(aResult.getResult(), aTime, aResult.getAssignment(), aSolvedBy);
     }
     

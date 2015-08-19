@@ -57,7 +57,7 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
             SATFCMetrics.postEvent(new SATFCMetrics.JustifiedByCacheEvent(aInstance.getName(), proveUNSATBySubset.getKey()));
         } else {
             log.debug("UNSAT cache unsuccessful");
-            result = SolverResult.withTime(fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
+            result = SolverResult.relabelTime(fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
         }
         return result;
     }

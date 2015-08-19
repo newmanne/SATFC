@@ -92,7 +92,7 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
         final SolverResult result;
         if (SATboundResult.getResult().equals(SATResult.SAT)) {
             log.debug("Stations not in previous assignment can be packed with their neighborhood when all other stations are fixed to their previous assignment..");
-            result = SolverResult.withTimeAndName(SATboundResult, watch.getElapsedTime(), SolverResult.SolvedBy.SAT_PRESOLVER);
+            result = SolverResult.relabelTimeAndSolvedBy(SATboundResult, watch.getElapsedTime(), SolverResult.SolvedBy.SAT_PRESOLVER);
         } else {
             result = SolverResult.createTimeoutResult(watch.getElapsedTime());
         }

@@ -163,7 +163,7 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
         } else {
             log.debug("Sub-instance was not satisfiable, no need to consider adding back underconstrained stations.");
             //Not satisfiable, so re-adding the underconstrained nodes cannot change anything.
-            return SolverResult.withTime(subResult, watch.getElapsedTime());
+            return SolverResult.relabelTime(subResult, watch.getElapsedTime());
         }
     }
 
