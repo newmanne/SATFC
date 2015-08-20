@@ -45,7 +45,6 @@ import com.google.common.collect.Sets;
 @Slf4j
 public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
-    public static final String STATION_SUBSET_SATCERTIFIER = "_StationSubsetSATCertifier";
     private final ISolver fSolver;
 
     public StationSubsetSATCertifier(ISolver aSolver) {

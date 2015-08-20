@@ -46,8 +46,6 @@ import com.google.common.collect.ImmutableMap;
 @Slf4j
 public class StationSubsetUNSATCertifier implements IStationSubsetCertifier {
 
-    public static final String STATION_SUBSET_UNSATCERTIFIER = "_StationSubsetUNSATCertifier";
-
     private final ISolver fSolver;
 
     public StationSubsetUNSATCertifier(ISolver aSolver) {
