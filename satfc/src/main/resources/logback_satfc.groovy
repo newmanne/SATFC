@@ -8,10 +8,12 @@ def LOG_FILE_NAME = System.getProperty("SATFC.log.filename")
 
 def LOG_FORMAT = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{0} - %msg%n"
 
-appender("FILE", FileAppender) {
-    file = LOG_FILE_NAME
-    encoder(PatternLayoutEncoder) {
-        pattern = LOG_FORMAT
+if (LOG_FILE_NAME != null) {
+    appender("FILE", FileAppender) {
+        file = LOG_FILE_NAME
+        encoder(PatternLayoutEncoder) {
+            pattern = LOG_FORMAT
+        }
     }
 }
 

@@ -103,7 +103,7 @@ public abstract class ASolverBundleTest {
 
         @Override
         protected ISolverBundle getBundle() {
-            return new SATFCSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null);
+            return new SATFCSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null, false);
         }
 
     }
@@ -115,7 +115,7 @@ public abstract class ASolverBundleTest {
 
         @Override
         protected ISolverBundle getBundle() {
-            return new SATFCParallelSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null, Runtime.getRuntime().availableProcessors());
+            return new SATFCParallelSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null, Runtime.getRuntime().availableProcessors(), false);
         }
 
     }

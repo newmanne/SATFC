@@ -21,8 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.SpringApplication;
@@ -33,6 +39,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
+import org.springframework.util.ReflectionUtils;
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
@@ -56,8 +63,21 @@ public class SATFCServerApplication {
     private final static SATFCServerParameters parameters = new SATFCServerParameters();
 
     public static void main(String[] args) {
+        // Jcommander will throw an exception if it sees parameters it does not know about, but these are possibly spring boot commands
+        final List<String> jcommanderArgs = new ArrayList<>();
+        final List<String> jcommanderFields = new ArrayList<>();
+        ReflectionUtils.doWithFields(SATFCServerParameters.class, field -> Collections.addAll(jcommanderFields, field.getAnnotation(Parameter.class).names()));
+        for (String arg : args) {
+            for (String jcommanderField : jcommanderFields) {
+                final String[] split = arg.split("=");
+                if (split.length > 0 && split[0].equals(jcommanderField)) {
+                    jcommanderArgs.add(arg);
+                    break;
+                }
+            }
+        }
         // Even though spring has its own parameter parsing, JComamnder gives tidier error messages
-        JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
+        JCommanderHelper.parseCheckingForHelpAndVersion(jcommanderArgs.toArray(new String[jcommanderArgs.size()]), parameters);
         parameters.validate();
         log.info("Using the following command line parameters " + System.lineSeparator() + parameters.toString());
         SpringApplication.run(SATFCServerApplication.class, args);

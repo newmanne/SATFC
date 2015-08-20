@@ -28,6 +28,7 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import com.google.common.io.Resources;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Builder;
@@ -38,6 +39,8 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -48,8 +51,10 @@ import ch.qos.logback.classic.Level;
 public class SATFCFacadeBuilder {
 
     public static final String SATFC_CLASP_LIBRARY_ENV_VAR = "SATFC_CLASP_LIBRARY";
+    private volatile static boolean logInitialized = false;
 
     // public params
+    private boolean initializeLogging;
     private String fLibrary;
     private String fResultFile;
     private SolverChoice fSolverChoice;
@@ -171,11 +176,6 @@ public class SATFCFacadeBuilder {
                         .build()
                         );
     }
-    
-    public static void initializeLogging(Level logLevel, String logFileName) {
-        System.setProperty("SATFC.root.log.level", logLevel.toString());
-        System.setProperty("SATFC.log.filename", logFileName);
-    }
 
     /**
      * Set the (clasp) library SATFC should use.
@@ -235,18 +235,28 @@ public class SATFCFacadeBuilder {
         this.parallelismLevel = parallelismLevel;
         return this;
     }
-    
+
+
     /**
-     * Set the log level for SATFC to use (this has no impact if you have already configured logging)
+     * Call this method to have SATFC configure logging
      *
-     * @param logLevel
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setLogLevel(Level logLevel) {
-    	this.logLevel = logLevel;
-    	return this;
+    public SATFCFacadeBuilder setInitializeLogging(String logFileName, @NonNull Level logLevel) {
+        this.initializeLogging = true;
+        this.logLevel = logLevel;
+        this.logFileName = logFileName;
+        return this;
     }
 
+    /**
+     * Set whether or not to cache results
+     * @return this {@code Builder} object
+     */
+    public SATFCFacadeBuilder setCacheResults(boolean cacheResults) {
+        this.cacheResults = cacheResults;
+        return this;
+    }
 
     // Developer methods
     public SATFCFacadeBuilder setDeveloperOptions(DeveloperOptions developerOptions) {
@@ -254,15 +264,6 @@ public class SATFCFacadeBuilder {
     	return this;
     }
 
-    public SATFCFacadeBuilder setCacheResults(boolean cacheResults) {
-        this.cacheResults = cacheResults;
-        return this;
-    }
-
-    public SATFCFacadeBuilder setLogFileName(@NonNull String logFileName) {
-        this.logFileName = logFileName;
-        return this;
-    }
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
@@ -273,7 +274,7 @@ public class SATFCFacadeBuilder {
         }
         builder.setParallelismLevel(parameters.numCores);
         builder.setSolverChoice(parameters.fSolverChoice);
-        builder.setLogLevel(parameters.getLogLevel());
+        builder.setInitializeLogging(parameters.logFileName, parameters.getLogLevel());
         if (parameters.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.cachingParams.serverURL);
         }
@@ -301,6 +302,29 @@ public class SATFCFacadeBuilder {
         		.build()
         		);
         return builder.build();
+    }
+
+
+    private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";
+
+    public static void initializeLogging(Level logLevel, String logFileName) {
+        if (logInitialized) {
+            return;
+        }
+        if (System.getProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY) != null) {
+            Logger log = LoggerFactory.getLogger(SATFCFacade.class);
+            log.debug("System property for logback.configurationFile has been found already set as {} , logging will follow this file.", System.getProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY));
+        } else {
+            String logback = Resources.getResource("logback_satfc.groovy").toString();
+            System.setProperty("SATFC.root.log.level", logLevel.toString());
+            if (logFileName != null) {
+                System.setProperty("SATFC.log.filename", logFileName);
+            }
+            System.setProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY, logback);
+            Logger log = LoggerFactory.getLogger(SATFCFacade.class);
+            log.debug("Logging initialized to use file: {}", logback);
+        }
+        logInitialized = true;
     }
 
 }
