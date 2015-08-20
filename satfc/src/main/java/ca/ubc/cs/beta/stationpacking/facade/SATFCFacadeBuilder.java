@@ -158,7 +158,9 @@ public class SATFCFacadeBuilder {
                 throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SATFC_SEQUENTIAL + " solver instead. We recommend the " + SATFC_PARALLEL + " solver with >= than 4 threads");
             }
         }
-        initializeLogging(logLevel, logFileName);
+        if (initializeLogging) {
+            initializeLogging(logLevel, logFileName);
+        }
         return new SATFCFacade(
                 SATFCFacadeParameter.builder()
                         .claspLibrary(fLibrary)
@@ -238,7 +240,7 @@ public class SATFCFacadeBuilder {
 
 
     /**
-     * Call this method to have SATFC configure logging
+     * Call this method to have SATFC configure logging (this would only have any effect if the calling application hasn't initialized logging)
      *
      * @return this {@code Builder} object
      */
