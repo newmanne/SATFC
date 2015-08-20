@@ -27,6 +27,7 @@ Rough information about the evolution of **SATFC** through releases.
 * Identify conditionally underconstrained stations
 * Improve underconstrained station finding heuristic 
 * Upgrade to clasp 3.1.3
+* Multi-permutation server cache to guard against cache query slowdowns
 
 ### SATFC 1.7.1 [30/06/2015]
 
