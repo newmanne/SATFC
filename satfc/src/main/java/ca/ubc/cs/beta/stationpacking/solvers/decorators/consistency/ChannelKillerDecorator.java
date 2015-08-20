@@ -62,10 +62,10 @@ public class ChannelKillerDecorator extends ASolverDecorator {
         int numChannelsRemoved = 0;
         int numTimeouts = 0;
         final Set<Station> changedStations = new HashSet<>();
-        while (!stationQueue.isEmpty()) {
+        while (!stationQueue.isEmpty() && !aTerminationCriterion.hasToStop()) {
             final Station station = stationQueue.iterator().next();
             final Set<Integer> domain = domainsCopy.get(station);
-            log.info("Beginning station {} with domain {}", station, domain);
+            log.debug("Beginning station {} with domain {}", station, domain);
             final Set<Station> neighbours = neighborIndex.neighborsOf(station);
             final Map<Station, Set<Integer>> neighbourDomains = neighbours.stream().collect(Collectors.toMap(Function.identity(), domainsCopy::get));
             final Set<Integer> SATChannels = new HashSet<>();
@@ -113,7 +113,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
                 neighbourDomains.remove(station);
             }
             domain.removeAll(UNSATChannels);
-            log.info("Done with station {}, now with domain {}", station, domain);
+            log.debug("Done with station {}, now with domain {}", station, domain);
             if (domain.isEmpty()) {
                 log.debug("Station {} has an empty domain, instance is UNSAT", station);
                 return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolvedBy.CHANNEL_KILLER);
@@ -123,10 +123,9 @@ public class ChannelKillerDecorator extends ASolverDecorator {
             }
             stationQueue.remove(station);
         }
-        log.info("Removed {} channels from {} stations, had {} timeouts", numChannelsRemoved, changedStations.size(), numTimeouts);
+        log.debug("Removed {} channels from {} stations, had {} timeouts", numChannelsRemoved, changedStations.size(), numTimeouts);
         final StationPackingInstance reducedInstance = new StationPackingInstance(domainsCopy, aInstance.getPreviousAssignment(), aInstance.getMetadata());
-        // TODO: time is wrong
-        return fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed);
+        return SolverResult.relabelTime(fDecoratedSolver.solve(reducedInstance, aTerminationCriterion, aSeed), watch.getElapsedTime());
     }
 
     @Override
