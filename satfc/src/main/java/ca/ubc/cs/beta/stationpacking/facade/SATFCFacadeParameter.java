@@ -64,7 +64,8 @@ public class SATFCFacadeParameter {
         CACHING_SOLVER_FULL_INSTANCES,
         CACHING_SOLVER_COMPONENTS,
         STATS,
-        HYDRA;
+        HYDRA,
+        LONG_CUTOFF;
     }
 
 }

@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -40,15 +41,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CNFSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnlySolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.StatsSolverBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -149,6 +141,8 @@ public class SATFCFacade implements AutoCloseable {
                                 return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             case STATS:
                                 return new StatsSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getClaspLibrary());
+                            case LONG_CUTOFF:
+                                return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }
