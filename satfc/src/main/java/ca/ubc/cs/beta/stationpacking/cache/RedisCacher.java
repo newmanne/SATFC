@@ -116,11 +116,7 @@ public class RedisCacher {
 
     }
 
-    public ContainmentCacheInitData getContainmentCacheInitData(Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation) {
-        return getContainmentCacheInitData(Long.MAX_VALUE, coordinateToPermutation);
-    }
-
-    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation) {
+    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String ignorePrefix) {
         log.info("Pulling precache data from redis");
         long start = System.currentTimeMillis();
 
@@ -154,17 +150,26 @@ public class RedisCacher {
             final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
             final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
             if (permutation == null) {
-                log.warn("Skipping cache entry from key " + key + ". Could not find a permutation known for coordinate " + coordinate + ". This probably means that the cache entry does not correspond to any known constraint folders (" + coordinateToPermutation.keySet() + ")");
+                log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
                 return; // Skip
             }
             final SATCacheEntry cacheEntry = getSATSolverResultByKey(key, false).get();
+
+            if (ignorePrefix != null) {
+                final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
+                if (name != null && name.startsWith(ignorePrefix)) {
+                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
+                    return;
+                }
+            }
+
             final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key, permutation);
             SATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
         log.info("Finished processing {} SAT entries", progressIndex.get());
         SATResults.keySet().forEach(cacheCoordinate -> {
-            log.info("Found {} SAT entries for cache " + cacheCoordinate, SATResults.get(cacheCoordinate).size());
+            log.info("Found {} SAT entries for cache {}", SATResults.get(cacheCoordinate).size(), cacheCoordinate);
         });
 
         progressIndex.set(0);
@@ -175,17 +180,26 @@ public class RedisCacher {
             final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
             final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
             if (permutation == null) {
-                log.warn("Skipping cache entry from key " + key + ". Could not find a permutation known for coordinate " + coordinate + ". This probably means that the cache entry does not correspond to any known constraint folders (" + coordinateToPermutation.keySet() + ")");
+                log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
                 return; // Skip
             }
             final UNSATCacheEntry cacheEntry = getUNSATSolverResultByKey(key, false).get();
+
+            if (ignorePrefix != null) {
+                final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
+                if (name != null && name.startsWith(ignorePrefix)) {
+                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
+                    return;
+                }
+            }
+
             final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(cacheEntry.getDomains(), key, permutation);
             UNSATResults.put(coordinate, entry);
             progressIndex.incrementAndGet();
         });
         log.info("Finished processing {} UNSAT entries", progressIndex.get());
         UNSATResults.keySet().forEach(cacheCoordinate -> {
-            log.info("Found {} UNSAT entries for cache " + cacheCoordinate, UNSATResults.get(cacheCoordinate).size());
+            log.info("Found {} UNSAT entries for cache {}", UNSATResults.get(cacheCoordinate).size(), cacheCoordinate);
         });
 
         log.info("It took {}s to pull precache data from redis", (System.currentTimeMillis() - start) / 1000.0);

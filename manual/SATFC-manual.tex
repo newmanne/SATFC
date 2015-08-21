@@ -311,7 +311,7 @@ and you would pass in the path to the \textit{constraint\_sets} folder as your a
 
 
 \subsection{Modifications to running \SATFC}
-Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---usecache ---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
+Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
 
 \begin{minted}{java}
 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder();

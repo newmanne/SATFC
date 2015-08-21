@@ -83,6 +83,8 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
 
         // Set up the data manager
         final String constraintFolder = context.getEnvironment().getRequiredProperty("constraint.folder");
+        final String ignorePrefix = context.getEnvironment().getProperty("ignore.prefix");
+
         log.info("Looking in " + constraintFolder + " for station configuration folders");
         final File[] stationConfigurationFolders = new File(constraintFolder).listFiles(File::isDirectory);
         log.info("Found " + stationConfigurationFolders.length + " station configuration folders");
@@ -105,7 +107,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         });
 
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(coordinateToPermutation);
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(Long.MAX_VALUE, coordinateToPermutation, ignorePrefix);
         coordinateToBundle.keySet().forEach(cacheCoordinate -> {
             final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
             log.info("Cache created for coordinate " + cacheCoordinate);

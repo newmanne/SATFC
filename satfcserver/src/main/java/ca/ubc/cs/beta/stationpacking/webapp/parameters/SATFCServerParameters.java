@@ -39,6 +39,10 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private int numPermutations = 1;
 
+    @Parameter(names = "--ignore.prefix", description = "Ignore cache entries coming from this prefix", hidden = true)
+    @Getter
+    private String ignorePrefix = "";
+
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
     }
