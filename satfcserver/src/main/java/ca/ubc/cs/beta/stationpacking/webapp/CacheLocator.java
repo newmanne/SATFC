@@ -19,7 +19,7 @@
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
-package ca.ubc.cs.beta.stationpacking.cache;
+package ca.ubc.cs.beta.stationpacking.webapp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,6 +28,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 import lombok.extern.slf4j.Slf4j;
 import net.jcip.annotations.ThreadSafe;
 
@@ -55,9 +60,11 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
 
     private final Map<CacheCoordinate, ISatisfiabilityCache> caches;
     private final ISatisfiabilityCacheFactory cacheFactory;
+    private final SATFCServerParameters parameters;
 
-    public CacheLocator(ISatisfiabilityCacheFactory cacheFactory) {
+    public CacheLocator(ISatisfiabilityCacheFactory cacheFactory, SATFCServerParameters parameters) {
         this.cacheFactory = cacheFactory;
+        this.parameters = parameters;
         caches = new HashMap<>();
     }
 
@@ -82,22 +89,21 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         final Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation = new HashMap<>();
 
         // Set up the data manager
-        final String constraintFolder = context.getEnvironment().getRequiredProperty("constraint.folder");
-        final String ignorePrefix = context.getEnvironment().getProperty("ignore.prefix");
+        final String constraintFolder = parameters.getConstraintFolder();
 
-        log.info("Looking in " + constraintFolder + " for station configuration folders");
+        log.info("Looking in {} for station configuration folders", constraintFolder);
         final File[] stationConfigurationFolders = new File(constraintFolder).listFiles(File::isDirectory);
-        log.info("Found " + stationConfigurationFolders.length + " station configuration folders");
+        log.info("Found {} station configuration folders", stationConfigurationFolders.length);
         Arrays.stream(stationConfigurationFolders).forEach(folder -> {
             try {
                 final String path = folder.getAbsolutePath();
-                log.info("Adding data for station configuration folder " + path);
+                log.info("Adding data for station configuration folder {}", path);
                 dataManager.addData(folder.getAbsolutePath());
                 // add cache coordinate to map
                 final ManagerBundle bundle = dataManager.getData(folder.getAbsolutePath());
-                log.info("Folder " + folder.getAbsolutePath() + " corresponds to coordinate " + bundle.getCacheCoordinate());
+                log.info("Folder corresponds to coordinate {}", folder.getAbsolutePath());
                 coordinateToBundle.put(bundle.getCacheCoordinate(), bundle);
-                
+
                 final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(bundle.getStationManager().getStations());
                 coordinateToPermutation.put(bundle.getCacheCoordinate(), permutation);
 
@@ -107,7 +113,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         });
 
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(Long.MAX_VALUE, coordinateToPermutation, ignorePrefix);
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), coordinateToPermutation, parameters.getIgnorePrefix());
         coordinateToBundle.keySet().forEach(cacheCoordinate -> {
             final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
             log.info("Cache created for coordinate " + cacheCoordinate);

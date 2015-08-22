@@ -35,6 +35,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationR
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 
 /**
@@ -58,7 +59,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
         cacheOnlySolver = new VoidSolver();
         cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
         cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager(), components);
-        cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager, new MIPUnderconstrainedStationFinder(aConstraintManager), false);
+        cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager, new HeuristicUnderconstrainedStationFinder(aConstraintManager, true), true);
         if (!components) {
             cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
             cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);

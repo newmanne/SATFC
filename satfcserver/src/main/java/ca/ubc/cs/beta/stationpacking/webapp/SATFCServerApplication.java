@@ -21,13 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,7 +40,6 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.util.ReflectionUtils;
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
@@ -110,7 +107,7 @@ public class SATFCServerApplication {
 
     @Bean
     ICacheLocator containmentCache() {
-        return new CacheLocator(satisfiabilityCacheFactory());
+        return new CacheLocator(satisfiabilityCacheFactory(), parameters);
     }
 
     @Bean

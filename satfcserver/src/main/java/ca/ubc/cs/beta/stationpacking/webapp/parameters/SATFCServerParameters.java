@@ -43,6 +43,10 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private String ignorePrefix = "";
 
+    @Parameter(names = "--cache.size.limit", description = "Only use the first limit entries from the cache", hidden = true)
+    @Getter
+    private long cacheSizeLimit = Long.MAX_VALUE;
+
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
     }
