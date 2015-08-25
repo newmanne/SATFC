@@ -244,11 +244,20 @@ public class SATFCFacadeBuilder {
      *
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setInitializeLogging(String logFileName, @NonNull Level logLevel) {
+    public SATFCFacadeBuilder initializeLogging(String logFileName, @NonNull Level logLevel) {
         this.initializeLogging = true;
         this.logLevel = logLevel;
         this.logFileName = logFileName;
         return this;
+    }
+
+    /**
+     * Call this method to have SATFC configure logging (this would only have any effect if the calling application hasn't initialized logging)
+     *
+     * @return this {@code Builder} object
+     */
+    public SATFCFacadeBuilder initializeLogging(@NonNull Level logLevel) {
+        return initializeLogging(null, logLevel);
     }
 
     /**
@@ -276,7 +285,7 @@ public class SATFCFacadeBuilder {
         }
         builder.setParallelismLevel(parameters.numCores);
         builder.setSolverChoice(parameters.fSolverChoice);
-        builder.setInitializeLogging(parameters.logFileName, parameters.getLogLevel());
+        builder.initializeLogging(parameters.logFileName, parameters.getLogLevel());
         if (parameters.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.cachingParams.serverURL);
         }
