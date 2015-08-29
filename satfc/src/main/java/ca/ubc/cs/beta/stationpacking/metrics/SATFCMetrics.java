@@ -149,7 +149,7 @@ public class SATFCMetrics {
             try {
                 metricsLock.lock();
                 // ensure that you only edit the "current problem" metrics.
-                if (activeProblemMetrics != null && activeProblemMetrics.getName().startsWith(name)) {
+                if (activeProblemMetrics != null && name.startsWith(activeProblemMetrics.getName())) {
                     final InstanceInfo info = getInfo(name);
                     if (info != null) {
                         callback.doWithLock(info);
