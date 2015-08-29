@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.List;
 
+import containmentcache.bitset.simple.SimpleBitSetCache;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -70,9 +71,9 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
         }
 
         // 2) Create the actual caches
-        final IContainmentCache<Station, ContainmentCacheSATEntry> undecoratedSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
+        final IContainmentCache<Station, ContainmentCacheSATEntry> undecoratedSATCache = new SimpleBitSetCache<>(permutation);
         final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedSATCache, SAT_BUFFER_SIZE);
-        final IContainmentCache<Station, ContainmentCacheUNSATEntry> undecoratedUNSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
+        final IContainmentCache<Station, ContainmentCacheUNSATEntry> undecoratedUNSATCache = new SimpleBitSetCache<>(permutation);
         final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedUNSATCache, UNSAT_BUFFER_SIZE);
         return new SatisfiabilityCache(permutation, SATCache, UNSATCache);
     }
