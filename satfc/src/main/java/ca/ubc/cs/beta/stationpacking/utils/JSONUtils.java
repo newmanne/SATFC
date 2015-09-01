@@ -46,16 +46,20 @@ public class JSONUtils {
 
     public static <T> T toObject(String jsonString, Class<T> klazz) {
         try {
-            return mapper.readValue(jsonString, klazz);
+            return toObjectWithException(jsonString, klazz);
         } catch (IOException e) {
             throw new RuntimeException("Couldn't deserialize string " + jsonString + " into type " + klazz, e);
         }
     }
 
+    public static <T> T toObjectWithException(String jsonString, Class<T> klazz) throws IOException {
+        return mapper.readValue(jsonString, klazz);
+    }
+
     public static String toString(Object object) {
     	return toString(object, false);
     }
-    
+
     public static String toString(Object object, boolean pretty) {
         try {
         	final String json;

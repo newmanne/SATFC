@@ -42,10 +42,15 @@ public interface ICacher {
 
     void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result);
 
+    public interface ISATFCCacheEntry {
+        Map<String, Object> getMetadata();
+    }
+
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SATCacheEntry {
+    public static class SATCacheEntry implements ISATFCCacheEntry {
         private Map<String, Object> metadata;
         private Map<Integer, Set<Station>> assignment;
 
@@ -70,7 +75,7 @@ public interface ICacher {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UNSATCacheEntry {
+    public static class UNSATCacheEntry implements ISATFCCacheEntry {
         private Map<String, Object> metadata;
         Map<Station, Set<Integer>> domains;
     }

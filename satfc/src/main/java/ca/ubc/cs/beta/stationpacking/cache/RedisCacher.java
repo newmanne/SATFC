@@ -21,15 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.IOException;
+import java.util.*;
+import java.util.function.Function;
 
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -67,7 +63,7 @@ public class RedisCacher {
     }
 
     public String cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
-        Preconditions.checkState(result.getResult().equals(SATResult.UNSAT) || result.getResult().equals(SATResult.SAT), "Result must be SAT or UNSAT in order to cache");
+        Preconditions.checkState(result.isConclusive(), "Result must be SAT or UNSAT in order to cache");
         final String jsonResult;
         final Map<String, Object> metadata = instance.getMetadata();
         metadata.put(StationPackingInstance.CACHE_DATE_KEY, new Date());
@@ -84,15 +80,19 @@ public class RedisCacher {
         return key;
     }
 
-
-    public Optional<SATCacheEntry> getSATSolverResultByKey(String key, boolean shouldLog) {
+    public <T> Optional<T> getSolverResultByKey(String key, boolean shouldLog, Class<T> klazz) {
         if (shouldLog) {
             log.info("Asking redis for entry " + key);
         }
         final String value = redisTemplate.boundValueOps(key).get();
-        final Optional<SATCacheEntry> result;
+        final Optional<T> result;
         if (value != null) {
-            final SATCacheEntry cacheEntry = JSONUtils.toObject(value, SATCacheEntry.class);
+            final T cacheEntry;
+            try {
+                cacheEntry = JSONUtils.toObjectWithException(value, klazz);
+            } catch (IOException e) {
+                throw new RuntimeException("Error parsing key " + key + ". The value at key " + key + " could not be parsed into an object of type " + klazz.getSimpleName() + ". Either fix the malformed JSON in redis (by performing a SET on this key with the corrected JSON), or else simply delete this malformed key", e);
+            }
             result = Optional.of(cacheEntry);
         } else {
             result = Optional.empty();
@@ -100,28 +100,55 @@ public class RedisCacher {
         return result;
     }
 
-    public Optional<UNSATCacheEntry> getUNSATSolverResultByKey(String key, boolean shouldLog) {
-        if (shouldLog) {
-            log.info("Asking redis for entry " + key);
-        }
-        final String value = redisTemplate.boundValueOps(key).get();
-        final Optional<UNSATCacheEntry> result;
-        if (value != null) {
-            final UNSATCacheEntry cacheEntry = JSONUtils.toObject(value, UNSATCacheEntry.class);
-            result = Optional.of(cacheEntry);
-        } else {
-            result = Optional.empty();
-        }
-        return result;
 
+    public Optional<SATCacheEntry> getSATSolverResultByKey(String key, boolean shouldLog) {
+        return getSolverResultByKey(key, shouldLog, SATCacheEntry.class);
+    }
+
+    public Optional<UNSATCacheEntry> getUNSATSolverResultByKey(String key, boolean shouldLog) {
+        return getSolverResultByKey(key, shouldLog, UNSATCacheEntry.class);
+    }
+
+    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ICacher.ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String ignorePrefix, SATResult entryTypeName, Function<String, CACHE_ENTRY> keyToCacheEntry, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry) {
+        final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
+        int i = 0;
+        for (String key : keys) {
+            i++;
+            if (i % 1000 == 0) {
+                log.info("Processed {} {} keys out of {}", i, entryTypeName, keys.size());
+            }
+            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
+            if (permutation == null) {
+                log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
+                continue;
+            }
+
+            final CACHE_ENTRY cacheEntry = keyToCacheEntry.apply(key);
+
+            if (ignorePrefix != null) {
+                final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
+                if (name != null && name.startsWith(ignorePrefix)) {
+                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
+                    continue;
+                }
+            }
+
+            final CONTAINMENT_CACHE_ENTRY entry = cacheEntryToContainmentCacheEntry.create(cacheEntry, key, permutation);
+
+            results.put(coordinate, entry);
+        }
+
+        log.info("Finished processing {} {} entries", i, entryTypeName);
+        results.keySet().forEach(cacheCoordinate -> {
+            log.info("Found {} {} entries for cache {}", results.get(cacheCoordinate).size(), entryTypeName, cacheCoordinate);
+        });
+        return results;
     }
 
     public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String ignorePrefix) {
         log.info("Pulling precache data from redis");
-        long start = System.currentTimeMillis();
-
-        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = ArrayListMultimap.create();
-        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = ArrayListMultimap.create();
+        final Watch watch = Watch.constructAutoStartWatch();
 
         final Set<String> SATKeys = new HashSet<>();
         final Set<String> UNSATKeys = new HashSet<>();
@@ -141,69 +168,20 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        // process SATs
-        final AtomicInteger progressIndex = new AtomicInteger();
-        SATKeys.forEach(key -> {
-            if (progressIndex.get() % 1000 == 0) {
-                log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, ignorePrefix, SATResult.SAT, key -> getSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry>() {
+            @Override
+            public ContainmentCacheSATEntry create(SATCacheEntry thing, String key, ImmutableBiMap<Station, Integer> permutation) {
+                return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation);
             }
-            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
-            final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
-            if (permutation == null) {
-                log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
-                return; // Skip
-            }
-            final SATCacheEntry cacheEntry = getSATSolverResultByKey(key, false).get();
-
-            if (ignorePrefix != null) {
-                final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
-                if (name != null && name.startsWith(ignorePrefix)) {
-                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
-                    return;
-                }
-            }
-
-            final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(cacheEntry.getAssignment(), key, permutation);
-            SATResults.put(coordinate, entry);
-            progressIndex.incrementAndGet();
         });
-        log.info("Finished processing {} SAT entries", progressIndex.get());
-        SATResults.keySet().forEach(cacheCoordinate -> {
-            log.info("Found {} SAT entries for cache {}", SATResults.get(cacheCoordinate).size(), cacheCoordinate);
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, ignorePrefix, SATResult.UNSAT, key -> getUNSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<UNSATCacheEntry, ContainmentCacheUNSATEntry>() {
+            @Override
+            public ContainmentCacheUNSATEntry create(UNSATCacheEntry thing, String key, ImmutableBiMap<Station, Integer> permutation) {
+                return new ContainmentCacheUNSATEntry(thing.getDomains(), key, permutation);
+            }
         });
 
-        progressIndex.set(0);
-        UNSATKeys.forEach(key -> {
-            if (progressIndex.get() % 1000 == 0) {
-                log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
-            }
-            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
-            final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
-            if (permutation == null) {
-                log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
-                return; // Skip
-            }
-            final UNSATCacheEntry cacheEntry = getUNSATSolverResultByKey(key, false).get();
-
-            if (ignorePrefix != null) {
-                final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
-                if (name != null && name.startsWith(ignorePrefix)) {
-                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
-                    return;
-                }
-            }
-
-            final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(cacheEntry.getDomains(), key, permutation);
-            UNSATResults.put(coordinate, entry);
-            progressIndex.incrementAndGet();
-        });
-        log.info("Finished processing {} UNSAT entries", progressIndex.get());
-        UNSATResults.keySet().forEach(cacheCoordinate -> {
-            log.info("Found {} UNSAT entries for cache {}", UNSATResults.get(cacheCoordinate).size(), cacheCoordinate);
-        });
-
-        log.info("It took {}s to pull precache data from redis", (System.currentTimeMillis() - start) / 1000.0);
-
+        log.info("It took {}s to pull precache data from redis", watch.getElapsedTime());
         return new ContainmentCacheInitData(SATResults, UNSATResults);
     }
 
@@ -237,5 +215,10 @@ public class RedisCacher {
         collection.forEach(entry -> keys.add(entry.getKey()));
         redisTemplate.delete(keys);
     }
+
+    private interface CacheEntryToContainmentCacheEntryFactory<V, T> {
+        T create(V cacheEntry, String key, ImmutableBiMap<Station, Integer> permutation);
+    }
+
 
 }
