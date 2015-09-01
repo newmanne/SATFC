@@ -39,9 +39,9 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private int numPermutations = 1;
 
-    @Parameter(names = "--ignore.prefix", description = "Ignore cache entries coming from this prefix", hidden = true)
+    @Parameter(names = "--accept.regex", description = "Only accept cache entries that match this regex", hidden = true)
     @Getter
-    private String ignorePrefix = "";
+    private String acceptRegex = "";
 
     @Parameter(names = "--cache.size.limit", description = "Only use the first limit entries from the cache", hidden = true)
     @Getter

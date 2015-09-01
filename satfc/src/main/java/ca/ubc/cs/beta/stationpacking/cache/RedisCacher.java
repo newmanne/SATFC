@@ -24,6 +24,8 @@ package ca.ubc.cs.beta.stationpacking.cache;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.Data;
@@ -109,7 +111,7 @@ public class RedisCacher {
         return getSolverResultByKey(key, shouldLog, UNSATCacheEntry.class);
     }
 
-    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ICacher.ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String ignorePrefix, SATResult entryTypeName, Function<String, CACHE_ENTRY> keyToCacheEntry, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry) {
+    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ICacher.ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, Matcher acceptRegexMatcher, SATResult entryTypeName, Function<String, CACHE_ENTRY> keyToCacheEntry, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
         int i = 0;
         for (String key : keys) {
@@ -126,10 +128,10 @@ public class RedisCacher {
 
             final CACHE_ENTRY cacheEntry = keyToCacheEntry.apply(key);
 
-            if (ignorePrefix != null) {
+            if (acceptRegexMatcher != null) {
                 final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
-                if (name != null && name.startsWith(ignorePrefix)) {
-                    log.debug("Skipping entry {} because name matches ignore prefix {}", name, ignorePrefix);
+                if (name != null && !acceptRegexMatcher.reset(name).matches()) {
+                    log.debug("Skipping entry {} because name does not match accept regex", name);
                     continue;
                 }
             }
@@ -146,7 +148,7 @@ public class RedisCacher {
         return results;
     }
 
-    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String ignorePrefix) {
+    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String acceptRegex) {
         log.info("Pulling precache data from redis");
         final Watch watch = Watch.constructAutoStartWatch();
 
@@ -168,13 +170,20 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, ignorePrefix, SATResult.SAT, key -> getSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry>() {
+        Matcher acceptRegexMatcher = null;
+        if (acceptRegex != null) {
+            log.info("Only accepting entries matching regex {}", acceptRegex);
+            final Pattern acceptRegexPattern = Pattern.compile(acceptRegex);
+            acceptRegexMatcher = acceptRegexPattern.matcher("");
+        }
+
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, acceptRegexMatcher, SATResult.SAT, key -> getSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry>() {
             @Override
             public ContainmentCacheSATEntry create(SATCacheEntry thing, String key, ImmutableBiMap<Station, Integer> permutation) {
                 return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation);
             }
         });
-        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, ignorePrefix, SATResult.UNSAT, key -> getUNSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<UNSATCacheEntry, ContainmentCacheUNSATEntry>() {
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, acceptRegexMatcher, SATResult.UNSAT, key -> getUNSATSolverResultByKey(key, false).get(), new CacheEntryToContainmentCacheEntryFactory<UNSATCacheEntry, ContainmentCacheUNSATEntry>() {
             @Override
             public ContainmentCacheUNSATEntry create(UNSATCacheEntry thing, String key, ImmutableBiMap<Station, Integer> permutation) {
                 return new ContainmentCacheUNSATEntry(thing.getDomains(), key, permutation);
