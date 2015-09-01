@@ -11,6 +11,7 @@ def LOG_FORMAT = "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{0} - %msg%n"
 if (LOG_FILE_NAME != null) {
     appender("FILE", FileAppender) {
         file = LOG_FILE_NAME
+        append = false
         encoder(PatternLayoutEncoder) {
             pattern = LOG_FORMAT
         }
