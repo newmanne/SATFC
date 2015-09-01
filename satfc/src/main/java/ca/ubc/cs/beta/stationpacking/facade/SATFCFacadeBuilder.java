@@ -28,10 +28,13 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import com.google.common.io.Resources;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Builder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
@@ -39,8 +42,8 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.io.Resources;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -190,7 +193,7 @@ public class SATFCFacadeBuilder {
         }
         return new SATFCFacade(
                 SATFCFacadeParameter.builder()
-                        .claspLibrary(fLibrary)
+                        .claspLibrary(fClaspLibrary)
                         .resultFile(fResultFile)
                         .solverChoice(fSolverChoice)
                         .serverURL(serverURL)
@@ -342,7 +345,8 @@ public class SATFCFacadeBuilder {
         }
         fUBCSATLibrary = aLibrary;
         return this;
-
+    }
+    
     private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";
 
     public static void initializeLogging(Level logLevel, String logFileName) {

@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers;
 
+import java.util.Map;
+
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-
-import java.util.Map;
 
 /**
  * Interface for a SAT solver.

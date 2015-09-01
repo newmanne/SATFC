@@ -203,7 +203,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 params.claspConfig = claspParams;
                 params.validate();
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
-                        .setLibrary(fLibPath)
+                        .setClaspLibrary(fLibPath)
                         .setSolverChoice(SolverChoice.HYDRA)
                         .setParallelismLevel(1)
                         .setDeveloperOptions(DeveloperOptions

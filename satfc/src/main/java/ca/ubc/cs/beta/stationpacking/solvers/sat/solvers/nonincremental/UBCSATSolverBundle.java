@@ -31,7 +31,7 @@ public class UBCSATSolverBundle extends ASolverBundle {
 
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
 
-        AbstractCompressedSATSolver ubcsatSolver = (AbstractCompressedSATSolver) new UBCSATLibSATSolverParameters().getSATSolver();
+        AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.UBCSAT), UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
         solver = new CompressedSATBasedSolver(ubcsatSolver, aCompressor, aConstraintManager);
     }
 
@@ -42,6 +42,7 @@ public class UBCSATSolverBundle extends ASolverBundle {
 
     @Override
     public void close() throws Exception {
-
+    	solver.notifyShutdown();
     }
+    
 }

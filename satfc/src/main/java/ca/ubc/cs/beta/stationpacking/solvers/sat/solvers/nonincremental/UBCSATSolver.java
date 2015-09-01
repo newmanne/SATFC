@@ -1,5 +1,9 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import java.util.HashSet;
+import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
@@ -9,15 +13,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATLibr
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.sun.jna.Library;
+
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.org.apache.xpath.internal.operations.Bool;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashSet;
-import java.util.Map;
 
 /**
  * The solver that runs different configurations of UBCSAT, including SATenstein.

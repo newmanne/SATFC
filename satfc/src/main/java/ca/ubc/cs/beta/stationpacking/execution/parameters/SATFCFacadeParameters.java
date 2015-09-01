@@ -82,6 +82,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
 	public String fClaspLibrary;
 
+	/**
      * UBCSAT library to use (optional - can be automatically detected).
      */
     @Parameter(names = "-UBCSAT-LIBRARY",description = "UBCSAT library file")

@@ -21,16 +21,12 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import com.google.common.collect.Lists;
-import lombok.Getter;
 import lombok.Value;
 import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
-
-import java.util.List;
 
 @Value
 @Builder
@@ -66,8 +62,8 @@ public class SATFCFacadeParameter {
         CACHING_SOLVER_COMPONENTS,
         STATS,
         HYDRA,
-        LONG_CUTOFF;
-        UBCSAT
+        LONG_CUTOFF,
+        UBCSAT;
     }
 
 }

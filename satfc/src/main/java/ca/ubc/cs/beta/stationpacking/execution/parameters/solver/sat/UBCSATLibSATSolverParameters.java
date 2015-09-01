@@ -1,14 +1,11 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat;
 
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.ISATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.UBCSATSolver;
 
 /**
  * @author pcernek
  */
-public class UBCSATLibSATSolverParameters extends AbstractOptions implements ISATSolverParameters {
+public class UBCSATLibSATSolverParameters extends AbstractOptions {
 
     /**
      *
@@ -45,10 +42,5 @@ public class UBCSATLibSATSolverParameters extends AbstractOptions implements ISA
      * Optimal parameter configuration for the SWGCP instance distribution found by tuning SATenstein 1.0 using ParamILS in Fall 2014.
      */
     public final static String STEIN_SWGCP_PARAMILS = "-alg satenstein -adaptive 0 -alpha 1.3 -clausepen 0 -heuristic 1 -maxinc 10 -novnoise 0.1 -performalternatenovelty 0 -performrandomwalk 1 -pflat 0.15 -promisinglist 0 -randomwalk 3 -rdp 0.01 -rho 0.8 -sapsthresh -0.1 -scoringmeasure 1 -selectclause 1 -singleclause 1 -tabusearch 0 -varinfalse 1";
-
-    @Override
-    public ISATSolver getSATSolver() {
-        return new UBCSATSolver(SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.UBCSAT), DEFAULT_SATENSTEIN);
-    }
 
 }

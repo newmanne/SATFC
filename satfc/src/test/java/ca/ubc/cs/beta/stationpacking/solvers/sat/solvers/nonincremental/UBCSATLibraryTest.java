@@ -1,5 +1,18 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.commons.math3.util.Pair;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -15,21 +28,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATTestHelperLibrary;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
 import com.google.common.io.Resources;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import org.apache.commons.math3.util.Pair;
-import org.junit.*;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * In adherence to the principle of RAII (Resource Acquisition Is Initialization), and to allow for flexibility in running
@@ -58,11 +61,6 @@ public class UBCSATLibraryTest {
         ISATEncoder aSATEncoder = new SATCompressor(manager);
         Pair<CNF, ISATDecoder> aEncoding = aSATEncoder.encode(instance);
         return aEncoding.getKey();
-    }
-
-    private String loadCNF(String cnfPath) throws IOException {
-        byte[] encoded = Files.readAllBytes(Paths.get(cnfPath));
-        return new String(encoded);
     }
 
     @BeforeClass

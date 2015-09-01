@@ -3,7 +3,6 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries;
 import com.sun.jna.Library;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.ptr.LongByReference;
 
 /**
  * This is the Java half of the JNA bridge used to run any legal configuration of UBCSAT/SATenstein from SATFC.
