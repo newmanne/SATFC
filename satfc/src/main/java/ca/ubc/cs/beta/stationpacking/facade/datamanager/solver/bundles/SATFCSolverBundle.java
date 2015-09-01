@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -38,10 +39,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategie
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -140,6 +137,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (presolve)
         {
             log.debug("Adding neighborhood presolvers.");
+
             UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
                                 new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(1), SATcertifiercutoff), getConstraintManager());
@@ -165,6 +163,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         /*
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
+        UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, getConfigFolder());
         UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
 

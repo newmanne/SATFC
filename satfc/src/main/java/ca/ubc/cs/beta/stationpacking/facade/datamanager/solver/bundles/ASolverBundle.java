@@ -32,7 +32,8 @@ public abstract class ASolverBundle implements ISolverBundle{
 
 	private final IStationManager fStationManager;
 	private final IConstraintManager fConstraintManager;
-	
+	private String fConfigFolder;
+
 	/**
 	 * Create an abstract solver bundle with the given data management objects.
 	 * @param aStationManager - manages stations.
@@ -55,6 +56,17 @@ public abstract class ASolverBundle implements ISolverBundle{
 	{
 		return fConstraintManager;
 	}
-	
+
+	@Override
+	public String getConfigFolder()
+	{
+		return fConfigFolder;
+	}
+
+	@Override
+	public void setConfigFolder(String path)
+	{
+		fConfigFolder = path;
+	}
 
 }

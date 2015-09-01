@@ -93,6 +93,7 @@ public class SATFCFacade implements AutoCloseable {
 
         log.info("Using library {}", aSATFCParameters.getClaspLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
+
         fSolverManager = new SolverManager(
                 new ISolverBundleFactory() {
 
@@ -180,6 +181,9 @@ public class SATFCFacade implements AutoCloseable {
         final ISolverBundle bundle;
         try {
             bundle = fSolverManager.getData(aStationConfigFolder);
+
+            bundle.setConfigFolder(aStationConfigFolder);
+            log.info("setting config folder " + bundle.getConfigFolder());
         } catch (FileNotFoundException e) {
             log.error("Did not find the necessary data files in provided station config data folder {}.", aStationConfigFolder);
             throw new IllegalArgumentException("Station config files not found.", e);
