@@ -50,8 +50,8 @@ public interface ISolverBundle extends AutoCloseable {
 	 */
 	public IConstraintManager getConstraintManager();
 
-	public String getConfigFolder();
+	public String getInterferenceFolder();
 
-	public void setConfigFolder(String path);
+	public boolean getCompact();
 	
 }

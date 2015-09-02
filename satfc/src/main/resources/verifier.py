@@ -23,6 +23,9 @@ class AutoVivification(dict):
             value = self[item] = type(self)()
             return value
 
+interference_dict = AutoVivification() # 4 level deep (station, channel, constraint type, actual constraint) nested dictionary of interference constraints
+domain_dict = {}
+
 def str_minus_one(string):
     return str(int(string)-1)
 
@@ -31,19 +34,13 @@ def str_add_one(string):
 
 def str_add_two(string):
     return str(int(string)+2)
-    
-def connect_redis(host, port, db):
-    return redis.StrictRedis(host=host, port=port, db=db)   
 
-def log_to_station_channel_map(rawlog):
+def log_to_station_channel_map(assignment):
+    j = json.loads(assignment)
     station_to_channel = {}
-    rawlog = rawlog.replace('{','')
-    rawlog = rawlog.replace('}','')
-    rawlog = rawlog.replace(' ','')
-    lines = rawlog.split(",")
-    for line in lines:
-        line = line.split('=')
-        station_to_channel[line[0]] = line[1]    
+    for key, value in j.iteritems():
+        for i in range(0, len(value)):
+            station_to_channel[value[i]] = key
     return station_to_channel
 
 def append_constraint(existing_cons, new_cons):
@@ -58,11 +55,11 @@ def store_inferred_interference(interference_dict, line):
     station = cons[STUDY_CHANNEL_INDEX]
     channel = cons[FIRST_CHANNEL_INDEX]
     c_type = cons[C_TYPE_INDEX]
-    if(c_type not in COMPACT_C_TYPE): 
+    if(c_type not in COMPACT_C_TYPE):
         raise ValueError('unexpected constraint type in compact interference: ' + c_type)
 
-    type_co = 'CO'  
-    type_plus_one = 'ADJ+1'   
+    type_co = 'CO'
+    type_plus_one = 'ADJ+1'
     if(c_type == 'ADJ+1'):
         # inferred constraints from ADJ+1 constraint
         cons[SECOND_CHANNEL_INDEX] = str_add_one(cons[FIRST_CHANNEL_INDEX]) # ADJ+1,c,c+1,s...
@@ -72,7 +69,7 @@ def store_inferred_interference(interference_dict, line):
         plus_one_first_co[C_TYPE_INDEX] = type_co
         plus_one_first_co[SECOND_CHANNEL_INDEX] = cons[FIRST_CHANNEL_INDEX]
         interference_dict[station][channel][type_co] = append_constraint(interference_dict[station][channel][type_co], plus_one_first_co)
-        
+
         plus_one_second_co = list(cons)
         plus_one_second_co[C_TYPE_INDEX] = type_co
         plus_one_second_co[FIRST_CHANNEL_INDEX] = str_add_one(cons[FIRST_CHANNEL_INDEX])
@@ -87,7 +84,7 @@ def store_inferred_interference(interference_dict, line):
         plus_two_first_co[C_TYPE_INDEX] = type_co
         plus_two_first_co[SECOND_CHANNEL_INDEX] = cons[FIRST_CHANNEL_INDEX]
         interference_dict[station][channel][type_co] = append_constraint(interference_dict[station][channel][type_co], plus_two_first_co)
-        
+
         plus_two_second_co = list(cons)
         plus_two_first_co[C_TYPE_INDEX] = type_co
         plus_two_second_co[FIRST_CHANNEL_INDEX] = str_add_one(cons[FIRST_CHANNEL_INDEX])
@@ -111,15 +108,14 @@ def store_inferred_interference(interference_dict, line):
 
     elif(c_type == 'CO'):
         interference_dict[station][channel][c_type] = append_constraint(interference_dict[station][channel][c_type], cons)
-    
+
 def load_compact_interference(path):
-    interference_dict = AutoVivification() # 4 level deep (station, channel, constraint type, actual constraint) nested dictionary of interference constraints
 
     with open(path, 'r') as f:
         lines = f.read().splitlines()
         for line in lines:
             store_inferred_interference(interference_dict, line)
-            
+
     return 0
 
 def store_interference(interference_dict, line):
@@ -127,7 +123,7 @@ def store_interference(interference_dict, line):
     station = cons[STUDY_CHANNEL_INDEX]
     channel = cons[FIRST_CHANNEL_INDEX]
     c_type = cons[C_TYPE_INDEX]
-    if(c_type not in OFFICIAL_C_TYPE): 
+    if(c_type not in OFFICIAL_C_TYPE):
         raise ValueError('unexpected constraint type in interference: ' + c_type)
 
     interference_dict[station][channel][c_type] = append_constraint(interference_dict[station][channel][c_type], cons)
@@ -139,7 +135,7 @@ def load_interference(path):
         lines = f.read().splitlines()
         for line in lines:
             store_interference(interference_dict, line)
-        
+
     return interference_dict
 
 def check_constraint_violation(station_to_channel, interference_dict):
@@ -150,19 +146,16 @@ def check_constraint_violation(station_to_channel, interference_dict):
                 constraints = interference_dict[station][assigned_channel][c_type]
                 for cons in constraints:
                     illegal_channel = cons[SECOND_CHANNEL_INDEX]
-                    
-                    interfering_stations = cons[INTERFERING_STATIONS_START_INDEX:] 
+
+                    interfering_stations = cons[INTERFERING_STATIONS_START_INDEX:]
                     for i_station in interfering_stations:
                         if(station_to_channel.has_key(i_station)):
                             i_station_channel = station_to_channel[i_station]
                             if(i_station_channel == illegal_channel):
-                                print 'study station '+ str(station) + ' on channel ' + str(assigned_channel) + ' , interfering station ' + str(i_station) + ' on channel ' + str(illegal_channel) + '. Violated constraint (may be inferred): ' + str(cons)
-                                return True
-                        
-    return False
-    
+                                #print 'study station '+ str(station) + ' on channel ' + str(assigned_channel) + ' , interfering station ' + str(i_station) + ' on channel ' + str(illegal_channel) + '. Violated constraint (may be inferred): ' + str(cons)
+                                return [i_station, illegal_channel, cons]
+
 def load_domain_csv(path):
-    domain_dict = {}
     f = open(path, 'r')
     lines = f.read().splitlines()
     for line in lines:
@@ -170,27 +163,22 @@ def load_domain_csv(path):
         station = dom[DOMAIN_STATION_INDEX]
         channels = dom[DOMAIN_CHANNELS_START_INDEX:]
         domain_dict[station] = channels
-    
     return 0
-        
+
 def check_domain(station_to_channel, domain_dict):
     for station in station_to_channel:
         assigned_channel = station_to_channel[station]
         if assigned_channel not in domain_dict[station]:
-            print 'assigned channel ' + str(assigned_channel) + ' not on station ' + str(station) + '\'s domain: ' + str(domain_dict[station])
-            return True 
-    return False
+            #print 'assigned channel ' + str(assigned_channel) + ' not on station ' + str(station) + '\'s domain: ' + str(domain_dict[station])
+            return [station, assigned_channel, str(station) + ":" + str(domain_dict[station])]
 
 def check_violations(assignment):
     station_to_channel = log_to_station_channel_map(assignment)
-                    
-    domain_violated = check_domain(station_to_channel, domain_dict)
-    if(domain_violated): 
-        return 1
 
-    interference_violated = check_constraint_violation(station_to_channel, interference_dict)
-    if(interference_violated): 
-        return 1
-    
-    return 0
+    domain_result = check_domain(station_to_channel, domain_dict)
+    if(domain_result):
+        return domain_result
 
+    interference_result = check_constraint_violation(station_to_channel, interference_dict)
+    if(interference_result):
+        return interference_result

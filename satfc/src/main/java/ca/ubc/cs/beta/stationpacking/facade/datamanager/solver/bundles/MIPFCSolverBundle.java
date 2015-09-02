@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,20 +50,15 @@ public class MIPFCSolverBundle extends ASolverBundle {
     /**
      * Create a SATFC solver bundle.
      *
-     * @param aClaspLibraryPath  - library for the clasp to use.
-     * @param aStationManager    - station manager.
-     * @param aConstraintManager - constraint manager.
-     * @param aCNFDirectory      - directory in which CNFs should be saved (optional).
-     * @param aResultFile        - file to which results should be written (optional).
+     * @param dataBundle         - manager bundle that contains station manager and constraint manager.
      */
     public MIPFCSolverBundle(
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
+            ManagerBundle dataBundle,
             boolean presolve,
             boolean decompose
     		) {
 
-        super(aStationManager, aConstraintManager);
+        super(dataBundle);
 
         log.debug("MIPFC solver bundle.");
 
@@ -92,8 +89,9 @@ public class MIPFCSolverBundle extends ASolverBundle {
         /* 
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
+        solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
-        
+
         fSolver = solver;
 
     }
