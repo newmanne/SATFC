@@ -57,7 +57,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
         solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
         solver = new ConnectedComponentGroupingDecorator(solver, aGrouper, getConstraintManager());
         solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
@@ -66,7 +66,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         solver = new SubsetCacheUNSATDecorator(solver, containmentCache);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
         solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
     }
 

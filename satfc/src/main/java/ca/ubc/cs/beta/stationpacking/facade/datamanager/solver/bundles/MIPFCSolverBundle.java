@@ -90,7 +90,7 @@ public class MIPFCSolverBundle extends ASolverBundle {
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
         solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
 
         fSolver = solver;
 

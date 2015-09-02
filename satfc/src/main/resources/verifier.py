@@ -163,6 +163,7 @@ def load_domain_csv(path):
         station = dom[DOMAIN_STATION_INDEX]
         channels = dom[DOMAIN_CHANNELS_START_INDEX:]
         domain_dict[station] = channels
+    f.close()
     return 0
 
 def check_domain(station_to_channel, domain_dict):

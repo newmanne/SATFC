@@ -144,7 +144,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                     UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
                     if (cacheResults) {
                         UHFSolver = new PythonAssignmentVerifierDecorator(UHFSolver, getInterferenceFolder(), getCompact()); // verify again
-                        UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+                        UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager(), getStationManager()); // let's be careful and verify the assignment before we cache it
                         UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
                     }
                 }
@@ -194,9 +194,9 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
         UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, getInterferenceFolder(), getCompact());
-        UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
+        UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager());
         VHFsolver = new PythonAssignmentVerifierDecorator(VHFsolver, getInterferenceFolder(), getCompact());
-        VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
+        VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager(), getStationManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
         if (useCache && cacheResults) {
