@@ -32,15 +32,19 @@ public class ManagerBundle {
 
 	private IStationManager fStationManager;
 	private IConstraintManager fConstraintManager;
-	
-	/**
+	private String fInterferenceFolder;
+    private boolean fCompact;
+
+    /**
 	 * Creates a new bundle containing the given station and constraint manager.
 	 * @param stationManager station manager to be bundled.
 	 * @param constraintManager constraint manager to be bundled.
 	 */
-	public ManagerBundle(IStationManager stationManager, IConstraintManager constraintManager) {
+	public ManagerBundle(IStationManager stationManager, IConstraintManager constraintManager, String interferenceFolder, boolean compact) {
 		fStationManager = stationManager;
 		fConstraintManager = constraintManager;
+        fInterferenceFolder = interferenceFolder;
+        fCompact = compact;
 	}
 
 	/**
@@ -63,6 +67,14 @@ public class ManagerBundle {
 
     public CacheCoordinate getCacheCoordinate() {
         return new CacheCoordinate(fStationManager.getDomainHash(), fConstraintManager.getConstraintHash());
+    }
+
+    public boolean getCompact() {
+        return fCompact;
+    }
+
+    public String getInterferenceFolder() {
+        return fInterferenceFolder;
     }
 	
 }

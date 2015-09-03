@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.HashMap;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -37,8 +38,10 @@ public class SATFCHydraBundle extends ASolverBundle {
     ISolver fSolver;
     private final ClaspLibraryGenerator claspLibraryGenerator;
 
-    public SATFCHydraBundle(IStationManager aStationManager, IConstraintManager aConstraintManager, SATFCHydraParams params, String aClaspLibraryPath) {
-        super(aStationManager, aConstraintManager);
+    public SATFCHydraBundle(ManagerBundle dataBundle, SATFCHydraParams params, String aClaspLibraryPath) {
+        super(dataBundle);
+
+        IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         claspLibraryGenerator = new ClaspLibraryGenerator(aClaspLibraryPath);
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());

@@ -49,5 +49,9 @@ public interface ISolverBundle extends AutoCloseable {
 	 * @return the constraint manager contained in the bundle.
 	 */
 	public IConstraintManager getConstraintManager();
+
+	public String getInterferenceFolder();
+
+	public boolean getCompact();
 	
 }

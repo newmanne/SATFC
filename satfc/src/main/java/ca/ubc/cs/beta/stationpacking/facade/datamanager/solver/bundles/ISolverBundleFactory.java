@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 
 /**
  * Factory object for {@link ISolverBundle}.
@@ -31,10 +32,9 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 public interface ISolverBundleFactory {
 	
 	/**
-	 * @param aStationManager - a station manager.
-	 * @param aConstraintManager - a constraint manager.
+	 * @param dataBundle manager bundle that contains station manager and constraint manager.
 	 * @return a solver bundle for the provided constraint managers.
 	 */
-	public ISolverBundle getBundle(IStationManager aStationManager, IConstraintManager aConstraintManager);
+	public ISolverBundle getBundle(ManagerBundle dataBundle);
 	
 }
