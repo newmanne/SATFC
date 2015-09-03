@@ -153,7 +153,7 @@ def check_constraint_violation(station_to_channel, interference_dict):
                             i_station_channel = station_to_channel[i_station]
                             if(i_station_channel == illegal_channel):
                                 #print 'study station '+ str(station) + ' on channel ' + str(assigned_channel) + ' , interfering station ' + str(i_station) + ' on channel ' + str(illegal_channel) + '. Violated constraint (may be inferred): ' + str(cons)
-                                return [i_station, illegal_channel, cons]
+                                return [i_station, illegal_channel, str(cons)]
 
 def load_domain_csv(path):
     f = open(path, 'r')
