@@ -76,8 +76,6 @@ public abstract class ASolverBundleTest {
         ISolverBundle bundle = getBundle();
         final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
         final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
-        log.info(solve.getAssignment().toString());
-        log.info(StationPackingTestUtils.getSimpleInstanceAnswer().toString());
         Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
     }
 

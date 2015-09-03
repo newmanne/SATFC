@@ -37,22 +37,22 @@ public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
 
         String interferenceResult;
         if(compact){
-            final String es1 = "load_compact_interference(\"" + interference + "\")";
-            final PyObject e1 = python.eval(es1);
-            interferenceResult = e1.toString();
+            final String compactEvalString = "load_compact_interference(\"" + interference + "\")";
+            final PyObject compactReturnObject = python.eval(compactEvalString);
+            interferenceResult = compactReturnObject.toString();
         }else{
-            final String es1 = "load_interference(\"" + interference + "\")";
-            final PyObject e1 = python.eval(es1);
-            interferenceResult = e1.toString();
+            final String nonCompactEvalString = "load_interference(\"" + interference + "\")";
+            final PyObject nonCompactReturnObject = python.eval(nonCompactEvalString);
+            interferenceResult = nonCompactReturnObject.toString();
         }
-        final String es2 = "load_domain_csv(\"" + domain + "\")";
-        final PyObject e2 = python.eval(es2);
-        final String domainResult = e2.toString();
+        final String domainEvalString = "load_domain_csv(\"" + domain + "\")";
+        final PyObject loadDomainReturnObject = python.eval(domainEvalString);
+        final String domainResult = loadDomainReturnObject.toString();
 
         if (interferenceResult.equals("0") && domainResult.equals("0")){
             log.debug("Interference loaded");
         } else {
-            log.error("Interference not loaded properly");
+            throw new IllegalStateException("Interference not loaded properly");
         }
 
     }
@@ -64,7 +64,6 @@ public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
         if (result.getResult().equals(SATResult.SAT)) {
             log.debug("Independently verifying the veracity of returned assignment using python verifier script");
 
-            log.debug(JSONUtils.toString(result.getAssignment()));
             final String evalString = "check_violations(\'"+JSONUtils.toString(result.getAssignment())+"\')";
             final PyObject eval = python.eval(evalString);
             final String checkResult = eval.toString();
