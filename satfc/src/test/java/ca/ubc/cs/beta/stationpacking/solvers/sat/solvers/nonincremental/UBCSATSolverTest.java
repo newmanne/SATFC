@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

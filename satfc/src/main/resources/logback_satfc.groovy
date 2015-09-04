@@ -24,4 +24,6 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
+logger('ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat', TRACE)
+
 root(ROOT_LOG_LEVEL, ["CONSOLE", "FILE"])

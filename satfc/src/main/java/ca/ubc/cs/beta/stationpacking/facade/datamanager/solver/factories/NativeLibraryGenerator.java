@@ -27,9 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATLibrary;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 
 import com.google.common.io.Files;
+import com.sun.jna.Library;
 import com.sun.jna.Native;
 
 /**
@@ -38,33 +40,35 @@ import com.sun.jna.Native;
  * Because of the way JNA works, we need a new physical copy of the library each time we launch
  * Also note the LD_OPEN options specified to Native.loadLibrary to make sure we use a different in-memory copy each time
  */
-public class ClaspLibraryGenerator {
+public abstract class NativeLibraryGenerator<T extends Library> {
     private final String libraryPath;
-    private int numClasps;
+    private final Class<T> klazz;
+    private int numLibs;
 
-    private List<File> claspLibFiles;
+    private List<File> libFiles;
 
-    public ClaspLibraryGenerator(String libraryPath) {
+    public NativeLibraryGenerator(String libraryPath, Class<T> klazz) {
         this.libraryPath = libraryPath;
-        numClasps = 0;
-        claspLibFiles = new ArrayList<>();
+        this.klazz = klazz;
+        numLibs = 0;
+        libFiles = new ArrayList<>();
     }
 
-    public Clasp3Library createClaspLibrary() {
+    public T createLibrary() {
         File origFile = new File(libraryPath);
         try {
-            File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numClasps, "." + Files.getFileExtension(libraryPath));
+            File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numLibs, "." + Files.getFileExtension(libraryPath));
             Files.copy(origFile, copy);
             copy.deleteOnExit();
-            claspLibFiles.add(copy);
-            return (Clasp3Library) Native.loadLibrary(copy.getPath(), Clasp3Library.class, NativeUtils.NATIVE_OPTIONS);
+            libFiles.add(copy);
+            return (T) Native.loadLibrary(copy.getPath(), klazz, NativeUtils.NATIVE_OPTIONS);
         } catch (IOException e) {
-            throw new RuntimeException("Couldn't create a copy of clasp!!!");
+            throw new RuntimeException("Couldn't create a copy of native library from path " + libraryPath);
         }
     }
 
     public void notifyShutdown() {
-        claspLibFiles.forEach(File::delete);
+        libFiles.forEach(File::delete);
     }
 
 }

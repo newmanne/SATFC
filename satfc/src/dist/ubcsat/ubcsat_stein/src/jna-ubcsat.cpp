@@ -362,6 +362,10 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
 
   fTimeOut = timeoutTime;
 
+  // measure elapsed wall time
+  struct timespec now, tmstart;
+  clock_gettime(CLOCK_REALTIME, &tmstart);
+  
   UBCSATState* state = (UBCSATState*) ubcsatState;
   iStep = 0;
   bSolutionFound = FALSE;
@@ -371,6 +375,13 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
   StartRunClock();
 
   while ((iStep < iCutoff) && (! bSolutionFound) && !bTerminateRun && !state->terminateRun) {
+
+    // check walltime cutoff
+    clock_gettime(CLOCK_REALTIME, &now);
+    double seconds = (double)((now.tv_sec+now.tv_nsec*1e-9) - (double)(tmstart.tv_sec+tmstart.tv_nsec*1e-9));
+    if (seconds > timeoutTime) {
+      break;
+    }
 
     iStep++;
     iFlipCandidate = 0;
@@ -630,4 +641,6 @@ void resetAllStaticallyAllocatedGlobalVars() {
   bPerformClauseConfChecking = FALSE;
   bPerformNeighborConfChecking = FALSE;
 
+  // from ubcsat-internal.h
+  iNumTotalParms = 0;
 }

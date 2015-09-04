@@ -33,7 +33,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.NativeLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -89,7 +90,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         log.debug("SATFC solver bundle.");
 
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
-        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
+        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new Clasp3LibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
 
         log.debug("Initializing base configured clasp solvers.");
 

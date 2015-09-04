@@ -6,7 +6,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
@@ -33,7 +33,7 @@ public class StatsSolverBundle extends ASolverBundle {
         super(dataBundle);
 
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
-        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
+        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new Clasp3LibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
         final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         solver = new VoidSolver();

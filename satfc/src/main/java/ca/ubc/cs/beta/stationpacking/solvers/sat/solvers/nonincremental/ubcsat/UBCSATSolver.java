@@ -1,8 +1,12 @@
-package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental;
+package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -29,6 +33,9 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     private UBCSATLibrary fLibrary;
     private String fParameters;
     private Pointer fState;
+    private final Lock lock = new ReentrantLock();
+    // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
+    private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
 
     public UBCSATSolver(String libraryPath, String parameters) {
         this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters);
@@ -74,14 +81,11 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         final Watch watch = Watch.constructAutoStartWatch();
         fParameters = fParameters + " -seed " + aSeed;
 
-        double preTime =0, runTime = 0, postTime = 0;
+        final double preTime;
+        final double runTime;
         try {
+            Preconditions.checkState(fState == null, "Went to solve a new problem, but there is a problem in progress!");
             boolean status = false;
-
-            // create the problem
-            if (fState != null) {
-                throw new IllegalStateException("Went to solve a new problem, but there is a problem in progress!");
-            }
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
@@ -93,6 +97,13 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             }
 
             status = fLibrary.initProblem(fState, aCNF.toDIMACS(null));
+
+
+            // We lock this variable so that the interrupt code will only execute if there is a valid problem to interrupt
+            lock.lock();
+            isCurrentlySolving.set(true);
+            lock.unlock();
+
             checkStatus(status,fLibrary, fState);
 
             if (aPreviousAssignment != null) {
@@ -111,30 +122,32 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             log.debug("Sending problem to UBCSAT with cutoff time of " + cutoff + "s");
 
             status = fLibrary.solveProblem(fState, cutoff);
+            lock.lock();
+            isCurrentlySolving.set(false);
+            lock.unlock();
             checkStatus(status, fLibrary, fState);
 
             runTime = watch.getElapsedTime() - preTime;
             log.debug("Came back from UBCSAT after {}s.", runTime);
 
-            final SATSolverResult result = getSolverResult(fLibrary, fState, runTime);
-            return result;
+            return getSolverResult(fLibrary, fState, runTime);
         } finally {
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
             if (fState != null) {
                 log.debug("Destroying problem");
+                lock.lock();
+                isCurrentlySolving.set(false);
+                lock.unlock();
                 fLibrary.destroyProblem(fState);
                 fState = null;
             }
             log.debug("Total solver time: {}", watch.getElapsedTime());
-            watch.stop();
         }
 
     }
 
     private void checkStatus(boolean status, UBCSATLibrary library, Pointer state) {
-        if(!status) {
-            throw new RuntimeException(library.getErrorMessage(state));
-        }
+        Preconditions.checkState(status, library.getErrorMessage(state));
     }
 
     private SATSolverResult getSolverResult(UBCSATLibrary fLibrary, Pointer fState, double runtime) {
@@ -198,8 +211,12 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
 
     @Override
     public void interrupt() {
-        log.debug("Interrupting UBCSAT");
-        fLibrary.interrupt(fState);
-        log.debug("Interrupt sent to UBCSAT");
+        lock.lock();
+        if (isCurrentlySolving.get()) {
+            log.debug("Interrupting UBCSAT");
+            fLibrary.interrupt(fState);
+            log.debug("Interrupt sent to UBCSAT");
+        }
+        lock.unlock();
     }
 }

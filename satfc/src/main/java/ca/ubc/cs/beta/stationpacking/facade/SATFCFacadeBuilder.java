@@ -53,7 +53,6 @@ import com.google.common.io.Resources;
  */
 public class SATFCFacadeBuilder {
 
-    public static final String SATFC_CLASP_LIBRARY_ENV_VAR = "SATFC_CLASP_LIBRARY";
     private volatile static boolean logInitialized = false;
 
     // public params
@@ -112,6 +111,7 @@ public class SATFCFacadeBuilder {
     public SATFCFacadeBuilder() {
         // public params
         fClaspLibrary = findSATFCLibrary(SATFCLibLocation.CLASP);
+        fUBCSATLibrary = findSATFCLibrary(SATFCLibLocation.UBCSAT);
         fResultFile = null;
         parallelismLevel = Math.min(SATFCParallelSolverBundle.PORTFOLIO_SIZE, Runtime.getRuntime().availableProcessors());
         fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
@@ -180,7 +180,7 @@ public class SATFCFacadeBuilder {
      * @return a SATFC facade configured according to the builder's options.
      */
     public SATFCFacade build() {
-        if (fClaspLibrary == null) {
+        if (fClaspLibrary == null || fUBCSATLibrary == null) {
             throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
         }
         if (fSolverChoice.equals(SATFC_PARALLEL)) {
@@ -194,6 +194,7 @@ public class SATFCFacadeBuilder {
         return new SATFCFacade(
                 SATFCFacadeParameter.builder()
                         .claspLibrary(fClaspLibrary)
+                        .ubcsatLibrary(fUBCSATLibrary)
                         .resultFile(fResultFile)
                         .solverChoice(fSolverChoice)
                         .serverURL(serverURL)

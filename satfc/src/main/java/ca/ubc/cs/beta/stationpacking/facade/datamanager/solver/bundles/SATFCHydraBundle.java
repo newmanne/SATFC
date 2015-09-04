@@ -10,7 +10,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.NativeLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
@@ -36,14 +37,14 @@ import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstraine
 public class SATFCHydraBundle extends ASolverBundle {
 
     ISolver fSolver;
-    private final ClaspLibraryGenerator claspLibraryGenerator;
+    private final Clasp3LibraryGenerator claspLibraryGenerator;
 
     public SATFCHydraBundle(ManagerBundle dataBundle, SATFCHydraParams params, String aClaspLibraryPath) {
         super(dataBundle);
 
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
-        claspLibraryGenerator = new ClaspLibraryGenerator(aClaspLibraryPath);
+        claspLibraryGenerator = new Clasp3LibraryGenerator(aClaspLibraryPath);
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());
         Map<SATFCHydraParams.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CONNECTED_COMPONENTS, solver -> {

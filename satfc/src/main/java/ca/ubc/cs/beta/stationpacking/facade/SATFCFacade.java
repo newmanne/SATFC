@@ -102,7 +102,8 @@ public class SATFCFacade implements AutoCloseable {
             throw new IllegalArgumentException("Could not load JNA library", e);
         }
 
-        log.info("Using library {}", aSATFCParameters.getClaspLibrary());
+        log.info("Using clasp library {}", aSATFCParameters.getClaspLibrary());
+        log.info("Using ubcsat library {}", aSATFCParameters.getUbcsatLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
 
         fSolverManager = new SolverManager(
@@ -152,7 +153,19 @@ public class SATFCFacade implements AutoCloseable {
                             case STATS:
                                 return new StatsSolverBundle(dataBundle, aSATFCParameters.getClaspLibrary());
                             case UBCSAT:
-                                return new UBCSATSolverBundle(aStationManager, aConstraintManager);
+                                return new UBCSATSolverBundle(
+                                        aSATFCParameters.getClaspLibrary(),
+                                        aSATFCParameters.getUbcsatLibrary(),
+                                        aStationManager,
+                                        aConstraintManager,
+                                        aSATFCParameters.getResultFile(),
+                                        aSATFCParameters.isPresolve(),
+                                        aSATFCParameters.isDecompose(),
+                                        aSATFCParameters.isUnderconstrained(),
+                                        aSATFCParameters.getServerURL(),
+                                        aSATFCParameters.getParallelismLevel(),
+                                        aSATFCParameters.isCacheResults()
+                                );
                             case LONG_CUTOFF:
                                 return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
                             default:
