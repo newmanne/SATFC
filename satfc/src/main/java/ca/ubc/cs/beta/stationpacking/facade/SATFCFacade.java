@@ -153,19 +153,20 @@ public class SATFCFacade implements AutoCloseable {
                             case STATS:
                                 return new StatsSolverBundle(dataBundle, aSATFCParameters.getClaspLibrary());
                             case UBCSAT:
-                                return new UBCSATSolverBundle(
-                                        aSATFCParameters.getClaspLibrary(),
-                                        aSATFCParameters.getUbcsatLibrary(),
-                                        aStationManager,
-                                        aConstraintManager,
-                                        aSATFCParameters.getResultFile(),
-                                        aSATFCParameters.isPresolve(),
-                                        aSATFCParameters.isDecompose(),
-                                        aSATFCParameters.isUnderconstrained(),
-                                        aSATFCParameters.getServerURL(),
-                                        aSATFCParameters.getParallelismLevel(),
-                                        aSATFCParameters.isCacheResults()
-                                );
+                                return new DCCALibrary.DCCABundle(aStationManager, aConstraintManager);
+//                                return new UBCSATSolverBundle(
+//                                        aSATFCParameters.getClaspLibrary(),
+//                                        aSATFCParameters.getUbcsatLibrary(),
+//                                        aStationManager,
+//                                        aConstraintManager,
+//                                        aSATFCParameters.getResultFile(),
+//                                        aSATFCParameters.isPresolve(),
+//                                        aSATFCParameters.isDecompose(),
+//                                        aSATFCParameters.isUnderconstrained(),
+//                                        aSATFCParameters.getServerURL(),
+//                                        aSATFCParameters.getParallelismLevel(),
+//                                        aSATFCParameters.isCacheResults()
+//                                );
                             case LONG_CUTOFF:
                                 return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
                             default:
