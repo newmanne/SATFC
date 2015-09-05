@@ -1,0 +1,33 @@
+/************************  About DCCASat ******************************/
+DCCASat is a local search solver for the Boolean Satisfiability (SAT) problem.
+DCCASat is developed on the basis of CCASat, and the modifications are implemented by Chuan Luo, when he was pursuing his Phd degree in Peking University (Beijing, China, 2013).
+Permissions and copyrights of DCCASat are exactly the same as those of CCASat.
+
+This version of DCCASat is used to solve *Random Instances*.                  
+
+Version: SC2014_Random_With_Cutoff
+
+Authors: Chuan Luo, Shaowei Cai, Wei Wu and Kaile Su
+Corresponding Email: <Chuan Luo> "chuanluosaber@gmail.com"
+
+/******************** Compiling and Running Commands *******************/
+Compiling DCCASat by simply run ./make under the directory.
+
+Running command: ./DCCASat <instance file> <random seed>
+
+
+
+*History*:
+/************************  About CCASat *******************************/    
+      
+CCASat is a local search solver for the Boolean Satisfiability (SAT) problem.
+CCASat is designed and implemented by Shaowei Cai, when he was pursuing his Phd degree in Peking University (Beijing, China, 2012).  
+This is a tidy version that performs (almost) the same as the one submitted to SAT Challenge 2012.
+The binary and codes of CCASat are permitted to be used for education and research purposes.                    
+Homepage: www.shaoweicai.net
+Email: shaoweicai.cs@gmail.com
+
+Acknowledgement: The author would like to thank Chuan Luo for discussions and particularly the helps on implementing the PAWS weighting schemes, and Kaile Su  for funding support and discussions on this project.
+
+
+
