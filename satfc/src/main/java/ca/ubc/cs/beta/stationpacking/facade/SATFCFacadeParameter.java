@@ -63,7 +63,8 @@ public class SATFCFacadeParameter {
         STATS,
         HYDRA,
         LONG_CUTOFF,
-        UBCSAT;
+        UBCSAT,
+        DCCA;
     }
 
 }

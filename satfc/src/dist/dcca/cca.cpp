@@ -5,7 +5,7 @@
 #include <sys/times.h> //these two h files are for linux
 #include <unistd.h>
 
-volatile bool interrupt = false;
+volatile bool is_interrupted = false;
 
 int Gamma = 1000;
 int Beta = 1000;
@@ -367,8 +367,7 @@ void set_cutoff()
 void local_search()
 {
 	int flipvar, j;
-     
-	for (step = 0; step<max_flips; )
+    for (step = 0; step<max_flips; )
 	{
 		for(j=0; j<10000; j++, step++)
 		{
@@ -379,38 +378,34 @@ void local_search()
 		}
 		times(&stop);
 		double elap_time = (stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
-		if(elap_time >= cutoff_time || interrupt)return;
+		if(elap_time >= cutoff_time || is_interrupted)return;
 	}
 }
 
 // JNA Library
 extern "C" {
-	void initProblem(const char* problem, int aSeed, double aCutoff_time) {
-		std::istringstream problemAsStream (problem);
-
-		if (build_instance(argv[1])==0)
+	void initProblem(const char* problem, int aSeed) {
+		if (build_instance(problem)==0)
 		{
-			cout<<"c Invalid filename: "<< argv[1]<<endl;
-			return 1;
+			cout<<"Can't parse problem!"<< endl;
+			return;
 		}
 
-		seed = aSeed;
-		cutoff_time = (int) aCutoff_time * 1000;
-			     
-	    srand(seed);
-	    
-	    //set_cutoff();
+	    srand(aSeed);
 	    
 		set_functions();
 		
-		cout<<"c cutoff_time = "<<cutoff_time<<endl;
 		cout<<"c start searching"<<endl;
 
 	}
-	void solveProblem(void* jnaProblemPointer, double timeoutTime) {
+	int* solveProblem(long* prevAssign, long prev_assignment_size, double aCutoff_time) {
+		times(&start);
+		cutoff_time = (int) (aCutoff_time * 1000);
+
+		long long i;
 		for (i = 0; i <= max_tries; i++) 
 		{
-			 init(argc == 5 ? argv[4] : NULL);
+			 init(prevAssign, prev_assignment_size);
 			 
 			 times(&stop);
 		 
@@ -422,113 +417,114 @@ extern "C" {
 			 double elap_time = (stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
 			 if(elap_time >= cutoff_time) break;
 		}
-		print_solution();
+		// print_solution();
+		return export_solution();
 	}
 	void destroyProblem() {
     	free_memory();
 	}
 	bool interrupt(void* jnaProblemPointer) {
-		interrupt = true;
+		is_interrupted = true;
 	}
 	int getResultState(void* jnaProblemPointer);
 	int* getResultAssignment(void* jnaProblemPointer);
 }
 
-int main(int argc, char* argv[])
-{
-	int     seed;
-	int		ret = 1;
-	long long i;
-	cout<<"c this is DCCASat [Version: CSSC2014 Random_With_Cutoff]" <<endl;
-	cout<<"c for random instances" <<endl;
+// int main(int argc, char* argv[])
+// {
+// 	int     seed;
+// 	int		ret = 1;
+// 	long long i;
+// 	cout<<"c this is DCCASat [Version: CSSC2014 Random_With_Cutoff]" <<endl;
+// 	cout<<"c for random instances" <<endl;
     
-    if(!(argc==4 || argc==5))
-    {
-    	cout<<"c Usage: "<<argv[0] << " <instance> <seed> <cutoff_time> (<assignment>)" <<endl;
-    	return 1;
-    }
+//     if(!(argc==4 || argc==5))
+//     {
+//     	cout<<"c Usage: "<<argv[0] << " <instance> <seed> <cutoff_time> (<assignment>)" <<endl;
+//     	return 1;
+//     }
      
-	times(&start);
+// 	times(&start);
 
-	if (build_instance(argv[1])==0)
-	{
-		cout<<"c Invalid filename: "<< argv[1]<<endl;
-		return 1;
-	}
+// 	if (build_instance(argv[1])==0)
+// 	{
+// 		cout<<"c Invalid filename: "<< argv[1]<<endl;
+// 		return 1;
+// 	}
 	
-	if(num_clauses==0)
-	{
-		cout<<"s SATISFIABLE"<<endl;
-		print_solution();
-		free_memory();
-		return 0;
-	}
+// 	if(num_clauses==0)
+// 	{
+// 		cout<<"s SATISFIABLE"<<endl;
+// 		print_solution();
+// 		free_memory();
+// 		return 0;
+// 	}
 	
-	if(num_empty_clauses>0)
-	{
-		cout<<"s UNSATISFIABLE"<<endl;
-		free_memory();
-		return 0;
-	}
+// 	if(num_empty_clauses>0)
+// 	{
+// 		cout<<"s UNSATISFIABLE"<<endl;
+// 		free_memory();
+// 		return 0;
+// 	}
      
-    sscanf(argv[2],"%d",&seed);
+//     sscanf(argv[2],"%d",&seed);
     
-    sscanf(argv[3],"%d",&cutoff_time);
+//     sscanf(argv[3],"%d",&cutoff_time);
     
-    srand(seed);
+//     srand(seed);
     
-    //set_cutoff();
+//     //set_cutoff();
     
-	set_functions();
+// 	set_functions();
 	
-	cout<<"c cutoff_time = "<<cutoff_time<<endl;
-	cout<<"c start searching"<<endl;
-	//cout<<"c smooth_probability = "<<smooth_probability<<endl;
+// 	cout<<"c cutoff_time = "<<cutoff_time<<endl;
+// 	cout<<"c start searching"<<endl;
+// 	//cout<<"c smooth_probability = "<<smooth_probability<<endl;
 	
-	//sscanf(argv[3],"%f", &smooth_probability);
+// 	//sscanf(argv[3],"%f", &smooth_probability);
 
-	for (i = 0; i <= max_tries; i++) 
-	{
-		 init(argc == 5 ? argv[4] : NULL);
+// 	for (i = 0; i <= max_tries; i++) 
+// 	{
+// 		 init(argc == 5 ? argv[4] : NULL);
 		 
-		 times(&stop);
+// 		 times(&stop);
 	 
-		 local_search();
+// 		 local_search();
 
-		 if (unsat_stack_fill_pointer==0) break;
+// 		 if (unsat_stack_fill_pointer==0) break;
 		 
-		 times(&stop);
-		 double elap_time = (stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
-		 if(elap_time >= cutoff_time) break;
-	}
+// 		 times(&stop);
+// 		 double elap_time = (stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
+// 		 if(elap_time >= cutoff_time) break;
+// 	}
 
-	times(&stop);
-	double comp_time = double(stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
+// 	times(&stop);
+// 	double comp_time = double(stop.tms_utime - start.tms_utime +stop.tms_stime - start.tms_stime) / sysconf(_SC_CLK_TCK);
 
-	if(unsat_stack_fill_pointer==0)
-	{
-		if(verify_sol()==1)
-		{
-			cout<<"s SATISFIABLE"<<endl;
-			print_solution();
-            ret = 0;
-        }
-        else 
-        {
-        	cout<<"c Sorry, something is wrong."<<endl;
-        	ret = 1;
-        }
-    }
-    else  
-    {
-    	cout<<"c UNKNOWN"<<endl;
-    	ret = 1;
-    }
+// 	if(unsat_stack_fill_pointer==0)
+// 	{
+// 		if(verify_sol()==1)
+// 		{
+// 			cout<<"s SATISFIABLE"<<endl;
+// 			print_solution();
+//             ret = 0;
+//         }
+//         else 
+//         {
+//         	cout<<"c Sorry, something is wrong."<<endl;
+//         	ret = 1;
+//         }
+//     }
+//     else  
+//     {
+//     	cout<<"c UNKNOWN"<<endl;
+//     	ret = 1;
+//     }
     
-    cout<<"c solveSteps = "<<i<<" tries + "<<step<<" steps (each try has " << max_flips << " steps)."<<endl;
-    cout<<"c solveTime = "<<comp_time<<endl;
+//     cout<<"c solveSteps = "<<i<<" tries + "<<step<<" steps (each try has " << max_flips << " steps)."<<endl;
+//     cout<<"c solveTime = "<<comp_time<<endl;
 	 
-    free_memory();
+//     free_memory();
 
-    return ret;
-}
+//     return ret;
+// }

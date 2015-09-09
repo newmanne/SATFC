@@ -1,1 +1,0 @@
-int resolvent_look();

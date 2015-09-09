@@ -94,7 +94,7 @@ inline void sat(int clause)
 }
 
 //initiation of the algorithm
-void init(char *assignment_file)
+void init(long* previous_assignment, long size_of_assignment)
 {
 	int 		v,c;
 	int			i,j;
@@ -113,16 +113,14 @@ void init(char *assignment_file)
 		else cur_soln[v] = 0;	
 	}
 
-	if (assignment_file != NULL) {
+	if (previous_assignment != NULL) {
 		// READ PEVIOUS ASSIGNMENT
-		cout << "Reading assignment from file " << assignment_file << endl;
-		ifstream infile(assignment_file);
-		int curVar;
-		while (infile >> curVar) {
-			int startingVal;
-			infile >> startingVal;
+		for (long ii = 0; ii < size_of_assignment; ii++) {
+			int curVarAndSign = previous_assignment[ii];
+			int curVar = abs(curVarAndSign);
+			int startingVal = curVarAndSign > 0 ? 1 : 0;
 			cur_soln[curVar] = startingVal;
-		}	
+		}
 	}
 
 	//init solution

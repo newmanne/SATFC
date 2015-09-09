@@ -79,7 +79,7 @@ int             cur_soln[MAX_VARS];	//the current solution, with 1's for True va
 //cutoff
 long long	max_tries = 4500000000000000000ll;
 long long	max_flips = 4000000000ll;
-long long	step;
+volatile static long long	step;
 
 void setup_datastructure();
 void free_memory();
@@ -117,9 +117,11 @@ int build_instance(const char *cnf_string)
 	int     i,j;
 	int		v,c;//var, clause
 	
-	ifstream infile(cnf_string);
-	if(infile==NULL)
+	std::istringstream infile(cnf_string);
+	if(infile==NULL) {
+		cout << "NULL" << endl;
 		return 0;
+	}
 
 	/*** build problem data structures of the instance ***/
 	//infile.getline(line,LINE_LENGTH);
@@ -190,7 +192,6 @@ int build_instance(const char *cnf_string)
 			num_empty_clauses++;
 		}
 	}
-	infile.close();
 	
 	//creat var literal arrays
 	for (v=1; v<=num_vars; ++v)
@@ -301,6 +302,16 @@ void print_solution()
          else	cout<<' ';
      }
      cout<<"0"<<endl;
+}
+
+int* export_solution() {
+	int* solution = new int[num_vars + 1];
+	solution[0] = num_vars;
+	int i;
+	for (i = 1; i < num_vars; i++) {
+		solution[i] = cur_soln[i];
+	}
+	return solution;
 }
 
 
