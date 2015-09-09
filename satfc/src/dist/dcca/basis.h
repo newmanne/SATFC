@@ -308,12 +308,11 @@ int* export_solution() {
 	int* solution = new int[num_vars + 1];
 	solution[0] = num_vars;
 	int i;
-	for (i = 1; i < num_vars; i++) {
+	for (i = 1; i <= num_vars; i++) {
 		solution[i] = cur_soln[i];
 	}
 	return solution;
 }
-
 
 int verify_sol()
 {

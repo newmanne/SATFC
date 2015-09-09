@@ -23,6 +23,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.collect.ImmutableSet;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.LongByReference;
 import lombok.extern.slf4j.Slf4j;
@@ -46,19 +47,31 @@ public interface DCCALibrary extends Library {
     @Slf4j
     public static class DCCASolver extends AbstractCompressedSATSolver {
 
+        private final DCCALibrary dccaLibrary;
+
+        public DCCASolver() {
+            dccaLibrary = (DCCALibrary) Native.loadLibrary("/home/newmanne/research/satfc/satfc/src/dist/dcca/DCCASat", DCCALibrary.class, NativeUtils.NATIVE_OPTIONS);
+        }
+
         @Override
         public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
             final Watch watch = Watch.constructAutoStartWatch();
-            DCCALibrary dccaLibrary = (DCCALibrary) Native.loadLibrary("/home/newmanne/research/satfc/satfc/src/dist/dcca/DCCASat", DCCALibrary.class, NativeUtils.NATIVE_OPTIONS);
+            log.info("There are {} variables", aCNF.getVariables().size());
+            // TODO: don't need to load lib every time!
             dccaLibrary.initProblem(aCNF.toDIMACS(null), aSeed);
             long[] previousAssignmentArray = aPreviousAssignment.entrySet().stream().mapToLong(entry -> entry.getKey() * (entry.getValue() ? 1 : -1)).toArray();
             double cutoff = aTerminationCriterion.getRemainingTime();
             log.info("Sending cutoff of {} s", cutoff);
             if (cutoff > 0) {
                 final IntByReference intByReference = dccaLibrary.solveProblem(previousAssignmentArray, previousAssignmentArray.length, cutoff);
-                final HashSet<Literal> literals = parseAssignment(intByReference);
-                final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals);
-                return output;
+                if (intByReference == null) {
+                    log.info("Timed out");
+                } else {
+                    final HashSet<Literal> literals = parseAssignment(intByReference);
+                    final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals);
+                    return output;
+                }
+
             }
             return new SATSolverResult(SATResult.TIMEOUT, 30.0, ImmutableSet.of());
         }
@@ -75,12 +88,11 @@ public interface DCCALibrary extends Library {
 
         private HashSet<Literal> parseAssignment(IntByReference assignmentReference) {
             int size = assignmentReference.getValue();
-            int[] assignment = assignmentReference.getPointer().getIntArray(0, size);
+            int[] assignment = assignmentReference.getPointer().getIntArray(0, size + 1);
             HashSet<Literal> set = new HashSet<>();
-            for (int i = 1; i < size; i++) {
-                int var = i;
+            for (int i = 1; i <= size; i++) {
                 boolean sign = assignment[i] > 0;
-                Literal aLit = new Literal(var, sign);
+                Literal aLit = new Literal(i, sign);
                 set.add(aLit);
             }
             return set;
@@ -99,7 +111,7 @@ public interface DCCALibrary extends Library {
          */
         public DCCABundle(IStationManager aStationManager, IConstraintManager aConstraintManager) {
             super(aStationManager, aConstraintManager);
-            final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
+            final SATCompressor aCompressor = new SATCompressor(getConstraintManager());
             solver = new CompressedSATBasedSolver(new DCCASolver(), aCompressor, getConstraintManager());
             solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
         }

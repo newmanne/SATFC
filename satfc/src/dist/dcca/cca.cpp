@@ -394,13 +394,13 @@ extern "C" {
 	    srand(aSeed);
 	    
 		set_functions();
+		is_interrupted = false;
 		
-		cout<<"c start searching"<<endl;
-
 	}
 	int* solveProblem(long* prevAssign, long prev_assignment_size, double aCutoff_time) {
 		times(&start);
-		cutoff_time = (int) (aCutoff_time * 1000);
+		// round to int, whatever
+		cutoff_time = (int) (aCutoff_time + 1);
 
 		long long i;
 		for (i = 0; i <= max_tries; i++) 
@@ -418,7 +418,12 @@ extern "C" {
 			 if(elap_time >= cutoff_time) break;
 		}
 		// print_solution();
-		return export_solution();
+		if(unsat_stack_fill_pointer==0) {
+			return export_solution();	
+		} else {
+			return NULL;
+		}
+		
 	}
 	void destroyProblem() {
     	free_memory();
