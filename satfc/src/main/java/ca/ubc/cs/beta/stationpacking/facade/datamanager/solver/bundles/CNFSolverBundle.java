@@ -45,7 +45,7 @@ public class CNFSolverBundle extends ASolverBundle {
         cnfOnlySolver = new VoidSolver();
 
         // save the cnf for the full problem
-        cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver,getConstraintManager(), aCNFSaver, false);
+        cnfOnlySolver = new CNFSaverSolverDecorator(cnfOnlySolver,getConstraintManager(), aCNFSaver, true);
     }
 
     @Override

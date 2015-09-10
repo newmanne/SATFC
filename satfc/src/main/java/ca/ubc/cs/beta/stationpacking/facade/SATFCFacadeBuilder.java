@@ -206,6 +206,7 @@ public class SATFCFacadeBuilder {
                         .decompose(developerOptions.isDecompose())
                         .underconstrained(developerOptions.isUnderconstrained())
                         .dataManager(developerOptions.getDataManager())
+                        .CNFSaver(developerOptions.getCNFSaver())
                         .build()
                         );
     }
