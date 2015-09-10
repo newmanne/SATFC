@@ -9,7 +9,7 @@
 
 extern "C" {
   #include "ubcsat.h"
-}
+};
 
 class AddRemoveListsTest : public ::testing::Test {
 

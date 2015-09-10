@@ -47,6 +47,7 @@ extern UINT32 iAvgClauseWeightThreshold;
 extern FLOAT fDCCAp;
 extern FLOAT fDCCAq;
 
+void InitDCCA();
 void PickDCCA();
 
 void CreateCSDvars();

@@ -4,32 +4,29 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ASolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.NativeLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.GenericSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ClaspResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.collect.ImmutableSet;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.ptr.LongByReference;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by newmanne on 04/09/15.
@@ -40,7 +37,7 @@ public interface DCCALibrary extends Library {
 
     IntByReference solveProblem(long[] assignment, long assignmentSize, double cutoff);
 
-    void destroyProblem();
+    void destroyProblem(IntByReference assignmentPointer);
 
     boolean interrupt();
 
@@ -48,6 +45,8 @@ public interface DCCALibrary extends Library {
     public static class DCCASolver extends AbstractCompressedSATSolver {
 
         private final DCCALibrary dccaLibrary;
+        private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
+        private final Lock lock = new ReentrantLock();
 
         public DCCASolver() {
             dccaLibrary = (DCCALibrary) Native.loadLibrary("/home/newmanne/research/satfc/satfc/src/dist/dcca/DCCASat", DCCALibrary.class, NativeUtils.NATIVE_OPTIONS);
@@ -56,24 +55,45 @@ public interface DCCALibrary extends Library {
         @Override
         public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
             final Watch watch = Watch.constructAutoStartWatch();
-            log.info("There are {} variables", aCNF.getVariables().size());
-            // TODO: don't need to load lib every time!
-            dccaLibrary.initProblem(aCNF.toDIMACS(null), aSeed);
-            long[] previousAssignmentArray = aPreviousAssignment.entrySet().stream().mapToLong(entry -> entry.getKey() * (entry.getValue() ? 1 : -1)).toArray();
-            double cutoff = aTerminationCriterion.getRemainingTime();
-            log.info("Sending cutoff of {} s", cutoff);
-            if (cutoff > 0) {
-                final IntByReference intByReference = dccaLibrary.solveProblem(previousAssignmentArray, previousAssignmentArray.length, cutoff);
-                if (intByReference == null) {
-                    log.info("Timed out");
-                } else {
-                    final HashSet<Literal> literals = parseAssignment(intByReference);
-                    final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals);
-                    return output;
-                }
-
+            if (aTerminationCriterion.hasToStop()) {
+                return SATSolverResult.timeout(watch.getElapsedTime());
             }
-            return new SATSolverResult(SATResult.TIMEOUT, 30.0, ImmutableSet.of());
+            log.info("There are {} variables", aCNF.getVariables().size());
+            IntByReference intByReference = null;
+            try {
+                dccaLibrary.initProblem(aCNF.toDIMACS(null), aSeed);
+                lock.lock();
+                isCurrentlySolving.set(true);
+                lock.unlock();
+                long[] previousAssignmentArray = aPreviousAssignment.entrySet().stream().mapToLong(entry -> entry.getKey() * (entry.getValue() ? 1 : -1)).toArray();
+                double cutoff = aTerminationCriterion.getRemainingTime();
+                log.info("Sending cutoff of {} s", cutoff);
+                if (cutoff > 0) {
+                    intByReference = dccaLibrary.solveProblem(previousAssignmentArray, previousAssignmentArray.length, cutoff);
+                    lock.lock();
+                    isCurrentlySolving.set(true);
+                    lock.unlock();
+                    if (intByReference == null) {
+                        log.info("Timed out");
+                    } else {
+                        final HashSet<Literal> literals = parseAssignment(intByReference);
+                        final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals);
+                        return output;
+                    }
+                }
+                return new SATSolverResult(SATResult.TIMEOUT, 30.0, ImmutableSet.of());
+            } finally {
+                dccaLibrary.destroyProblem(intByReference);
+            }
+        }
+
+        @Override
+        public void interrupt() {
+            lock.lock();
+            if (isCurrentlySolving.get()) {
+                dccaLibrary.interrupt();
+            }
+            lock.unlock();
         }
 
         @Override

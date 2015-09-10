@@ -35,6 +35,12 @@ void SpecialUpdateMakeBreak();
 
 void ReadCNF();
 
+BOOL bPen;
+UINT32 *aDecPromVarsList;
+UINT32 *aDecPromVarsListPos;
+BOOL *aIsDecPromVar;
+UINT32 iNumDecPromVars;
+
 UINT32 iNumVars;
 UINT32 iNumClauses;
 UINT32 iNumLits;

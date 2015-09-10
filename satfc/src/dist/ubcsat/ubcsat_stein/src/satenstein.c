@@ -209,6 +209,15 @@ void AddSatenstein() {
   AddParmUInt(&pCurAlg->parmList,"-sparrowc2","sparrow age polynomial parameter [default %s]","adjusts the influence of the age","",&iSparrowC2,4);
   AddParmFloat(&pCurAlg->parmList,"-sparrowc3","sparrow age threshold parameter [default %s]","threshold for age calculation","",&fSparrowC3,100000.0);
 
+  /******* DCCA parameters *********/
+  AddParmUInt(&pCurAlg->parmList,"-avgweightthreshold",
+              "average clause weight threshold [default %s]",
+              "on the diversification step, if the average clause weight exceeds~this threshold, smoothing is performed",
+              "",&iAvgClauseWeightThreshold,300);
+  AddParmFloat(&pCurAlg->parmList,"-DCCAp","DCCA p param [default %s]","weight of current clause score in SWT smoothing [default %s]","",&fDCCAp,0.3);
+  AddParmFloat(&pCurAlg->parmList,"-DCCAq","DCCA q param [default %s]","weight of average clause score in SWT smoothing [default %s]","",&fDCCAq,0.0);
+
+
   CreateTrigger("PickSatenstein", ChooseCandidate, PickSatenstein, "", "");
 
 
@@ -289,6 +298,10 @@ void EnableDisableTrigger() {
   }
 
 
+  if (iHeuristic == H_PICK_DCCA_DIVERSIFY || iHeuristic == H_PICK_SPARROWPROBDIST) {
+    bPen = TRUE;
+  }
+
   //DecPromVar is used if promising list
   if ((bPromisingList) || ((bSingleClause) && (iHeuristic > 9))) {
     if (bPen) {
@@ -353,7 +366,7 @@ void EnableDisableTrigger() {
   else {
 
     DeActivateTriggers("Flip+MBPINT+FCL+VIF,PostFlipPAWS,Flip+MBPFL+FCL+VIF,PostFlipSAPS,PostFlipRSAPS");
-    if (iDecStrategy != PICK_GNOVELTYPLUS && iHeuristic != H_PICK_SPARROWPROBDIST) {
+    if (iDecStrategy != PICK_GNOVELTYPLUS && iHeuristic != H_PICK_SPARROWPROBDIST && iHeuristic != H_PICK_DCCA_DIVERSIFY) {
       DeActivateTriggers("PenClauseList");
     }
 
@@ -433,6 +446,17 @@ void EnableDisableTrigger() {
     DeActivateTriggers("UpdateDecPromVars");
   }
 
+  if (iDecStrategy == PICK_DCCA) {
+    ActivateTriggers("ConfChecking");
+    DeActivateTriggers("UpdateDecPromVars");
+  }
+
+  if (iHeuristic == H_PICK_DCCA_DIVERSIFY) {
+    ActivateTriggers("PenClauseList,TrackPenChanges");
+    DeActivateTriggers("UpdateDecPromVars");
+  }
+
+
   if (bPromisingList && iDecStrategy == PICK_GNOVELTYPLUS) {
     iUpdateSchemePromList = UPDATE_GNOVELTYPLUS;
     ActivateTriggers("UpdateVarLastChange");
@@ -475,7 +499,7 @@ void PickSatenstein() {
       return;
     }
 
-    if (iHeuristic != H_PICK_SPARROWPROBDIST) {
+    if (!(iHeuristic == H_PICK_SPARROWPROBDIST || iHeuristic == H_PICK_DCCA_DIVERSIFY)) {
       if (bPen && iPs != -1) {
         UpdateClauseWeight();
         if (RandomProb(iPs)) {

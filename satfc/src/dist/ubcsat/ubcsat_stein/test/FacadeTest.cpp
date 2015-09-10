@@ -3,7 +3,7 @@
 //
 
 #include <chrono>
-#include "JNATest.h"
+#include "FacadeTest.h"
 
 TEST_F(JNATest, initProblem) {
   initProblem(_state, _dummyCNF);
@@ -198,7 +198,7 @@ TEST_F(JNATest, timeInitProblem) {
   // XXX: Path string will need to be changed here to accommodate other test machines
   char *cnfBuffer = 0;
   long length;
-  FILE * f = fopen ("/ubc/cs/project/arrow/pcernek/data/unsat-srpk.cnf", "rb");
+  FILE * f = fopen ("res/unsat-srpk.cnf", "rb");
 
   if (f)
   {

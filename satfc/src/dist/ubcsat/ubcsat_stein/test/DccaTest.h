@@ -6,12 +6,12 @@
 #define SATENSTEIN_TESTDCCA_H
 
 #include <gtest/gtest.h>
+
 extern "C" {
   #include <ubcsat.h>
   #include <ubcsat-globals.h>
   #include <dcca.h>
 };
-
 
 class DccaTest : public ::testing::Test {
 

@@ -37,7 +37,7 @@ void AddDCCA() {
                             "Double Configuration Checking with Aspiration",
                             "Luo, Cai, Wu, Su [AAAI 2014]",
                             "PickDCCA",
-                            "DefaultProcedures,VarPenScore,ClausePenaltyINT,ConfChecking,Flip+TrackChanges+FCL,VarLastChange,PenClauseList,VarsShareClauses",
+                            "DefaultProcedures,VarPenScore,ClausePenaltyINT,ConfChecking,InitDCCA,Flip+TrackChanges+FCL,VarLastChange,PenClauseList,VarsShareClauses",
                             "default","default");
 
   AddParmUInt(&pCurAlg->parmList,"-avgweightthreshold",
@@ -66,6 +66,12 @@ void AddDCCA() {
   CreateContainerTrigger("SDvars","CreateSDvars,InitSDvars,UpdateSDvars");
 
   CreateContainerTrigger("ConfChecking","CSDvars,NVDvars,SDvars");
+
+  CreateTrigger("InitDCCA",PostParameters,InitDCCA,"","");
+}
+
+void InitDCCA() {
+  bPen = TRUE;
 }
 
 void PickDCCA() {

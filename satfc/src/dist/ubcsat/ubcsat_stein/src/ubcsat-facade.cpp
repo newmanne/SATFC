@@ -3,7 +3,7 @@
 //
 
 #include <sstream>
-#include "jna-ubcsat.hpp"
+#include "ubcsat-facade.hpp"
 #include "ubcsat-globals.h"
 
 /**
@@ -62,33 +62,6 @@ char** split(char *command, int* size) {
   *size = i;
   return ret;
 }
-
-//char** split(char *command, int* size) {
-//  char** parsed = (char**) malloc(sizeof(char*) * MAXTOTALPARMS);
-//  const char* programName = "ubcsat";
-//  const char delim = ' ';
-//
-//  parsed[0] = (char*) programName;
-//  *size = 0;
-//  char* start = command;
-//  char* curChar = command;
-//
-//  while (*curChar) {
-//    if( *curChar == delim) {
-//      *curChar = '\0';
-//      size_t tokenLength = (size_t) (curChar - start + 1);
-//      parsed[*size + 1] = start;
-//      (*size)++;
-//      start += tokenLength;
-//    }
-//    curChar++;
-//  }
-//
-//  parsed[*size + 1] = start;
-//  (*size)++;
-//
-//  return parsed;
-//}
 
 void* initConfig(const char* params) {
   InitSeed();
@@ -365,7 +338,7 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
   // measure elapsed wall time
   struct timespec now, tmstart;
   clock_gettime(CLOCK_REALTIME, &tmstart);
-  
+
   UBCSATState* state = (UBCSATState*) ubcsatState;
   iStep = 0;
   bSolutionFound = FALSE;
@@ -376,12 +349,12 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
 
   while ((iStep < iCutoff) && (! bSolutionFound) && !bTerminateRun && !state->terminateRun) {
 
-    // check walltime cutoff
-    clock_gettime(CLOCK_REALTIME, &now);
-    double seconds = (double)((now.tv_sec+now.tv_nsec*1e-9) - (double)(tmstart.tv_sec+tmstart.tv_nsec*1e-9));
-    if (seconds > timeoutTime) {
-      break;
-    }
+     // check walltime cutoff
+     clock_gettime(CLOCK_REALTIME, &now);
+     double seconds = (double)((now.tv_sec+now.tv_nsec*1e-9) - (double)(tmstart.tv_sec+tmstart.tv_nsec*1e-9));
+     if (seconds > timeoutTime) {
+       break;
+     }
 
     iStep++;
     iFlipCandidate = 0;
@@ -643,4 +616,5 @@ void resetAllStaticallyAllocatedGlobalVars() {
 
   // from ubcsat-internal.h
   iNumTotalParms = 0;
+
 }

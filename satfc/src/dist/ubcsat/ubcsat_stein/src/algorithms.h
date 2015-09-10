@@ -107,7 +107,7 @@ SINT32 BestLookAheadPenScore(UINT32 iLookVar);
 
 extern PROBABILITY iNovNoise;
 extern PROBABILITY iDp;
-UINT32 iSelectClause;
+extern UINT32 iSelectClause;
 /* rnovelty.c */
 
 void AddRNovelty();

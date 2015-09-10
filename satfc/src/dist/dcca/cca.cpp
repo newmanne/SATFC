@@ -425,8 +425,9 @@ extern "C" {
 		}
 		
 	}
-	void destroyProblem() {
+	void destroyProblem(int* assignment) {
     	free_memory();
+    	delete[] assignment;
 	}
 	bool interrupt(void* jnaProblemPointer) {
 		is_interrupted = true;

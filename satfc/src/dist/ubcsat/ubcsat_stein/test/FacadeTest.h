@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-  #include "jna-ubcsat.hpp"
+  #include "ubcsat-facade.hpp"
 };
 
 class JNATest : public ::testing::Test {

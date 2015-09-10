@@ -26,7 +26,7 @@
 #include "ubcsat-types.h"
 #include "ubcsat-lit.h"
 
-inline void oreChange(UINT32 iVar);
+inline void UpdateScoreChange(UINT32 iVar);
 inline void UpdateChangeShallow(UINT32 iVar);
 inline void UpdatePromVars(UINT32 iVar);
 
@@ -242,12 +242,6 @@ void UpdateDecPromVars();
 void CreateDecPromPenVars();
 void InitDecPromPenVars();
 void UpdateDecPromPenVars();
-BOOL bPen;
-
-UINT32 *aDecPromVarsList;
-UINT32 *aDecPromVarsListPos;
-BOOL *aIsDecPromVar;
-UINT32 iNumDecPromVars;
 
 bool isDecreasing(UINT32 var);
 void PickGNoveltyPlusProm();
@@ -454,6 +448,7 @@ extern UINT32 iStartSeed;
 
 
 /***** Trigger CheckTimeout *****/
+
 
 /***** Trigger CheckForRestarts *****/
 
