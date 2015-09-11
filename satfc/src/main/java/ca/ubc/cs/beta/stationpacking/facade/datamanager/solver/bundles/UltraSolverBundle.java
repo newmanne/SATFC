@@ -85,7 +85,7 @@ public class UltraSolverBundle extends ASolverBundle {
 
         parallelUHFSolvers.add(s -> new ConstraintGraphNeighborhoodPresolver(s,
                 new StationSubsetSATCertifier(ubcsatiSolverFactory.create(UBCSATLibSATSolverParameters.DEFAULT_DCCA)),
-                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(), 10.0),
+                new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(), 2.0),
                 getConstraintManager()));
 
         // Hit the cache at the instance level - we don't really count this one towards our numCores limit, because it will be I/O bound
@@ -100,6 +100,7 @@ public class UltraSolverBundle extends ASolverBundle {
         // Straight to clasp
         log.debug("Initializing base configured clasp solvers.");
         parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1));
+        parallelUHFSolvers.add(s -> clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, 17));
         parallelUHFSolvers.add(s -> ubcsatiSolverFactory.create(UBCSATLibSATSolverParameters.DEFAULT_DCCA));
 
 
