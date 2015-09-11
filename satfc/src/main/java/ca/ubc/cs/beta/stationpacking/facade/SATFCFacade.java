@@ -51,10 +51,12 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydr
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.StatsSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.UltraSolverBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.DCCALibrary;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.UBCSATSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -164,6 +166,16 @@ public class SATFCFacade implements AutoCloseable {
                                         aSATFCParameters.isPresolve(),
                                         aSATFCParameters.isDecompose(),
                                         aSATFCParameters.isUnderconstrained(),
+                                        aSATFCParameters.getServerURL(),
+                                        aSATFCParameters.getParallelismLevel(),
+                                        aSATFCParameters.isCacheResults()
+                                );
+                            case ULTRA:
+                                return new UltraSolverBundle(
+                                        aSATFCParameters.getClaspLibrary(),
+                                        aSATFCParameters.getUbcsatLibrary(),
+                                        aStationManager,
+                                        aConstraintManager,
                                         aSATFCParameters.getServerURL(),
                                         aSATFCParameters.getParallelismLevel(),
                                         aSATFCParameters.isCacheResults()

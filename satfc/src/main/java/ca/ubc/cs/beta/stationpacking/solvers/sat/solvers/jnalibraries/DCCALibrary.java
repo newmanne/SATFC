@@ -1,11 +1,19 @@
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ASolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -16,17 +24,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+
 import com.google.common.collect.ImmutableSet;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.ptr.IntByReference;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by newmanne on 04/09/15.
@@ -77,11 +79,11 @@ public interface DCCALibrary extends Library {
                         log.info("Timed out");
                     } else {
                         final HashSet<Literal> literals = parseAssignment(intByReference);
-                        final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals);
+                        final SATSolverResult output = new SATSolverResult(SATResult.SAT, watch.getElapsedTime(), literals, SolvedBy.DCCA);
                         return output;
                     }
                 }
-                return new SATSolverResult(SATResult.TIMEOUT, 30.0, ImmutableSet.of());
+                return new SATSolverResult(SATResult.TIMEOUT, 30.0, ImmutableSet.of(), SolvedBy.UNSOLVED);
             } finally {
                 dccaLibrary.destroyProblem(intByReference);
             }

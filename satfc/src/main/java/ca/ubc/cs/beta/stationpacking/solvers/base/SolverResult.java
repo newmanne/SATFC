@@ -70,6 +70,8 @@ public class SolverResult implements Serializable {
         CHANNEL_KILLER,
         UNKNOWN,
         UNSOLVED, 
+        DCCA,
+        UBCSAT,
         UNDERCONSTRAINED
     }
 	

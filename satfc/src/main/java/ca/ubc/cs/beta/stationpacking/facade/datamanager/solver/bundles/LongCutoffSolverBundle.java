@@ -12,7 +12,6 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.NativeLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;

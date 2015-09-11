@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -139,7 +140,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment);
+            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment, SolvedBy.CLASP);
             log.debug("Returning result: {}, {}s.", output.getResult(), output.getRuntime());
             log.trace("Full result: {}", output);
             return output;

@@ -807,7 +807,6 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
     }
     aTotalParms = &aCommandLineArgs[1];
   } else {
-
     aTotalParms = AllocateRAM(MAXTOTALPARMS * sizeof(char *));
 
     for (j = 0; j < (iCommandLineCount - 1); j++) {

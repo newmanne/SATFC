@@ -73,6 +73,8 @@ void* initConfig(const char* params) {
   AddReportTriggers();
   AddLocal();
 
+  fflush(stdout);
+
   int* numParams = (int*) malloc(sizeof(int));
   char* paramsMutable = (char *) malloc((strlen(params) + 1) * sizeof(char));
   strcpy(paramsMutable, params);
@@ -613,8 +615,5 @@ void resetAllStaticallyAllocatedGlobalVars() {
   bPen = FALSE;
   bPerformClauseConfChecking = FALSE;
   bPerformNeighborConfChecking = FALSE;
-
-  // from ubcsat-internal.h
-  iNumTotalParms = 0;
 
 }

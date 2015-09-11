@@ -116,8 +116,6 @@ extern FLOAT fMobilityColXCV;
 extern char *sFilenameSoln;
 extern char sLine[];
 
-extern UINT32 iNumTotalParms;
-
 void ActivateDynamicParms();
 void ActivateAlgorithmTriggers();
 void ActivateColumnID(UINT32 iColID, const char *sItem);

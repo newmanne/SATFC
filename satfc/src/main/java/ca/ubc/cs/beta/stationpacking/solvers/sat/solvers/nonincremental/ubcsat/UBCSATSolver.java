@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -18,6 +18,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
+import com.google.common.base.Preconditions;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
@@ -31,7 +32,7 @@ import com.sun.jna.ptr.IntByReference;
 public class UBCSATSolver extends AbstractCompressedSATSolver {
 
     private UBCSATLibrary fLibrary;
-    private String fParameters;
+    private final String fParameters;
     private Pointer fState;
     private final Lock lock = new ReentrantLock();
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
@@ -58,17 +59,18 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
      */
     public UBCSATSolver(UBCSATLibrary library, String parameters) {
         fLibrary = library;
-        fParameters = parameters;
+        String mutableParameters = parameters;
 
-        if (parameters.contains("-seed ")) {
+        if (mutableParameters.contains("-seed ")) {
             throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!");
         }
-        if (!parameters.contains("-alg ")) {
+        if (!mutableParameters.contains("-alg ")) {
             throw new IllegalArgumentException("Missing required UBCSAT parameter: -alg.");
         }
-        if (!fParameters.contains("-cutoff ")) {
-            fParameters = fParameters + " -cutoff max";
+        if (!mutableParameters.contains("-cutoff ")) {
+            mutableParameters = mutableParameters + " -cutoff max";
         }
+        fParameters = mutableParameters;
     }
 
     @Override
@@ -79,18 +81,18 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     @Override
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
-        fParameters = fParameters + " -seed " + aSeed;
+        final String seededParameters = fParameters + " -seed " + aSeed;
 
         final double preTime;
         final double runTime;
         try {
             Preconditions.checkState(fState == null, "Went to solve a new problem, but there is a problem in progress!");
-            boolean status = false;
+            boolean status;
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
-            fState = fLibrary.initConfig(fParameters);
+            fState = fLibrary.initConfig(seededParameters);
 
             if (aTerminationCriterion.hasToStop()) {
                 return SATSolverResult.timeout(watch.getElapsedTime());
@@ -171,7 +173,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         if(assignment == null) {
             assignment = new HashSet<>();
         }
-        return new SATSolverResult(satResult, runtime, assignment);
+        return new SATSolverResult(satResult, runtime, assignment, SolvedBy.UBCSAT);
     }
 
     private HashSet<Literal> getAssignment(UBCSATLibrary fLibrary, Pointer fState) {

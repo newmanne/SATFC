@@ -119,7 +119,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("...done.");
             log.debug("Cleaning up...");
     
-            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, SolverResult.SolvedBy.CLASP);
+            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, satSolverResult.getSolvedBy());
     
             log.debug("Result:");
             log.debug(solverResult.toParsableString());
