@@ -83,6 +83,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 
     private final String fStationConfigFolder;
     private final String fLibPath;
+    private final String fUBCSATPath;
 
     private final ScheduledExecutorService fObserverThreadPool;
     private final DataManager dataManager;
@@ -100,6 +101,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
         fStationConfigFolder = options.fStationConfigFolder;
         Preconditions.checkNotNull(options.fLibrary);
         fLibPath = options.fLibrary;
+        fUBCSATPath = options.fUBCSATLibrary;
         fObserverThreadPool = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("SATFC Observer Thread", true));
         // Create the DataManager (will be reused so we don't keep loading in constraints)
         dataManager = new DataManager();
@@ -183,6 +185,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 List<String> commandLine = new ArrayList<>();
                 final Iterator<String> iterator = activeParameters.iterator();
                 final StringBuilder clasp = new StringBuilder();
+                final StringBuilder ubcsat = new StringBuilder();
                 while (iterator.hasNext()) {
                     final String next = iterator.next();
                     if (next.startsWith("_AT_")) { // CLASP PARAMETER
@@ -190,6 +193,9 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                     } else {
                         commandLine.add("-" + next);
                         commandLine.add(config.getParameterConfiguration().get(next));
+                    }
+                    if (next.startsWith("_UBCSAT_")) {
+                        ubcsat.append("-").append(next.replace("_UBCSAT_", "")).append(" ").append(config.getParameterConfiguration().get(next).replace("_UBCSAT_", "")).append(" ");
                     }
                 }
                 String claspParams;
@@ -201,9 +207,11 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final SATFCHydraParams params = new SATFCHydraParams();
                 JCommanderHelper.parseCheckingForHelpAndVersion(commandLine.toArray(new String[commandLine.size()]), params);
                 params.claspConfig = claspParams;
+                params.ubcsatConfig = ubcsat.toString();
                 params.validate();
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
                         .setClaspLibrary(fLibPath)
+                        .setUBCSATLibrary(fUBCSATPath)
                         .setSolverChoice(SolverChoice.HYDRA)
                         .setParallelismLevel(1)
                         .setDeveloperOptions(DeveloperOptions

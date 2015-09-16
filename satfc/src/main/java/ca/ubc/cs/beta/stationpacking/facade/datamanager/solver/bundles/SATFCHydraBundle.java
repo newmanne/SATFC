@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -35,6 +37,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstraine
 @Slf4j
 public class SATFCHydraBundle extends ASolverBundle {
 
+    private final UBCSATLibraryGenerator ubcsatLibraryGenerator;
     ISolver fSolver;
     private final Clasp3LibraryGenerator claspLibraryGenerator;
 
@@ -44,7 +47,9 @@ public class SATFCHydraBundle extends ASolverBundle {
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         claspLibraryGenerator = new Clasp3LibraryGenerator(aClaspLibraryPath);
+        ubcsatLibraryGenerator = new UBCSATLibraryGenerator(aUBCSATLibraryPath);
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());
+        final UBCSATISolverFactory ubcsatiSolverFactory = new UBCSATISolverFactory(ubcsatLibraryGenerator, aCompressor, getConstraintManager());
         Map<SATFCHydraParams.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CONNECTED_COMPONENTS, solver -> {
             return new ConnectedComponentGroupingDecorator(solver, new ConstraintGrouper(), aConstraintManager);
@@ -53,24 +58,27 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.UNDERCONSTRAINED, solver -> {
-            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new MIPUnderconstrainedStationFinder(getConstraintManager()), false);
+            return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
         });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);
         });
+        solverTypeToFactory.put(SATFCHydraParams.SolverType.UBCSAT, solver -> {
+            return ubcsatiSolverFactory.create(params.ubcsatConfig);
+        });
         solverTypeToFactory.put(SATFCHydraParams.SolverType.UNSAT_PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
-            switch (params.UNSATpresolverExpansionMethod) {
+            switch (params.presolverExpansionMethod) {
                 case NEIGHBOURHOOD:
                     stationAddingStrategy = new AddNeighbourLayerStrategy();
                     break;
                 case UNIFORM_RANDOM:
-                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.UNSATpresolverNumNeighbours, 1);
+                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.presolverNumNeighbours, 1);
                     break;
                 default:
-                    throw new IllegalStateException("Unrecognized presolver expansion method " + params.UNSATpresolverExpansionMethod);
+                    throw new IllegalStateException("Unrecognized presolver expansion method " + params.presolverExpansionMethod);
             }
-            final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.UNSATpresolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverBaseCutoff, params.UNSATpresolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.UNSATpresolverCutoff);
+            final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.presolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverBaseCutoff, params.presolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverCutoff);
             return new ConstraintGraphNeighborhoodPresolver(solver,
                                     new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
                                     stationPackingConfigurationStrategy,
@@ -112,5 +120,6 @@ public class SATFCHydraBundle extends ASolverBundle {
     public void close() throws Exception {
         fSolver.notifyShutdown();
         claspLibraryGenerator.notifyShutdown();
+        ubcsatLibraryGenerator.notifyShutdown();
     }
 }
