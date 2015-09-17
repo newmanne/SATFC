@@ -185,17 +185,16 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 List<String> commandLine = new ArrayList<>();
                 final Iterator<String> iterator = activeParameters.iterator();
                 final StringBuilder clasp = new StringBuilder();
-                final StringBuilder ubcsat = new StringBuilder();
+                final StringBuilder ubcsat = new StringBuilder().append("-cutoff max -alg satenstein ");
                 while (iterator.hasNext()) {
                     final String next = iterator.next();
                     if (next.startsWith("_AT_")) { // CLASP PARAMETER
                         clasp.append("-").append(next).append(" ").append(config.getParameterConfiguration().get(next)).append(" ");
+                    } else if (next.startsWith("_UBCSAT_")) {
+                        ubcsat.append("-").append(next.replace("_UBCSAT_", "")).append(" ").append(config.getParameterConfiguration().get(next).replace("_UBCSAT_", "")).append(" ");
                     } else {
                         commandLine.add("-" + next);
                         commandLine.add(config.getParameterConfiguration().get(next));
-                    }
-                    if (next.startsWith("_UBCSAT_")) {
-                        ubcsat.append("-").append(next.replace("_UBCSAT_", "")).append(" ").append(config.getParameterConfiguration().get(next).replace("_UBCSAT_", "")).append(" ");
                     }
                 }
                 String claspParams;

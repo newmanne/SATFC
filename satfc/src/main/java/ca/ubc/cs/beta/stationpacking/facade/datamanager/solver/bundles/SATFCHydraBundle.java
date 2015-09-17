@@ -29,7 +29,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupi
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.MIPUnderconstrainedStationFinder;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -84,7 +83,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.PRESOLVER, solver -> {
+        solverTypeToFactory.put(SATFCHydraParams.SolverType.SAT_PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.presolverExpansionMethod) {
                 case NEIGHBOURHOOD:

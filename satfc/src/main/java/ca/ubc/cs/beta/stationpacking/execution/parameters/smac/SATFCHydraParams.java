@@ -1,19 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters.smac;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -24,7 +19,7 @@ public class SATFCHydraParams extends AbstractOptions {
     public enum SolverType {
         CLASP,
         UBCSAT,
-        PRESOLVER,
+        SAT_PRESOLVER,
         UNDERCONSTRAINED,
         CONNECTED_COMPONENTS,
         ARC_CONSISTENCY,
@@ -85,7 +80,7 @@ public class SATFCHydraParams extends AbstractOptions {
             list.add(SolverType.CONNECTED_COMPONENTS);
         }
         if (presolver) {
-            list.add(SolverType.PRESOLVER);
+            list.add(SolverType.SAT_PRESOLVER);
         } else {
             list.add(solverChoice.equals(SolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
         }
@@ -94,7 +89,7 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public boolean validate() {
         Preconditions.checkNotNull(claspConfig);
-        Preconditions.checkState(presolverType == null || presolverType.equals(SolverType.PRESOLVER) || presolverType.equals(SolverType.UNSAT_PRESOLVER));
+        Preconditions.checkState(presolverType == null || presolverType.equals(SolverType.SAT_PRESOLVER) || presolverType.equals(SolverType.UNSAT_PRESOLVER));
         return true;
     }
 
