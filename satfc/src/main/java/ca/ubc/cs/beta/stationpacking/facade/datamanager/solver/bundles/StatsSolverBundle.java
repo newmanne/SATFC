@@ -40,7 +40,7 @@ public class StatsSolverBundle extends ASolverBundle {
         solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), heuristicFinder, true);
         solver = new ChannelKillerDecorator(solver, clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), getConstraintManager());
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
-        solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
+        solver = new PythonAssignmentVerifierDecorator(solver, getPythonInterpreter());
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
     }
 

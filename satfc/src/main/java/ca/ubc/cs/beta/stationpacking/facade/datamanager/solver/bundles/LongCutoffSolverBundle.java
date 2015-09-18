@@ -27,6 +27,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKille
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
+import org.python.util.PythonInterpreter;
 
 /**
  * Created by newmanne on 20/08/15.
@@ -43,6 +44,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
     ) {
         super(dataBundle);
 
+        PythonInterpreter python = getPythonInterpreter();
         IStationManager aStationManager = dataBundle.getStationManager();
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
@@ -56,7 +58,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
 
         solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
-        solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
         solver = new ConnectedComponentGroupingDecorator(solver, aGrouper, getConstraintManager());
@@ -65,7 +67,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         solver = new SubsetCacheUNSATDecorator(solver, containmentCache);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
-        solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
     }

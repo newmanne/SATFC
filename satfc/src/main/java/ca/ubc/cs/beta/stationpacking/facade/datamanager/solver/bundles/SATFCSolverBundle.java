@@ -47,6 +47,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import org.python.util.PythonInterpreter;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -77,6 +78,7 @@ public class SATFCSolverBundle extends ASolverBundle {
             boolean cacheResults
     ) {
         super(dataBundle);
+        PythonInterpreter python = getPythonInterpreter();
         IStationManager aStationManager = dataBundle.getStationManager();
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
@@ -113,7 +115,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (useCache) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             if (cacheResults) {
-                UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, getInterferenceFolder(), getCompact()); // verify again
+                UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, python); // verify again
                 UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager()); // let's be careful and verify the assignment before we cache it
                 UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
             }
@@ -165,9 +167,9 @@ public class SATFCSolverBundle extends ASolverBundle {
         /*
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
-        UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, getInterferenceFolder(), getCompact());
+        UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, python);
         UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager());
-        VHFsolver = new PythonAssignmentVerifierDecorator(VHFsolver, getInterferenceFolder(), getCompact());
+        VHFsolver = new PythonAssignmentVerifierDecorator(VHFsolver, python);
         VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager(), getStationManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect

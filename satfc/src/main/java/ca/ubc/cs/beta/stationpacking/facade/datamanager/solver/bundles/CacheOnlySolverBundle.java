@@ -68,7 +68,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
             cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
             cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
         }
-        cacheOnlySolver = new PythonAssignmentVerifierDecorator(cacheOnlySolver, getInterferenceFolder(), getCompact());
+        cacheOnlySolver = new PythonAssignmentVerifierDecorator(cacheOnlySolver, getPythonInterpreter());
         cacheOnlySolver = new AssignmentVerifierDecorator(cacheOnlySolver, getConstraintManager(), getStationManager());
     }
 

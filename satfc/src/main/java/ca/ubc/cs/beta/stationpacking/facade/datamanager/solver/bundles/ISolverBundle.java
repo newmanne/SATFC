@@ -25,6 +25,7 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import org.python.util.PythonInterpreter;
 
 /**
  * A solver bundle that holds solvers for a specific problem domain.
@@ -53,5 +54,6 @@ public interface ISolverBundle extends AutoCloseable {
 	public String getInterferenceFolder();
 
 	public boolean getCompact();
-	
+
+	public PythonInterpreter getPythonInterpreter();
 }
