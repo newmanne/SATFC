@@ -314,7 +314,7 @@ void ActivateDynamicParms() {
       case DTypeString:
         ReportPrint(pRepErr,"Unexpected Error: String Dynamic Parameter\n");
         AbnormalExit();
-        exit(1);
+        // exit(1);
 
       default:
         break;
@@ -1516,7 +1516,7 @@ void ParseParameters(ALGPARMLIST *pParmList) {
                     case PTypeProbability:
                     case PTypeSInt: ReportPrint(pRepErr, "Unexpected Error: bad report parameter\n");
                       AbnormalExit();
-                      exit(1);
+                      // exit(1);
                     default:
                       break;
                   }

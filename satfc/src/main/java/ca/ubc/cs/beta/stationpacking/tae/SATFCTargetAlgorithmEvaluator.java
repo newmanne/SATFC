@@ -44,6 +44,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import com.google.common.base.Preconditions;
+import com.sun.jna.Native;
 import lombok.Data;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
@@ -83,6 +84,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 	     * we constrained the AbstractSyncTargetAlgorithmEvaluator supertype to only use 2 threads.
 	     */
         super(2);
+        Native.setProtected(true);
         Preconditions.checkNotNull(options.fStationConfigFolder);
         Preconditions.checkArgument(new File(options.fStationConfigFolder).exists(), "Provided station config folder " + options.fStationConfigFolder + " does not exist.");
         fStationConfigFolder = options.fStationConfigFolder;

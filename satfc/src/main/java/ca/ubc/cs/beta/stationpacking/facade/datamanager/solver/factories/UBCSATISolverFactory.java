@@ -13,13 +13,13 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.U
 @RequiredArgsConstructor
 public class UBCSATISolverFactory {
 
-    private final UBCSATLibraryGenerator claspLibraryGenerator;
+    private final UBCSATLibraryGenerator libraryGenerator;
     private final SATCompressor satCompressor;
     private final IConstraintManager constraintManager;
 
     public CompressedSATBasedSolver create(String aConfig) {
-        final AbstractCompressedSATSolver claspSATsolver = new UBCSATSolver(claspLibraryGenerator.createLibrary(), aConfig);
-        return new CompressedSATBasedSolver(claspSATsolver, satCompressor, constraintManager);
+        final AbstractCompressedSATSolver SATSolver = new UBCSATSolver(libraryGenerator.createLibrary(), aConfig);
+        return new CompressedSATBasedSolver(SATSolver, satCompressor, constraintManager);
     }
 
 }

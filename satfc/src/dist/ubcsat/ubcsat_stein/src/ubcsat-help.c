@@ -482,7 +482,7 @@ void HelpNoAlgorithm() {
     ReportPrint(pRepErr,"   UBCSAT requires you to specify an algorithm with -alg\n");
   }
   ReportPrint(pRepErr,"   ubcsat -ha for a list of valid algorithms\n");
-  AbnormalExit();
+  //AbnormalExit();
 }
 
 
