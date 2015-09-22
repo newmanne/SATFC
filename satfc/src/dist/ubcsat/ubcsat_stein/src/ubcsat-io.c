@@ -176,6 +176,7 @@ void CloseReports() {
 void AbnormalExit() {
   CloseReports();  
   FreeRAM();
+  fflush(stdout);
   int *x = NULL;
   int y = *x;
   // yay null pointer derefrence to trigger an exception in c++

@@ -82,6 +82,7 @@ public class GenericSATBasedSolver implements ISolver {
             SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aEncoding.getInitialAssignment(), aTerminationCriterion, aSeed);
             log.debug("Parsing result.");
             Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
+            final Set<Station> assignedStations = new HashSet<>();
             if (satSolverResult.getResult().equals(SATResult.SAT)) {
                 HashMap<Long, Boolean> aLitteralChecker = new HashMap<Long, Boolean>();
                 for (Literal aLiteral : satSolverResult.getAssignment()) {
@@ -102,6 +103,9 @@ public class GenericSATBasedSolver implements ISolver {
                     if (aSign) {
                         Pair<Station, Integer> aStationChannelPair = aDecoder.decode(aVariable);
                         Station aStation = aStationChannelPair.getKey();
+                        if (assignedStations.contains(aStation)) {
+                            continue;
+                        }
                         Integer aChannel = aStationChannelPair.getValue();
     
                         if (!aInstance.getStations().contains(aStation) || !aInstance.getDomains().get(aStation).contains(aChannel)) {
@@ -112,6 +116,7 @@ public class GenericSATBasedSolver implements ISolver {
                             aStationAssignment.put(aChannel, new HashSet<Station>());
                         }
                         aStationAssignment.get(aChannel).add(aStation);
+                        assignedStations.add(aStation);
                     }
                 }
             }

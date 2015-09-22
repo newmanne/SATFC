@@ -162,20 +162,20 @@ public class SATEncoder implements ISATEncoder {
             }
             aCNF.add(aStationValidAssignmentBaseClause);
 
-            //A station can be on at most one channel,
-            for (int i = 0; i < aStationInstanceDomain.size(); i++) {
-                for (int j = i + 1; j < aStationInstanceDomain.size(); j++) {
-                    Clause aStationSingleAssignmentBaseClause = new Clause();
-
-                    Integer aDomainChannel1 = aStationInstanceDomain.get(i);
-                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel1)), false));
-
-                    Integer aDomainChannel2 = aStationInstanceDomain.get(j);
-                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel2)), false));
-
-                    aCNF.add(aStationSingleAssignmentBaseClause);
-                }
-            }
+//            //A station can be on at most one channel,
+//            for (int i = 0; i < aStationInstanceDomain.size(); i++) {
+//                for (int j = i + 1; j < aStationInstanceDomain.size(); j++) {
+//                    Clause aStationSingleAssignmentBaseClause = new Clause();
+//
+//                    Integer aDomainChannel1 = aStationInstanceDomain.get(i);
+//                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel1)), false));
+//
+//                    Integer aDomainChannel2 = aStationInstanceDomain.get(j);
+//                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel2)), false));
+//
+//                    aCNF.add(aStationSingleAssignmentBaseClause);
+//                }
+//            }
         }
 
         return aCNF;

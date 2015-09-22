@@ -106,7 +106,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             isCurrentlySolving.set(true);
             lock.unlock();
 
-            checkStatus(status,fLibrary, fState);
+            checkStatus(status, fLibrary, fState);
 
             if (aPreviousAssignment != null) {
                 setPreviousAssignment(aPreviousAssignment);
@@ -133,6 +133,8 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             log.debug("Came back from UBCSAT after {}s.", runTime);
 
             return getSolverResult(fLibrary, fState, runTime);
+        } catch (java.lang.Error e) {
+            return new SATSolverResult(SATResult.CRASHED, watch.getElapsedTime(), new HashSet<>(), SolvedBy.UNSOLVED);
         } finally {
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
             if (fState != null) {

@@ -198,6 +198,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 params.claspConfig = claspParams;
                 params.ubcsatConfig = ubcsat.toString();
                 params.validate();
+
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
                         .setClaspLibrary(fLibPath)
                         .setUBCSATLibrary(fUBCSATPath)
