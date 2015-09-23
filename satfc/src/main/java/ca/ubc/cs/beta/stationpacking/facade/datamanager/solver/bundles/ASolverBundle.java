@@ -79,41 +79,4 @@ public abstract class ASolverBundle implements ISolverBundle{
 		return fCompact;
 	}
 
-	@Override
-	public PythonInterpreter getPythonInterpreter() {
-
-		PythonInterpreter python;
-
-		python = new PythonInterpreter();
-		python.execfile(getClass().getClassLoader().getResourceAsStream("verifier.py"));
-		String interference = getInterferenceFolder() + File.separator + DataManager.INTERFERENCES_FILE;
-		String domain = getInterferenceFolder() + "/" + DataManager.DOMAIN_FILE;
-
-		String interferenceResult;
-		if(getCompact()){
-			final String compactEvalString = "load_compact_interference(\"" + interference + "\")";
-			log.debug("Evaluation string feed to Python interpreter: " + compactEvalString);
-
-			final PyObject compactReturnObject = python.eval(compactEvalString);
-			interferenceResult = compactReturnObject.toString();
-		}else{
-			final String nonCompactEvalString = "load_interference(\"" + interference + "\")";
-			log.debug("Evaluation string feed to Python interpreter: " + nonCompactEvalString);
-
-			final PyObject nonCompactReturnObject = python.eval(nonCompactEvalString);
-			interferenceResult = nonCompactReturnObject.toString();
-		}
-		final String domainEvalString = "load_domain_csv(\"" + domain + "\")";
-		final PyObject loadDomainReturnObject = python.eval(domainEvalString);
-		final String domainResult = loadDomainReturnObject.toString();
-
-		if (interferenceResult.equals("0") && domainResult.equals("0")){
-			log.debug("Interference loaded");
-		} else {
-			throw new IllegalStateException("Interference not loaded properly");
-		}
-
-		return python;
-	}
-
 }

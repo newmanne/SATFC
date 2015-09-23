@@ -26,6 +26,7 @@ import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -59,6 +60,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
         CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
         ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         IComponentGrouper aGrouper = new ConstraintGrouper();
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         cacheOnlySolver = new VoidSolver();
         cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
@@ -68,7 +70,7 @@ public class CacheOnlySolverBundle extends ASolverBundle {
             cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
             cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
         }
-        cacheOnlySolver = new PythonAssignmentVerifierDecorator(cacheOnlySolver, getPythonInterpreter());
+        cacheOnlySolver = new PythonAssignmentVerifierDecorator(cacheOnlySolver, python);
         cacheOnlySolver = new AssignmentVerifierDecorator(cacheOnlySolver, getConstraintManager(), getStationManager());
     }
 

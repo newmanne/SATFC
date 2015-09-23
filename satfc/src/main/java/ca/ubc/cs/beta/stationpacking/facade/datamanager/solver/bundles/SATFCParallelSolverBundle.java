@@ -27,6 +27,7 @@ import java.util.List;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import lombok.extern.slf4j.Slf4j;
@@ -89,7 +90,6 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             final boolean cacheResults
     ) {
         super(dataBundle);
-        PythonInterpreter python = getPythonInterpreter();
 
         IStationManager aStationManager = dataBundle.getStationManager();
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
@@ -97,6 +97,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
         boolean useCache = serverURL != null;
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         log.debug("SATFC solver bundle.");
 

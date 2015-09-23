@@ -10,6 +10,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSAT
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -27,7 +28,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKille
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import lombok.extern.slf4j.Slf4j;
-import org.python.util.PythonInterpreter;
 
 /**
  * Created by newmanne on 20/08/15.
@@ -44,7 +44,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
     ) {
         super(dataBundle);
 
-        PythonInterpreter python = getPythonInterpreter();
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
         IStationManager aStationManager = dataBundle.getStationManager();
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());

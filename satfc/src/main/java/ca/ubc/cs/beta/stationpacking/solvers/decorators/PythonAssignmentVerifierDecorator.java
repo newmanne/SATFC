@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -20,12 +21,12 @@ import java.util.List;
 @Slf4j
 public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
 
-    private final PythonInterpreter python;
+    private final PythonInterpreterFactory python;
 
     /**
      * @param aSolver - decorated ISolver, verifying assignemnt in python.
      */
-    public PythonAssignmentVerifierDecorator(ISolver aSolver, PythonInterpreter pythonInterpreter) {
+    public PythonAssignmentVerifierDecorator(ISolver aSolver, PythonInterpreterFactory pythonInterpreter) {
         super(aSolver);
         python = pythonInterpreter;
     }

@@ -55,5 +55,4 @@ public interface ISolverBundle extends AutoCloseable {
 
 	public boolean getCompact();
 
-	public PythonInterpreter getPythonInterpreter();
 }

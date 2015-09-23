@@ -22,6 +22,7 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -78,7 +79,8 @@ public class SATFCSolverBundle extends ASolverBundle {
             boolean cacheResults
     ) {
         super(dataBundle);
-        PythonInterpreter python = getPythonInterpreter();
+
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
         IStationManager aStationManager = dataBundle.getStationManager();
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
