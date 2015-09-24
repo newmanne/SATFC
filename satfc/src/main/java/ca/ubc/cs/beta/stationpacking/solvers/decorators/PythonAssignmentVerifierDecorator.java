@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -20,41 +21,14 @@ import java.util.List;
 @Slf4j
 public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
 
-    private final PythonInterpreter python;
+    private final PythonInterpreterFactory python;
 
     /**
      * @param aSolver - decorated ISolver, verifying assignemnt in python.
      */
-    public PythonAssignmentVerifierDecorator(ISolver aSolver, String interferenceFolder, boolean compact) {
-
+    public PythonAssignmentVerifierDecorator(ISolver aSolver, PythonInterpreterFactory pythonInterpreter) {
         super(aSolver);
-        log.debug("Initializing PythonAssignmentVerifierDecorator");
-
-        python = new PythonInterpreter();
-        python.execfile(getClass().getClassLoader().getResourceAsStream("verifier.py"));
-        String interference = interferenceFolder + File.separator + DataManager.INTERFERENCES_FILE;
-        String domain = interferenceFolder + "/" + DataManager.DOMAIN_FILE;
-
-        String interferenceResult;
-        if(compact){
-            final String compactEvalString = "load_compact_interference(\"" + interference + "\")";
-            final PyObject compactReturnObject = python.eval(compactEvalString);
-            interferenceResult = compactReturnObject.toString();
-        }else{
-            final String nonCompactEvalString = "load_interference(\"" + interference + "\")";
-            final PyObject nonCompactReturnObject = python.eval(nonCompactEvalString);
-            interferenceResult = nonCompactReturnObject.toString();
-        }
-        final String domainEvalString = "load_domain_csv(\"" + domain + "\")";
-        final PyObject loadDomainReturnObject = python.eval(domainEvalString);
-        final String domainResult = loadDomainReturnObject.toString();
-
-        if (interferenceResult.equals("0") && domainResult.equals("0")){
-            log.debug("Interference loaded");
-        } else {
-            throw new IllegalStateException("Interference not loaded properly");
-        }
-
+        python = pythonInterpreter;
     }
 
     @Override

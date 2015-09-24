@@ -23,12 +23,19 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import lombok.extern.slf4j.Slf4j;
+import org.python.core.PyObject;
+import org.python.util.PythonInterpreter;
+
+import java.io.File;
 
 /**
  * Abstract solver bundles that handles data management.
  * @author afrechet
  */
+@Slf4j
 public abstract class ASolverBundle implements ISolverBundle{
 
 	private final IStationManager fStationManager;

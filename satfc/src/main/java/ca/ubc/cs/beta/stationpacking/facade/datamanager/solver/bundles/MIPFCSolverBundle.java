@@ -22,6 +22,7 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public class MIPFCSolverBundle extends ASolverBundle {
     		) {
 
         super(dataBundle);
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         log.debug("MIPFC solver bundle.");
 
@@ -89,7 +91,7 @@ public class MIPFCSolverBundle extends ASolverBundle {
         /* 
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
-        solver = new PythonAssignmentVerifierDecorator(solver, getInterferenceFolder(), getCompact());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
 
         fSolver = solver;
