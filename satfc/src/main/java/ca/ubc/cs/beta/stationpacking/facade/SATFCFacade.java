@@ -32,6 +32,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
+import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
+import com.sun.jna.Native;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -79,6 +82,8 @@ public class SATFCFacade implements AutoCloseable {
 
     private final SolverManager fSolverManager;
 
+    private final Clasp3Library clasp3Library;
+
     /**
      * Construct a SATFC solver facade
      *
@@ -91,7 +96,9 @@ public class SATFCFacade implements AutoCloseable {
         Preconditions.checkArgument(libraryFile.exists(), "Provided clasp library " + libraryFile.getAbsolutePath() + " does not exist.");
         Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided clasp library is a directory.");
         try {
-            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+            final Clasp3LibraryGenerator clasp3LibraryGenerator = new Clasp3LibraryGenerator(aSATFCParameters.getClaspLibrary());
+            clasp3Library = clasp3LibraryGenerator.createLibrary();
+            new Clasp3SATSolver(clasp3Library, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
         } catch (UnsatisfiedLinkError e) {
             log.error("\n--------------------------------------------------------\n" +
                             "Could not load clasp from library : {}. \n" +
@@ -288,6 +295,7 @@ public class SATFCFacade implements AutoCloseable {
         final long totalTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
 
         //Solve instance.
+        double startCpuTime = clasp3Library.getCpuTime();
         SolverResult result = null;
         try {
             result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, termination, aSeed), totalTimeInMillis, TimeUnit.MILLISECONDS);
@@ -296,6 +304,8 @@ public class SATFCFacade implements AutoCloseable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        double cpuTime = clasp3Library.getCpuTime() - startCpuTime;
+        System.out.println("TIME FOR HYDRA: " + cpuTime);
 
         SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
 

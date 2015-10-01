@@ -45,6 +45,9 @@ public class SATFCHydraBundle extends ASolverBundle {
         super(dataBundle);
 
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
+        params.claspConfig = params.claspConfig.replaceAll("_SPACE_", " ");
+        params.ubcsatConfig = params.claspConfig.replaceAll("_SPACE_", " ");
+
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         claspLibraryGenerator = new Clasp3LibraryGenerator(aClaspLibraryPath);
         ubcsatLibraryGenerator = new UBCSATLibraryGenerator(aUBCSATLibraryPath);

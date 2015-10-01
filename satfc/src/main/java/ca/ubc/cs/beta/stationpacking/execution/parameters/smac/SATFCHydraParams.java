@@ -65,8 +65,10 @@ public class SATFCHydraParams extends AbstractOptions {
     @Parameter(names = "-presolverType")
     public SolverType presolverType;
 
-    public String claspConfig;
-    public String ubcsatConfig;
+    @Parameter(names = "-claspConfig")
+    public String claspConfig = "";
+    @Parameter(names = "-ubcsatConfig")
+    public String ubcsatConfig = "";
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
@@ -88,7 +90,6 @@ public class SATFCHydraParams extends AbstractOptions {
     }
 
     public boolean validate() {
-        Preconditions.checkNotNull(claspConfig);
         Preconditions.checkState(presolverType == null || presolverType.equals(SolverType.SAT_PRESOLVER) || presolverType.equals(SolverType.UNSAT_PRESOLVER));
         return true;
     }

@@ -7,6 +7,7 @@
 
 #include <clasp/cli/clasp_options.h>
 #include "clasp/clasp_facade.h"
+#include <sys/times.h>   // times()
 
 using namespace Clasp;
 namespace JNA {
@@ -76,5 +77,11 @@ extern "C" {
 	int* getResultAssignment(void* jnaProblemPointer);
 
 	const char* getConfigErrorMessage(void* jnaProblemPointer);
+
+	double getCpuTime() {
+		struct tms nowTimes;
+		times(&nowTimes);
+		return (nowTimes.tms_utime + nowTimes.tms_stime) / double(sysconf(_SC_CLK_TCK));
+	}
 }
 #endif
