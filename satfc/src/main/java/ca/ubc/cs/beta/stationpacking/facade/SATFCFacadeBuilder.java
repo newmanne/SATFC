@@ -65,8 +65,17 @@ public class SATFCFacadeBuilder {
     private int parallelismLevel;
     private Level logLevel;
     private String logFileName;
+    private String configFile;
     private boolean cacheResults;
     private DeveloperOptions developerOptions;
+
+    public void setConfigFile(String configFile) {
+        this.configFile = configFile;
+    }
+
+    public String getConfigFile() {
+        return configFile;
+    }
 
     // developer params
     @Builder
@@ -199,6 +208,7 @@ public class SATFCFacadeBuilder {
                         .solverChoice(fSolverChoice)
                         .serverURL(serverURL)
                         .parallelismLevel(parallelismLevel)
+                        .configFile(configFile)
                         .cacheResults(cacheResults)
                         // developer
                         .hydraParams(developerOptions.getHydraParams())
@@ -308,6 +318,9 @@ public class SATFCFacadeBuilder {
         }
         if (parameters.fUBCSATLibrary != null) {
             builder.setUBCSATLibrary(parameters.fUBCSATLibrary);
+        }
+        if (parameters.configFile != null) {
+            builder.setConfigFile(parameters.configFile);
         }
         builder.setParallelismLevel(parameters.numCores);
         builder.setSolverChoice(parameters.fSolverChoice);

@@ -48,7 +48,7 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
     private final ContainmentCacheProxy proxy;
 
-    public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy, CacheCoordinate coordinate) {
+    public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy) {
         super(aSolver);
         this.proxy = proxy;
     }

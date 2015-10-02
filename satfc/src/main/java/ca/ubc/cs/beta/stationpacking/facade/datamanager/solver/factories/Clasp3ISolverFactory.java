@@ -44,7 +44,7 @@ public class Clasp3ISolverFactory {
 
     public CompressedSATBasedSolver create(String aConfig, int seedOffset) {
         final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createLibrary(), aConfig, seedOffset);
-        return new CompressedSATBasedSolver(claspSATsolver, satCompressor, constraintManager);
+        return new CompressedSATBasedSolver(claspSATsolver, satCompressor);
     }
 
 }

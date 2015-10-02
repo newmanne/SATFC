@@ -36,6 +36,7 @@ public class SATFCFacadeParameter {
 	private final String claspLibrary;
 	private final String ubcsatLibrary;
 	private final String resultFile;
+    private final String configFile;
 	private final SolverChoice solverChoice;
     private final String serverURL;
     private final int parallelismLevel;
@@ -65,7 +66,8 @@ public class SATFCFacadeParameter {
         LONG_CUTOFF,
         UBCSAT,
         ULTRA,
-        DCCA;
+        DCCA,
+        JSON;
     }
 
 }

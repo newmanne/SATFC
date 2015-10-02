@@ -39,17 +39,15 @@ public class CacherProxy implements ICacher {
 
     private final RestTemplate restTemplate = CacheUtils.getRestTemplate();
     private final String baseServerURL;
-    private final CacheCoordinate coordinate;
 
-    public CacherProxy(String serverURL, CacheCoordinate cacheCoordinate) {
+    public CacherProxy(String serverURL) {
         this.baseServerURL = serverURL;
-        this.coordinate = cacheCoordinate;
     }
 
     @Override
     public void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseServerURL + "/v1/cache");
-        final ContainmentCacheCacheRequest request = new ContainmentCacheCacheRequest(instance, coordinate, result);
+        final ContainmentCacheCacheRequest request = new ContainmentCacheCacheRequest(instance, cacheCoordinate, result);
         restTemplate.postForLocation(builder.build().toUriString(), request);
     }
 

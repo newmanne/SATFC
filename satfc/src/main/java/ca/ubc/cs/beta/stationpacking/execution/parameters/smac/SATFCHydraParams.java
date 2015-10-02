@@ -20,10 +20,15 @@ public class SATFCHydraParams extends AbstractOptions {
         CLASP,
         UBCSAT,
         SAT_PRESOLVER,
+        UNSAT_PRESOLVER,
         UNDERCONSTRAINED,
         CONNECTED_COMPONENTS,
         ARC_CONSISTENCY,
-        UNSAT_PRESOLVER,
+        VERIFIER,
+        CACHE,
+        SAT_CACHE,
+        UNSAT_CACHE,
+        PARALLEL,
         NONE
     }
 

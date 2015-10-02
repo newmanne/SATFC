@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
@@ -47,7 +47,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import org.python.util.PythonInterpreter;
 
 /**
@@ -56,10 +55,12 @@ import org.python.util.PythonInterpreter;
  * @author afrechet
  */
 @Slf4j
-public class SATFCSolverBundle extends ASolverBundle {
+public class SATFCSolverBundle extends AVHFUHFSolverBundle {
 
-    private final ISolver fUHFSolver;
-    private final ISolver fVHFSolver;
+    @Getter
+    private final ISolver UHFSolver;
+    @Getter
+    private final ISolver VHFSolver;
 
     /**
      * Create a SATFC solver bundle.
@@ -110,12 +111,12 @@ public class SATFCSolverBundle extends ASolverBundle {
         CacheCoordinate cacheCoordinate = null;
         if (useCache) {
             cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
-            cacher = new CacherProxy(serverURL, cacheCoordinate);
+            cacher = new CacherProxy(serverURL);
             containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         }
 
         if (useCache) {
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             if (cacheResults) {
                 UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, python); // verify again
                 UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager()); // let's be careful and verify the assignment before we cache it
@@ -155,7 +156,7 @@ public class SATFCSolverBundle extends ASolverBundle {
 
         if (useCache) {
             UHFsolver = new SubsetCacheUNSATDecorator(UHFsolver, containmentCache); // note that there is no need to check cache for UNSAT again, the first one would have caught it
-            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate);
+            UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache);
         }
 
         //Save results, if needed.
@@ -179,26 +180,8 @@ public class SATFCSolverBundle extends ASolverBundle {
             UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
         }
 
-        fUHFSolver = UHFsolver;
-        fVHFSolver = VHFsolver;
-    }
-
-    @Override
-    public ISolver getSolver(StationPackingInstance aInstance) {
-        //Return the right solver based on the channels in the instance.
-        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF");
-            return fVHFSolver;
-        } else {
-            log.debug("Returning clasp configured for UHF");
-            return fUHFSolver;
-        }
-    }
-
-    @Override
-    public void close() {
-        fUHFSolver.notifyShutdown();
-        fVHFSolver.notifyShutdown();
+        UHFSolver = UHFsolver;
+        VHFSolver = VHFsolver;
     }
 
 }

@@ -22,15 +22,10 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -55,21 +50,25 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import lombok.Getter;
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by newmanne on 14/05/15.
  * SATFC Solver bundle that performs executions in parallel
  */
 @Slf4j
-public class SATFCParallelSolverBundle extends ASolverBundle {
+public class SATFCParallelSolverBundle extends AVHFUHFSolverBundle {
 
     public static final int PORTFOLIO_SIZE = 4;
 
-    private final ISolver fUHFSolver;
-    private final ISolver fVHFSolver;
+    @Getter
+    private final ISolver UHFSolver;
+    @Getter
+    private final ISolver VHFSolver;
 
     /**
      * Create a SATFC solver bundle.
@@ -125,7 +124,7 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
             parallelUHFSolvers.add(s -> {
                 final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
                 ISolver UHFSolver = new SubsetCacheUNSATDecorator(s, containmentCacheProxy);// note that there is no need to check cache for UNSAT again, the first one would have caught it
-                return new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate);
+                return new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy);
             });
         }
 
@@ -148,11 +147,11 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
                 ISolver UHFSolver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
                 if (useCache) {
                     final ContainmentCacheProxy containmentCacheProxy = new ContainmentCacheProxy(serverURL, cacheCoordinate);
-                    UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
+                    UHFSolver = new SupersetCacheSATDecorator(UHFSolver, containmentCacheProxy); // note that there is no need to check cache for UNSAT again, the first one would have caught it
                     if (cacheResults) {
                         UHFSolver = new PythonAssignmentVerifierDecorator(UHFSolver, python); // verify again
                         UHFSolver = new AssignmentVerifierDecorator(UHFSolver, getConstraintManager(), getStationManager()); // let's be careful and verify the assignment before we cache it
-                        UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
+                        UHFSolver = new CacheResultDecorator(UHFSolver, new CacherProxy(serverURL), cacheCoordinate);
                     }
                 }
                 if (decompose) {
@@ -207,29 +206,11 @@ public class SATFCParallelSolverBundle extends ASolverBundle {
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
         if (useCache && cacheResults) {
-            UHFsolver = new CacheResultDecorator(UHFsolver, new CacherProxy(serverURL, cacheCoordinate), cacheCoordinate);
+            UHFsolver = new CacheResultDecorator(UHFsolver, new CacherProxy(serverURL), cacheCoordinate);
         }
 
-        fUHFSolver = UHFsolver;
-        fVHFSolver = VHFsolver;
-    }
-
-    @Override
-    public ISolver getSolver(StationPackingInstance aInstance) {
-        //Return the right solver based on the channels in the instance.
-        if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF");
-            return fVHFSolver;
-        } else {
-            log.debug("Returning clasp configured for UHF");
-            return fUHFSolver;
-        }
-    }
-
-    @Override
-    public void close() {
-        fUHFSolver.notifyShutdown();
-        fVHFSolver.notifyShutdown();
+        UHFSolver = UHFsolver;
+        VHFSolver = VHFsolver;
     }
 
 }

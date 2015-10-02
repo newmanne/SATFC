@@ -108,4 +108,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	
     @ParametersDelegate
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
+
+    @Parameter(names = "-CONFIG-FILE")
+    public String configFile;
 }

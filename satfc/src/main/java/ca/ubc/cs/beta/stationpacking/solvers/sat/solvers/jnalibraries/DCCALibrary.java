@@ -134,7 +134,7 @@ public interface DCCALibrary extends Library {
         public DCCABundle(IStationManager aStationManager, IConstraintManager aConstraintManager) {
             super(aStationManager, aConstraintManager);
             final SATCompressor aCompressor = new SATCompressor(getConstraintManager());
-            solver = new CompressedSATBasedSolver(new DCCASolver(), aCompressor, getConstraintManager());
+            solver = new CompressedSATBasedSolver(new DCCASolver(), aCompressor);
             solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
         }
 

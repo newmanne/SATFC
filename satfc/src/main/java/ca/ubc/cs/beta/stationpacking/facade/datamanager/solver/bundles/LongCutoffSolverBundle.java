@@ -46,14 +46,14 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new Clasp3LibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
         CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
-        ICacher cacher = new CacherProxy(serverURL, cacheCoordinate);
+        ICacher cacher = new CacherProxy(serverURL);
         ContainmentCacheProxy containmentCache = new ContainmentCacheProxy(serverURL, cacheCoordinate);
         IComponentGrouper aGrouper = new ConstraintGrouper();
 
         log.debug("Initializing base configured clasp solvers.");
 
         solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
-        solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
+        solver = new SupersetCacheSATDecorator(solver, containmentCache);
         solver = new PythonAssignmentVerifierDecorator(solver, python);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
@@ -62,7 +62,7 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         solver = new ChannelKillerDecorator(solver, clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), getConstraintManager(), 0.2);
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         solver = new SubsetCacheUNSATDecorator(solver, containmentCache);
-        solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
+        solver = new SupersetCacheSATDecorator(solver, containmentCache);
         solver = new PythonAssignmentVerifierDecorator(solver, python);
         solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);

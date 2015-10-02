@@ -47,10 +47,6 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
 
     private final ISolver fSolver;
 
-    public StationSubsetSATCertifier(ISolver aSolver) {
-        fSolver = aSolver;
-    }
-
     @Override
     public SolverResult certify(StationPackingInstance aInstance, Set<Station> aToPackStations, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
@@ -96,6 +92,10 @@ public class StationSubsetSATCertifier implements IStationSubsetCertifier {
             result = SolverResult.createTimeoutResult(watch.getElapsedTime());
         }
         return result;
+    }
+
+    public StationSubsetSATCertifier(ISolver aSolver) {
+        fSolver = aSolver;
     }
 
     @Override

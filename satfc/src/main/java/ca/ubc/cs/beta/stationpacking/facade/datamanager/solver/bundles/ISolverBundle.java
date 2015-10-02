@@ -38,18 +38,18 @@ public interface ISolverBundle extends AutoCloseable {
 	 * @param aInstance - the instance for which a solver is needed. 
 	 * @return the solver contained in the bundle for the given instance.
 	 */
-	public ISolver getSolver(StationPackingInstance aInstance);
+	ISolver getSolver(StationPackingInstance aInstance);
 	
 	/**
 	 * @return the station manager contained in the bundle.
 	 */
-	public IStationManager getStationManager();
+	IStationManager getStationManager();
 	
 	/**
 	 * Returns the constraint manager contained in the bundle.
 	 * @return the constraint manager contained in the bundle.
 	 */
-	public IConstraintManager getConstraintManager();
+	IConstraintManager getConstraintManager();
 
 	public String getInterferenceFolder();
 

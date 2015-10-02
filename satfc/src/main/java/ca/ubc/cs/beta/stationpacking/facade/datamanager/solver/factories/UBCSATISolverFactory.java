@@ -19,7 +19,7 @@ public class UBCSATISolverFactory {
 
     public CompressedSATBasedSolver create(String aConfig) {
         final AbstractCompressedSATSolver SATSolver = new UBCSATSolver(libraryGenerator.createLibrary(), aConfig);
-        return new CompressedSATBasedSolver(SATSolver, satCompressor, constraintManager);
+        return new CompressedSATBasedSolver(SATSolver, satCompressor);
     }
 
 }

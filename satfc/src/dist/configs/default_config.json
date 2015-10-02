@@ -1,0 +1,28 @@
+{
+	"UHF": [
+		{
+			"name": "CLASP",
+			"args": {
+				"config": "--sat-prepro=0 --init-watches=0 --rand-freq=0.02 --sign-def=2 --del-init=5.0,10,2500 --strengthen=local,2 --lookahead=hybrid,1 --otfs=1 --reverse-arcs=3 --save-progress=180 --del-glue=2,0 --del-cfl=L,2000 --restarts=F,1600 --local-restarts --update-lbd=3 --heuristic=Vsids,92 --deletion=ipSort,75,2 --contraction=100 --del-grow=1.1,20.0 --del-on-restart=50 --del-max=32767",
+				"compressor": {
+					"type": "direct" 
+				}
+			}
+		},
+		{
+			"name": "VERIFIER",
+			"args": {}
+		}
+	],
+	"VHF": [
+		{
+			"name": "CLASP",
+			"args": {
+				"config": "--sat-prepro=0 --init-watches=0 --rand-freq=0.02 --sign-def=2 --del-init=5.0,10,2500 --strengthen=local,2 --lookahead=hybrid,1 --otfs=1 --reverse-arcs=3 --save-progress=180 --del-glue=2,0 --del-cfl=L,2000 --restarts=F,1600 --local-restarts --update-lbd=3 --heuristic=Vsids,92 --deletion=ipSort,75,2 --contraction=100 --del-grow=1.1,20.0 --del-on-restart=50 --del-max=32767",
+				"compressor": {
+					"type": "direct" 
+				}
+			}
+		}
+	]
+}

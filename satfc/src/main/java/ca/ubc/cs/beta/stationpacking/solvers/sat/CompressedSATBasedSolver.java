@@ -31,7 +31,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
  */
 public class CompressedSATBasedSolver extends GenericSATBasedSolver {
 
-	public CompressedSATBasedSolver(AbstractCompressedSATSolver aSATSolver, SATCompressor aSATCompressor, IConstraintManager aConstraintManager)
+	public CompressedSATBasedSolver(AbstractCompressedSATSolver aSATSolver, SATCompressor aSATCompressor)
 	{
 		super(aSATSolver,aSATCompressor);
 	}

@@ -44,17 +44,6 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CNFSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.CacheOnlySolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.LongCutoffSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.MIPFCSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.StatsSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.UltraSolverBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -177,18 +166,10 @@ public class SATFCFacade implements AutoCloseable {
                                         aSATFCParameters.getParallelismLevel(),
                                         aSATFCParameters.isCacheResults()
                                 );
-                            case ULTRA:
-                                return new UltraSolverBundle(
-                                        aSATFCParameters.getClaspLibrary(),
-                                        aSATFCParameters.getUbcsatLibrary(),
-                                        aStationManager,
-                                        aConstraintManager,
-                                        aSATFCParameters.getServerURL(),
-                                        aSATFCParameters.getParallelismLevel(),
-                                        aSATFCParameters.isCacheResults()
-                                );
                             case LONG_CUTOFF:
                                 return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
+                            case JSON:
+                                return new JSONBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }

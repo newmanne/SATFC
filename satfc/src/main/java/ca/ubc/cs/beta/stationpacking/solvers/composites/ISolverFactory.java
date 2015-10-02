@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.composites;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.JSONBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 
@@ -39,4 +40,5 @@ public interface ISolverFactory {
      * @return
      */
     ISolver extend(ISolver aSolver);
+
 }

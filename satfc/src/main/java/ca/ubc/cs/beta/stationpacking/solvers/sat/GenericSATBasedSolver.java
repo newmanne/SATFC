@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +49,8 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 /**
  * SAT based ISolver that uses a SAT solver to solve station packing problems.
  */
+@Slf4j
 public class GenericSATBasedSolver implements ISolver {
-
-    private static Logger log = LoggerFactory.getLogger(GenericSATBasedSolver.class);
 
     private final ISATEncoder fSATEncoder;
     private final ISATSolver fSATSolver;

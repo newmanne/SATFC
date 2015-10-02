@@ -77,13 +77,4 @@ public class CacheResultDecorator extends ASolverDecorator {
 
     }
 
-    public static class CacheUNSATOnlyStrategy implements CachingStrategy {
-
-        @Override
-        public boolean shouldCache(SolverResult result) {
-            return result.getResult().equals(SATResult.UNSAT);
-        }
-
-    }
-
 }

@@ -62,12 +62,12 @@ public class CacheOnlySolverBundle extends ASolverBundle {
         final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         cacheOnlySolver = new VoidSolver();
-        cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
+        cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache);
         cacheOnlySolver = new ConnectedComponentGroupingDecorator(cacheOnlySolver, aGrouper, getConstraintManager(), components);
         cacheOnlySolver = new UnderconstrainedStationRemoverSolverDecorator(cacheOnlySolver, aConstraintManager, new HeuristicUnderconstrainedStationFinder(aConstraintManager, true), true);
         if (!components) {
             cacheOnlySolver = new SubsetCacheUNSATDecorator(cacheOnlySolver, containmentCache);
-            cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache, cacheCoordinate);
+            cacheOnlySolver = new SupersetCacheSATDecorator(cacheOnlySolver, containmentCache);
         }
         cacheOnlySolver = new PythonAssignmentVerifierDecorator(cacheOnlySolver, python);
         cacheOnlySolver = new AssignmentVerifierDecorator(cacheOnlySolver, getConstraintManager(), getStationManager());
