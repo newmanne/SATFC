@@ -169,7 +169,7 @@ public class SATFCFacade implements AutoCloseable {
                             case LONG_CUTOFF:
                                 return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
                             case JSON:
-                                return new JSONBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary());
+                                return new JSONBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }

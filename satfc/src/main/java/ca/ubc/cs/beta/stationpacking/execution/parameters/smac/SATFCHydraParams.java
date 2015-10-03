@@ -29,11 +29,16 @@ public class SATFCHydraParams extends AbstractOptions {
         SAT_CACHE,
         UNSAT_CACHE,
         PARALLEL,
+        RESULT_SAVER,
         NONE
     }
 
     public enum PresolverExpansion {
         NEIGHBOURHOOD, UNIFORM_RANDOM
+    }
+
+    public enum TimingChoice {
+        ITERATIVE_DEEPEN
     }
 
     public enum SolverChoice {
