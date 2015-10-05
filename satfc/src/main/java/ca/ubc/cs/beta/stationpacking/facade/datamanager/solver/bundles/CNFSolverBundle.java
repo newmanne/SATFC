@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
@@ -37,11 +38,10 @@ public class CNFSolverBundle extends ASolverBundle {
     private ISolver cnfOnlySolver;
 
     public CNFSolverBundle(
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
+            ManagerBundle dataBundle,
             ICNFSaver aCNFSaver
     ) {
-        super(aStationManager, aConstraintManager);
+        super(dataBundle);
         cnfOnlySolver = new VoidSolver();
 
         // save the cnf for the full problem

@@ -4,11 +4,14 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
@@ -24,14 +27,14 @@ public class StatsSolverBundle extends ASolverBundle {
     ISolver solver;
 
     public StatsSolverBundle(
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
+            ManagerBundle dataBundle,
             String aClaspLibraryPath
             ) {
-        super(aStationManager, aConstraintManager);
+        super(dataBundle);
 
         final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
 
         solver = new VoidSolver();
         final IUnderconstrainedStationFinder heuristicFinder = new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true);
@@ -39,7 +42,8 @@ public class StatsSolverBundle extends ASolverBundle {
         solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), heuristicFinder, true);
         solver = new ChannelKillerDecorator(solver, clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1), getConstraintManager());
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
     }
 
     @Override

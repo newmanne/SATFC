@@ -7,8 +7,10 @@ import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.ClaspLibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
@@ -16,10 +18,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategie
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -40,11 +39,14 @@ public class LongCutoffSolverBundle extends ASolverBundle {
 
     public LongCutoffSolverBundle(
             String aClaspLibraryPath,
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
+            ManagerBundle dataBundle,
             String serverURL
     ) {
-        super(aStationManager, aConstraintManager);
+        super(dataBundle);
+
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
+        IStationManager aStationManager = dataBundle.getStationManager();
+        IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(new ClaspLibraryGenerator(aClaspLibraryPath), aCompressor, getConstraintManager());
         CacheCoordinate cacheCoordinate = new CacheCoordinate(aStationManager.getDomainHash(), aConstraintManager.getConstraintHash());
@@ -56,7 +58,8 @@ public class LongCutoffSolverBundle extends ASolverBundle {
 
         solver = clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
         solver = new ConnectedComponentGroupingDecorator(solver, aGrouper, getConstraintManager());
         solver = new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
@@ -64,7 +67,8 @@ public class LongCutoffSolverBundle extends ASolverBundle {
         solver = new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         solver = new SubsetCacheUNSATDecorator(solver, containmentCache);
         solver = new SupersetCacheSATDecorator(solver, containmentCache, cacheCoordinate);
-        solver = new AssignmentVerifierDecorator(solver, getConstraintManager());
+        solver = new PythonAssignmentVerifierDecorator(solver, python);
+        solver = new AssignmentVerifierDecorator(solver, getConstraintManager(), getStationManager());
         solver = new CacheResultDecorator(solver, cacher, cacheCoordinate);
     }
 

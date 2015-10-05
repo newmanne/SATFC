@@ -40,11 +40,11 @@ import com.google.common.collect.Sets;
 public class StationPackingTestUtils {
 
     public static StationPackingInstance getSimpleInstance() {
-        return new StationPackingInstance(ImmutableMap.of(new Station(1), ImmutableSet.of(1)));
+        return new StationPackingInstance(ImmutableMap.of(new Station(1), ImmutableSet.of(2)));
     }
 
     public static Map<Integer, Set<Station>> getSimpleInstanceAnswer() {
-        return ImmutableMap.of(1, ImmutableSet.of(new Station(1)));
+        return ImmutableMap.of(2, ImmutableSet.of(new Station(1)));
     }
 
     public static StationPackingInstance instanceFromSpecs(Converter.StationPackingProblemSpecs specs, IStationManager stationManager) {

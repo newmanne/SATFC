@@ -25,6 +25,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -47,10 +48,12 @@ import com.google.common.collect.ImmutableMap;
 public class AssignmentVerifierDecorator extends ASolverDecorator {
 
     private final IConstraintManager fConstraintManager;
+    private final IStationManager fStationManager;
 
-    public AssignmentVerifierDecorator(ISolver aSolver, IConstraintManager aConstraintManager) {
+    public AssignmentVerifierDecorator(ISolver aSolver, IConstraintManager aConstraintManager, IStationManager aStationManager) {
         super(aSolver);
         fConstraintManager = aConstraintManager;
+        fStationManager = aStationManager;
     }
 
     @Override
@@ -70,6 +73,7 @@ public class AssignmentVerifierDecorator extends ASolverDecorator {
                 final Station station = entry.getKey();
                 final int channel = entry.getValue();
                 Preconditions.checkState(domains.get(station).contains(channel), "Station %s is assigned to channel %s which is not in its domain %s", station, channel, domains.get(station));
+                Preconditions.checkState(fStationManager.getDomain(station).contains(channel), "Station %s is assigned to channel %s which is not in its domain %s", station, channel, fStationManager.getDomain(station));
             }
 
             Preconditions.checkState(fConstraintManager.isSatisfyingAssignment(result.getAssignment()), "Solver returned SAT, but assignment is not satisfiable.");

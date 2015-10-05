@@ -102,7 +102,7 @@ applicationName = 'SATFC'
 jar.baseName = applicationName
 version = "$SATFCVersion-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
-applicationDefaultJvmArgs = ['-Xmx2048m']
+applicationDefaultJvmArgs = ['-Xmx3072m']
 
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()

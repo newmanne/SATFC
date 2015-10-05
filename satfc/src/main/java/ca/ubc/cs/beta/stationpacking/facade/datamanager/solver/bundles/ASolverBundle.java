@@ -23,25 +23,36 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import lombok.extern.slf4j.Slf4j;
+import org.python.core.PyObject;
+import org.python.util.PythonInterpreter;
+
+import java.io.File;
 
 /**
  * Abstract solver bundles that handles data management.
  * @author afrechet
  */
+@Slf4j
 public abstract class ASolverBundle implements ISolverBundle{
 
 	private final IStationManager fStationManager;
 	private final IConstraintManager fConstraintManager;
-	
+	private final String fInterferenceFolder;
+	private final boolean fCompact;
+
 	/**
 	 * Create an abstract solver bundle with the given data management objects.
-	 * @param aStationManager - manages stations.
-	 * @param aConstraintManager - manages constraints.
+	 *  @param dataBundle manager bundle that contains station manager and constraint manager.
 	 */
-	public ASolverBundle(IStationManager aStationManager, IConstraintManager aConstraintManager)
+	public ASolverBundle(ManagerBundle dataBundle)
 	{
-		fStationManager = aStationManager;
-		fConstraintManager = aConstraintManager;
+		fStationManager = dataBundle.getStationManager();
+		fConstraintManager = dataBundle.getConstraintManager();
+		fInterferenceFolder = dataBundle.getInterferenceFolder();
+		fCompact = dataBundle.getCompact();
 	}
 	
 	@Override
@@ -55,6 +66,17 @@ public abstract class ASolverBundle implements ISolverBundle{
 	{
 		return fConstraintManager;
 	}
-	
+
+	@Override
+	public String getInterferenceFolder()
+	{
+		return fInterferenceFolder;
+	}
+
+	@Override
+	public boolean getCompact()
+	{
+		return fCompact;
+	}
 
 }

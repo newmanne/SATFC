@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -93,11 +94,12 @@ public class SATFCFacade implements AutoCloseable {
 
         log.info("Using library {}", aSATFCParameters.getClaspLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
+
         fSolverManager = new SolverManager(
                 new ISolverBundleFactory() {
 
                     @Override
-                    public ISolverBundle getBundle(IStationManager aStationManager, IConstraintManager aConstraintManager) {
+                    public ISolverBundle getBundle(ManagerBundle dataBundle) {
 
 						/*
 						 * SOLVER BUNDLE.
@@ -108,8 +110,7 @@ public class SATFCFacade implements AutoCloseable {
                             case SATFC_SEQUENTIAL:
                                 return new SATFCSolverBundle(
                                         aSATFCParameters.getClaspLibrary(),
-                                        aStationManager,
-                                        aConstraintManager,
+                                        dataBundle,
                                         aSATFCParameters.getResultFile(),
                                         aSATFCParameters.isPresolve(),
                                         aSATFCParameters.isDecompose(),
@@ -120,8 +121,7 @@ public class SATFCFacade implements AutoCloseable {
                             case SATFC_PARALLEL:
                                 return new SATFCParallelSolverBundle(
                                     aSATFCParameters.getClaspLibrary(),
-                                    aStationManager,
-                                    aConstraintManager,
+                                    dataBundle,
                                     aSATFCParameters.getResultFile(),
                                     aSATFCParameters.isPresolve(),
                                     aSATFCParameters.isDecompose(),
@@ -131,18 +131,18 @@ public class SATFCFacade implements AutoCloseable {
                                     aSATFCParameters.isCacheResults()
                                 );
                             case MIPFC:
-                                return new MIPFCSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
+                                return new MIPFCSolverBundle(dataBundle, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
                             case CNF:
-                                return new CNFSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getCNFSaver());
+                                return new CNFSolverBundle(dataBundle, aSATFCParameters.getCNFSaver());
                             case CACHING_SOLVER_FULL_INSTANCES:
                             case CACHING_SOLVER_COMPONENTS:
-                                return new CacheOnlySolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
+                                return new CacheOnlySolverBundle(dataBundle, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case HYDRA:
-                                return new SATFCHydraBundle(aStationManager, aConstraintManager, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
+                                return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
                             case STATS:
-                                return new StatsSolverBundle(aStationManager, aConstraintManager, aSATFCParameters.getClaspLibrary());
+                                return new StatsSolverBundle(dataBundle, aSATFCParameters.getClaspLibrary());
                             case LONG_CUTOFF:
-                                return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), aStationManager, aConstraintManager, aSATFCParameters.getServerURL());
+                                return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }

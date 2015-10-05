@@ -21,6 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
@@ -38,10 +41,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategie
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.IComponentGrouper;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -49,6 +48,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import org.python.util.PythonInterpreter;
 
 /**
  * SATFC solver bundle that lines up pre-solving and main solver.
@@ -65,14 +65,12 @@ public class SATFCSolverBundle extends ASolverBundle {
      * Create a SATFC solver bundle.
      *
      * @param aClaspLibraryPath  - library for the clasp to use.
-     * @param aStationManager    - station manager.
-     * @param aConstraintManager - constraint manager.
+     * @param dataBundle         - manager bundle that contains station manager and constraint manager.
      * @param aResultFile        - file to which results should be written (optional).
      */
     public SATFCSolverBundle(
             String aClaspLibraryPath,
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
+            ManagerBundle dataBundle,
             String aResultFile,
             boolean presolve,
             boolean decompose,
@@ -80,7 +78,11 @@ public class SATFCSolverBundle extends ASolverBundle {
             String serverURL,
             boolean cacheResults
     ) {
-        super(aStationManager, aConstraintManager);
+        super(dataBundle);
+
+        final PythonInterpreterFactory python = new PythonInterpreterFactory(getInterferenceFolder(), getCompact());
+        IStationManager aStationManager = dataBundle.getStationManager();
+        IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         log.info("Initializing solver with the following solver options: presolve {}, decompose {}, underconstrained {}, serverURL {}", presolve, decompose, underconstrained, serverURL);
         boolean useCache = serverURL != null;
 
@@ -115,7 +117,8 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (useCache) {
             UHFsolver = new SupersetCacheSATDecorator(UHFsolver, containmentCache, cacheCoordinate); // note that there is no need to check cache for UNSAT again, the first one would have caught it
             if (cacheResults) {
-                UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager()); // let's be careful and verify the assignment before we cache it
+                UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, python); // verify again
+                UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager()); // let's be careful and verify the assignment before we cache it
                 UHFsolver = new CacheResultDecorator(UHFsolver, cacher, cacheCoordinate);
             }
         }
@@ -140,6 +143,7 @@ public class SATFCSolverBundle extends ASolverBundle {
         if (presolve)
         {
             log.debug("Adding neighborhood presolvers.");
+
             UHFsolver = new ConstraintGraphNeighborhoodPresolver(UHFsolver,
                                 new StationSubsetSATCertifier(clasp3ISolverFactory.create(ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1)),
                                 new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(1), SATcertifiercutoff), getConstraintManager());
@@ -165,8 +169,10 @@ public class SATFCSolverBundle extends ASolverBundle {
         /*
          * NOTE: this is a MANDATORY decorator, and any decorator placed below this must not alter the answer or the assignment returned.
          */
-        UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager());
-        VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager());
+        UHFsolver = new PythonAssignmentVerifierDecorator(UHFsolver, python);
+        UHFsolver = new AssignmentVerifierDecorator(UHFsolver, getConstraintManager(), getStationManager());
+        VHFsolver = new PythonAssignmentVerifierDecorator(VHFsolver, python);
+        VHFsolver = new AssignmentVerifierDecorator(VHFsolver, getConstraintManager(), getStationManager());
 
         // Cache entire instance. Placed below assignment verifier because we wouldn't want to cache something incorrect
         if (useCache && cacheResults) {

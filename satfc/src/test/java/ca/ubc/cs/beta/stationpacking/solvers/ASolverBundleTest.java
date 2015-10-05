@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
@@ -103,7 +104,8 @@ public abstract class ASolverBundleTest {
 
         @Override
         protected ISolverBundle getBundle() {
-            return new SATFCSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null, false);
+            ManagerBundle managerBundle = new ManagerBundle(stationManager, constraintManager, Resources.getResource("data/021814SC3M").getPath(), true);
+            return new SATFCSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), managerBundle, null, true, true, true, null, false);
         }
 
     }
@@ -115,7 +117,8 @@ public abstract class ASolverBundleTest {
 
         @Override
         protected ISolverBundle getBundle() {
-            return new SATFCParallelSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), stationManager, constraintManager, null, true, true, true, null, Runtime.getRuntime().availableProcessors(), false);
+            ManagerBundle managerBundle = new ManagerBundle(stationManager, constraintManager, Resources.getResource("data/021814SC3M").getPath(), true);
+            return new SATFCParallelSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), managerBundle, null, true, true, true, null, Runtime.getRuntime().availableProcessors(), false);
         }
 
     }
