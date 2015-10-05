@@ -1,35 +1,32 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
-import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
-import com.sun.jna.Native;
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATISolverFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CPUTimeDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
+import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -53,23 +50,23 @@ public class SATFCHydraBundle extends ASolverBundle {
         ubcsatLibraryGenerator = new UBCSATLibraryGenerator(aUBCSATLibraryPath);
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());
         final UBCSATISolverFactory ubcsatiSolverFactory = new UBCSATISolverFactory(ubcsatLibraryGenerator, aCompressor, getConstraintManager());
-        Map<SATFCHydraParams.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.CONNECTED_COMPONENTS, solver -> {
+        Map<YAMLBundle.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
+        solverTypeToFactory.put(YAMLBundle.SolverType.CONNECTED_COMPONENTS, solver -> {
             return new ConnectedComponentGroupingDecorator(solver, new ConstraintGrouper(), aConstraintManager);
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.ARC_CONSISTENCY, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.ARC_CONSISTENCY, solver -> {
             return new ArcConsistencyEnforcerDecorator(solver, getConstraintManager());
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.UNDERCONSTRAINED, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.UNDERCONSTRAINED, solver -> {
             return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.CLASP, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.CLASP, solver -> {
             return clasp3ISolverFactory.create(params.claspConfig);
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.UBCSAT, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.UBCSAT, solver -> {
             return ubcsatiSolverFactory.create(params.ubcsatConfig);
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.UNSAT_PRESOLVER, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.UNSAT_PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.presolverExpansionMethod) {
                 case NEIGHBOURHOOD:
@@ -87,7 +84,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
-        solverTypeToFactory.put(SATFCHydraParams.SolverType.SAT_PRESOLVER, solver -> {
+        solverTypeToFactory.put(YAMLBundle.SolverType.SAT_PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
             switch (params.presolverExpansionMethod) {
                 case NEIGHBOURHOOD:
@@ -106,9 +103,10 @@ public class SATFCHydraBundle extends ASolverBundle {
                     getConstraintManager());
         });
         fSolver = new VoidSolver();
+        fSolver = new CPUTimeDecorator(fSolver, claspLibraryGenerator.createLibrary());
         log.debug(params.getSolverOrder().toString());
-        for (SATFCHydraParams.SolverType solverType : params.getSolverOrder()) {
-            if (solverType != SATFCHydraParams.SolverType.NONE) {
+        for (YAMLBundle.SolverType solverType : params.getSolverOrder()) {
+            if (solverType != YAMLBundle.SolverType.NONE) {
                 fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
             }
         }
@@ -125,4 +123,5 @@ public class SATFCHydraBundle extends ASolverBundle {
         claspLibraryGenerator.notifyShutdown();
         ubcsatLibraryGenerator.notifyShutdown();
     }
+
 }

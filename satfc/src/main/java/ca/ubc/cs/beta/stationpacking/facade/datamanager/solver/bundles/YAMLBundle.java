@@ -1,9 +1,19 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.experimental.Builder;
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
@@ -11,11 +21,16 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
@@ -30,45 +45,47 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import lombok.Data;
-import lombok.Getter;
-import lombok.experimental.Builder;
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by newmanne on 01/10/15.
  * Builds a bundle based on a JSON description
  */
 @Slf4j
-public class JSONBundle extends AVHFUHFSolverBundle {
+public class YAMLBundle extends AVHFUHFSolverBundle {
 
     @Getter
     private final ISolver UHFSolver;
     @Getter
     private final ISolver VHFSolver;
 
-    public JSONBundle(
+    public YAMLBundle(
             IStationManager aStationManager,
             IConstraintManager aConstraintManager,
             String configFile,
             String serverURL,
             String claspLibraryPath,
             String ubcsatLibraryPath,
-            String resultFile
+            String resultFile,
+            CNFSaverSolverDecorator.ICNFSaver CNFSaver
     ) {
         super(aStationManager, aConstraintManager);
 
-        log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}", configFile, serverURL, claspLibraryPath, ubcsatLibraryPath);
+        log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", configFile, serverURL, claspLibraryPath, ubcsatLibraryPath, resultFile);
 
         final SATFCContext context = SATFCContext
                 .builder()
@@ -76,6 +93,8 @@ public class JSONBundle extends AVHFUHFSolverBundle {
                 .clasp3LibraryGenerator(new Clasp3LibraryGenerator(claspLibraryPath))
                 .ubcsatLibraryGenerator(new UBCSATLibraryGenerator(ubcsatLibraryPath))
                 .serverURL(serverURL)
+                .resultFile(resultFile)
+                .CNFSaver(CNFSaver)
                 .build();
 
         log.info("Reading configuration file {}", configFile);
@@ -86,17 +105,31 @@ public class JSONBundle extends AVHFUHFSolverBundle {
             throw new IllegalArgumentException("Could not load in config file", e);
         }
 
+        log.info("Running configuration file through YAML parser to handle anchors...");
+
+        // Need to do this to handle anchors properly
+        
+        Yaml yaml = new Yaml();
+        Map<?, ?> normalized = (Map<?, ?>) yaml.load(configJSONString);
+        String fixed = null;
+        try {
+            fixed = YAMLUtils.getMapper().writeValueAsString(normalized);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
         log.info("Parsing configuration file {}", configFile);
+
         final JSONBundleConfig config;
         try {
-            config = JSONUtils.toObjectWithException(configJSONString, JSONBundleConfig.class);
+            config = YAMLUtils.getMapper().readValue(fixed, JSONBundleConfig.class);
         } catch (IOException e) {
             throw new RuntimeException("Couldn't parse JSON from file " + configFile, e);
         }
 
         log.info("Configuration parsed! Building solvers...");
-        final List<SolverConfig> uhf = config.getUHF();
-        final List<SolverConfig> vhf = config.getVHF();
+        final List<ISolverConfig> uhf = config.getUHF();
+        final List<ISolverConfig> vhf = config.getVHF();
         Preconditions.checkState(!uhf.isEmpty(), "No solver provided for UHF in config file %s", configFile);
         Preconditions.checkState(!vhf.isEmpty(), "No solver provided for VHF in config file %s", configFile);
 
@@ -104,30 +137,31 @@ public class JSONBundle extends AVHFUHFSolverBundle {
         VHFSolver = concat(vhf, context);
     }
 
-    private static ISolver concat(List<SolverConfig> configs, SATFCContext context) {
-        log.info("Starting with a void solver...");
+    private static ISolver concat(List<ISolverConfig> configs, SATFCContext context) {
+        log.debug("Starting with a void solver...");
         ISolver solver = new VoidSolver();
-        for (SolverConfig config : configs) {
+        for (ISolverConfig config : configs) {
             if (!config.shouldSkip(context)) {
                 solver = config.createSolver(context, solver);
-                log.info("Decorating with {} using config of type {}", solver.getClass().getSimpleName(), config.getClass().getSimpleName());
+                log.debug("Decorating with {} using config of type {}", solver.getClass().getSimpleName(), config.getClass().getSimpleName());
             } else {
-                log.info("Skipping decorator {}", config.getClass().getSimpleName());
+                log.debug("Skipping decorator {}", config.getClass().getSimpleName());
             }
         }
         return solver;
     }
 
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class JSONBundleConfig {
         @JsonProperty("UHF")
-        private List<SolverConfig> UHF = new ArrayList<>();
+        private List<ISolverConfig> UHF;
         @JsonProperty("VHF")
-        private List<SolverConfig> VHF = new ArrayList<>();
+        private List<ISolverConfig> VHF;
 
     }
 
-    public interface SolverConfig {
+    public interface ISolverConfig {
         ISolver createSolver(SATFCContext context, ISolver solverToDecorate);
         default ISolver createSolver(SATFCContext context) {
             return createSolver(context, new VoidSolver());
@@ -135,7 +169,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
         default boolean shouldSkip(SATFCContext context) { return false; }
     }
 
-    public static abstract class CacheSolverConfig implements SolverConfig {
+    public static abstract class CacheSolverConfig implements ISolverConfig {
 
         @Override
         public boolean shouldSkip(SATFCContext context) {
@@ -159,10 +193,11 @@ public class JSONBundle extends AVHFUHFSolverBundle {
         private final UBCSATLibraryGenerator ubcsatLibraryGenerator;
         private final ManagerBundle managerBundle;
         private final String resultFile;
+        private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     }
 
     @Data
-    public static class ClaspConfig implements SolverConfig {
+    public static class ClaspConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -178,7 +213,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class UBCSATConfig implements SolverConfig {
+    public static class UBCSATConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -194,7 +229,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class AssignmentVerifierConfig implements SolverConfig {
+    public static class AssignmentVerifierConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -204,7 +239,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class ConnectedComponentsConfig implements SolverConfig {
+    public static class ConnectedComponentsConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -213,7 +248,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class ArcConsistencyConfig implements SolverConfig {
+    public static class ArcConsistencyConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -221,6 +256,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
         }
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @Data
     public static class CacheConfig extends CacheSolverConfig {
 
@@ -231,6 +267,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @Data
     public static class SATCacheConfig extends CacheSolverConfig {
 
@@ -241,6 +278,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @Data
     public static class UNSATCacheConfig extends CacheSolverConfig {
 
@@ -252,19 +290,21 @@ public class JSONBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class UnderconstrainedConfig implements SolverConfig {
+    public static class UnderconstrainedConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            System.out.println(this.toString());
             return new UnderconstrainedStationRemoverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), new HeuristicUnderconstrainedStationFinder(context.getManagerBundle().getConstraintManager(), expensive), recursive);
         }
 
         private boolean expensive;
         private boolean recursive;
+        private String ppp;
     }
 
     @Data
-    public static class ResultSaverConfig implements SolverConfig {
+    public static class ResultSaverConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -279,7 +319,7 @@ public class JSONBundle extends AVHFUHFSolverBundle {
 
 
     @Data
-    public static class SATPresolver implements SolverConfig {
+    public static class SATPresolver implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
@@ -289,13 +329,13 @@ public class JSONBundle extends AVHFUHFSolverBundle {
                     context.getManagerBundle().getConstraintManager());
         };
 
-        private SolverConfig solverConfig;
+        private ISolverConfig solverConfig;
         private IStationPackingConfigurationStrategyConfig strategy;
 
     }
 
     @Data
-    public static class UNSATPresolver implements SolverConfig {
+    public static class UNSATPresolver implements ISolverConfig {
 
 
         @Override
@@ -307,24 +347,25 @@ public class JSONBundle extends AVHFUHFSolverBundle {
         };
 
 
-        private SolverConfig solverConfig;
+        private ISolverConfig solverConfig;
         private IStationPackingConfigurationStrategyConfig strategy;
 
     }
 
     @Data
-    public static class ParallelConfig implements SolverConfig {
+    public static class ParallelConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            log.debug("Adding a parallel split");
             List<ISolverFactory> solverFactories = new ArrayList<>();
-            for (List<SolverConfig> configPath : configs) {
+            for (final List<ISolverConfig> configPath : configs) {
                 solverFactories.add(aSolver -> concat(configPath, context));
             }
             return new ParallelNoWaitSolverComposite(solverFactories.size(), solverFactories);
         }
 
-        private List<List<SolverConfig>> configs;
+        private List<List<ISolverConfig>> configs;
 
     }
 
@@ -364,8 +405,137 @@ public class JSONBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class CNFSaverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getCNFSaver(), true);
+        }
+    }
+
     public enum EncodingType {
         DIRECT, MULTIVALUED
+    }
+
+    public enum SolverType {
+        CLASP,
+        UBCSAT,
+        SAT_PRESOLVER,
+        UNSAT_PRESOLVER,
+        UNDERCONSTRAINED,
+        CONNECTED_COMPONENTS,
+        ARC_CONSISTENCY,
+        VERIFIER,
+        CACHE,
+        SAT_CACHE,
+        UNSAT_CACHE,
+        PARALLEL,
+        RESULT_SAVER,
+        CNF, NONE
+    }
+
+    public enum PresolverExpansion {
+        NEIGHBOURHOOD, UNIFORM_RANDOM
+    }
+
+    public enum TimingChoice {
+        ITERATIVE_DEEPEN
+    }
+
+    public static abstract class ANameArgsDeserializer<KEYTYPE extends Enum, CLASSTYPE> extends JsonDeserializer<CLASSTYPE> {
+
+        @Override
+        public CLASSTYPE deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode root = p.readValueAsTree();
+            Preconditions.checkState(root.has("name"), "name is a required field!");
+            final String name = root.get("name").asText();
+            final KEYTYPE enumValue = stringToEnum(name);
+            final Class<? extends CLASSTYPE> targetClass = getMap().get(enumValue);
+            Preconditions.checkNotNull(targetClass, "No known conversion class for type %s", enumValue);
+            if (root.has("args")) {
+                return YAMLUtils.getMapper().treeToValue(root.get("args"), targetClass);
+            } else {
+                try {
+                    return targetClass.newInstance();
+                } catch (InstantiationException | IllegalAccessException e) {
+                    throw new RuntimeException("Failed to instantiate an instance of " + targetClass.getSimpleName(), e);
+                }
+            }
+        }
+
+        protected abstract KEYTYPE stringToEnum(String string);
+
+        protected abstract Map<KEYTYPE, Class<? extends CLASSTYPE>> getMap();
+    }
+
+    public static class SolverConfigDeserializer extends ANameArgsDeserializer<SolverType, ISolverConfig> {
+
+        private final Map<SolverType, Class<? extends ISolverConfig>> typeToConfigClass =
+                ImmutableMap.<SolverType, Class<? extends ISolverConfig>>builder()
+                        .put(SolverType.CLASP, YAMLBundle.ClaspConfig.class)
+                        .put(SolverType.UBCSAT, YAMLBundle.UBCSATConfig.class)
+                        .put(SolverType.SAT_PRESOLVER, YAMLBundle.SATPresolver.class)
+                        .put(SolverType.UNSAT_PRESOLVER, YAMLBundle.UNSATPresolver.class)
+                        .put(SolverType.UNDERCONSTRAINED, YAMLBundle.UnderconstrainedConfig.class)
+                        .put(SolverType.CONNECTED_COMPONENTS, YAMLBundle.ConnectedComponentsConfig.class)
+                        .put(SolverType.ARC_CONSISTENCY, YAMLBundle.ArcConsistencyConfig.class)
+                        .put(SolverType.VERIFIER, YAMLBundle.AssignmentVerifierConfig.class)
+                        .put(SolverType.CACHE, YAMLBundle.CacheConfig.class)
+                        .put(SolverType.SAT_CACHE, YAMLBundle.SATCacheConfig.class)
+                        .put(SolverType.UNSAT_CACHE, YAMLBundle.UNSATCacheConfig.class)
+                        .put(SolverType.PARALLEL, YAMLBundle.ParallelConfig.class)
+                        .put(SolverType.RESULT_SAVER, YAMLBundle.ResultSaverConfig.class)
+                        .put(SolverType.CNF, YAMLBundle.CNFSaverConfig.class)
+                        .build();
+
+        @Override
+        protected SolverType stringToEnum(String string) {
+            return SolverType.valueOf(string);
+        }
+
+        @Override
+        protected Map<SolverType, Class<? extends ISolverConfig>> getMap() {
+            return typeToConfigClass;
+        }
+
+    }
+
+    public static class PresolverConfigurationDeserializer extends ANameArgsDeserializer<TimingChoice, IStationPackingConfigurationStrategyConfig> {
+
+        private final Map<TimingChoice, Class<? extends YAMLBundle.IStationPackingConfigurationStrategyConfig>> typeToConfigClass = ImmutableMap.<TimingChoice, Class<? extends YAMLBundle.IStationPackingConfigurationStrategyConfig>>builder()
+                .put(TimingChoice.ITERATIVE_DEEPEN, YAMLBundle.IterativeDeepeningStrategyConfig.class)
+                .build();
+
+        @Override
+        protected TimingChoice stringToEnum(String string) {
+            return TimingChoice.valueOf(string);
+        }
+
+        @Override
+        protected Map<TimingChoice, Class<? extends IStationPackingConfigurationStrategyConfig>> getMap() {
+            return typeToConfigClass;
+        }
+
+    }
+
+    public static class StationAddingStrategyConfigurationDeserializer extends ANameArgsDeserializer<PresolverExpansion, IStationAddingStrategyConfig> {
+
+        private final Map<PresolverExpansion, Class<? extends YAMLBundle.IStationAddingStrategyConfig>> typeToConfigClass = ImmutableMap.<PresolverExpansion, Class<? extends YAMLBundle.IStationAddingStrategyConfig>>builder()
+                .put(PresolverExpansion.NEIGHBOURHOOD, YAMLBundle.NeighbourLayerConfig.class)
+                .put(PresolverExpansion.UNIFORM_RANDOM, YAMLBundle.AddRandomNeighbourConfig.class)
+                .build();
+
+        @Override
+        protected PresolverExpansion stringToEnum(String string) {
+            return PresolverExpansion.valueOf(string);
+        }
+
+        @Override
+        protected Map<PresolverExpansion, Class<? extends IStationAddingStrategyConfig>> getMap() {
+            return typeToConfigClass;
+        }
+
     }
 
 }

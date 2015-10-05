@@ -23,11 +23,7 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.Getter;
-import ca.ubc.cs.beta.stationpacking.base.StationDeserializer.StationJacksonModule;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,9 +38,9 @@ public class JSONUtils {
     private static final ObjectMapper mapper;
 
     static {
-        mapper = new ObjectMapper(new YAMLFactory());
+        mapper = new ObjectMapper();
         mapper.registerModule(new GuavaModule());
-        mapper.registerModule(new StationJacksonModule());
+        mapper.registerModule(new SATFCJacksonModule());
     }
 
     public static <T> T toObject(String jsonString, Class<T> klazz) {

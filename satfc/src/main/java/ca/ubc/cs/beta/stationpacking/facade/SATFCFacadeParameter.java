@@ -57,17 +57,11 @@ public class SATFCFacadeParameter {
 		SATFC_SEQUENTIAL,
         SATFC_PARALLEL,
         // Developer:
-		MIPFC,
         CNF,
         CACHING_SOLVER_FULL_INSTANCES,
         CACHING_SOLVER_COMPONENTS,
-        STATS,
         HYDRA,
-        LONG_CUTOFF,
-        UBCSAT,
-        ULTRA,
-        DCCA,
-        JSON;
+        YAML;
     }
 
 }

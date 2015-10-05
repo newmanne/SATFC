@@ -21,6 +21,29 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
@@ -30,34 +53,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
-import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
-import com.sun.jna.Native;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.DCCALibrary;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.UBCSATSolverBundle;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -71,8 +66,6 @@ public class SATFCFacade implements AutoCloseable {
 
     private final SolverManager fSolverManager;
 
-    private final Clasp3Library clasp3Library;
-
     /**
      * Construct a SATFC solver facade
      *
@@ -84,10 +77,9 @@ public class SATFCFacade implements AutoCloseable {
         final File libraryFile = new File(aSATFCParameters.getClaspLibrary());
         Preconditions.checkArgument(libraryFile.exists(), "Provided clasp library " + libraryFile.getAbsolutePath() + " does not exist.");
         Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided clasp library is a directory.");
+        // TODO: add checks for UBCSAT
         try {
-            final Clasp3LibraryGenerator clasp3LibraryGenerator = new Clasp3LibraryGenerator(aSATFCParameters.getClaspLibrary());
-            clasp3Library = clasp3LibraryGenerator.createLibrary();
-            new Clasp3SATSolver(clasp3Library, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
         } catch (UnsatisfiedLinkError e) {
             log.error("\n--------------------------------------------------------\n" +
                             "Could not load clasp from library : {}. \n" +
@@ -139,37 +131,10 @@ public class SATFCFacade implements AutoCloseable {
                                     aSATFCParameters.getParallelismLevel(),
                                     aSATFCParameters.isCacheResults()
                                 );
-                            case MIPFC:
-                                return new MIPFCSolverBundle(dataBundle, aSATFCParameters.isPresolve(), aSATFCParameters.isDecompose());
-                            case CNF:
-                                return new CNFSolverBundle(dataBundle, aSATFCParameters.getCNFSaver());
-                            case CACHING_SOLVER_FULL_INSTANCES:
-                            case CACHING_SOLVER_COMPONENTS:
-                                return new CacheOnlySolverBundle(dataBundle, aSATFCParameters.getServerURL(), aSATFCParameters.getSolverChoice() == SATFCFacadeParameter.SolverChoice.CACHING_SOLVER_COMPONENTS);
                             case HYDRA:
                                 return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
-                            case STATS:
-                                return new StatsSolverBundle(dataBundle, aSATFCParameters.getClaspLibrary());
-                            case DCCA:
-                                return new DCCALibrary.DCCABundle(aStationManager, aConstraintManager);
-                            case UBCSAT:
-                                return new UBCSATSolverBundle(
-                                        aSATFCParameters.getClaspLibrary(),
-                                        aSATFCParameters.getUbcsatLibrary(),
-                                        aStationManager,
-                                        aConstraintManager,
-                                        aSATFCParameters.getResultFile(),
-                                        aSATFCParameters.isPresolve(),
-                                        aSATFCParameters.isDecompose(),
-                                        aSATFCParameters.isUnderconstrained(),
-                                        aSATFCParameters.getServerURL(),
-                                        aSATFCParameters.getParallelismLevel(),
-                                        aSATFCParameters.isCacheResults()
-                                );
-                            case LONG_CUTOFF:
-                                return new LongCutoffSolverBundle(aSATFCParameters.getClaspLibrary(), dataBundle, aSATFCParameters.getServerURL());
-                            case JSON:
-                                return new JSONBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile());
+                            case YAML:
+                                return new YAMLBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile(), aSATFCParameters.getCNFSaver());
                             default:
                                 throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                         }
@@ -276,7 +241,6 @@ public class SATFCFacade implements AutoCloseable {
         final long totalTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
 
         //Solve instance.
-        double startCpuTime = clasp3Library.getCpuTime();
         SolverResult result = null;
         try {
             result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, termination, aSeed), totalTimeInMillis, TimeUnit.MILLISECONDS);
@@ -285,9 +249,6 @@ public class SATFCFacade implements AutoCloseable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        double cpuTime = clasp3Library.getCpuTime() - startCpuTime;
-        System.out.println("TIME FOR HYDRA: " + cpuTime);
-
         SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
 
         log.debug("Transforming result into SATFC output...");

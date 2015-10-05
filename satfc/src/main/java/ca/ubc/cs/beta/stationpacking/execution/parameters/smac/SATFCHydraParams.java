@@ -7,6 +7,8 @@ import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.SolverType;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
@@ -16,30 +18,6 @@ import com.google.common.base.Preconditions;
 @UsageTextField(title="SMAC PARAMETERS", description = "Not intended for human use", level = OptionLevel.DEVELOPER)
 public class SATFCHydraParams extends AbstractOptions {
 
-    public enum SolverType {
-        CLASP,
-        UBCSAT,
-        SAT_PRESOLVER,
-        UNSAT_PRESOLVER,
-        UNDERCONSTRAINED,
-        CONNECTED_COMPONENTS,
-        ARC_CONSISTENCY,
-        VERIFIER,
-        CACHE,
-        SAT_CACHE,
-        UNSAT_CACHE,
-        PARALLEL,
-        RESULT_SAVER,
-        NONE
-    }
-
-    public enum PresolverExpansion {
-        NEIGHBOURHOOD, UNIFORM_RANDOM
-    }
-
-    public enum TimingChoice {
-        ITERATIVE_DEEPEN
-    }
 
     public enum SolverChoice {
         UBCSAT, CLASP
@@ -48,7 +26,7 @@ public class SATFCHydraParams extends AbstractOptions {
     @Parameter(names = "-presolver")
     public boolean presolver;
     @Parameter(names = "-presolverExpansionMethod")
-    public PresolverExpansion presolverExpansionMethod;
+    public YAMLBundle.PresolverExpansion presolverExpansionMethod;
     @Parameter(names = "-presolverNumNeighbours")
     public int presolverNumNeighbours;
     @Parameter(names = "-presolverIterativelyDeepen")
