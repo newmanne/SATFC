@@ -53,7 +53,7 @@ public class ManagerBundle {
 		cacheCoordinate = new CacheCoordinate(stationManager.getDomainHash(), constraintManager.getConstraintHash());
 	}
 
-    public boolean getCompact() {
+    public boolean isCompactInterference() {
         return getConstraintManager() instanceof ChannelSpecificConstraintManager;
     }
 

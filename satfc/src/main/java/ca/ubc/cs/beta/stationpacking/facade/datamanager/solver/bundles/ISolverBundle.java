@@ -52,6 +52,6 @@ public interface ISolverBundle extends AutoCloseable {
 
 	public String getInterferenceFolder();
 
-	public boolean getCompact();
+	public boolean isCompactInteference();
 
 }

@@ -113,7 +113,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         try {
             fixed = YAMLUtils.getMapper().writeValueAsString(normalized);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Couldn't parse JSON from file " + configFile, e);
         }
 
         log.info("Parsing configuration file {}", configFile);

@@ -78,7 +78,7 @@ public class SATFCFacadeExecutor {
                             problem.getInstanceName()
                     );
                     log.info("..done!");
-                    if (parameters.getLogLevel().isGreaterOrEqual(Level.WARN)) {
+                    if (!log.isInfoEnabled()) {
                         System.out.println(result.getResult());
                         System.out.println(result.getRuntime());
                         System.out.println(result.getWitnessAssignment());
