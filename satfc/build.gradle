@@ -93,10 +93,10 @@ def createScript(project, mainClass, name, jvmArgs) {
     }
 }
 
-createScript(project,
-             'ca.ubc.cs.beta.stationpacking.tae.SATFCHydraExecutor',
-             'HydraLauncher',
-             ['-Xmx4048m'])
+//createScript(project,
+//             'ca.ubc.cs.beta.stationpacking.tae.SATFCHydraExecutor',
+//             'HydraLauncher',
+//             ['-Xmx4048m'])
 
 //Project properties.
 applicationName = 'SATFC'

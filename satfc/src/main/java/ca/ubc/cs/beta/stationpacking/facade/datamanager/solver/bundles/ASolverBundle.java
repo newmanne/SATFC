@@ -31,46 +31,37 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
  * @author afrechet
  */
 @Slf4j
-public abstract class ASolverBundle implements ISolverBundle{
+public abstract class ASolverBundle implements ISolverBundle {
 
-	private final IStationManager fStationManager;
-	private final IConstraintManager fConstraintManager;
-	private final String fInterferenceFolder;
-	private final boolean fCompact;
+	private final ManagerBundle managerBundle;
 
-	/**
-	 * Create an abstract solver bundle with the given data management objects.
-	 *  @param dataBundle manager bundle that contains station manager and constraint manager.
-	 */
-	public ASolverBundle(ManagerBundle dataBundle)
+	public ASolverBundle(ManagerBundle managerBundle)
 	{
-		fStationManager = dataBundle.getStationManager();
-		fConstraintManager = dataBundle.getConstraintManager();
-		fInterferenceFolder = dataBundle.getInterferenceFolder();
-		fCompact = dataBundle.getCompact();
+		this.managerBundle = managerBundle;
 	}
-	
+
 	@Override
 	public IStationManager getStationManager()
 	{
-		return fStationManager;
+		return managerBundle.getStationManager();
 	}
 	
 	@Override
 	public IConstraintManager getConstraintManager()
 	{
-		return fConstraintManager;
+		return managerBundle.getConstraintManager();
 	}
 
 	@Override
 	public String getInterferenceFolder()
 	{
-		return fInterferenceFolder;
+		return managerBundle.getInterferenceFolder();
 	}
 
 	@Override
-	public boolean getCompact()
+	public boolean isCompactInteference()
 	{
-		return fCompact;
+		return managerBundle.isCompactInterference();
 	}
+
 }
