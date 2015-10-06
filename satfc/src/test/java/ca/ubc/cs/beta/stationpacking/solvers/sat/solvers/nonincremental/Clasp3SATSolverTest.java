@@ -38,6 +38,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
@@ -62,7 +63,7 @@ public class Clasp3SATSolverTest {
         final IConstraintManager manager = new ChannelSpecificConstraintManager(stationManager, Resources.getResource("data/021814SC3M/Interference_Paired.csv").getFile());
         Converter.StationPackingProblemSpecs specs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/2469-2483_4310537143272356051_107.srpk").getFile());
         final StationPackingInstance instance = new StationPackingInstance(specs.getDomains().entrySet().stream().collect(Collectors.toMap(e -> stationManager.getStationfromID(e.getKey()), e -> e.getValue())), specs.getPreviousAssignment().entrySet().stream().collect(Collectors.toMap(e -> stationManager.getStationfromID(e.getKey()), e-> e.getValue())));
-        ISATEncoder aSATEncoder = new SATCompressor(manager);
+        ISATEncoder aSATEncoder = new SATCompressor(manager, EncodingType.DIRECT);
         Pair<CNF, ISATDecoder> aEncoding = aSATEncoder.encode(instance);
         hardCNF = aEncoding.getKey();
     }

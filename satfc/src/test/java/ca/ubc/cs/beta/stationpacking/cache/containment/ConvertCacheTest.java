@@ -22,10 +22,8 @@ import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;

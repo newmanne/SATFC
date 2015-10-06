@@ -6,9 +6,10 @@ import java.util.List;
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.SolverType;
+
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
@@ -19,7 +20,7 @@ import com.google.common.base.Preconditions;
 public class SATFCHydraParams extends AbstractOptions {
 
 
-    public enum SolverChoice {
+    public enum SatSolverChoice {
         UBCSAT, CLASP
     }
     
@@ -48,7 +49,7 @@ public class SATFCHydraParams extends AbstractOptions {
     public boolean connectedComponents;
 
     @Parameter(names = "-solverChoice")
-    public SolverChoice solverChoice;
+    public SatSolverChoice solverChoice;
 
     @Parameter(names = "-presolverType")
     public SolverType presolverType;
@@ -57,6 +58,9 @@ public class SATFCHydraParams extends AbstractOptions {
     public String claspConfig = "";
     @Parameter(names = "-ubcsatConfig")
     public String ubcsatConfig = "";
+    
+    @Parameter(names = "-encodingType")
+    public EncodingType encodingType;
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
@@ -72,7 +76,7 @@ public class SATFCHydraParams extends AbstractOptions {
         if (presolver) {
             list.add(SolverType.SAT_PRESOLVER);
         } else {
-            list.add(solverChoice.equals(SolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
+            list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
         }
         return list;
     }

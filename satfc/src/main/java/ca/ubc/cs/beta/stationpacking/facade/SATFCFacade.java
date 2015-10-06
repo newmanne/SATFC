@@ -21,29 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.*;
-import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
-import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
@@ -53,6 +30,34 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -73,76 +78,65 @@ public class SATFCFacade implements AutoCloseable {
      */
     SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
         //Check provided library.
-        Preconditions.checkNotNull(aSATFCParameters.getClaspLibrary(), "Cannot provide null library.");
-        final File libraryFile = new File(aSATFCParameters.getClaspLibrary());
-        Preconditions.checkArgument(libraryFile.exists(), "Provided clasp library " + libraryFile.getAbsolutePath() + " does not exist.");
-        Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided clasp library is a directory.");
-        // TODO: add checks for UBCSAT
-        try {
-            new Clasp3SATSolver(aSATFCParameters.getClaspLibrary(), ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
-        } catch (UnsatisfiedLinkError e) {
-            log.error("\n--------------------------------------------------------\n" +
-                            "Could not load clasp from library : {}. \n" +
-                            "Possible Solutions:\n" +
-                            "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
-                            "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
-                            "3) Manually set the library to use with the \"-CLASP-LIBRARY\" options.\n" +
-                            "--------------------------------------------------------", aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary()
-            );
-            throw new IllegalArgumentException("Could not load JNA library", e);
-        }
+        validateLibraries(aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
 
         log.info("Using clasp library {}", aSATFCParameters.getClaspLibrary());
         log.info("Using ubcsat library {}", aSATFCParameters.getUbcsatLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
-
+        
         fSolverManager = new SolverManager(
-                new ISolverBundleFactory() {
+                dataBundle -> {
 
-                    @Override
-                    public ISolverBundle getBundle(ManagerBundle dataBundle) {
-
-						/*
-						 * SOLVER BUNDLE.
-						 *
-						 * Set what bundle we're using here.
-						 */
-                        switch (aSATFCParameters.getSolverChoice()) {
-                            case SATFC_SEQUENTIAL:
-                                return new SATFCSolverBundle(
-                                        aSATFCParameters.getClaspLibrary(),
-                                        dataBundle,
-                                        aSATFCParameters.getResultFile(),
-                                        aSATFCParameters.isPresolve(),
-                                        aSATFCParameters.isDecompose(),
-                                        aSATFCParameters.isUnderconstrained(),
-                                        aSATFCParameters.getServerURL(),
-                                        aSATFCParameters.isCacheResults()
-                                		);
-                            case SATFC_PARALLEL:
-                                return new SATFCParallelSolverBundle(
-                                    aSATFCParameters.getClaspLibrary(),
-                                    dataBundle,
-                                    aSATFCParameters.getResultFile(),
-                                    aSATFCParameters.isPresolve(),
-                                    aSATFCParameters.isDecompose(),
-                                    aSATFCParameters.isUnderconstrained(),
-                                    aSATFCParameters.getServerURL(),
-                                    aSATFCParameters.getParallelismLevel(),
-                                    aSATFCParameters.isCacheResults()
-                                );
-                            case HYDRA:
-                                return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary());
-                            case YAML:
-                                return new YAMLBundle(aStationManager, aConstraintManager, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile(), aSATFCParameters.getCNFSaver());
-                            default:
-                                throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
-                        }
+                    /*
+                     * SOLVER BUNDLE.
+                     *
+                     * Set what bundle we're using here.
+                     */
+                    switch (aSATFCParameters.getSolverChoice()) {
+                        case HYDRA:
+                            return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
+                        case YAML:
+                            return new YAMLBundle(dataBundle, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile(), aSATFCParameters.getCNFSaver());
+                        default:
+                            throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                     }
                 },
                 aSATFCParameters.getDataManager() == null ? new DataManager() : aSATFCParameters.getDataManager()
         );
     }
+
+	private void validateLibraries(final String claspLib, final String ubcsatLib) {
+		validateLibraryFile(claspLib);
+        validateLibraryFile(ubcsatLib);
+        try {
+            new Clasp3SATSolver(claspLib, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+        } catch (UnsatisfiedLinkError e) {
+            unsatisfiedLinkWarn(claspLib, e);
+        }
+        try {
+        	new UBCSATSolver(ubcsatLib,  UBCSATLibSATSolverParameters.DEFAULT_DCCA);
+        }catch (UnsatisfiedLinkError e) {
+            unsatisfiedLinkWarn(ubcsatLib, e);
+        }
+	}
+
+	private void unsatisfiedLinkWarn(final String libPath, UnsatisfiedLinkError e) {
+		log.error("\n--------------------------------------------------------\n" +
+		                "Could not load clasp from library : {}. \n" +
+		                "Possible Solutions:\n" +
+		                "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
+		                "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
+		                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" options.\n" +
+		                "--------------------------------------------------------", libPath,libPath);
+		throw new IllegalArgumentException("Could not load JNA library", e);
+	}
+
+	private void validateLibraryFile(final String libraryFilePath) {
+		Preconditions.checkNotNull(libraryFilePath, "Cannot provide null library");
+        final File libraryFile = new File(libraryFilePath);
+        Preconditions.checkArgument(libraryFile.exists(), "Provided library " + libraryFile.getAbsolutePath() + " does not exist.");
+        Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided library is a directory.");
+	}
 
     /**
      * Solve a station packing problem.

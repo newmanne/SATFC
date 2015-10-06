@@ -1,15 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import lombok.RequiredArgsConstructor;
+import java.io.File;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 
-import java.io.File;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
 /**
  * Created by emily404 on 9/23/15.

@@ -25,11 +25,11 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;

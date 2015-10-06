@@ -9,11 +9,11 @@ import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
@@ -54,7 +54,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -74,22 +73,21 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     private final ISolver VHFSolver;
 
     public YAMLBundle(
-            IStationManager aStationManager,
-            IConstraintManager aConstraintManager,
-            String configFile,
+            @NonNull ManagerBundle managerBundle,
+            @NonNull String configFile,
             String serverURL,
             String claspLibraryPath,
             String ubcsatLibraryPath,
             String resultFile,
             CNFSaverSolverDecorator.ICNFSaver CNFSaver
     ) {
-        super(aStationManager, aConstraintManager);
+        super(managerBundle);
 
         log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", configFile, serverURL, claspLibraryPath, ubcsatLibraryPath, resultFile);
 
         final SATFCContext context = SATFCContext
                 .builder()
-                .managerBundle(new ManagerBundle(aStationManager, aConstraintManager))
+                .managerBundle(managerBundle)
                 .clasp3LibraryGenerator(new Clasp3LibraryGenerator(claspLibraryPath))
                 .ubcsatLibraryGenerator(new UBCSATLibraryGenerator(ubcsatLibraryPath))
                 .serverURL(serverURL)
@@ -109,7 +107,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         // Need to do this to handle anchors properly
         
-        Yaml yaml = new Yaml();
+        final Yaml yaml = new Yaml();
         Map<?, ?> normalized = (Map<?, ?>) yaml.load(configJSONString);
         String fixed = null;
         try {
@@ -204,11 +202,10 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final Clasp3LibraryGenerator clasp3LibraryGenerator = context.getClasp3LibraryGenerator();
             final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config);
-            return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager));
+            return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
-        // TODO: use
         private EncodingType encodingType;
     }
 
@@ -220,11 +217,10 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
             final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config);
-            return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager));
+            return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
-        // TODO: use
         private EncodingType encodingType;
     }
 
@@ -233,7 +229,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new AssignmentVerifierDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+            return new AssignmentVerifierDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getManagerBundle().getStationManager());
         }
 
     }
@@ -300,7 +296,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         private boolean expensive;
         private boolean recursive;
-        private String ppp;
     }
 
     @Data
@@ -410,10 +405,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getCNFSaver(), true);
+            return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getCNFSaver(), encodingType, true);
         }
+        
+        EncodingType encodingType;
+        
     }
 
+    /**
+     * Terminology from Local Search on SAT-Encoded Colouring Problems, Steven Prestwich, http://www.cs.sfu.ca/CourseCentral/827/havens/papers/topic%236(SAT)/steve1.pdf
+     */
     public enum EncodingType {
         DIRECT, MULTIVALUED
     }
@@ -443,7 +444,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         ITERATIVE_DEEPEN
     }
 
-    public static abstract class ANameArgsDeserializer<KEYTYPE extends Enum, CLASSTYPE> extends JsonDeserializer<CLASSTYPE> {
+    public static abstract class ANameArgsDeserializer<KEYTYPE extends Enum<KEYTYPE>, CLASSTYPE> extends JsonDeserializer<CLASSTYPE> {
 
         @Override
         public CLASSTYPE deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {

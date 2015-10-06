@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import lombok.Data;
 
 import org.apache.commons.math3.util.Pair;
@@ -38,7 +39,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Clause;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IBijection;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IdentityBijection;
 
 /**
  * Encodes a problem instance as a propositional satisfiability problem.
@@ -50,17 +50,14 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IdentityBijecti
  */
 public class SATEncoder implements ISATEncoder {
 
-    private final IConstraintManager fConstraintManager;
-    private final IBijection<Long, Long> fBijection;
+    private final IConstraintManager constraintManager;
+    private final IBijection<Long, Long> bijection;
+    private final YAMLBundle.EncodingType encodingType;
 
-    public SATEncoder(IConstraintManager aConstraintManager) {
-        this(aConstraintManager, new IdentityBijection<Long>());
-    }
-
-    public SATEncoder(IConstraintManager aConstraintManager, IBijection<Long, Long> aBijection) {
-        fConstraintManager = aConstraintManager;
-
-        fBijection = aBijection;
+    public SATEncoder(IConstraintManager constraintManager, IBijection<Long, Long> bijection, YAMLBundle.EncodingType encodingType) {
+        this.constraintManager = constraintManager;
+        this.bijection = bijection;
+        this.encodingType = encodingType;
     }
 
     @Override
@@ -79,7 +76,7 @@ public class SATEncoder implements ISATEncoder {
             if (aInstance.getPreviousAssignment().containsKey(station)) {
                 final Set<Integer> domain = entry.getValue();
                 domain.forEach(channel -> {
-                    long varId = fBijection.map(SATEncoderUtils.SzudzikElegantPairing(station.getID(), channel));
+                    long varId = bijection.map(SATEncoderUtils.SzudzikElegantPairing(station.getID(), channel));
                     boolean startingValue = aInstance.getPreviousAssignment().get(station).equals(channel);
                     initialAssignment.put(varId, startingValue);
                 });
@@ -118,7 +115,7 @@ public class SATEncoder implements ISATEncoder {
             public Pair<Station, Integer> decode(long aVariable) {
 
                 //Decode the long variable to station channel pair.
-                Pair<Integer, Integer> aStationChannelPair = SATEncoderUtils.SzudzikElegantInversePairing(fBijection.inversemap(aVariable));
+                Pair<Integer, Integer> aStationChannelPair = SATEncoderUtils.SzudzikElegantInversePairing(bijection.inversemap(aVariable));
 
                 //Get station.
                 Integer stationID = aStationChannelPair.getKey();
@@ -158,24 +155,27 @@ public class SATEncoder implements ISATEncoder {
             Clause aStationValidAssignmentBaseClause = new Clause();
             for (Integer aChannel : aStationInstanceDomain) {
 
-                aStationValidAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), true));
+                aStationValidAssignmentBaseClause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), true));
             }
             aCNF.add(aStationValidAssignmentBaseClause);
 
-            //A station can be on at most one channel,
-            for (int i = 0; i < aStationInstanceDomain.size(); i++) {
-                for (int j = i + 1; j < aStationInstanceDomain.size(); j++) {
-                    Clause aStationSingleAssignmentBaseClause = new Clause();
+            if (encodingType.equals(YAMLBundle.EncodingType.DIRECT)) {
+                //A station can be on at most one channel,
+                for (int i = 0; i < aStationInstanceDomain.size(); i++) {
+                    for (int j = i + 1; j < aStationInstanceDomain.size(); j++) {
+                        Clause aStationSingleAssignmentBaseClause = new Clause();
 
-                    Integer aDomainChannel1 = aStationInstanceDomain.get(i);
-                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel1)), false));
+                        Integer aDomainChannel1 = aStationInstanceDomain.get(i);
+                        aStationSingleAssignmentBaseClause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel1)), false));
 
-                    Integer aDomainChannel2 = aStationInstanceDomain.get(j);
-                    aStationSingleAssignmentBaseClause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel2)), false));
+                        Integer aDomainChannel2 = aStationInstanceDomain.get(j);
+                        aStationSingleAssignmentBaseClause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aDomainChannel2)), false));
 
-                    aCNF.add(aStationSingleAssignmentBaseClause);
+                        aCNF.add(aStationSingleAssignmentBaseClause);
+                    }
                 }
             }
+
         }
 
         return aCNF;
@@ -184,10 +184,10 @@ public class SATEncoder implements ISATEncoder {
     private CNF encodeInterferenceConstraints(StationPackingInstance aInstance) {
         final CNF cnf = new CNF();
 
-        fConstraintManager.getAllRelevantConstraints(aInstance.getDomains()).forEach(constraint -> {
+        constraintManager.getAllRelevantConstraints(aInstance.getDomains()).forEach(constraint -> {
             final Clause clause = new Clause();
-            clause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getSource().getID(), constraint.getSourceChannel())), false));
-            clause.add(new Literal(fBijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getTarget().getID(), constraint.getTargetChannel())), false));
+            clause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getSource().getID(), constraint.getSourceChannel())), false));
+            clause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getTarget().getID(), constraint.getTargetChannel())), false));
             cnf.add(clause);
         });
 

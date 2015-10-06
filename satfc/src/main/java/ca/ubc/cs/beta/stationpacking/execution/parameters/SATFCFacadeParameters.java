@@ -25,10 +25,9 @@ import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ch.qos.logback.classic.Level;
 
 import com.beust.jcommander.Parameter;
@@ -53,9 +52,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-CNF-DIR", description = "folder for storing cnf results")
     public String fCNFDir;
-
-    @ParametersDelegate
-	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();
 
     @ParametersDelegate
     public SATFCCachingParameters cachingParams = new SATFCCachingParameters();
@@ -88,12 +84,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-UBCSAT-LIBRARY",description = "UBCSAT library file")
     public String fUBCSATLibrary;
 
-	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC")
-	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
-
-    @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. This defaults to all available processors. This has little effect past " + SATFCParallelSolverBundle.PORTFOLIO_SIZE)
-    public int numCores = Runtime.getRuntime().availableProcessors();
-
 	/**
 	 * Logging options.
 	 */
@@ -110,5 +100,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
 
     @Parameter(names = "-CONFIG-FILE")
-    public String configFile;
+    public String configFile = SATFCFacadeBuilder.autoDetectBundle();
+    
+    @Parameter(names = "-SOLVER-CHOICE", hidden=true)
+    public SolverChoice solverChoice = SolverChoice.YAML;
+
 }

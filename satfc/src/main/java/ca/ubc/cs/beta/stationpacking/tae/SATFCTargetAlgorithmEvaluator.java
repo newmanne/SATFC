@@ -21,6 +21,28 @@
  */
 package ca.ubc.cs.beta.stationpacking.tae;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import lombok.Data;
+
+import org.python.core.PyObject;
+import org.python.util.PythonInterpreter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.aeatk.algorithmrunconfiguration.AlgorithmRunConfiguration;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.AlgorithmRunResult;
 import ca.ubc.cs.beta.aeatk.algorithmrunresult.ExistingAlgorithmRunResult;
@@ -43,18 +65,9 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder.DeveloperOptions;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+
 import com.google.common.base.Preconditions;
 import com.sun.jna.Native;
-import lombok.Data;
-import org.python.core.PyObject;
-import org.python.util.PythonInterpreter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.*;
 
 /**
  * Target algorithm evaluator that wraps around the SATFC facade and only
@@ -202,10 +215,9 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
                         .setClaspLibrary(fLibPath)
                         .setUBCSATLibrary(fUBCSATPath)
-                        .setSolverChoice(SolverChoice.HYDRA)
-                        .setParallelismLevel(1)
                         .setDeveloperOptions(DeveloperOptions
                                 .builder()
+                                .solverChoice(SolverChoice.HYDRA)
                                 .dataManager(dataManager)
                                 .hydraParams(params)
                                 .build());

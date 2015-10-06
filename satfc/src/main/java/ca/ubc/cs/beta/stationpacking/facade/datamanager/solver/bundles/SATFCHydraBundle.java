@@ -1,10 +1,13 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import java.util.HashMap;
+import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATISolverFactory;
@@ -14,7 +17,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetUNSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CPUTimeDecorator;
@@ -23,10 +30,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationR
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -38,14 +41,14 @@ public class SATFCHydraBundle extends ASolverBundle {
     ISolver fSolver;
     private final Clasp3LibraryGenerator claspLibraryGenerator;
 
-    public SATFCHydraBundle(ManagerBundle dataBundle, SATFCHydraParams params, String aClaspLibraryPath) {
+    public SATFCHydraBundle(ManagerBundle dataBundle, SATFCHydraParams params, String aClaspLibraryPath, String aUBCSATLibraryPath) {
         super(dataBundle);
 
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         params.claspConfig = params.claspConfig.replaceAll("_SPACE_", " ");
         params.ubcsatConfig = params.claspConfig.replaceAll("_SPACE_", " ");
 
-        final SATCompressor aCompressor = new SATCompressor(this.getConstraintManager());
+        final SATCompressor aCompressor = new SATCompressor(dataBundle.getConstraintManager(), params.encodingType);
         claspLibraryGenerator = new Clasp3LibraryGenerator(aClaspLibraryPath);
         ubcsatLibraryGenerator = new UBCSATLibraryGenerator(aUBCSATLibraryPath);
         final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());

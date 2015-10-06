@@ -1,11 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 01/10/15.
@@ -13,8 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AVHFUHFSolverBundle extends ASolverBundle {
 
-    public AVHFUHFSolverBundle(IStationManager aStationManager, IConstraintManager aConstraintManager) {
-        super(aStationManager, aConstraintManager);
+    public AVHFUHFSolverBundle(ManagerBundle managerBundle) {
+        super(managerBundle);
     }
 
     protected abstract ISolver getUHFSolver();

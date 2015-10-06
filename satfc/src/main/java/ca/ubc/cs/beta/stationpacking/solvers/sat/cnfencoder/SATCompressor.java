@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -40,20 +41,22 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.CompressionBije
 public class SATCompressor implements ISATEncoder {
 
     private final IConstraintManager fConstraintManager;
+    private YAMLBundle.EncodingType encodingType;
 
-    public SATCompressor(IConstraintManager aConstraintManager) {
+    public SATCompressor(IConstraintManager aConstraintManager, YAMLBundle.EncodingType encodingType) {
         fConstraintManager = aConstraintManager;
+        this.encodingType = encodingType;
     }
 
     @Override
     public Pair<CNF, ISATDecoder> encode(StationPackingInstance aInstance) {
-        SATEncoder aSATEncoder = new SATEncoder(fConstraintManager, new CompressionBijection<>());
+        SATEncoder aSATEncoder = new SATEncoder(fConstraintManager, new CompressionBijection<>(), encodingType);
         return aSATEncoder.encode(aInstance);
     }
 
     @Override
     public SATEncoder.CNFEncodedProblem encodeWithAssignment(StationPackingInstance aInstance) {
-        SATEncoder aSATEncoder = new SATEncoder(fConstraintManager, new CompressionBijection<>());
+        SATEncoder aSATEncoder = new SATEncoder(fConstraintManager, new CompressionBijection<>(), encodingType);
         return aSATEncoder.encodeWithAssignment(aInstance);
 
     }

@@ -35,31 +35,20 @@ public class SATFCFacadeParameter {
     // public options
 	private final String claspLibrary;
 	private final String ubcsatLibrary;
+	private final String configFile;
+	private final String serverURL;
+	
 	private final String resultFile;
-    private final String configFile;
-	private final SolverChoice solverChoice;
-    private final String serverURL;
-    private final int parallelismLevel;
-    private final boolean cacheResults;
     private Level logLevel;
 
     // developer options
-    private final boolean presolve;
-    private final boolean underconstrained;
-    private final boolean decompose;
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final SATFCHydraParams hydraParams;
     private final DataManager dataManager;
+    private final SolverChoice solverChoice;
 
 	public enum SolverChoice
 	{
-		// Public:
-		SATFC_SEQUENTIAL,
-        SATFC_PARALLEL,
-        // Developer:
-        CNF,
-        CACHING_SOLVER_FULL_INSTANCES,
-        CACHING_SOLVER_COMPONENTS,
         HYDRA,
         YAML;
     }

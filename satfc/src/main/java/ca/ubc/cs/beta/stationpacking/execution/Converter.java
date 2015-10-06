@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.cplex.IloCplex;
@@ -62,6 +63,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.mip.MIPBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
@@ -485,7 +487,7 @@ public class Converter {
                     if (satEncoders.containsKey(configFoldername)) {
                         satEncoder = satEncoders.get(configFoldername);
                     } else {
-                        satEncoder = new SATEncoder(constraintManager);
+                        satEncoder = new SATCompressor(constraintManager, EncodingType.DIRECT);
                         satEncoders.put(configFoldername, satEncoder);
                     }
                     log.debug("Converting instance from {} to CNF ...", source);

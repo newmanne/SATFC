@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -52,14 +53,17 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
     private final IConstraintManager fConstraintManager;
     private final ICNFSaver fCNFSaver;
+    private YAMLBundle.EncodingType encodingType;
     private boolean saveAssignment;
 
     public CNFSaverSolverDecorator(@NonNull ISolver aSolver,
                                    @NonNull IConstraintManager aConstraintManager,
                                    @NonNull ICNFSaver aCNFSaver,
+                                   @NonNull YAMLBundle.EncodingType encodingType,
                                    boolean saveAssignment) {
         super(aSolver);
         this.fCNFSaver = aCNFSaver;
+        this.encodingType = encodingType;
         this.saveAssignment = saveAssignment;
         fConstraintManager = aConstraintManager;
     }
@@ -67,7 +71,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         //Encode instance.
-        final SATCompressor aSATEncoder = new SATCompressor(fConstraintManager);
+        final SATCompressor aSATEncoder = new SATCompressor(fConstraintManager, encodingType);
         final SATEncoder.CNFEncodedProblem aEncoding = aSATEncoder.encodeWithAssignment(aInstance);
         final CNF CNF = aEncoding.getCnf();
 

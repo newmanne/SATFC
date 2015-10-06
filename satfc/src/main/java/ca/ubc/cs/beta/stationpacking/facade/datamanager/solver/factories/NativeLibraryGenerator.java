@@ -52,7 +52,8 @@ public abstract class NativeLibraryGenerator<T extends Library> {
         libFiles = new ArrayList<>();
     }
 
-    public T createLibrary() {
+    @SuppressWarnings("unchecked")
+	public T createLibrary() {
         File origFile = new File(libraryPath);
         try {
             File copy = File.createTempFile(Files.getNameWithoutExtension(libraryPath) + "_" + ++numLibs, "." + Files.getFileExtension(libraryPath));

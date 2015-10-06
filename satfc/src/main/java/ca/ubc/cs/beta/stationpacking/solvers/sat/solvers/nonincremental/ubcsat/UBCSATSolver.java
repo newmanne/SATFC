@@ -70,6 +70,11 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         if (!mutableParameters.contains("-cutoff ")) {
             mutableParameters = mutableParameters + " -cutoff max";
         }
+        
+        String testParameters = mutableParameters + " -seed 1";
+        Pointer jnaProblem = fLibrary.initConfig(testParameters);
+        fLibrary.destroyProblem(jnaProblem);
+        
         fParameters = mutableParameters;
     }
 

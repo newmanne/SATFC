@@ -25,7 +25,6 @@ import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ASolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;

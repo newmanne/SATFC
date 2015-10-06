@@ -18,6 +18,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
@@ -48,7 +49,7 @@ public class UBCSATSolverTest {
     public static void init() throws IOException {
         final IStationManager stationManager = new DomainStationManager(Resources.getResource("data/021814SC3M/Domain.csv").getFile());
         final IConstraintManager manager = new ChannelSpecificConstraintManager(stationManager, Resources.getResource("data/021814SC3M/Interference_Paired.csv").getFile());
-        ISATEncoder aSATEncoder = new SATCompressor(manager);
+        ISATEncoder aSATEncoder = new SATCompressor(manager, EncodingType.DIRECT);
 
         unsatProblem = parseSRPK(Resources.getResource("data/srpks/2469-2483_1671735211211766343_33.srpk").getFile(), aSATEncoder, stationManager);
         easyProblem = parseSRPK(Resources.getResource("data/srpks/2469-2483_1582973565573889317_33.srpk").getFile(), aSATEncoder, stationManager);

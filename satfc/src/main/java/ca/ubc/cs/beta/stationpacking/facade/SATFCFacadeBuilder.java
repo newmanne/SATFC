@@ -21,9 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.SATFC_PARALLEL;
-import static ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice.SATFC_SEQUENTIAL;
-
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -39,7 +36,6 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
 
@@ -54,39 +50,41 @@ import com.google.common.io.Resources;
 public class SATFCFacadeBuilder {
 
     private volatile static boolean logInitialized = false;
+    
+    public final static String SATFC_SEQUENTIAL = "satfc_sequential";
+    public final static String SATFC_PARALLEL = "satfc_parallel";
+    
+    public static String internalBundleNameToPath(String bundleFile) {
+    	return Resources.getResource("bundles" + File.separator + bundleFile + ".yaml").getPath();
+    }
 
     // public params
     private boolean initializeLogging;
     private String fClaspLibrary;
     private String fUBCSATLibrary;
     private String fResultFile;
-    private SolverChoice fSolverChoice;
     private String serverURL;
-    private int parallelismLevel;
     private Level logLevel;
     private String logFileName;
     private String configFile;
-    private boolean cacheResults;
     private DeveloperOptions developerOptions;
 
+    /**
+     * Set the YAML file used to build up the SATFC solver bundle
+     * @param configFile
+     */
     public void setConfigFile(String configFile) {
         this.configFile = configFile;
-    }
-
-    public String getConfigFile() {
-        return configFile;
     }
 
     // developer params
     @Builder
     @Data
     public static class DeveloperOptions {
-    	private CNFSaverSolverDecorator.ICNFSaver CNFSaver = null;
-        private boolean presolve = true;
-        private boolean underconstrained = true;
-        private boolean decompose = true;
-        private SATFCHydraParams hydraParams = null;
+    	private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+        private SATFCHydraParams hydraParams;
         private DataManager dataManager;
+        private SolverChoice solverChoice;
     }
 
     /**
@@ -122,13 +120,15 @@ public class SATFCFacadeBuilder {
         fClaspLibrary = findSATFCLibrary(SATFCLibLocation.CLASP);
         fUBCSATLibrary = findSATFCLibrary(SATFCLibLocation.UBCSAT);
         fResultFile = null;
-        parallelismLevel = Math.min(SATFCParallelSolverBundle.PORTFOLIO_SIZE, Runtime.getRuntime().availableProcessors());
-        fSolverChoice = parallelismLevel >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
         serverURL = null;
         logLevel = Level.INFO;
         logFileName = "SATFC.log";
-        cacheResults = true;
-        developerOptions = DeveloperOptions.builder().build();
+        configFile = autoDetectBundle();
+        developerOptions = DeveloperOptions.builder().solverChoice(SolverChoice.YAML).build();
+    }
+
+    public static String autoDetectBundle() {
+        return SATFCFacadeBuilder.internalBundleNameToPath(Runtime.getRuntime().availableProcessors() >= 4 ? SATFCFacadeBuilder.SATFC_PARALLEL : SATFCFacadeBuilder.SATFC_SEQUENTIAL);
     }
 
     /**
@@ -192,10 +192,8 @@ public class SATFCFacadeBuilder {
         if (fClaspLibrary == null || fUBCSATLibrary == null) {
             throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
         }
-        if (fSolverChoice.equals(SATFC_PARALLEL)) {
-            if (parallelismLevel < 4) {
-                throw new IllegalArgumentException("Trying to initialize the parallel solver with too few cores! Use the " + SATFC_SEQUENTIAL + " solver instead. We recommend the " + SATFC_PARALLEL + " solver with >= than 4 threads");
-            }
+        if (developerOptions.getSolverChoice().equals(SolverChoice.YAML) && configFile == null) {
+            throw new IllegalArgumentException("No YAML config file was given to initialize the solver bundle with!");
         }
         if (initializeLogging) {
             initializeLogging(logLevel, logFileName);
@@ -205,18 +203,13 @@ public class SATFCFacadeBuilder {
                         .claspLibrary(fClaspLibrary)
                         .ubcsatLibrary(fUBCSATLibrary)
                         .resultFile(fResultFile)
-                        .solverChoice(fSolverChoice)
                         .serverURL(serverURL)
-                        .parallelismLevel(parallelismLevel)
                         .configFile(configFile)
-                        .cacheResults(cacheResults)
                         // developer
                         .hydraParams(developerOptions.getHydraParams())
-                        .presolve(developerOptions.isPresolve())
-                        .decompose(developerOptions.isDecompose())
-                        .underconstrained(developerOptions.isUnderconstrained())
                         .dataManager(developerOptions.getDataManager())
                         .CNFSaver(developerOptions.getCNFSaver())
+                        .solverChoice(developerOptions.getSolverChoice())
                         .build()
                         );
     }
@@ -247,17 +240,6 @@ public class SATFCFacadeBuilder {
     }
 
     /**
-     * Set the type of solver choice to use in SATFC.
-     *
-     * @param aSolverChoice
-     * @return this {@code Builder} object
-     */
-    public SATFCFacadeBuilder setSolverChoice(SolverChoice aSolverChoice) {
-        fSolverChoice = aSolverChoice;
-        return this;
-    }
-
-    /**
      * Set the URL of the SATFCServer. This is only required if you are using the SATFCServer module.
      *
      * @param serverURL
@@ -269,19 +251,6 @@ public class SATFCFacadeBuilder {
     }
 
     /**
-     * Set the maximum number of solvers that SATFC will execute in parallel
-     * This will have little effect past {@link SATFCParallelSolverBundle#PORTFOLIO_SIZE}
-     *
-     * @param parallelismLevel
-     * @return this {@code Builder} object
-     */
-    public SATFCFacadeBuilder setParallelismLevel(int parallelismLevel) {
-        this.parallelismLevel = parallelismLevel;
-        return this;
-    }
-
-
-    /**
      * Call this method to have SATFC configure logging (this would only have any effect if the calling application hasn't initialized logging)
      *
      * @return this {@code Builder} object
@@ -290,15 +259,6 @@ public class SATFCFacadeBuilder {
         this.initializeLogging = true;
         this.logLevel = logLevel;
         this.logFileName = logFileName;
-        return this;
-    }
-
-    /**
-     * Set whether or not to cache results
-     * @return this {@code Builder} object
-     */
-    public SATFCFacadeBuilder setCacheResults(boolean cacheResults) {
-        this.cacheResults = cacheResults;
         return this;
     }
 
@@ -319,19 +279,14 @@ public class SATFCFacadeBuilder {
         if (parameters.fUBCSATLibrary != null) {
             builder.setUBCSATLibrary(parameters.fUBCSATLibrary);
         }
-        if (parameters.configFile != null) {
-            builder.setConfigFile(parameters.configFile);
-        }
-        builder.setParallelismLevel(parameters.numCores);
-        builder.setSolverChoice(parameters.fSolverChoice);
+        builder.setConfigFile(parameters.configFile);
         builder.setInitializeLogging(parameters.logFileName, parameters.getLogLevel());
         if (parameters.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.cachingParams.serverURL);
         }
-        builder.setCacheResults(parameters.cachingParams.cacheResults);
 
         CNFSaverSolverDecorator.ICNFSaver CNFSaver = null;
-        if (parameters.fSolverChoice.equals(SolverChoice.CNF)) {
+        if (parameters.fCNFDir != null) {
             System.out.println("Saving CNFs to disk in " + parameters.fCNFDir);
             CNFSaver = new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir);
             if (parameters.fRedisParameters.areValid()) {
@@ -344,11 +299,9 @@ public class SATFCFacadeBuilder {
         builder.setDeveloperOptions(
         		DeveloperOptions
         		.builder()
-        		.decompose(parameters.fSolverOptions.decomposition)
-        		.presolve(parameters.fSolverOptions.presolve)
-        		.underconstrained(parameters.fSolverOptions.underconstrained)
         		.hydraParams(parameters.fHydraParams)
         		.CNFSaver(CNFSaver)
+        		.solverChoice(parameters.solverChoice)
         		.build()
         		);
         return builder.build();
