@@ -39,6 +39,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ch.qos.logback.classic.Level;
 
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Charsets;
@@ -77,9 +78,13 @@ public class SATFCFacadeExecutor {
                             problem.getInstanceName()
                     );
                     log.info("..done!");
-                    System.out.println(result.getResult());
-                    System.out.println(result.getRuntime());
-                    System.out.println(result.getWitnessAssignment());
+                    if (parameters.getLogLevel().isGreaterOrEqual(Level.WARN)) {
+                        System.out.println(result.getResult());
+                        System.out.println(result.getRuntime());
+                        System.out.println(result.getWitnessAssignment());
+                    } else {
+                        log.info("Result:" + System.lineSeparator() + result.getResult() + System.lineSeparator() + result.getRuntime() + System.lineSeparator() + result.getWitnessAssignment());
+                    }
                     problemReader.onPostProblem(problem, result);
                     metricWriter.writeMetrics();
                     SATFCMetrics.clear();

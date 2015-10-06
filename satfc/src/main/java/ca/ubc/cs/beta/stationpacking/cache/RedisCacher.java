@@ -22,12 +22,17 @@
 package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +49,7 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntr
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;

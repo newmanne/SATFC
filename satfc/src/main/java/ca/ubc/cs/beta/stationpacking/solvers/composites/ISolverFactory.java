@@ -39,4 +39,5 @@ public interface ISolverFactory {
      * @return
      */
     ISolver extend(ISolver aSolver);
+
 }

@@ -34,7 +34,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 @RequiredArgsConstructor
 public class Clasp3ISolverFactory {
 
-    private final ClaspLibraryGenerator claspLibraryGenerator;
+    private final Clasp3LibraryGenerator claspLibraryGenerator;
     private final SATCompressor satCompressor;
     private final IConstraintManager constraintManager;
 
@@ -43,8 +43,8 @@ public class Clasp3ISolverFactory {
     }
 
     public CompressedSATBasedSolver create(String aConfig, int seedOffset) {
-        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createClaspLibrary(), aConfig, seedOffset);
-        return new CompressedSATBasedSolver(claspSATsolver, satCompressor, constraintManager);
+        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createLibrary(), aConfig, seedOffset);
+        return new CompressedSATBasedSolver(claspSATsolver, satCompressor);
     }
 
 }

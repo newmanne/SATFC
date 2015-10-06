@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
@@ -42,9 +41,10 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder.SATFCLibLocation;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCSolverBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
@@ -61,77 +61,64 @@ public abstract class ASolverBundleTest {
 
     private final String INSTANCE_FILE = "data/ASolverBundleTestInstances.csv";
 
-    protected IStationManager stationManager;
-    protected IConstraintManager constraintManager;
+    protected ManagerBundle managerBundle;
 
-    public ASolverBundleTest() throws FileNotFoundException {
-        stationManager = new DomainStationManager(Resources.getResource("data/021814SC3M/Domain.csv").getFile());
-        constraintManager = new ChannelSpecificConstraintManager(stationManager, Resources.getResource("data/021814SC3M/Interference_Paired.csv").getFile());
+    public ASolverBundleTest() {
+        try {
+			DomainStationManager stationManager = new DomainStationManager(Resources.getResource("data/021814SC3M/Domain.csv").getFile());
+			ChannelSpecificConstraintManager constraintManager = new ChannelSpecificConstraintManager(stationManager, Resources.getResource("data/021814SC3M/Interference_Paired.csv").getFile());
+			managerBundle = new ManagerBundle(stationManager, constraintManager, "data/021814SC3M");
+		} catch (FileNotFoundException e) {
+			Assert.fail("Could not find constraint set files");
+		}
     }
 
-    protected abstract ISolverBundle getBundle();
+    protected abstract String getBundleName();
 
     @Test
-    public void testSimplestProblemPossible() {
-        ISolverBundle bundle = getBundle();
-        final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
-        final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
-        Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
+    public void testSimplestProblemPossible() throws Exception {
+    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, getBundleName(), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+    		final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
+            final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
+            Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
+    	}
     }
 
     @Test
     public void testAFewSrpks() throws Exception {
-        ISolverBundle bundle = getBundle();
-        final List<String> lines = Files.readLines(new File(Resources.getResource(INSTANCE_FILE).getFile()), Charset.defaultCharset());
-        final Map<String, SATResult> instanceFileToAnswers = new HashMap<>();
-        lines.stream().forEach(line -> {
-            final List<String> csvParts = Splitter.on(',').splitToList(line);
-            instanceFileToAnswers.put(csvParts.get(0), Enum.valueOf(SATResult.class, csvParts.get(1)));
-        });
-        for (Map.Entry<String, SATResult> entry : instanceFileToAnswers.entrySet()) {
-            final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
-            final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, stationManager);
-            log.info("Solving instance " + entry.getKey());
-            final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
-            Assert.assertEquals(entry.getValue(), solverResult.getResult());
-        }
+    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, getBundleName(), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+            final List<String> lines = Files.readLines(new File(Resources.getResource(INSTANCE_FILE).getFile()), Charset.defaultCharset());
+            final Map<String, SATResult> instanceFileToAnswers = new HashMap<>();
+            lines.stream().forEach(line -> {
+                final List<String> csvParts = Splitter.on(',').splitToList(line);
+                instanceFileToAnswers.put(csvParts.get(0), Enum.valueOf(SATResult.class, csvParts.get(1)));
+            });
+            for (Map.Entry<String, SATResult> entry : instanceFileToAnswers.entrySet()) {
+                final Converter.StationPackingProblemSpecs stationPackingProblemSpecs = Converter.StationPackingProblemSpecs.fromStationRepackingInstance(Resources.getResource("data/srpks/" + entry.getKey()).getPath());
+                final StationPackingInstance instance = StationPackingTestUtils.instanceFromSpecs(stationPackingProblemSpecs, managerBundle.getStationManager());
+                log.info("Solving instance " + entry.getKey());
+                final SolverResult solverResult = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
+                Assert.assertEquals(entry.getValue(), solverResult.getResult());
+            }
+    	}
     }
 
     public static class SATFCSolverBundleTest extends ASolverBundleTest {
 
-        public SATFCSolverBundleTest() throws FileNotFoundException {
-        }
-
-        @Override
-        protected ISolverBundle getBundle() {
-            ManagerBundle managerBundle = new ManagerBundle(stationManager, constraintManager, Resources.getResource("data/021814SC3M").getPath(), true);
-            return new SATFCSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), managerBundle, null, true, true, true, null, false);
-        }
+		@Override
+		protected String getBundleName() {
+			return SATFCFacadeBuilder.internalBundleNameToPath(SATFCFacadeBuilder.SATFC_SEQUENTIAL);
+		}
 
     }
 
     public static class SATFCParallelSolverBundleTest extends ASolverBundleTest {
 
-        public SATFCParallelSolverBundleTest() throws FileNotFoundException {
-        }
-
-        @Override
-        protected ISolverBundle getBundle() {
-            ManagerBundle managerBundle = new ManagerBundle(stationManager, constraintManager, Resources.getResource("data/021814SC3M").getPath(), true);
-            return new SATFCParallelSolverBundle(SATFCFacadeBuilder.findSATFCLibrary(), managerBundle, null, true, true, true, null, Runtime.getRuntime().availableProcessors(), false);
-        }
+		@Override
+		protected String getBundleName() {
+			return SATFCFacadeBuilder.internalBundleNameToPath(SATFCFacadeBuilder.SATFC_PARALLEL);
+		}
 
     }
     
-//    public static class StatsSolverBundleTest extends ASolverBundleTest {
-//
-//		public StatsSolverBundleTest() throws FileNotFoundException {
-//		}
-//
-//		@Override
-//		protected ISolverBundle getBundle() {
-//			return new StatsSolverBundle(stationManager, constraintManager, SATFCFacadeBuilder.findSATFCLibrary());
-//		}
-//    }
-
 }

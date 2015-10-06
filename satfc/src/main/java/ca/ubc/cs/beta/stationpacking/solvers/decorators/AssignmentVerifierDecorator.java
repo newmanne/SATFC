@@ -25,11 +25,11 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -64,7 +64,7 @@ public class AssignmentVerifierDecorator extends ASolverDecorator {
 
             //Check that the assignment assigns every station to a channel
             final int assignmentSize = result.getAssignment().keySet().stream().mapToInt(channel -> result.getAssignment().get(channel).size()).sum();
-            Preconditions.checkState(assignmentSize == aInstance.getStations().size(), "Merged station assignment doesn't assign exactly the stations in the instance.");
+            Preconditions.checkState(assignmentSize == aInstance.getStations().size(), "Merged station assignment doesn't assign exactly the stations in the instance. There are %s stations in the assignment but expected %s stations to be assigned", assignmentSize, aInstance.getStations().size());
 
             // Check that the every station is on its domain
             final Map<Station, Integer> stationToChannel = StationPackingUtils.stationToChannelFromChannelToStation(result.getAssignment());

@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.composites;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -45,8 +45,8 @@ public class ParallelSolverComposite implements ISolver {
     Collection<ISolver> solvers;
     private final ForkJoinPool forkJoinPool;
 
-    public ParallelSolverComposite(int threadPoolSize, List<ISolver> solvers) {
-        this.solvers = new ArrayList<>(solvers);
+    public ParallelSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
+        this.solvers = solvers.stream().map(ISolverFactory::create).collect(Collectors.toList());
         log.debug("Creating a fork join pool with {} threads", threadPoolSize);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
     }
@@ -65,6 +65,7 @@ public class ParallelSolverComposite implements ISolver {
                             // Interrupt only if the result is conclusive
                             if (solve.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
                                 log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
+                                solvers.forEach(ISolver::interrupt);
                             }
                             return solve;
                         })

@@ -24,7 +24,6 @@ package ca.ubc.cs.beta.stationpacking.utils;
 import java.io.IOException;
 
 import lombok.Getter;
-import ca.ubc.cs.beta.stationpacking.base.StationDeserializer.StationJacksonModule;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,7 +40,7 @@ public class JSONUtils {
     static {
         mapper = new ObjectMapper();
         mapper.registerModule(new GuavaModule());
-        mapper.registerModule(new StationJacksonModule());
+        mapper.registerModule(new SATFCJacksonModule());
     }
 
     public static <T> T toObject(String jsonString, Class<T> klazz) {

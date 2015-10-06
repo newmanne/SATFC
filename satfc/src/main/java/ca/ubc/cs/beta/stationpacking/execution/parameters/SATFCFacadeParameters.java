@@ -25,10 +25,9 @@ import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.SolverCustomizationOptionsParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCParallelSolverBundle;
 import ch.qos.logback.classic.Level;
 
 import com.beust.jcommander.Parameter;
@@ -55,9 +54,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
     public String fCNFDir;
 
     @ParametersDelegate
-	public SolverCustomizationOptionsParameters fSolverOptions = new SolverCustomizationOptionsParameters();
-
-    @ParametersDelegate
     public SATFCCachingParameters cachingParams = new SATFCCachingParameters();
 
     @ParametersDelegate
@@ -81,12 +77,12 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	 */
 	@Parameter(names = "-CLASP-LIBRARY",description = "clasp library file")
 	public String fClaspLibrary;
-	
-	@Parameter(names = "-SOLVER-CHOICE", description = "Type of SATFC: Note that options other than SATFC_SEQUENTIAL and SATFC_PARALLEL are for developer purposes only")
-	public SolverChoice fSolverChoice = Runtime.getRuntime().availableProcessors() >= SATFCParallelSolverBundle.PORTFOLIO_SIZE ? SolverChoice.SATFC_PARALLEL : SolverChoice.SATFC_SEQUENTIAL;
 
-    @Parameter(names = "-PARALLELISM-LEVEL", description = "Maximum number of algorithms to execute in parallel. This defaults to all available processors. This has little effect past " + SATFCParallelSolverBundle.PORTFOLIO_SIZE)
-    public int numCores = Runtime.getRuntime().availableProcessors();
+	/**
+     * UBCSAT library to use (optional - can be automatically detected).
+     */
+    @Parameter(names = "-UBCSAT-LIBRARY",description = "UBCSAT library file")
+    public String fUBCSATLibrary;
 
 	/**
 	 * Logging options.
@@ -102,5 +98,11 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	
     @ParametersDelegate
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
+
+    @Parameter(names = "-CONFIG-FILE")
+    public String configFile = SATFCFacadeBuilder.autoDetectBundle();
+    
+    @Parameter(names = "-SOLVER-CHOICE", hidden=true)
+    public SolverChoice solverChoice = SolverChoice.YAML;
 
 }

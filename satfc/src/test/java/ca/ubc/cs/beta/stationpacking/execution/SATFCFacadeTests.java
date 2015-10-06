@@ -124,8 +124,7 @@ public class SATFCFacadeTests {
 	
 	private SATFCFacade buildFacade()
 	{
-		SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
-		return builder.build();
+		return new SATFCFacadeBuilder().build();
 	}
 	
 	/**

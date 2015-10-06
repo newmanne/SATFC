@@ -35,5 +35,9 @@ public class SATFCTargetAlgorithmEvaluatorOptions extends AbstractOptions {
 	
 	@Parameter(names = {"--satfctae-library"},description = "the location of the necessary (clasp) SAT solver library")
 	public String fLibrary;
-	
+
+    @Parameter(names = {"--satfctae-ubcsat-library"},description = "the location of the necessary (ubcsat) SAT solver library")
+    public String fUBCSATLibrary;
+
+
 }

@@ -24,7 +24,10 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base;
 import java.io.Serializable;
 import java.util.Set;
 
+import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 
 import com.google.common.base.Preconditions;
@@ -35,13 +38,16 @@ public class SATSolverResult implements Serializable {
 	private final SATResult fResult;
 	private final double fRuntime;
 	private final ImmutableSet<Literal> fAssignment;
-	
-	public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment)
+    @Getter
+    private final SolverResult.SolvedBy solvedBy;
+
+    public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment, SolverResult.SolvedBy solvedBy)
 	{
         Preconditions.checkArgument(aRuntime >= 0, "Cannot create a " + getClass().getSimpleName() + " with negative runtime: " + aRuntime);
 		fResult = aResult;
 		fRuntime = aRuntime;
 		fAssignment = ImmutableSet.copyOf(aAssignment);
+        this.solvedBy = aResult.isConclusive() ? solvedBy : SolvedBy.UNSOLVED;
 	}
 	
 	public SATResult getResult(){
@@ -64,7 +70,7 @@ public class SATSolverResult implements Serializable {
 	}
 
     public static SATSolverResult timeout(double time) {
-        return new SATSolverResult(SATResult.TIMEOUT, time, ImmutableSet.of());
+        return new SATSolverResult(SATResult.TIMEOUT, time, ImmutableSet.of(), SolverResult.SolvedBy.UNSOLVED);
     }
 
 }

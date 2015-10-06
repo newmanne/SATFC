@@ -44,6 +44,7 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
     compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion"
     
     compile 'com.beust:jcommander:1.35-patched'
     compile 'commons-collections:commons-collections:3.2.1'
@@ -92,10 +93,10 @@ def createScript(project, mainClass, name, jvmArgs) {
     }
 }
 
-//createScript(project,
-//             'ca.ubc.cs.beta.stationpacking.execution.ExtendedCacheProblemProducer',
-//             'ExtendedCacheProblemProducer',
-//             ['-Xmx2048m'])
+createScript(project,
+             'ca.ubc.cs.beta.stationpacking.tae.SATFCHydraExecutor',
+             'HydraLauncher',
+             ['-Xmx4048m'])
 
 //Project properties.
 applicationName = 'SATFC'

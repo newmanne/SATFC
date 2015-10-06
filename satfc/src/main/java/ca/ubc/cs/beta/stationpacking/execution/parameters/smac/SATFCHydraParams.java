@@ -1,19 +1,17 @@
 package ca.ubc.cs.beta.stationpacking.execution.parameters.smac;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.SolverType;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Created by newmanne on 11/06/15.
@@ -21,40 +19,15 @@ import com.google.common.collect.ImmutableMap;
 @UsageTextField(title="SMAC PARAMETERS", description = "Not intended for human use", level = OptionLevel.DEVELOPER)
 public class SATFCHydraParams extends AbstractOptions {
 
-    public enum SolverType {
-        CLASP,
-        PRESOLVER,
-        UNDERCONSTRAINED,
-        CONNECTED_COMPONENTS,
-        ARC_CONSISTENCY,
-        UNSAT_PRESOLVER,
-        NONE
-    }
 
-    public enum ClaspConfig {
-
-        H1 (ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1),
-        H2 (ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h2);
-
-        private final String config;
-
-        ClaspConfig(String config) {
-            this.config = config;
-        }
-
-        public String getConfig() {
-            return config;
-        }
-    }
-
-    public enum PresolverExpansion {
-        NEIGHBOURHOOD, UNIFORM_RANDOM
+    public enum SatSolverChoice {
+        UBCSAT, CLASP
     }
     
     @Parameter(names = "-presolver")
     public boolean presolver;
     @Parameter(names = "-presolverExpansionMethod")
-    public PresolverExpansion presolverExpansionMethod;
+    public YAMLBundle.PresolverExpansion presolverExpansionMethod;
     @Parameter(names = "-presolverNumNeighbours")
     public int presolverNumNeighbours;
     @Parameter(names = "-presolverIterativelyDeepen")
@@ -66,75 +39,50 @@ public class SATFCHydraParams extends AbstractOptions {
     @Parameter(names = "-presolverScaleFactor")
     public double presolverScaleFactor;
 
-    @Parameter(names = "-UNSATpresolver")
-    public boolean UNSATpresolver;
-    @Parameter(names = "-UNSATpresolverExpansionMethod")
-    public PresolverExpansion UNSATpresolverExpansionMethod;
-    @Parameter(names = "-UNSATpresolverNumNeighbours")
-    public int UNSATpresolverNumNeighbours;
-    @Parameter(names = "-UNSATpresolverIterativelyDeepen")
-    public boolean UNSATpresolverIterativelyDeepen;
-    @Parameter(names = "-UNSATpresolverCutoff")
-    public double UNSATpresolverCutoff;
-    @Parameter(names = "-UNSATpresolverBaseCutoff")
-    public double UNSATpresolverBaseCutoff;
-    @Parameter(names = "-UNSATpresolverScaleFactor")
-    public double UNSATpresolverScaleFactor;
-
     @Parameter(names = "-arcConsistency")
     public boolean arcConsistency;
-    @Parameter(names = "-arcConsistencyPriority")
-    public int arcConsistencyPriority;
 
     @Parameter(names = "-underconstrained")
     public boolean underconstrained;
-    @Parameter(names = "-underconstrainedPriority")
-    public int underconstrainedPriority;
-    @Parameter(names = "-underconstrainedExpensive")
-    public boolean underconstrainedExpensive;
-
 
     @Parameter(names = "-connectedComponents")
     public boolean connectedComponents;
-    @Parameter(names = "-connectedComponentsPriority")
-    public int connectedComponentsPriority;
 
-    public String claspConfig;
+    @Parameter(names = "-solverChoice")
+    public SatSolverChoice solverChoice;
+
+    @Parameter(names = "-presolverType")
+    public SolverType presolverType;
+
+    @Parameter(names = "-claspConfig")
+    public String claspConfig = "";
+    @Parameter(names = "-ubcsatConfig")
+    public String ubcsatConfig = "";
+    
+    @Parameter(names = "-encodingType")
+    public EncodingType encodingType;
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        final Map<SolverType, Integer> solverChoiceToPriority = getSolverTypePriorityMap();
-        solverChoiceToPriority.entrySet().stream().sorted((a, b) -> a.getValue().compareTo(b.getValue())).forEach(entry -> {
-            list.add(entry.getKey());
-        });
-        if (presolver) {
-            list.add(SolverType.PRESOLVER);
-        } else if (UNSATpresolver) {
-            list.add(SolverType.UNSAT_PRESOLVER);
+        if (arcConsistency) {
+            list.add(SolverType.ARC_CONSISTENCY);
         }
-        list.add(SolverType.CLASP);
+        if (underconstrained) {
+            list.add(SolverType.UNDERCONSTRAINED);
+        }
+        if (connectedComponents) {
+            list.add(SolverType.CONNECTED_COMPONENTS);
+        }
+        if (presolver) {
+            list.add(SolverType.SAT_PRESOLVER);
+        } else {
+            list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
+        }
         return list;
     }
 
-    private Map<SolverType, Integer> getSolverTypePriorityMap() {
-        final Map<SolverType, Integer> solverChoiceToPriority = new HashMap<>();
-        if (arcConsistency) {
-            solverChoiceToPriority.put(SolverType.ARC_CONSISTENCY, arcConsistencyPriority);
-        }
-        if (underconstrained) {
-            solverChoiceToPriority.put(SolverType.UNDERCONSTRAINED, underconstrainedPriority);
-        }
-        if (connectedComponents) {
-            solverChoiceToPriority.put(SolverType.CONNECTED_COMPONENTS, connectedComponentsPriority);
-        }
-        return solverChoiceToPriority;
-    }
-
     public boolean validate() {
-        Preconditions.checkNotNull(claspConfig);
-        Preconditions.checkState(!(presolver && UNSATpresolver), "Can only use one presolver!");
-        final Map<SolverType, Integer> solverTypePriorityMap = getSolverTypePriorityMap();
-        Preconditions.checkState(solverTypePriorityMap.entrySet().size() == new HashSet<>(solverTypePriorityMap.values()).size(), "At least two options have the same priority! " + ImmutableMap.copyOf(solverTypePriorityMap).toString());
+        Preconditions.checkState(presolverType == null || presolverType.equals(SolverType.SAT_PRESOLVER) || presolverType.equals(SolverType.UNSAT_PRESOLVER));
         return true;
     }
 

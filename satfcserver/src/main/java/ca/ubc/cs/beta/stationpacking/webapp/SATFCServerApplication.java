@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.beust.jcommander.Parameter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.SpringApplication;
@@ -36,8 +35,8 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-
 import org.springframework.util.ReflectionUtils;
+
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
@@ -48,6 +47,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 
+import com.beust.jcommander.Parameter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**

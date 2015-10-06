@@ -90,4 +90,6 @@ public interface Clasp3Library extends Library {
      * @return The configuration error message
      */
     String getConfigErrorMessage(Pointer jnaProblemPointer);
+
+    double getCpuTime();
 }

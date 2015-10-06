@@ -67,6 +67,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
 import com.google.common.base.Preconditions;
+import com.sun.jna.Native;
 
 /**
  * Target algorithm evaluator that wraps around the SATFC facade and only
@@ -83,6 +84,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 
     private final String fStationConfigFolder;
     private final String fLibPath;
+    private final String fUBCSATPath;
 
     private final ScheduledExecutorService fObserverThreadPool;
     private final DataManager dataManager;
@@ -95,11 +97,13 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 	     * we constrained the AbstractSyncTargetAlgorithmEvaluator supertype to only use 2 threads.
 	     */
         super(2);
+        Native.setProtected(true);
         Preconditions.checkNotNull(options.fStationConfigFolder);
         Preconditions.checkArgument(new File(options.fStationConfigFolder).exists(), "Provided station config folder " + options.fStationConfigFolder + " does not exist.");
         fStationConfigFolder = options.fStationConfigFolder;
         Preconditions.checkNotNull(options.fLibrary);
         fLibPath = options.fLibrary;
+        fUBCSATPath = options.fUBCSATLibrary;
         fObserverThreadPool = Executors.newScheduledThreadPool(2, new SequentiallyNamedThreadFactory("SATFC Observer Thread", true));
         // Create the DataManager (will be reused so we don't keep loading in constraints)
         dataManager = new DataManager();
@@ -183,10 +187,14 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 List<String> commandLine = new ArrayList<>();
                 final Iterator<String> iterator = activeParameters.iterator();
                 final StringBuilder clasp = new StringBuilder();
+                final StringBuilder ubcsat = new StringBuilder().append("-cutoff max -alg satenstein ");
                 while (iterator.hasNext()) {
                     final String next = iterator.next();
                     if (next.startsWith("_AT_")) { // CLASP PARAMETER
                         clasp.append("-").append(next).append(" ").append(config.getParameterConfiguration().get(next)).append(" ");
+                    } else if (next.startsWith("_UBCSAT_")) {
+                        // UBCSAT parameters are flagged starting with _UBCSAT_. DLS parameters are flagged with the prefix DLS (but shouldn't be propagated through)
+                        ubcsat.append("-").append(next.replace("_UBCSAT_", "").replace("DLS", "")).append(" ").append(config.getParameterConfiguration().get(next).replace("_UBCSAT_", "")).append(" ");
                     } else {
                         commandLine.add("-" + next);
                         commandLine.add(config.getParameterConfiguration().get(next));
@@ -201,13 +209,15 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
                 final SATFCHydraParams params = new SATFCHydraParams();
                 JCommanderHelper.parseCheckingForHelpAndVersion(commandLine.toArray(new String[commandLine.size()]), params);
                 params.claspConfig = claspParams;
+                params.ubcsatConfig = ubcsat.toString();
                 params.validate();
+
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
-                        .setLibrary(fLibPath)
-                        .setSolverChoice(SolverChoice.HYDRA)
-                        .setParallelismLevel(1)
+                        .setClaspLibrary(fLibPath)
+                        .setUBCSATLibrary(fUBCSATPath)
                         .setDeveloperOptions(DeveloperOptions
                                 .builder()
+                                .solverChoice(SolverChoice.HYDRA)
                                 .dataManager(dataManager)
                                 .hydraParams(params)
                                 .build());

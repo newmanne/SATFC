@@ -105,7 +105,6 @@ public class DataManager {
 				csE = e;
 			}
 
-			boolean compact = false;
 			if(uaE != null && csE != null)
 			{
 				log.error("Could not parse interference data both in unabridged and channel specific formats.");
@@ -136,14 +135,13 @@ public class DataManager {
 				}
 				log.info("Channel specific format recognized for interference constraints.");
 				constraintManager = channelspecificConstraintManager;
-                compact = true;
 			}
 			else
 			{
 				throw new IllegalStateException("Could not parse interference constraints with any recognized format.");
 			}
 
-			fData.put(path, new ManagerBundle(stationManager, constraintManager, path, compact));
+			fData.put(path, new ManagerBundle(stationManager, constraintManager, path));
 			return true;
 		}
 	}

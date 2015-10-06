@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers;
 
+import java.util.Map;
+
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -36,9 +38,13 @@ public interface ISATSolver {
 	 * @param aTerminationCriterion - the criterion dictating when to stop execution of solver.
 	 * @param aSeed - the seed for the execution.
 	 */
-	public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed);
+	SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed);
 
-	public void notifyShutdown();
+	default SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
+		return solve(aCNF, aTerminationCriterion, aSeed);
+	}
+
+	void notifyShutdown();
 	
 	default void interrupt() {};
 

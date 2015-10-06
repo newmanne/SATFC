@@ -23,7 +23,6 @@ package ca.ubc.cs.beta.stationpacking.cache;
 
 import java.util.List;
 
-import containmentcache.bitset.simple.SimpleBitSetCache;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -38,8 +37,7 @@ import com.google.common.collect.ImmutableList;
 
 import containmentcache.IContainmentCache;
 import containmentcache.ILockableContainmentCache;
-import containmentcache.bitset.opt.MultiPermutationBitSetCache;
-import containmentcache.bitset.opt.sortedset.redblacktree.RedBlackTree;
+import containmentcache.bitset.simple.SimpleBitSetCache;
 import containmentcache.decorators.BufferedThreadSafeCacheDecorator;
 import containmentcache.util.PermutationUtils;
 
