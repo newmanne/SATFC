@@ -96,7 +96,7 @@ public class SATFCFacade implements AutoCloseable {
                         case HYDRA:
                             return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
                         case YAML:
-                            return new YAMLBundle(dataBundle, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getResultFile(), aSATFCParameters.getCNFSaver());
+                            return new YAMLBundle(dataBundle, aSATFCParameters.getConfigFile(), aSATFCParameters.getServerURL(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary(), aSATFCParameters.getResultFile(), aSATFCParameters.getCNFSaver());
                         default:
                             throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                     }

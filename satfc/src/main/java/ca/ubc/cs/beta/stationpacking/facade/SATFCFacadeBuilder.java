@@ -25,6 +25,8 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import com.google.common.base.Preconditions;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.experimental.Builder;
@@ -53,10 +55,6 @@ public class SATFCFacadeBuilder {
     
     public final static String SATFC_SEQUENTIAL = "satfc_sequential";
     public final static String SATFC_PARALLEL = "satfc_parallel";
-    
-    public static String internalBundleNameToPath(String bundleFile) {
-    	return Resources.getResource("bundles" + File.separator + bundleFile + ".yaml").getPath();
-    }
 
     // public params
     private boolean initializeLogging;
@@ -66,7 +64,7 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private Level logLevel;
     private String logFileName;
-    private String configFile;
+    private YAMLBundle.ConfigFile configFile;
     private DeveloperOptions developerOptions;
 
     /**
@@ -74,7 +72,7 @@ public class SATFCFacadeBuilder {
      * @param configFile
      */
     public void setConfigFile(String configFile) {
-        this.configFile = configFile;
+        this.configFile = new YAMLBundle.ConfigFile(configFile, false);
     }
 
     // developer params
@@ -127,8 +125,8 @@ public class SATFCFacadeBuilder {
         developerOptions = DeveloperOptions.builder().solverChoice(SolverChoice.YAML).build();
     }
 
-    public static String autoDetectBundle() {
-        return SATFCFacadeBuilder.internalBundleNameToPath(Runtime.getRuntime().availableProcessors() >= 4 ? SATFCFacadeBuilder.SATFC_PARALLEL : SATFCFacadeBuilder.SATFC_SEQUENTIAL);
+    public static YAMLBundle.ConfigFile autoDetectBundle() {
+        return new YAMLBundle.ConfigFile(Runtime.getRuntime().availableProcessors() >= 4 ? SATFCFacadeBuilder.SATFC_PARALLEL : SATFCFacadeBuilder.SATFC_SEQUENTIAL, true);
     }
 
     /**
@@ -192,8 +190,8 @@ public class SATFCFacadeBuilder {
         if (fClaspLibrary == null || fUBCSATLibrary == null) {
             throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
         }
-        if (developerOptions.getSolverChoice().equals(SolverChoice.YAML) && configFile == null) {
-            throw new IllegalArgumentException("No YAML config file was given to initialize the solver bundle with!");
+        if (developerOptions.getSolverChoice().equals(SolverChoice.YAML)) {
+            Preconditions.checkNotNull(configFile, "No YAML config file was given to initialize the solver bundle with!");
         }
         if (initializeLogging) {
             initializeLogging(logLevel, logFileName);
@@ -279,7 +277,9 @@ public class SATFCFacadeBuilder {
         if (parameters.fUBCSATLibrary != null) {
             builder.setUBCSATLibrary(parameters.fUBCSATLibrary);
         }
-        builder.setConfigFile(parameters.configFile);
+        if (parameters.configFile != null) {
+            builder.setConfigFile(parameters.configFile);
+        }
         builder.setInitializeLogging(parameters.logFileName, parameters.getLogLevel());
         if (parameters.cachingParams.serverURL != null) {
             builder.setServerURL(parameters.cachingParams.serverURL);

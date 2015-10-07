@@ -3,10 +3,10 @@ package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 import java.util.ArrayList;
 import java.util.List;
 
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 /**
@@ -26,7 +26,7 @@ public class StationSizeSquaredProblemSampler implements IProblemSampler {
         while(!scanResult.getStringCursor().equals(startAndEndCursor)){
             scanResult.getResult().forEach(key -> {
                 // convert to containment cache object
-                ICacher.SATCacheEntry satEntry = getSATCacheEntry(jedis, key);
+                SATCacheEntry satEntry = getSATCacheEntry(jedis, key);
 
                 // TODO: newly solved problem is not captured here
                 // get size of station list and use size SQUARED as weight
@@ -70,8 +70,8 @@ public class StationSizeSquaredProblemSampler implements IProblemSampler {
      * convert entry string to containment cache entry object
      * @return a ContainmentCacheSATEntry with key
      */
-    private static ICacher.SATCacheEntry getSATCacheEntry(Jedis jedis, String key) {
+    private static SATCacheEntry getSATCacheEntry(Jedis jedis, String key) {
         String entry = jedis.get(key);
-        return JSONUtils.toObject(entry, ICacher.SATCacheEntry.class);
+        return JSONUtils.toObject(entry, SATCacheEntry.class);
     }
 }

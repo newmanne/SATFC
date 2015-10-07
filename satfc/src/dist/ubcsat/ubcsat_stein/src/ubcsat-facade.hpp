@@ -52,7 +52,6 @@ extern "C" {
 
   const char* getErrorMessage(void* jnaProblemPointer);
 
-
   /* Less public interface (used in Java tests) */
 
   int getNumVars();

@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -40,44 +41,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 public interface ICacher {
 
-    void cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result);
+    void cacheResult(StationPackingInstance instance, SolverResult result, ITerminationCriterion criterion);
 
     public interface ISATFCCacheEntry {
         Map<String, Object> getMetadata();
     }
 
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SATCacheEntry implements ISATFCCacheEntry {
-        private Map<String, Object> metadata;
-        private Map<Integer, Set<Station>> assignment;
-
-        @JsonIgnore
-        public Set<Station> getStations() {
-            Set<Station> uniqueStations = new HashSet<>();
-            assignment.values().forEach(stationList -> uniqueStations.addAll(stationList));
-            return uniqueStations;
-        }
-
-        @JsonIgnore
-        public Map<Integer, Integer> getStationToChannel() {
-            Map<Integer, Integer> stationToChannel = new HashMap<>();
-            assignment.entrySet().forEach(
-                    entry -> entry.getValue().forEach(
-                            station -> stationToChannel.put(station.getID(), entry.getKey())
-                    ));
-            return stationToChannel;
-        }
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UNSATCacheEntry implements ISATFCCacheEntry {
-        private Map<String, Object> metadata;
-        Map<Station, Set<Integer>> domains;
-    }
 
 }

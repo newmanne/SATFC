@@ -31,6 +31,8 @@ import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import com.google.common.io.Files;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import lombok.AccessLevel;
+import lombok.Getter;
 
 /**
  * This class returns a fresh, independent clasp library to each thread
@@ -39,6 +41,7 @@ import com.sun.jna.Native;
  * Also note the LD_OPEN options specified to Native.loadLibrary to make sure we use a different in-memory copy each time
  */
 public abstract class NativeLibraryGenerator<T extends Library> {
+    @Getter(AccessLevel.PUBLIC)
     private final String libraryPath;
     private final Class<T> klazz;
     private int numLibs;

@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import lombok.Value;
 import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
@@ -35,7 +36,7 @@ public class SATFCFacadeParameter {
     // public options
 	private final String claspLibrary;
 	private final String ubcsatLibrary;
-	private final String configFile;
+	private final YAMLBundle.ConfigFile configFile;
 	private final String serverURL;
 	
 	private final String resultFile;

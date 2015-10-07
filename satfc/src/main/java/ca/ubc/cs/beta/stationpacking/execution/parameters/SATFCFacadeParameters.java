@@ -100,7 +100,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
     public SATFCHydraParams fHydraParams = new SATFCHydraParams();
 
     @Parameter(names = "-CONFIG-FILE")
-    public String configFile = SATFCFacadeBuilder.autoDetectBundle();
+    public String configFile;
     
     @Parameter(names = "-SOLVER-CHOICE", hidden=true)
     public SolverChoice solverChoice = SolverChoice.YAML;

@@ -26,6 +26,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -54,12 +57,15 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
  * Not threadsafe!
  */
 @Slf4j
-public class ContainmentCacheProxy {
+public class ContainmentCacheProxy implements ICacher {
+
+    public final static int NUM_RETRIES = 2;
 
     private final CacheCoordinate coordinate;
     private final static CloseableHttpAsyncClient httpClient;
     private final String SAT_URL;
     private final String UNSAT_URL;
+    private final String CACHE_URL;
     private final AtomicReference<Future<HttpResponse>> activeFuture;
 
     static {
@@ -70,6 +76,7 @@ public class ContainmentCacheProxy {
     public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
+        CACHE_URL = baseServerURL + "/v1/cache";
         this.coordinate = coordinate;
         activeFuture = new AtomicReference<>();
     }
@@ -80,28 +87,59 @@ public class ContainmentCacheProxy {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ContainmentCacheRequest {
+
+        public ContainmentCacheRequest(StationPackingInstance instance, CacheCoordinate coordinate) {
+            this.instance = instance;
+            this.coordinate = coordinate;
+        }
+
         private StationPackingInstance instance;
         private CacheCoordinate coordinate;
+        private SolverResult result;
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(SAT_URL, instance, ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion);
+        return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, NUM_RETRIES);
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(UNSAT_URL, instance, ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion);
+        return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, NUM_RETRIES);
     }
 
-    private <T> T makePost(String URL, StationPackingInstance instance, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion) {
+    @Override
+    public void cacheResult(StationPackingInstance instance, SolverResult result, ITerminationCriterion terminationCriterion) {
+        makePost(CACHE_URL, new ContainmentCacheRequest(instance, coordinate, result), null, null, terminationCriterion, NUM_RETRIES);
+    }
+
+    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion, int retryCount) {
+        try {
+            return makePost(URL, request, responseClass, failure, terminationCriterion);
+        } catch (Exception e) {
+            log.error("Error making a web request", e);
+            int newRetryCount = retryCount - 1;
+            if (newRetryCount > 0) {
+                log.error("Retrying web request. Request will be retried {} more time(s)", newRetryCount);
+                return makePost(URL, request, responseClass, failure, terminationCriterion, newRetryCount);
+            } else {
+                log.error("The retry quota for this web request has been exceeded. Continuing to solve the problem without the server...");
+                return failure;
+            }
+        }
+    }
+
+    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(URL);
         final String uriString = builder.build().toUriString();
         final HttpPost httpPost = new HttpPost(uriString);
-        log.debug("Making a request to the cache server for instance " + instance.getName() + " " + uriString);
-        final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
+        log.debug("Making a request to the cache server for instance " + request.getInstance().getName() + " " + uriString);
         final String jsonRequest = JSONUtils.toString(request);
         final StringEntity stringEntity = new StringEntity(jsonRequest, ContentType.APPLICATION_JSON);
         httpPost.setEntity(stringEntity);
+        if (terminationCriterion.hasToStop()) {
+            return failure;
+        }
         try {
             final CountDownLatch latch = new CountDownLatch(1);
             final AtomicReference<HttpResponse> httpResponse = new AtomicReference<>();
@@ -141,8 +179,12 @@ public class ContainmentCacheProxy {
             if (terminationCriterion.hasToStop()) {
                 return failure;
             }
-            final String response = EntityUtils.toString(httpResponse.get().getEntity());
-            return JSONUtils.toObject(response, responseClass);
+            if (responseClass != null) {
+                final String response = EntityUtils.toString(httpResponse.get().getEntity());
+                return JSONUtils.toObject(response, responseClass);
+            } else {
+                return null; // Not expecting a response
+            }
         } catch (IOException e) {
             throw new RuntimeException("Error reading input stream from httpResponse", e);
         }

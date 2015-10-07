@@ -1,18 +1,5 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.experimental.Builder;
-import lombok.extern.slf4j.Slf4j;
-import ca.ubc.cs.beta.stationpacking.cache.CacherProxy;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
@@ -21,19 +8,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -46,7 +25,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
@@ -59,6 +37,21 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import com.google.common.io.Resources;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.Builder;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by newmanne on 01/10/15.
@@ -74,7 +67,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     public YAMLBundle(
             @NonNull ManagerBundle managerBundle,
-            @NonNull String configFile,
+            @NonNull ConfigFile configFile,
             String serverURL,
             String claspLibraryPath,
             String ubcsatLibraryPath,
@@ -96,12 +89,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 .build();
 
         log.info("Reading configuration file {}", configFile);
-        final String configJSONString;
-        try {
-            configJSONString = Files.toString(new File(configFile), Charsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Could not load in config file", e);
-        }
+        final String configJSONString = configFile.getFileAsString();
 
         log.info("Running configuration file through YAML parser to handle anchors...");
 
@@ -128,8 +116,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         log.info("Configuration parsed! Building solvers...");
         final List<ISolverConfig> uhf = config.getUHF();
         final List<ISolverConfig> vhf = config.getVHF();
-        Preconditions.checkState(!uhf.isEmpty(), "No solver provided for UHF in config file %s", configFile);
-        Preconditions.checkState(!vhf.isEmpty(), "No solver provided for VHF in config file %s", configFile);
+        Preconditions.checkState(uhf != null && !uhf.isEmpty(), "No solver provided for UHF in config file %s", configFile);
+        Preconditions.checkState(vhf != null && !vhf.isEmpty(), "No solver provided for VHF in config file %s", configFile);
 
         UHFSolver = concat(uhf, context);
         VHFSolver = concat(vhf, context);
@@ -147,6 +135,26 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             }
         }
         return solver;
+    }
+
+    @Data
+    public static class ConfigFile {
+
+        final String fileName;
+        final boolean internal;
+
+        public String getFileAsString() {
+            try {
+                if (internal) {
+                    return Resources.toString(Resources.getResource("bundles" + File.separator + fileName + ".yaml"), Charsets.UTF_8);
+                } else {
+                    return Files.toString(new File(fileName), Charsets.UTF_8);
+                }
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Could not load in config file", e);
+            }
+        }
+
     }
 
     @Data
@@ -258,7 +266,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new CacheResultDecorator(solverToDecorate, new CacherProxy(context.getServerURL()), context.getManagerBundle().getCacheCoordinate());
+            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(context.getServerURL(), context.getManagerBundle().getCacheCoordinate()));
         }
 
     }
@@ -290,12 +298,11 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            System.out.println(this.toString());
             return new UnderconstrainedStationRemoverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), new HeuristicUnderconstrainedStationFinder(context.getManagerBundle().getConstraintManager(), expensive), recursive);
         }
 
-        private boolean expensive;
-        private boolean recursive;
+        private boolean expensive = true;
+        private boolean recursive = true;
     }
 
     @Data

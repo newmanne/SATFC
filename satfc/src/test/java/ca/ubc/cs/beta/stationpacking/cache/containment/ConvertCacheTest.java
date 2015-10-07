@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.UNSATCacheEntry;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +26,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
@@ -128,11 +129,11 @@ public class ConvertCacheTest {
                 log.info("Processed " + progressIndex.get() + " SAT keys out of " + SATKeys.size());
             }
             final String val = fromRedisTemplate.boundValueOps(key).get();
-            final ICacher.SATCacheEntry satCacheEntry = JSONUtils.toObject(val, ICacher.SATCacheEntry.class);
+            final SATCacheEntry satCacheEntry = JSONUtils.toObject(val, SATCacheEntry.class);
             // convert it!
             Map<Integer, Set<Station>> newAssignment = new HashMap<>();
             satCacheEntry.getAssignment().entrySet().stream().forEach(entry -> newAssignment.put(entry.getKey(), entry.getValue().stream().map(s -> new Station(oldToNew.get(s.getID()))).collect(Collectors.toSet())));
-            final ICacher.SATCacheEntry satCacheEntry1 = new ICacher.SATCacheEntry(satCacheEntry.getMetadata(), newAssignment);
+            final SATCacheEntry satCacheEntry1 = new SATCacheEntry(satCacheEntry.getMetadata(), newAssignment);
             final String jsonResult = JSONUtils.toString(satCacheEntry1);
             final String instanceHash = Iterables.getLast(Splitter.on(":").split(key));
             final String newKey = Joiner.on(":").join(ImmutableList.of("SATFC", SATResult.SAT, domainHash, interferenceHash, instanceHash));
@@ -153,10 +154,10 @@ public class ConvertCacheTest {
                 log.info("Processed " + progressIndex.get() + " UNSAT keys out of " + UNSATKeys.size());
             }
             final String val = fromRedisTemplate.boundValueOps(key).get();
-            final ICacher.UNSATCacheEntry cacheEntry = JSONUtils.toObject(val, ICacher.UNSATCacheEntry.class);
+            final UNSATCacheEntry cacheEntry = JSONUtils.toObject(val, UNSATCacheEntry.class);
             final Map<Station, Set<Integer>> newDomains = new HashMap<>();
             cacheEntry.getDomains().entrySet().stream().forEach(entry -> newDomains.put(new Station(oldToNew.get(entry.getKey().getID())), entry.getValue()));
-            final ICacher.UNSATCacheEntry newEntry = new ICacher.UNSATCacheEntry(cacheEntry.getMetadata(), newDomains);
+            final UNSATCacheEntry newEntry = new UNSATCacheEntry(cacheEntry.getMetadata(), newDomains);
             final String jsonResult = JSONUtils.toString(newEntry);
             final String instanceHash = Iterables.getLast(Splitter.on(":").split(key));
             final String newKey = Joiner.on(":").join(ImmutableList.of("SATFC", SATResult.UNSAT, domainHash, interferenceHash, instanceHash));

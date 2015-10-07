@@ -93,6 +93,7 @@ void* initConfig(const char* params) {
   free(numParams);
   free(paramsMutable);
 
+  fflush(stdout);
   return ubcsat;
 }
 
@@ -277,6 +278,7 @@ int initProblem(void* ubcsatState, const char* problem) {
 //  t2 = clock();
 //  float diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC ) * 1000;
 //  printf("C PRINTF: time to init problem %fs\n", diff);
+  fflush(stdout);
 
   return TRUE;
 
@@ -403,7 +405,7 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
   else if (state->resultState == 0) { // resultState has not been changed since initialization
     state->resultState = 2;
   }
-
+  fflush(stdout);
   return TRUE;
 }
 
@@ -413,6 +415,7 @@ void destroyProblem(void* ubcsatState) {
   CleanExit();
   resetAllStaticallyAllocatedGlobalVars();
   delete ubcsat;
+  fflush(stdout);
 }
 
 void interrupt(void* ubcsatState) {
