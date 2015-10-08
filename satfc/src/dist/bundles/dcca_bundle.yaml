@@ -1,0 +1,8 @@
+---
+UHF:
+  - name: UBCSAT
+    args:
+      encodingType: MULTIVALUED
+      config: -alg satenstein -promisinglist 1 -decreasingvariable 13 -heuristic 20 -avgweightthreshold 300 -DCCAp 0.3 -DCCAq 0 -cutoff max
+VHF:
+  - name: VERIFIER
