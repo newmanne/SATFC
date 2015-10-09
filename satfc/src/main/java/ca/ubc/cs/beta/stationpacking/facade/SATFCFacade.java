@@ -23,14 +23,17 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationSizeStationSampler;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -39,10 +42,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundleFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
@@ -86,12 +87,6 @@ public class SATFCFacade implements AutoCloseable {
         
         fSolverManager = new SolverManager(
                 dataBundle -> {
-
-                    /*
-                     * SOLVER BUNDLE.
-                     *
-                     * Set what bundle we're using here.
-                     */
                     switch (aSATFCParameters.getSolverChoice()) {
                         case HYDRA:
                             return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
@@ -122,11 +117,11 @@ public class SATFCFacade implements AutoCloseable {
 
 	private void unsatisfiedLinkWarn(final String libPath, UnsatisfiedLinkError e) {
 		log.error("\n--------------------------------------------------------\n" +
-		                "Could not load clasp from library : {}. \n" +
+		                "Could not load native library : {}. \n" +
 		                "Possible Solutions:\n" +
 		                "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
 		                "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
-		                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" options.\n" +
+		                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" or \"-UBCSAT-LIBRARY\" options.\n" +
 		                "--------------------------------------------------------", libPath,libPath);
 		throw new IllegalArgumentException("Could not load JNA library", e);
 	}
@@ -161,15 +156,7 @@ public class SATFCFacade implements AutoCloseable {
         }
         Preconditions.checkArgument(aCutoff > 0, "Cutoff must be strictly positive");
 
-        log.debug("Getting data managers...");
-        //Get the data managers and solvers corresponding to the provided station config data.
-        final ISolverBundle bundle;
-        try {
-            bundle = fSolverManager.getData(aStationConfigFolder);
-        } catch (FileNotFoundException e) {
-            log.error("Did not find the necessary data files in provided station config data folder {}.", aStationConfigFolder);
-            throw new IllegalArgumentException("Station config files not found.", e);
-        }
+        final ISolverBundle bundle = getSolverBundle(aStationConfigFolder);
 
         final IStationManager stationManager = bundle.getStationManager();
 
@@ -263,6 +250,19 @@ public class SATFCFacade implements AutoCloseable {
 
     }
 
+    private ISolverBundle getSolverBundle(String aStationConfigFolder) {
+        log.debug("Getting data managers...");
+        //Get the data managers and solvers corresponding to the provided station config data.
+        final ISolverBundle bundle;
+        try {
+            bundle = fSolverManager.getData(aStationConfigFolder);
+        } catch (FileNotFoundException e) {
+            log.error("Did not find the necessary data files in provided station config data folder {}.", aStationConfigFolder);
+            throw new IllegalArgumentException("Station config files not found.", e);
+        }
+        return bundle;
+    }
+
     public SATFCResult solve(Set<Integer> aStations,
                              Set<Integer> aChannels,
                              Map<Integer, Set<Integer>> aReducedDomains,
@@ -319,6 +319,71 @@ public class SATFCFacade implements AutoCloseable {
             aDomains.put(station, domain);
         }
         return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
+    }
+
+    public void augment(@NonNull Map<Integer, Set<Integer>> domains,
+                        @NonNull Map<Integer, Integer> previousAssignment,
+                        @NonNull String stationInformationFile,
+                        @NonNull String stationConfigFolder,
+                        int seed,
+                        double cutoff
+    ) {
+        // These stations will be in every single problem
+        final Set<Integer> exitedStations = previousAssignment.keySet();
+
+        final ISolverBundle bundle = getSolverBundle(stationConfigFolder);
+        final IStationManager manager = bundle.getStationManager();
+
+        // Init the station sampler
+        final IStationSampler sampler;
+        try {
+            sampler = new PopulationSizeStationSampler(stationInformationFile, domains.keySet(), manager, seed);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Problem parsing file " + stationInformationFile, e);
+        }
+
+        // The set of stations that we are going to pack in every problem
+        final Set<Integer> packingStations = new HashSet<>(exitedStations);
+        final Set<Integer> confirmedUNSAT = new HashSet<>();
+        Map<Integer, Integer> currentAssignment = new HashMap<>(previousAssignment);
+
+        // TODO: global restart if you fail
+
+        // Augment
+        while (true) {
+            // Sample a new station
+            final Integer sample = sampler.sample(Sets.union(packingStations, confirmedUNSAT));
+            final Set<Integer> toPack = Sets.union(packingStations, Collections.singleton(sample));
+            final Map<Integer, Set<Integer>> reducedDomains = Maps.filterEntries(domains, new Predicate<Entry<Integer, Set<Integer>>>() {
+                @Override
+                public boolean apply(Entry<Integer, Set<Integer>> input) {
+                    return toPack.contains(input.getKey());
+                }
+            });
+
+            // Solve!
+            final SATFCResult result = solve(reducedDomains, currentAssignment, cutoff, seed, stationConfigFolder);
+            if (result.getResult().equals(SATResult.SAT)) {
+                // Result was SAT. Let's continue down this trajectory
+                log.debug("Result was SAT. Adding station {} to trajectory", sample);
+                packingStations.add(sample);
+                currentAssignment = result.getWitnessAssignment();
+            } else {
+                log.debug("Result was not {}, not SAT", result.getResult());
+                if (result.getResult().equals(SATResult.UNSAT)) {
+                    log.debug("Station {} is confirmed UNSAT, will not try it again", sample);
+                    confirmedUNSAT.add(sample);
+                }
+            }
+        }
+    }
+
+    public void augment(@NonNull Map<Integer, Set<Integer>> domains,
+                        @NonNull Map<Integer, Integer> previousAssignment,
+                        @NonNull String stationInformationFile,
+                        @NonNull String stationConfigFolder,
+                        double cutoff) {
+        augment(domains, previousAssignment, stationInformationFile, stationConfigFolder, new Random().nextInt(), cutoff);
     }
 
     @Override

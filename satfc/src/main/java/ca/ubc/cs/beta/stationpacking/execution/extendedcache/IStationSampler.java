@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+
 import java.util.Set;
 
 /**
@@ -13,5 +15,5 @@ public interface IStationSampler {
      * @param stationsInProblem a set representing stations that are present in a problem
      * @return stationID of the station to be added
      */
-    Integer sample(Set<Integer> stationsInProblem);
+    Integer sample(Set<Integer> stationsAlreadyInProblem);
 }

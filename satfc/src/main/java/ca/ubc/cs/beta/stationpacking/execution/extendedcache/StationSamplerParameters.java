@@ -21,7 +21,8 @@ public class StationSamplerParameters extends AbstractOptions {
         switch(fStationSamplingMethod){
             case POPULATION_SIZE:
                 if(fStationSamplingFile == null) throw new IllegalStateException("Need to specify " + StationSamplingMethod.POPULATION_SIZE + " source file using flag -STATION-SAMPLER-SOURCE-FILE");
-                return new PopulationSizeStationSampler(fStationSamplingFile);
+                // TODO: fix
+                return new PopulationSizeStationSampler(fStationSamplingFile, null, null, 0);
             default:
                 throw new IllegalStateException("Specified --STATION-SAMPLER is invalid");
         }
