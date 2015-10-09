@@ -101,12 +101,14 @@ extern UINT32 iMaxCandidates;
     aVarInit[j]           how variable[j] is initialized each run (0,1,2 => False,True,Random)
     iInitVarFlip          # of variables to be 're-flipped' after initialization
     bVarInitGreedy        if true, then greedily init vars that have a biased # of pos/neg literals
+    randomVarInitPercentage      obey aVarInit with randomVarInitPercentage, otherwise random with 1 - randomVarInitPercentage
 */
   
 extern UINT32 *aVarInit;
 extern UINT32 iInitVarFlip;
 extern BOOL bVarInitGreedy;
-
+extern PROBABILITY iRandomVarInitPercentage;
+extern PROBABILITY iIgnoreStartingAssignmentPercentage;
 
 /***** Trigger DefaultStateInfo *****/
 /*

@@ -543,6 +543,8 @@ void resetAllStaticallyAllocatedGlobalVars() {
   iMaxCandidates = 0;
   iInitVarFlip = 0;
   bVarInitGreedy = FALSE;
+  iRandomVarInitPercentage = 0;
+  iIgnoreStartingAssignmentPercentage = 0;
   iNumFalse = 0;
   fSumFalseW = 0;
   iSumFalsePen = 0;

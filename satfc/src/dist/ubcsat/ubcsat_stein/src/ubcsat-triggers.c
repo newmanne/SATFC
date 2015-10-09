@@ -84,6 +84,8 @@ void DefaultInitVars();
 UINT32 *aVarInit;
 UINT32 iInitVarFlip;
 BOOL bVarInitGreedy;
+PROBABILITY iRandomVarInitPercentage;
+PROBABILITY iIgnoreStartingAssignmentPercentage;
 
 
 /***** Trigger InitVarLastSatisfied *****/
@@ -1396,15 +1398,25 @@ void DefaultInitVars() {
     }
   }
 
+  // Should you completely ignore the starting assignent this time around?
+  BOOL bIgnoreStartingAssignment = RandomProb(iIgnoreStartingAssignmentPercentage);
+
   for (j=1;j<=iNumVars;j++) {
     if (aVarInit[j] == 3) {
       aVarValue[j] = iNextAlternating;
       iNextAlternating = 1 - iNextAlternating;
     } else {
-      if (aVarInit[j] == 2) {
+      if (bIgnoreStartingAssignment || aVarInit[j] == 2) {
         aVarValue[j] = RandomInt(2);
       } else {
-        aVarValue[j] = aVarInit[j];
+        // On a per variable basis, should you maybe just set it randomly instead of listening to the assignment
+        if (RandomProb(iRandomVarInitPercentage)) {
+          fflush(stdout);
+          aVarValue[j] = RandomInt(2); 
+        } else {
+          fflush(stdout);
+          aVarValue[j] = aVarInit[j];  
+        }
       }
     }
   }

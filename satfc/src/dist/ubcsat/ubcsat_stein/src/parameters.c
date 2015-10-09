@@ -61,6 +61,9 @@ void AddParameters() {
   AddParmString(&parmIO,"-varinitfile","variable initialization file","variables are initialized to specific values at the~start of each run and at restarts~~Example file:~  -1 3 -4 9 ~sets variables (3,9) to true and variables (1,4) to false~and all other variables would be initialized randomly","",&sFilenameVarInit,"");
   AddParmUInt(&parmIO,"-varinitflip","flip INT variables after initialization","forces INT (unique) random variables to be flipped~after initialization","CandidateList",&iInitVarFlip,0);
   AddParmBool(&parmIO,"-varinitgreedy","greedy variable initialization","if a variable appears more often as a positive literal~then the var is initialized to true (and vice-versa)~for vars with ties, it alternates between true and false~this initialization is deterministic","",&bVarInitGreedy,FALSE);
+  AddParmProbability(&parmIO,"-randomVarInitPercentage","random var init percentage","don't respect the initialization provided with this percentage","",&iRandomVarInitPercentage,FLOATZERO);
+  AddParmProbability(&parmIO,"-ignoreStartingAssignmentPercentage","ignore starting assignment percentage","When a restart is performed, don't actually use the starting assignment with this percentage","",&iIgnoreStartingAssignmentPercentage,FLOATZERO);
+
 
   AddParmString(&parmIO,"-param,-fp","read command-line parameters from a file","file format is plain text, and in command-line syntax~the command-line will override any parameters from files~and you can specify more than one file~~Example file:~  -runs 100 -cutoff max -noimprove 1000n","",&sFilenameParms,"");
 
