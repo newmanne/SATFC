@@ -1019,17 +1019,17 @@ void ReadCNF() {
     if (sLine[0] =='p') {
       if (bWeighted) {
         if (bIsWCNF) {
-          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         } else {
           ReportPrint(pRepErr,"Warning! reading .cnf file and setting all weights = 1\n");
-          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         }
       } else {
         if (bIsWCNF) {
           ReportPrint(pRepErr,"Warning! reading .wcnf file and ignoring all weights\n");
-          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         } else {
-          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         }
       }
     } else {

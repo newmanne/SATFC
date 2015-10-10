@@ -136,17 +136,17 @@ int initProblem(void* ubcsatState, const char* problem) {
     if (sLine[0] =='p') {
       if (bWeighted) {
         if (bIsWCNF) {
-          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         } else {
           ReportPrint(pRepErr,"Warning! reading .cnf file and setting all weights = 1\n");
-          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         }
       } else {
         if (bIsWCNF) {
           ReportPrint(pRepErr,"Warning! reading .wcnf file and ignoring all weights\n");
-          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         } else {
-          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
         }
       }
     } else {
@@ -184,10 +184,10 @@ int initProblem(void* ubcsatState, const char* problem) {
 
     if (bWeighted) {
       if (bIsWCNF) {
-        iScanRet = fscanf(filInput,"%"SCAN64,&w);
+        iScanRet = fscanf(filInput,"%" SCAN64 ,&w);
         if (iScanRet != 1) {
           ReportHdrPrefix(pRepErr);
-          ReportHdrPrint1(pRepErr,"Error reading clause weight at clause [%"P32"]\n",j);
+          ReportHdrPrint1(pRepErr,"Error reading clause weight at clause [%" P32 "]\n",j);
           ReportHdrPrint1(pRepErr,"  at or near: %s\n",sLine);
           aClauseWeight[j] = 1;
         }
@@ -198,7 +198,7 @@ int initProblem(void* ubcsatState, const char* problem) {
       fTotalWeight += aClauseWeight[j];
     } else {
       if (bIsWCNF) {
-        fscanf(filInput,"%"SCAN64,&w);
+        fscanf(filInput,"%" SCAN64 ,&w);
       }
     }
 
@@ -206,21 +206,21 @@ int initProblem(void* ubcsatState, const char* problem) {
     aClauseLen[j] = 0;
 
     do {
-      iScanRet = fscanf(filInput,"%"SCANS32,&l);
+      iScanRet = fscanf(filInput,"%" SCANS32 ,&l);
 
       while (iScanRet != 1) {
         if (iScanRet==0) {
           fgets(sLine,MAXCNFLINELEN,filInput);
 
           if (sLine[0] =='c') {
-            iScanRet = fscanf(filInput,"%"SCANS32,&l);
+            iScanRet = fscanf(filInput,"%" SCANS32 ,&l);
           } else {
-            ReportPrint1(pRepErr,"Error reading instance at clause [%"P32"]\n",j);
+            ReportPrint1(pRepErr,"Error reading instance at clause [%" P32 "]\n",j);
             ReportPrint1(pRepErr,"  at or near: %s\n",sLine);
             AbnormalExit();
           }
         } else {
-          ReportPrint1(pRepErr,"Error reading instance. at clause [%"P32"]\n",j);
+          ReportPrint1(pRepErr,"Error reading instance. at clause [%" P32 "]\n",j);
           AbnormalExit();
         }
       }
@@ -241,7 +241,7 @@ int initProblem(void* ubcsatState, const char* problem) {
         *pNextLit = SetLitFromFile(l);
 
         if (GetVarFromLit(*pNextLit) > iNumVars) {
-          ReportPrint2(pRepErr,"Error: Invalid Literal [%"P32"] in clause [%"P32"]\n",l,j);
+          ReportPrint2(pRepErr,"Error: Invalid Literal [%" P32 "] in clause [%" P32 "]\n",l,j);
           AbnormalExit();
         }
 
@@ -256,7 +256,7 @@ int initProblem(void* ubcsatState, const char* problem) {
     }
 
     if (aClauseLen[j] == 0) {
-      ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%"P32"] is empty\n",j);
+      ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%" P32 "] is empty\n",j);
       AbnormalExit();
     }
   }
