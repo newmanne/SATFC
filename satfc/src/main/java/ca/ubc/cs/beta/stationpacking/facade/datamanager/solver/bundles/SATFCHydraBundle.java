@@ -105,7 +105,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
-        fSolver = new VoidSolver();
+        fSolver = params.solverChoice.equals(SATFCHydraParams.SatSolverChoice.CLASP) ? clasp3ISolverFactory.create(params.claspConfig) : ubcsatiSolverFactory.create(params.ubcsatConfig);
         fSolver = new CPUTimeDecorator(fSolver, claspLibraryGenerator.createLibrary());
         log.debug(params.getSolverOrder().toString());
         for (YAMLBundle.SolverType solverType : params.getSolverOrder()) {
