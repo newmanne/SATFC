@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
@@ -86,6 +87,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 .serverURL(serverURL)
                 .resultFile(resultFile)
                 .CNFSaver(CNFSaver)
+                .python(new PythonInterpreterFactory(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference()))
                 .build();
 
         log.info("Reading configuration file {}", configFile);
@@ -200,6 +202,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private final ManagerBundle managerBundle;
         private final String resultFile;
         private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
+        private final PythonInterpreterFactory python;
     }
 
     @Data
@@ -240,6 +243,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             return new AssignmentVerifierDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getManagerBundle().getStationManager());
         }
 
+    }
+
+    @Data
+    public static class PythonVerifieConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new PythonAssignmentVerifierDecorator(solverToDecorate, context.getPython());
+        }
     }
 
     @Data
@@ -434,6 +446,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         UNDERCONSTRAINED,
         CONNECTED_COMPONENTS,
         ARC_CONSISTENCY,
+        PYTHON_VERIFIER,
         VERIFIER,
         CACHE,
         SAT_CACHE,
@@ -495,6 +508,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.PARALLEL, YAMLBundle.ParallelConfig.class)
                         .put(SolverType.RESULT_SAVER, YAMLBundle.ResultSaverConfig.class)
                         .put(SolverType.CNF, YAMLBundle.CNFSaverConfig.class)
+                        .put(SolverType.PYTHON_VERIFIER, PythonVerifieConfig.class)
                         .build();
 
         @Override

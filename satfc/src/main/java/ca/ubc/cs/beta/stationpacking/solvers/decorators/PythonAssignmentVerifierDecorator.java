@@ -41,7 +41,7 @@ public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
             final String checkResult = eval.toString();
             if(!checkResult.equals("None")){
                 List<String> violationResult = (List<String>) eval.__tojava__(List.class);
-                throw new IllegalStateException("Station " + violationResult.get(0) + " is assigned to channel " + violationResult.get(1) + " which violated " + violationResult.get(2));
+                throw new IllegalStateException("Station " + violationResult.get(0) + " is assigned to channel " + violationResult.get(1) + " which violated " + violationResult.get(2) + System.lineSeparator() + result.getAssignment());
             };
             log.debug("Assignment was independently verified to be satisfiable.");
         }
