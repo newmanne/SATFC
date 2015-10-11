@@ -113,10 +113,10 @@ public class SATFCHydraBundle extends ASolverBundle {
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
-        fSolver = satSolverFactory.create(satSolverParams);
         log.debug(params.getSolverOrder().toString());
+        fSolver = new VoidSolver();
         for (YAMLBundle.SolverType solverType : params.getSolverOrder()) {
-            if (solverType != YAMLBundle.SolverType.NONE) {
+            if (!solverType.equals(YAMLBundle.SolverType.NONE)) {
                 fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
             }
         }

@@ -64,19 +64,18 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        if (arcConsistency) {
-            list.add(SolverType.ARC_CONSISTENCY);
-        }
-        if (underconstrained) {
-            list.add(SolverType.UNDERCONSTRAINED);
+        list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
+        if (presolver) {
+            list.add(presolverType);
         }
         if (connectedComponents) {
             list.add(SolverType.CONNECTED_COMPONENTS);
         }
-        if (presolver) {
-            list.add(presolverType);
-        } else {
-            list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
+        if (underconstrained) {
+            list.add(SolverType.UNDERCONSTRAINED);
+        }
+        if (arcConsistency) {
+            list.add(SolverType.ARC_CONSISTENCY);
         }
         return list;
     }

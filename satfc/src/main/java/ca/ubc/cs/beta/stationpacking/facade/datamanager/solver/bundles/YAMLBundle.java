@@ -426,8 +426,13 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getCNFSaver(), encodingType, true);
         }
-        
-        EncodingType encodingType;
+
+        @Override
+        public boolean shouldSkip(SATFCContext context) {
+            return context.getCNFSaver() == null;
+        }
+
+        EncodingType encodingType = EncodingType.DIRECT;
         
     }
 
