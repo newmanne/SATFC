@@ -3,6 +3,12 @@ UHF:
   - name: UBCSAT
     args:
       encodingType: MULTIVALUED
-      config: -alg satenstein -promisinglist 1 -decreasingvariable 13 -heuristic 20 -avgweightthreshold 300 -DCCAp 0.3 -DCCAq 0  -randomVarInitPercentage 0.9 -ignoreStartingAssignmentPercentage 0.5 -cutoff max
+      config: -alg satenstein -cutoff max -theta 6 -wp 0.03 -promwp 0.01 -selectclause 1 -promnovnoise 0.5 -wpwalk 0.2 -adaptwalkprob 0 -alpha 1.189 -singleclause 0 -DCCAp 0.3 -DCCAq 0 -rho 0.333 -tiebreaking 2 -smoothingscheme 1 -adaptpromwalkprob 0 -c 0.0001 -clausepen 1 -avgweightthreshold 300 -promdp 0.05 -phi 5 -promisinglist 0 -promphi 5 -decreasingvariable 3 -promtheta 6 -updateschemepromlist 3 -heuristic 2 -adaptive 0 -randomwalk 1 -ps 0.166 -s 0.1 -ignoreStartingAssignmentPercentage 0.6839748152785945 -rwp 0.1 -scoringmeasure 1 -performalternatenovelty 1 -novnoise 0.5 -adaptivenoisescheme 2 -performrandomwalk 1 -randomVarInitPercentage 0.40297308698050804 -dp 0.05 -tabusearch 1 -tabu 5 -adaptiveprom 0 -varinfalse 1 -sparrowc2 4 -sparrowc3 75000 -sparrowc1 2.15
+  - name: UNDERCONSTRAINED
+    args:
+      expensive: true
+      recursive: true
+  - name: ARC_CONSISTENCY
+  - name: VERIFIER
 VHF:
   - name: VERIFIER

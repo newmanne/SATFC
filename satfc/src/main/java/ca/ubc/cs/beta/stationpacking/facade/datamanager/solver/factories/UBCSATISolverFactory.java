@@ -11,11 +11,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.U
  * Created by newmanne on 03/09/15.
  */
 @RequiredArgsConstructor
-public class UBCSATISolverFactory {
+public class UBCSATISolverFactory implements ISATSolverFactory {
 
     private final UBCSATLibraryGenerator libraryGenerator;
     private final SATCompressor satCompressor;
-    private final IConstraintManager constraintManager;
 
     public CompressedSATBasedSolver create(String aConfig) {
         final AbstractCompressedSATSolver SATSolver = new UBCSATSolver(libraryGenerator.createLibrary(), aConfig);

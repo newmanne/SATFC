@@ -3,15 +3,14 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 import java.util.HashMap;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3ISolverFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATISolverFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
@@ -46,13 +45,22 @@ public class SATFCHydraBundle extends ASolverBundle {
 
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         params.claspConfig = params.claspConfig.replaceAll("_SPACE_", " ");
-        params.ubcsatConfig = params.claspConfig.replaceAll("_SPACE_", " ");
+        params.ubcsatConfig = params.ubcsatConfig.replaceAll("_SPACE_", " ");
 
-        final SATCompressor aCompressor = new SATCompressor(dataBundle.getConstraintManager(), params.encodingType);
         claspLibraryGenerator = new Clasp3LibraryGenerator(aClaspLibraryPath);
         ubcsatLibraryGenerator = new UBCSATLibraryGenerator(aUBCSATLibraryPath);
-        final Clasp3ISolverFactory clasp3ISolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor, getConstraintManager());
-        final UBCSATISolverFactory ubcsatiSolverFactory = new UBCSATISolverFactory(ubcsatLibraryGenerator, aCompressor, getConstraintManager());
+
+        final SATCompressor aCompressor = new SATCompressor(dataBundle.getConstraintManager(), params.encodingType);
+        final ISATSolverFactory satSolverFactory;
+        final String satSolverParams;
+        if (params.solverChoice.equals(SATFCHydraParams.SatSolverChoice.CLASP)) {
+            satSolverFactory = new Clasp3ISolverFactory(claspLibraryGenerator, aCompressor);
+            satSolverParams = params.claspConfig;
+        } else {
+            Preconditions.checkState(params.solverChoice.equals(SATFCHydraParams.SatSolverChoice.UBCSAT));
+            satSolverFactory = new UBCSATISolverFactory(ubcsatLibraryGenerator, aCompressor);
+            satSolverParams = params.ubcsatConfig;
+        }
         Map<YAMLBundle.SolverType, ISolverFactory> solverTypeToFactory = new HashMap<>();
         solverTypeToFactory.put(YAMLBundle.SolverType.CONNECTED_COMPONENTS, solver -> {
             return new ConnectedComponentGroupingDecorator(solver, new ConstraintGrouper(), aConstraintManager);
@@ -64,10 +72,10 @@ public class SATFCHydraBundle extends ASolverBundle {
             return new UnderconstrainedStationRemoverSolverDecorator(solver, getConstraintManager(), new HeuristicUnderconstrainedStationFinder(getConstraintManager(), true), true);
         });
         solverTypeToFactory.put(YAMLBundle.SolverType.CLASP, solver -> {
-            return clasp3ISolverFactory.create(params.claspConfig);
+            return satSolverFactory.create(satSolverParams);
         });
         solverTypeToFactory.put(YAMLBundle.SolverType.UBCSAT, solver -> {
-            return ubcsatiSolverFactory.create(params.ubcsatConfig);
+            return satSolverFactory.create(satSolverParams);
         });
         solverTypeToFactory.put(YAMLBundle.SolverType.UNSAT_PRESOLVER, solver -> {
             final IStationAddingStrategy stationAddingStrategy;
@@ -83,7 +91,7 @@ public class SATFCHydraBundle extends ASolverBundle {
             }
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.presolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverBaseCutoff, params.presolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverCutoff);
             return new ConstraintGraphNeighborhoodPresolver(solver,
-                                    new StationSubsetUNSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
+                                    new StationSubsetUNSATCertifier(satSolverFactory.create(satSolverParams)),
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
@@ -101,18 +109,19 @@ public class SATFCHydraBundle extends ASolverBundle {
             }
             final IStationPackingConfigurationStrategy stationPackingConfigurationStrategy = params.presolverIterativelyDeepen ? new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverBaseCutoff, params.presolverScaleFactor) : new IterativeDeepeningConfigurationStrategy(stationAddingStrategy, params.presolverCutoff);
             return new ConstraintGraphNeighborhoodPresolver(solver,
-                                new StationSubsetSATCertifier(clasp3ISolverFactory.create(params.claspConfig)),
+                                new StationSubsetSATCertifier(satSolverFactory.create(satSolverParams)),
                                     stationPackingConfigurationStrategy,
                     getConstraintManager());
         });
-        fSolver = params.solverChoice.equals(SATFCHydraParams.SatSolverChoice.CLASP) ? clasp3ISolverFactory.create(params.claspConfig) : ubcsatiSolverFactory.create(params.ubcsatConfig);
-        fSolver = new CPUTimeDecorator(fSolver, claspLibraryGenerator.createLibrary());
+        fSolver = satSolverFactory.create(satSolverParams);
         log.debug(params.getSolverOrder().toString());
         for (YAMLBundle.SolverType solverType : params.getSolverOrder()) {
             if (solverType != YAMLBundle.SolverType.NONE) {
                 fSolver = solverTypeToFactory.get(solverType).extend(fSolver);
             }
         }
+        fSolver = new CPUTimeDecorator(fSolver, claspLibraryGenerator.createLibrary());
+        fSolver = new AssignmentVerifierDecorator(fSolver, aConstraintManager, dataBundle.getStationManager());
     }
 
     @Override

@@ -74,7 +74,7 @@ public class SATFCHydraParams extends AbstractOptions {
             list.add(SolverType.CONNECTED_COMPONENTS);
         }
         if (presolver) {
-            list.add(SolverType.SAT_PRESOLVER);
+            list.add(presolverType);
         } else {
             list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
         }

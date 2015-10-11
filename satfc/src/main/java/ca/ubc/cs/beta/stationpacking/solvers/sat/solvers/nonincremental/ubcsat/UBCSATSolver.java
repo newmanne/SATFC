@@ -59,18 +59,17 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
      */
     public UBCSATSolver(UBCSATLibrary library, String parameters) {
         fLibrary = library;
+        log.info("Using config {} for UBCSAT", parameters);
         String mutableParameters = parameters;
-
         if (mutableParameters.contains("-seed ")) {
-            throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!");
+            throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!" + System.lineSeparator() + mutableParameters);
         }
         if (!mutableParameters.contains("-alg ")) {
-            throw new IllegalArgumentException("Missing required UBCSAT parameter: -alg.");
+            throw new IllegalArgumentException("Missing required UBCSAT parameter: -alg." + System.lineSeparator() + mutableParameters);
         }
         if (!mutableParameters.contains("-cutoff ")) {
             mutableParameters = mutableParameters + " -cutoff max";
         }
-        
         String testParameters = mutableParameters + " -seed 1";
         Pointer jnaProblem = fLibrary.initConfig(testParameters);
         fLibrary.destroyProblem(jnaProblem);

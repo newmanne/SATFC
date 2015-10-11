@@ -32,11 +32,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 * Created by newmanne on 03/06/15.
 */
 @RequiredArgsConstructor
-public class Clasp3ISolverFactory {
+public class Clasp3ISolverFactory implements ISATSolverFactory {
 
     private final Clasp3LibraryGenerator claspLibraryGenerator;
     private final SATCompressor satCompressor;
-    private final IConstraintManager constraintManager;
 
     public CompressedSATBasedSolver create(String aConfig) {
         return create(aConfig, 0);

@@ -76,7 +76,7 @@ public class AssignmentVerifierDecorator extends ASolverDecorator {
                 Preconditions.checkState(fStationManager.getDomain(station).contains(channel), "Station %s is assigned to channel %s which is not in its domain %s", station, channel, fStationManager.getDomain(station));
             }
 
-            Preconditions.checkState(fConstraintManager.isSatisfyingAssignment(result.getAssignment()), "Solver returned SAT, but assignment is not satisfiable.");
+            Preconditions.checkState(fConstraintManager.isSatisfyingAssignment(result.getAssignment()), "Solver returned SAT, but assignment is not satisfiable.", result.getAssignment());
             log.debug("Assignment was independently verified to be satisfiable.");
         }
         return result;
