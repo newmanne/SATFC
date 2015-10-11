@@ -81,13 +81,14 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
+        final Set<Station> stationsWithNoPreviousAssignment = getStationsNotInPreviousAssignment(aInstance);
 
-        if (aInstance.getPreviousAssignment().isEmpty()) {
-            log.debug("No previous assignment given! Nothing to do here...");
+        if (aInstance.getPreviousAssignment().isEmpty() || stationsWithNoPreviousAssignment.isEmpty()) {
+            // This can happen, for example, if the new station to be packed is underconstrained and that is run first
+            log.debug("Could not identify a set of stations not present in the previous assignment, or else no previous assignment given. Nothing to do here...");
             return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         }
 
-        final Set<Station> stationsWithNoPreviousAssignment = getStationsNotInPreviousAssignment(aInstance);
         log.debug("There are {} stations that are not part of previous assignment.", stationsWithNoPreviousAssignment.size());
 
         SolverResult result = null;
