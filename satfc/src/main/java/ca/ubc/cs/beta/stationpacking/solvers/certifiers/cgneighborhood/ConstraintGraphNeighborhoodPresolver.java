@@ -99,6 +99,10 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
                 return SolverResult.createTimeoutResult(watch.getElapsedTime());
             }
             log.debug("Configuration is {} stations to pack, and {} seconds cutoff", configuration.getPackingStations().size(), configuration.getCutoff());
+            if (configuration.getPackingStations().size() == aInstance.getDomains().size()) {
+                log.debug("The configuration is the entire problem. This should not be dealt with by a presolver. Skipping...");
+                continue;
+            }
             final ITerminationCriterion criterion = new DisjunctiveCompositeTerminationCriterion(Arrays.asList(aTerminationCriterion, new WalltimeTerminationCriterion(configuration.getCutoff())));
 
             result = fCertifier.certify(aInstance, configuration.getPackingStations(), criterion, aSeed);

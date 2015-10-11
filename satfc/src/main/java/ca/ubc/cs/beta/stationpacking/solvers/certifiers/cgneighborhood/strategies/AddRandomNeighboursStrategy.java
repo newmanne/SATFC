@@ -36,7 +36,7 @@ public class AddRandomNeighboursStrategy implements IStationAddingStrategy {
     }
 
     public AddRandomNeighboursStrategy(int numNeigbhoursToAdd) {
-        this(numNeigbhoursToAdd, 0);
+        this(numNeigbhoursToAdd, new Random().nextInt());
     }
 
     @Override

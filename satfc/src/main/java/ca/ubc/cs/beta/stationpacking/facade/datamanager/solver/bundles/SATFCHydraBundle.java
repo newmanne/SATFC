@@ -102,7 +102,7 @@ public class SATFCHydraBundle extends ASolverBundle {
                     stationAddingStrategy = new AddNeighbourLayerStrategy();
                     break;
                 case UNIFORM_RANDOM:
-                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.presolverNumNeighbours, 1);
+                    stationAddingStrategy = new AddRandomNeighboursStrategy(params.presolverNumNeighbours);
                     break;
                 default:
                     throw new IllegalStateException("Unrecognized presolver expansion method " + params.presolverExpansionMethod);
