@@ -64,6 +64,8 @@ public class SATFCFacadeBuilder {
     private String serverURL;
     private Level logLevel;
     private String logFileName;
+    private int numServerAttempts;
+    private boolean noErrorOnServerUnavailable;
     private YAMLBundle.ConfigFile configFile;
     private DeveloperOptions developerOptions;
 
@@ -122,6 +124,8 @@ public class SATFCFacadeBuilder {
         logLevel = Level.INFO;
         logFileName = "SATFC.log";
         configFile = autoDetectBundle();
+        numServerAttempts = 1;
+        noErrorOnServerUnavailable = false;
         developerOptions = DeveloperOptions.builder().solverChoice(SolverChoice.YAML).build();
     }
 
@@ -245,6 +249,19 @@ public class SATFCFacadeBuilder {
      */
     public SATFCFacadeBuilder setServerURL(@NonNull String serverURL) {
         this.serverURL = serverURL;
+        return this;
+    }
+
+    /**
+     * Set the number of attempts to retry a connection to the SATFCServer per query before giving up and continuing without the server's help (or throwing an error)
+     * @param numServerAttempts number of times to attempt the server for a given query
+     * @param noErrorOnServerUnavailable if true, just continue solving the problem without the server's help. if false, throw an error after numServerAttempts is exceeded
+     * @return this {@code Builder} object
+     */
+    public SATFCFacadeBuilder setServerRetries(int numServerAttempts, boolean noErrorOnServerUnavailable) {
+        Preconditions.checkState(numServerAttempts > 0, "number of server attempts must be positive");
+        this.numServerAttempts = numServerAttempts;
+        this.noErrorOnServerUnavailable = noErrorOnServerUnavailable;
         return this;
     }
 

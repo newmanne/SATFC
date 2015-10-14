@@ -70,6 +70,7 @@ import java.util.concurrent.TimeoutException;
  * A facade for solving station packing problems with SATFC.
  * Each instance of the facade corresponds to an independent copy
  * of SATFC (with different state).
+ * A SATFCFacade should only be involved in one solve operation at a time: do not have multiple threads calling solve concurrently
  *
  * @author afrechet
  */

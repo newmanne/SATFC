@@ -59,26 +59,26 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 @Slf4j
 public class ContainmentCacheProxy implements ICacher {
 
-    public final static int NUM_RETRIES = 2;
-
     private final CacheCoordinate coordinate;
     private final static CloseableHttpAsyncClient httpClient;
     private final String SAT_URL;
     private final String UNSAT_URL;
     private final String CACHE_URL;
     private final AtomicReference<Future<HttpResponse>> activeFuture;
+    private final int numAttempts;
 
     static {
         httpClient = HttpAsyncClients.createDefault();
         httpClient.start();
     }
 
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate) {
+    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
         CACHE_URL = baseServerURL + "/v1/cache";
         this.coordinate = coordinate;
         activeFuture = new AtomicReference<>();
+        this.numAttempts = numAttempts;
     }
 
     /**
@@ -101,27 +101,27 @@ public class ContainmentCacheProxy implements ICacher {
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, NUM_RETRIES);
+        return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, numAttempts);
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, NUM_RETRIES);
+        return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, numAttempts);
     }
 
     @Override
     public void cacheResult(StationPackingInstance instance, SolverResult result, ITerminationCriterion terminationCriterion) {
-        makePost(CACHE_URL, new ContainmentCacheRequest(instance, coordinate, result), null, null, terminationCriterion, NUM_RETRIES);
+        makePost(CACHE_URL, new ContainmentCacheRequest(instance, coordinate, result), null, null, terminationCriterion, numAttempts);
     }
 
-    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion, int retryCount) {
+    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion, int remainingAttempts) {
         try {
             return makePost(URL, request, responseClass, failure, terminationCriterion);
         } catch (Exception e) {
             log.error("Error making a web request", e);
-            int newRetryCount = retryCount - 1;
-            if (newRetryCount > 0) {
-                log.error("Retrying web request. Request will be retried {} more time(s)", newRetryCount);
-                return makePost(URL, request, responseClass, failure, terminationCriterion, newRetryCount);
+            int newRemainingAttempts = remainingAttempts - 1;
+            if (newRemainingAttempts > 0) {
+                log.error("Retrying web request. Request will be retried {} more time(s)", newRemainingAttempts);
+                return makePost(URL, request, responseClass, failure, terminationCriterion, newRemainingAttempts);
             } else {
                 log.error("The retry quota for this web request has been exceeded. Continuing to solve the problem without the server...");
                 return failure;
