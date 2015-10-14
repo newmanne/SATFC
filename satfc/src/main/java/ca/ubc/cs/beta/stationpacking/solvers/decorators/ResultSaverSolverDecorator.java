@@ -73,8 +73,7 @@ public class ResultSaverSolverDecorator extends ASolverDecorator {
                     Arrays.asList(line),
                     true);
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Could not write result to file " + fResultFile + ".");
+            throw new IllegalStateException("Could not write result to file " + fResultFile + ".", e);
         }
 
         return result;

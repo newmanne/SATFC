@@ -72,7 +72,8 @@ public class ParallelSolverComposite implements ISolver {
                         .filter(result -> result.getResult().isConclusive())
                         .findAny();
             }).get().orElse(SolverResult.createTimeoutResult(watch.getElapsedTime()));
-            return SolverResult.relabelTime(endResult, watch.getElapsedTime());
+            // Note that we don't modify time here, even though you might have to wait a while for the other threads to finish between the time the result is created and the time it can be returned. This solver is used for experimental purposes, to make sure that all threads have "caught up" before the next problem is started
+            return endResult;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error processing jobs in parallel!", e);
         }

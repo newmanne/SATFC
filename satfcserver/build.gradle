@@ -20,6 +20,8 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion"
 
+    compile "io.dropwizard.metrics:metrics-servlets:$dropwizardMetricVersion"
+
     // logging
     compile 'org.slf4j:slf4j-api:1.7.7'
     compile 'org.slf4j:jcl-over-slf4j:1.7.7'

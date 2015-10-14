@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
 import java.util.List;
 
+import com.codahale.metrics.*;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.catalina.connector.ClientAbortException;
@@ -45,6 +46,8 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResu
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy.ContainmentCacheRequest;
 
+import javax.annotation.PostConstruct;
+
 @Controller
 @Slf4j
 @RequestMapping("/v1/cache")
@@ -58,6 +61,48 @@ public class ContainmentCacheController {
     @Autowired
     RedisCacher cacher;
 
+    @Autowired
+    MetricRegistry registry;
+
+    private Meter cacheAdditions;
+    private Meter satCacheHits;
+    private Timer satCacheTimer;
+    private Meter unsatCacheHits;
+    private Timer unsatCacheTimer;
+
+    @PostConstruct
+    void init() {
+        cacheAdditions = registry.meter("cache.sat.additions");
+        satCacheHits = registry.meter("cache.sat.hits");
+        satCacheTimer = registry.timer("cache.sat.timer");
+        unsatCacheHits = registry.meter("cache.unsat.hits");
+        unsatCacheTimer = registry.timer("cache.unsat.timer");
+        registry.register("cache.sat.hitrate.fifteenminute", new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(satCacheHits.getFifteenMinuteRate(), satCacheTimer.getFifteenMinuteRate());
+            }
+        });
+        registry.register("cache.unsat.hitrate.fifteenminute", new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(unsatCacheHits.getFifteenMinuteRate(), unsatCacheTimer.getFifteenMinuteRate());
+            }
+        });
+        registry.register("cache.sat.hitrate.overall", new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(satCacheHits.getCount(), satCacheTimer.getCount());
+            }
+        });
+        registry.register("cache.unsat.hitrate.overall", new RatioGauge() {
+            @Override
+            protected Ratio getRatio() {
+                return Ratio.of(unsatCacheHits.getCount(), unsatCacheTimer.getCount());
+            }
+        });
+    }
+
     @ExceptionHandler(ClientAbortException.class)
     void clientAbortException() {
         // Nothing to do
@@ -70,11 +115,20 @@ public class ContainmentCacheController {
     public ContainmentCacheSATResult lookupSAT(
             @RequestBody final ContainmentCacheRequest request
     ) {
-        final StationPackingInstance instance = request.getInstance();
-        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Querying the SAT cache with coordinate " + request.getCoordinate() + " for entry " + description);
-        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
-        return cache.proveSATBySuperset(instance);
+        final Timer.Context context = satCacheTimer.time();
+        try {
+            final StationPackingInstance instance = request.getInstance();
+            final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+            log.info("Querying the SAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+            final ContainmentCacheSATResult containmentCacheSATResult = cache.proveSATBySuperset(instance);
+            if (containmentCacheSATResult.isValid()) {
+                satCacheHits.mark();
+            }
+            return containmentCacheSATResult;
+        } finally {
+            context.stop();
+        }
     }
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
@@ -83,11 +137,20 @@ public class ContainmentCacheController {
     public ContainmentCacheUNSATResult lookupUNSAT(
             @RequestBody final ContainmentCacheRequest request
     ) {
-        final StationPackingInstance instance = request.getInstance();
-        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Querying the UNSAT cache with coordinate " + request.getCoordinate() + " for entry " + description);
-        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
-        return cache.proveUNSATBySubset(instance);
+        final Timer.Context context = unsatCacheTimer.time();
+        try {
+            final StationPackingInstance instance = request.getInstance();
+            final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+            log.info("Querying the UNSAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+            final ContainmentCacheUNSATResult result = cache.proveUNSATBySubset(instance);
+            if (result.isValid()) {
+                unsatCacheHits.mark();
+            }
+            return result;
+        } finally {
+            context.stop();
+        }
     }
 
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -97,27 +160,28 @@ public class ContainmentCacheController {
     ) {
         final StationPackingInstance instance = request.getInstance();
         final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Adding entry to the cache with coordinate " + request.getCoordinate() + ". Entry: " + description);
+        log.info("Adding entry to the cache with coordinate {}. Entry {}", request.getCoordinate(), description);
 
         // add to redis
         final String key = cacher.cacheResult(request.getCoordinate(), instance, request.getResult());
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
         cache.add(instance, request.getResult(), key);
+        cacheAdditions.mark();
     }
 
     @RequestMapping(value = "/filter", method = RequestMethod.POST)
     @ResponseBody
     public void filterCache() {
     	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
-            log.info("Finding SAT entries to be filted at cacheCoordinate " + cacheCoordinate);
+            log.info("Finding SAT entries to be filted at cacheCoordinate {}", cacheCoordinate);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
             List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT();
-            log.info("Pruning " + SATPrunables.size() + " SAT entries from Redis");
+            log.info("Pruning {} SAT entries from Redis", SATPrunables.size() );
             cacher.deleteSATCollection(SATPrunables);
 
-            log.info("Finding UNSAT entries to be filted at cacheCoordinate " + cacheCoordinate);
+            log.info("Finding UNSAT entries to be filted at cacheCoordinate {}", cacheCoordinate);
             List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
-            log.info("Pruning " + UNSATPrunables.size() + " UNSAT entries from Redis");
+            log.info("Pruning {} UNSAT entries from Redis", UNSATPrunables.size());
             cacher.deleteUNSATCollection(UNSATPrunables);
 
             log.info("Filter completed");

@@ -26,10 +26,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlets.AdminServlet;
+import com.codahale.metrics.servlets.MetricsServlet;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
@@ -80,6 +85,8 @@ public class SATFCServerApplication {
         SpringApplication.run(SATFCServerApplication.class, args);
     }
 
+    @Autowired MetricRegistry registry;
+
     @Bean
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
         final MappingJackson2HttpMessageConverter mappingJacksonHttpMessageConverter = new MappingJackson2HttpMessageConverter();
@@ -123,6 +130,11 @@ public class SATFCServerApplication {
 
     @Bean SATFCServerParameters satfcServerParameters() {
         return parameters;
+    }
+
+    @Bean
+    public ServletRegistrationBean servletRegistrationBean(){
+        return new ServletRegistrationBean(new MetricsServlet(registry),"/metrics/extra/*");
     }
 
 }
