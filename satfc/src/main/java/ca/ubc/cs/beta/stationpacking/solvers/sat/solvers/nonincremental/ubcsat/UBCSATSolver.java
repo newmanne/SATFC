@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,6 +33,7 @@ import com.sun.jna.ptr.IntByReference;
 public class UBCSATSolver extends AbstractCompressedSATSolver {
 
     private UBCSATLibrary fLibrary;
+    private final int seedOffset;
     private final String fParameters;
     private Pointer fState;
     private final Lock lock = new ReentrantLock();
@@ -39,7 +41,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
 
     public UBCSATSolver(String libraryPath, String parameters) {
-        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters);
+        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0);
     }
 
     /**
@@ -57,8 +59,9 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
      *                   strings. Alternatively, a simple way to test the legality of a parameter string is to run UBCSAT from
      *                   the command line with that parameter string and specifying a sample .cnf file via the "-inst" flag.
      */
-    public UBCSATSolver(UBCSATLibrary library, String parameters) {
+    public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset) {
         fLibrary = library;
+        this.seedOffset = seedOffset;
         log.info("Using config {} for UBCSAT", parameters);
         String mutableParameters = parameters;
         if (mutableParameters.contains("-seed ")) {
@@ -77,7 +80,11 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         fParameters = mutableParameters;
     }
 
-    @Override
+    public UBCSATSolver(UBCSATLibrary library, String parameters) {
+        this(library, parameters, 0);
+    }
+
+        @Override
     public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed) {
         return solve(aCNF, null, aTerminationCriterion, aSeed);
     }
@@ -85,7 +92,8 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     @Override
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
-        final String seededParameters = fParameters + " -seed " + aSeed;
+        final int seed = Math.abs(new Random(aSeed + seedOffset).nextInt());
+        final String seededParameters = fParameters + " -seed " + seed;
 
         final double preTime;
         final double runTime;

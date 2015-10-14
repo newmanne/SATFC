@@ -37,10 +37,7 @@ public class Clasp3ISolverFactory implements ISATSolverFactory {
     private final Clasp3LibraryGenerator claspLibraryGenerator;
     private final SATCompressor satCompressor;
 
-    public CompressedSATBasedSolver create(String aConfig) {
-        return create(aConfig, 0);
-    }
-
+    @Override
     public CompressedSATBasedSolver create(String aConfig, int seedOffset) {
         final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createLibrary(), aConfig, seedOffset);
         return new CompressedSATBasedSolver(claspSATsolver, satCompressor);

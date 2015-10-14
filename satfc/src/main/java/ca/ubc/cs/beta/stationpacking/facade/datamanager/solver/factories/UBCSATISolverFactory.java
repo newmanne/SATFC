@@ -16,7 +16,8 @@ public class UBCSATISolverFactory implements ISATSolverFactory {
     private final UBCSATLibraryGenerator libraryGenerator;
     private final SATCompressor satCompressor;
 
-    public CompressedSATBasedSolver create(String aConfig) {
+    @Override
+    public CompressedSATBasedSolver create(String params, int seedOffset) {
         final AbstractCompressedSATSolver SATSolver = new UBCSATSolver(libraryGenerator.createLibrary(), aConfig);
         return new CompressedSATBasedSolver(SATSolver, satCompressor);
     }

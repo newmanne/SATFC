@@ -7,6 +7,14 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
  */
 public interface ISATSolverFactory {
 
-    CompressedSATBasedSolver create(String params);
+    /**
+     * @param seedOffset SATFC as a whole takes a given seed. This says how much to offset this particular instance against that seed.
+     *                   This allows us to run the same SAT solver with different seeds even though SATFC only takes one seed
+     */
+    CompressedSATBasedSolver create(String params, int seedOffset);
+
+    default CompressedSATBasedSolver create(String params) {
+        return create(params, 0);
+    };
 
 }

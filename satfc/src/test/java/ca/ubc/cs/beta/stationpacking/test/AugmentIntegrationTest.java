@@ -30,10 +30,10 @@ import com.google.common.collect.Sets;
  * Created by newmanne on 29/06/15.
  */
 @Slf4j
-public class ProblemDriver {
+public class AugmentIntegrationTest {
 
     final int clearingTarget = 38;
-    final int numStartingStations = 600;
+    final int numStartingStations = 670;
     final String interference = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M";
     final String popFile = "/ubc/cs/research/arrow/satfc/public/populations_encoded.csv";
 

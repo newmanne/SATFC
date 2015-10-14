@@ -221,12 +221,13 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final Clasp3LibraryGenerator clasp3LibraryGenerator = context.getClasp3LibraryGenerator();
-            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config);
+            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset);
             return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
-        private EncodingType encodingType;
+        private EncodingType encodingType = EncodingType.DIRECT;
+        private int seedOffset = 0;
     }
 
     @Data
@@ -236,12 +237,13 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config);
+            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset);
             return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
-        private EncodingType encodingType;
+        private EncodingType encodingType = EncodingType.DIRECT;
+        private int seedOffset = 0;
     }
 
     @Data
