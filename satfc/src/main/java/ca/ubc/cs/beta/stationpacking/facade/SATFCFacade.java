@@ -365,12 +365,21 @@ public class SATFCFacade implements AutoCloseable {
         return bundle;
     }
 
+    /**
+     *
+     * @param domains a map taking integer station IDs to set of integer channels domains.
+     * @param previousAssignment a valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
+     * @param stationInformationFile
+     * @param stationConfigFolder a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
+     * @param cutoff
+     */
     public void augment(@NonNull Map<Integer, Set<Integer>> domains,
                         @NonNull Map<Integer, Integer> previousAssignment,
                         @NonNull String stationInformationFile,
                         @NonNull String stationConfigFolder,
                         double cutoff
     ) {
+        log.info("Augmenting the following stations {}", previousAssignment.keySet());
         // These stations will be in every single problem
         final Set<Integer> exitedStations = previousAssignment.keySet();
 
@@ -385,37 +394,35 @@ public class SATFCFacade implements AutoCloseable {
             throw new IllegalArgumentException("Problem parsing file " + stationInformationFile, e);
         }
 
-        // The set of stations that we are going to pack in every problem
-        final Set<Integer> packingStations = new HashSet<>(exitedStations);
-        final Set<Integer> confirmedUNSAT = new HashSet<>();
-        Map<Integer, Integer> currentAssignment = new HashMap<>(previousAssignment);
+        while(true) {
+            log.debug("Starting to augment from the initial state");
+            // The set of stations that we are going to pack in every problem
+            final Set<Integer> packingStations = new HashSet<>(exitedStations);
+            Map<Integer, Integer> currentAssignment = new HashMap<>(previousAssignment);
 
-        // TODO: global restart if you fail
-
-        // Augment
-        while (true) {
-            // Sample a new station
-            final Integer sample = sampler.sample(Sets.union(packingStations, confirmedUNSAT));
-            final Set<Integer> toPack = Sets.union(packingStations, Collections.singleton(sample));
-            final Map<Integer, Set<Integer>> reducedDomains = Maps.filterEntries(domains, new Predicate<Entry<Integer, Set<Integer>>>() {
-                @Override
-                public boolean apply(Entry<Integer, Set<Integer>> input) {
-                    return toPack.contains(input.getKey());
-                }
-            });
-
-            // Solve!
-            final SATFCResult result = solve(reducedDomains, currentAssignment, cutoff, RandomUtils.nextInt(1, Integer.MAX_VALUE), stationConfigFolder);
-            if (result.getResult().equals(SATResult.SAT)) {
-                // Result was SAT. Let's continue down this trajectory
-                log.debug("Result was SAT. Adding station {} to trajectory", sample);
-                packingStations.add(sample);
-                currentAssignment = result.getWitnessAssignment();
-                log.debug("Result was not {}, not SAT", result.getResult());
-            } else {
-                if (result.getResult().equals(SATResult.UNSAT)) {
-                    log.debug("Station {} is confirmed UNSAT, will not try it again", sample);
-                    confirmedUNSAT.add(sample);
+            // Augment
+            while (true) {
+                // Sample a new station
+                final Integer sampledStationId = sampler.sample(packingStations);
+                log.info("Trying to augment station {}", sampledStationId);
+                packingStations.add(sampledStationId);
+                final Map<Integer, Set<Integer>> reducedDomains = Maps.filterEntries(domains, new Predicate<Entry<Integer, Set<Integer>>>() {
+                    @Override
+                    public boolean apply(Entry<Integer, Set<Integer>> input) {
+                        return packingStations.contains(input.getKey());
+                    }
+                });
+                // Solve!
+                final SATFCResult result = solve(reducedDomains, currentAssignment, cutoff, RandomUtils.nextInt(1, Integer.MAX_VALUE), stationConfigFolder);
+                log.debug("Result is {}", result);
+                if (result.getResult().equals(SATResult.SAT)) {
+                    // Result was SAT. Let's continue down this trajectory
+                    log.info("Result was SAT. Adding station {} to trajectory", sampledStationId);
+                    currentAssignment = result.getWitnessAssignment();
+                } else {
+                    log.info("Non-SAT result reached. Restarting from initial state");
+                    // Either UNSAT or TIMEOUT. Time to restart
+                    break;
                 }
             }
         }
