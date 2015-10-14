@@ -66,17 +66,25 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
     private final IStationSubsetCertifier fCertifier;
     private final IStationPackingConfigurationStrategy fStationAddingStrategy;
     private final IConstraintManager constraintManager;
+    private final boolean dontSolveFullInstances;
 
+    
     /**
      * @param aCertifier             -the certifier to use to evaluate the satisfiability of station subsets.
      * @param aStationAddingStrategy - determines which stations to fix / unfix, and how long to attempt at each expansion
      */
     public ConstraintGraphNeighborhoodPresolver(ISolver decoratedSolver, IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy, IConstraintManager constraintManager) {
+    	this(decoratedSolver, aCertifier, aStationAddingStrategy, constraintManager, true);
+    }
+    
+    ConstraintGraphNeighborhoodPresolver(ISolver decoratedSolver, IStationSubsetCertifier aCertifier, IStationPackingConfigurationStrategy aStationAddingStrategy, IConstraintManager constraintManager, boolean dontSolveFullInstances) {
         super(decoratedSolver);
         this.fCertifier = aCertifier;
         this.fStationAddingStrategy = aStationAddingStrategy;
         this.constraintManager = constraintManager;
+        this.dontSolveFullInstances = dontSolveFullInstances;
     }
+
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
@@ -99,7 +107,7 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
                 return SolverResult.createTimeoutResult(watch.getElapsedTime());
             }
             log.debug("Configuration is {} stations to pack, and {} seconds cutoff", configuration.getPackingStations().size(), configuration.getCutoff());
-            if (configuration.getPackingStations().size() == aInstance.getDomains().size()) {
+            if (dontSolveFullInstances && configuration.getPackingStations().size() == aInstance.getDomains().size()) {
                 log.debug("The configuration is the entire problem. This should not be dealt with by a presolver. Skipping...");
                 continue;
             }

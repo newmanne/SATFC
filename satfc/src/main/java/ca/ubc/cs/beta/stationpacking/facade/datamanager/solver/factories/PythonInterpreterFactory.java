@@ -28,13 +28,13 @@ public class PythonInterpreterFactory {
         String domain = interferenceFolder + "/" + DataManager.DOMAIN_FILE;
 
         String interferenceResult;
-        if(compact){
+        if (compact) {
             final String compactEvalString = "load_compact_interference(\"" + interference + "\")";
             log.debug("Evaluation string feed to Python interpreter: " + compactEvalString);
 
             final PyObject compactReturnObject = python.eval(compactEvalString);
             interferenceResult = compactReturnObject.toString();
-        }else{
+        } else {
             final String nonCompactEvalString = "load_interference(\"" + interference + "\")";
             log.debug("Evaluation string feed to Python interpreter: " + nonCompactEvalString);
 

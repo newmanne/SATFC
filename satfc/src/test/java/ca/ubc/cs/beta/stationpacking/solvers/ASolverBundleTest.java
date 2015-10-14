@@ -67,7 +67,7 @@ public abstract class ASolverBundleTest {
         try {
 			DomainStationManager stationManager = new DomainStationManager(Resources.getResource("data/021814SC3M/Domain.csv").getFile());
 			ChannelSpecificConstraintManager constraintManager = new ChannelSpecificConstraintManager(stationManager, Resources.getResource("data/021814SC3M/Interference_Paired.csv").getFile());
-			managerBundle = new ManagerBundle(stationManager, constraintManager, "data/021814SC3M");
+			managerBundle = new ManagerBundle(stationManager, constraintManager, Resources.getResource("data/021814SC3M").getPath());
 		} catch (FileNotFoundException e) {
 			Assert.fail("Could not find constraint set files");
 		}
@@ -77,7 +77,7 @@ public abstract class ASolverBundleTest {
 
     @Test
     public void testSimplestProblemPossible() throws Exception {
-    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, getBundleName(), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, new YAMLBundle.ConfigFile(getBundleName(), true), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
     		final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
             final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
             Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
@@ -86,7 +86,7 @@ public abstract class ASolverBundleTest {
 
     @Test
     public void testAFewSrpks() throws Exception {
-    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, getBundleName(), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, new YAMLBundle.ConfigFile(getBundleName(), true), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
             final List<String> lines = Files.readLines(new File(Resources.getResource(INSTANCE_FILE).getFile()), Charset.defaultCharset());
             final Map<String, SATResult> instanceFileToAnswers = new HashMap<>();
             lines.stream().forEach(line -> {
@@ -107,7 +107,7 @@ public abstract class ASolverBundleTest {
 
 		@Override
 		protected String getBundleName() {
-			return SATFCFacadeBuilder.internalBundleNameToPath(SATFCFacadeBuilder.SATFC_SEQUENTIAL);
+			return  SATFCFacadeBuilder.SATFC_SEQUENTIAL;
 		}
 
     }
@@ -116,7 +116,7 @@ public abstract class ASolverBundleTest {
 
 		@Override
 		protected String getBundleName() {
-			return SATFCFacadeBuilder.internalBundleNameToPath(SATFCFacadeBuilder.SATFC_PARALLEL);
+			return SATFCFacadeBuilder.SATFC_PARALLEL;
 		}
 
     }

@@ -23,7 +23,11 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import com.google.common.base.Preconditions;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -59,4 +63,5 @@ public class SATFCResult implements Serializable
 	{
 		return fRuntime+","+fResult+","+fWitnessAssignment.toString();
 	}
+
 }

@@ -239,7 +239,7 @@ public class ConstraintGraphNeighborhoodPresolverTest {
         StationWholeSetSATCertifier certifier = new StationWholeSetSATCertifier(Arrays.asList(coGraph, adjGraph), startingStations);
 
         ConstraintGraphNeighborhoodPresolver presolver =
-                new ConstraintGraphNeighborhoodPresolver(new VoidSolver(), certifier, new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(maxLayersOfNeighbors), Double.MAX_VALUE), constraintManager);
+                new ConstraintGraphNeighborhoodPresolver(new VoidSolver(), certifier, new IterativeDeepeningConfigurationStrategy(new AddNeighbourLayerStrategy(maxLayersOfNeighbors), Double.MAX_VALUE), constraintManager, false);
         SolverResult result = presolver.solve(instance, mockTerminationCriterion, arbitrarySeed);
         assertEquals(expectedNumberOfLayers, certifier.getNumberOfTimesCalled());
         assertEquals(expectedResult, result.getResult());
