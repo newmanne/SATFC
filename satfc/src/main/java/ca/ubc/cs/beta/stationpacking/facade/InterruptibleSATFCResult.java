@@ -24,7 +24,8 @@ public class InterruptibleSATFCResult {
      * Interrupt the solve operation associated with this event.
      * This method returns immediately, even though the interruption signal might not have been read by SATFC yet
      * It is safe to call this method multiple times (but it will have no effect past the first time).
-     * Note that an interrupted result will simply look like a TIMEOUT
+     * It is safe to call this method if the problem has not started, or if the problem has finished
+     * Note that an interrupted result will look identical to a TIMEOUT (except that it may not actually match the cutoff)
      */
     public void interrupt() {
         criterion.interrupt();

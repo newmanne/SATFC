@@ -40,17 +40,21 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.InterruptibleTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.File;
@@ -152,10 +156,80 @@ public class SATFCFacade implements AutoCloseable {
             long aSeed,
             @NonNull String aStationConfigFolder,
             String instanceName) {
-        return doSolve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName).computeResult();
+        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName).computeResult();
     }
 
-    private InterruptibleSATFCResult doSolve(
+    public SATFCResult solve(Set<Integer> aStations,
+                             Set<Integer> aChannels,
+                             Map<Integer, Set<Integer>> aReducedDomains,
+                             Map<Integer, Integer> aPreviousAssignment,
+                             double aCutoff,
+                             long aSeed,
+                             String aStationConfigFolder
+    ) {
+        return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    }
+
+    public SATFCResult solve(
+            Map<Integer, Set<Integer>> aDomains,
+            Map<Integer, Integer> aPreviousAssignment,
+            double aCutoff,
+            long aSeed,
+            String aStationConfigFolder) {
+        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    }
+    
+    /**
+     * Solve a station packing problem. The channel domain of a station will be the intersection of the station's original domain (given in data files) with the packing channels,
+     * and additionally intersected with its reduced domain if available and if non-empty.
+     *
+     * @param aStations            - a collection of integer station IDs.
+     * @param aChannels            - a collection of integer channels.
+     * @param aReducedDomains      - a map taking integer station IDs to set of integer channels domains.
+     * @param aPreviousAssignment  - a valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
+     * @param aCutoff              - a cutoff in seconds for SATFC's execution.
+     * @param aSeed                - a long seed for randomization in SATFC.
+     * @param aStationConfigFolder - a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
+     * @return a result about the packability of the provided problem, with the time it took to solve, and corresponding valid witness assignment of station IDs to channels.
+     */
+    public SATFCResult solve(@NonNull Set<Integer> aStations,
+                             @NonNull Set<Integer> aChannels,
+                             @NonNull Map<Integer, Set<Integer>> aReducedDomains,
+                             @NonNull Map<Integer, Integer> aPreviousAssignment,
+                             double aCutoff,
+                             long aSeed,
+                             String aStationConfigFolder,
+                             String instanceName
+    ) {
+        log.debug("Transforming instance to a domains only instance.");
+
+        //Construct the domains map.
+        final Map<Integer, Set<Integer>> aDomains = new HashMap<>();
+        for (Integer station : aStations) {
+            Set<Integer> domain = new HashSet<>(aChannels);
+            Set<Integer> reducedDomain = aReducedDomains.get(station);
+            if (reducedDomain != null && !reducedDomain.isEmpty()) {
+                domain = Sets.intersection(domain, reducedDomain);
+            }
+            aDomains.put(station, domain);
+        }
+        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
+    }
+
+    /**
+     * @return An interruptibleSATFCResult. Call {@link InterruptibleSATFCResult#computeResult} to start solving the problem. 
+     * The problem will not begin solving automatically. The expected use case is that a reference to the {@link InterruptibleSATFCResult} will be made accessible to another thread, that may decide to interrupt the operation based on some external signal.
+     * You can call {@link InterruptibleSATFCResult#interrupt()} from another thread to interrupt the problem while it is being solved. 
+     */
+    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder) {
+        return solveInterruptible(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    }
+
+    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder, String instanceName) {
+        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
+    }
+
+    private InterruptibleSATFCResult createInterruptibleSATFCResult(
             @NonNull Map<Integer, Set<Integer>> aDomains,
             @NonNull Map<Integer, Integer> aPreviousAssignment,
             double aCutoff,
@@ -164,7 +238,7 @@ public class SATFCFacade implements AutoCloseable {
             String instanceName) {
         log.debug("Setting termination criterion...");
         //Set termination criterion.
-        final InterruptibleTerminationCriterion termination = new InterruptibleTerminationCriterion(new WalltimeTerminationCriterion(aCutoff));
+        final InterruptibleTerminationCriterion termination = new InterruptibleTerminationCriterion();
         final SATFCProblemSolveCallable satfcProblemSolveCallable = new SATFCProblemSolveCallable(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, termination, instanceName);
         return new InterruptibleSATFCResult(termination, satfcProblemSolveCallable);
     }
@@ -249,10 +323,12 @@ public class SATFCFacade implements AutoCloseable {
             final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
             final long totalSuicideGraceTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
 
+            final DisjunctiveCompositeTerminationCriterion disjunctiveCompositeTerminationCriterion = new DisjunctiveCompositeTerminationCriterion(new WalltimeTerminationCriterion(aCutoff), criterion);
+            
             //Solve instance.
             SolverResult result = null;
             try {
-                result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, criterion, aSeed), totalSuicideGraceTimeInMillis, TimeUnit.MILLISECONDS);
+                result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, disjunctiveCompositeTerminationCriterion, aSeed), totalSuicideGraceTimeInMillis, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 throw new RuntimeException("SATFC waited " + totalSuicideGraceTimeInMillis + " ms for a result, but no result came back! The given timeout was " + aCutoff + " s, so SATFC appears to be hung. This is probably NOT a recoverable error");
             } catch (Exception e) {
@@ -287,72 +363,6 @@ public class SATFCFacade implements AutoCloseable {
             throw new IllegalArgumentException("Station config files not found.", e);
         }
         return bundle;
-    }
-
-    public SATFCResult solve(Set<Integer> aStations,
-                             Set<Integer> aChannels,
-                             Map<Integer, Set<Integer>> aReducedDomains,
-                             Map<Integer, Integer> aPreviousAssignment,
-                             double aCutoff,
-                             long aSeed,
-                             String aStationConfigFolder
-    ) {
-        return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
-    }
-
-    public SATFCResult solve(
-            Map<Integer, Set<Integer>> aDomains,
-            Map<Integer, Integer> aPreviousAssignment,
-            double aCutoff,
-            long aSeed,
-            String aStationConfigFolder) {
-        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
-    }
-
-
-    /**
-     * Solve a station packing problem. The channel domain of a station will be the intersection of the station's original domain (given in data files) with the packing channels,
-     * and additionally intersected with its reduced domain if available and if non-empty.
-     *
-     * @param aStations            - a collection of integer station IDs.
-     * @param aChannels            - a collection of integer channels.
-     * @param aReducedDomains      - a map taking integer station IDs to set of integer channels domains.
-     * @param aPreviousAssignment  - a valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
-     * @param aCutoff              - a cutoff in seconds for SATFC's execution.
-     * @param aSeed                - a long seed for randomization in SATFC.
-     * @param aStationConfigFolder - a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
-     * @return a result about the packability of the provided problem, with the time it took to solve, and corresponding valid witness assignment of station IDs to channels.
-     */
-    public SATFCResult solve(@NonNull Set<Integer> aStations,
-                             @NonNull Set<Integer> aChannels,
-                             @NonNull Map<Integer, Set<Integer>> aReducedDomains,
-                             @NonNull Map<Integer, Integer> aPreviousAssignment,
-                             double aCutoff,
-                             long aSeed,
-                             String aStationConfigFolder,
-                             String instanceName
-    ) {
-        log.debug("Transforming instance to a domains only instance.");
-
-        //Construct the domains map.
-        final Map<Integer, Set<Integer>> aDomains = new HashMap<>();
-        for (Integer station : aStations) {
-            Set<Integer> domain = new HashSet<>(aChannels);
-            Set<Integer> reducedDomain = aReducedDomains.get(station);
-            if (reducedDomain != null && !reducedDomain.isEmpty()) {
-                domain = Sets.intersection(domain, reducedDomain);
-            }
-            aDomains.put(station, domain);
-        }
-        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
-    }
-
-    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder, String instanceName) {
-        return doSolve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
-    }
-
-    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder) {
-        return solveInterruptible(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
     }
 
     public void augment(@NonNull Map<Integer, Set<Integer>> domains,

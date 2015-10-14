@@ -9,7 +9,7 @@ public class NeverEndingTerminationCriterion implements ITerminationCriterion {
 
     @Override
     public double getRemainingTime() {
-        return 10800; // arbitrary big number
+        return 99999; // arbitrary big number
     }
 
     @Override

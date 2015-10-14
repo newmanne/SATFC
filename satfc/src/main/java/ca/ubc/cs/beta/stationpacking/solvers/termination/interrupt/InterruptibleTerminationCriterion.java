@@ -24,6 +24,7 @@ package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 
 /**`
  * Created by newmanne on 13/05/15.
@@ -37,6 +38,10 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
         this.decoratedCriterion = decoratedCriterion;
         this.interrupt = new AtomicBoolean(false);
     }
+    
+    public InterruptibleTerminationCriterion() {
+    	this(new NeverEndingTerminationCriterion());
+	}
 
     @Override
     public double getRemainingTime() {

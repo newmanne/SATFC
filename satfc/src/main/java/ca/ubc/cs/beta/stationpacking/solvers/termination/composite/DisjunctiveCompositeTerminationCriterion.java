@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.termination.composite;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import org.apache.commons.math3.util.FastMath;
@@ -44,6 +45,10 @@ public class DisjunctiveCompositeTerminationCriterion implements ITerminationCri
 	{
 		fTerminationCriteria = aTerminationCriteria;
 	}
+	
+	public DisjunctiveCompositeTerminationCriterion(ITerminationCriterion... criterion) {
+		this(Arrays.asList(criterion));
+	}	
 	
 	@Override
 	public double getRemainingTime() {
