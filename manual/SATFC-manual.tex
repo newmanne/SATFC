@@ -36,8 +36,9 @@ needspace, % space reservation
 \newcommand{\SATFC}{\textsc{SATFC}~}
 \newcommand{\SATFCServer}{\textsc{SATFC-Server}~}
 \newcommand{\clasp}{\textsc{clasp}~}
+\newcommand{\ubcsat}{\textsc{ubcsat}~}
 \newcommand{\AEATK}{\textsc{AEATK}}
-\newcommand{\SATFCVersion}{v1.7.1~}
+\newcommand{\SATFCVersion}{v1.9~}
 
 \usepackage{minted}
 \usepackage{dirtree}
@@ -103,7 +104,7 @@ needspace, % space reservation
 
 \section{Introduction}
 
-\paragraph{Abstract} \SATFC (\emph{SAT-based Feasibility Checker}) solves radio-spectrum repacking feasibility problems arising in the FCC's upcoming reverse auction. It combines a formulation of feasibility checking based on propositional satisfiability with a heuristic pre-solver and a SAT solver tuned for the types of instances observed in auction simulations.
+\paragraph{Abstract} \SATFC (\emph{SAT-based Feasibility Checker}) solves radio-spectrum repacking feasibility problems arising in the FCC's upcoming reverse auction. It combines a formulation of feasibility checking based on propositional satisfiability, heuristics, a complete SAT solver, and a local search SAT solver both tuned for the types of instances observed in auction simulations.
 
 \paragraph{Authors \& Collaborators}  \SATFC is the product of the ideas and hard work of \href{http://www.auctionomics.com/}{Auctionomics}, notably \href{http://www.cs.ubc.ca/~afrechet/}{Alexandre Fr\'echette}, \href{http://www.cs.ubc.ca/~newmanne/}{Neil Newman}, Paul Cernek, Emily Chenn, \href{http://www.cs.mcgill.ca/~gsauln/}{Guillaume Saulnier-Comte}, \href{http://web.stanford.edu/~narnosti/}{Nick Arnosti}, and \href{http://www.cs.ubc.ca/~kevinlb/}{Kevin Leyton-Brown}.
 
@@ -115,7 +116,7 @@ needspace, % space reservation
 
 \subsection{System Requirements}
 
-\SATFC is primarily intended to run on Unix-like platforms. It requires Java 8 to run. One also needs our modified version of the SAT solver \clasp  compiled for JNA library usage, which in turn necessitates \textsc{gcc} v4.8.1 or higher as well as the standard Unix C libraries and \href{https://www.threadingbuildingblocks.org/}{libtbb}. See Section \ref{sec:usage} to learn how to compile \clasp. 
+\SATFC is primarily intended to run on Unix-like platforms. It requires Java 8 to run (all testing has been done with Sun). It also needs our modified version of the SAT solvers \href{http://potassco.sourceforge.net/}{\clasp} and \href{http://ubcsat.dtompkins.com/}{\ubcsat} (see also \href{http://www.cs.ubc.ca/labs/beta/Projects/SATenstein/}{SATenstein}) compiled for JNA library usage, which in turn necessitates \textsc{gcc} v4.8.1 or higher as well as the standard Unix C libraries and \href{https://www.threadingbuildingblocks.org/}{libtbb}. See Section \ref{sec:usage} to learn how to compile \clasp and \ubcsat. The default portfolio of solvers that \SATFC ships with runs 4 solvers in parallel, so you should allocate one \SATFC program per 4 cores available. If the default portfolio is overridden (see section \ref{sec:customportfolio}), then this recommendation would change according to the new portfolio.
 
 \subsection{Version}
 This manual is for \SATFC \SATFCVersion
@@ -126,7 +127,7 @@ This manual is for \SATFC \SATFCVersion
 At the core of the reverse auction part of the radio-spectrum incentive auction lies the problem of (re)assigning television stations to a smaller range of broadcast channels than what they currently occupy subject to various interference constraints (often referred to as the \textsc{Station Packing Problem} or the \textsc{Feasibility Checking Problem}). These constraints are pairwise between stations, hence the whole problem can be cast to an (extended) \textsc{Graph Coloring Problem}, where stations are nodes of the graph, edges correspond to interference constraints and colors to available broadcast channels. Unfortunately, the latter problem is known to be {NP}-complete, \emph{i.e.} computationally challenging. Furthermore, in the latest reverse auction designs, feasibility checking must be executed very frequently, sometimes upwards of a thousand times per auction round. This problem is thus the fundamental computational bottleneck of the auction. Fortunately, the distribution of feasibility checking problems encountered in a typical auction is very specific, and that is what \SATFC leverages.
 
 \subsection{\SATFC}
-To take advantage of the specific distribution of encountered feasibility checking problems, \SATFC first translates feasibility checking into its propositional satisfiability (SAT) version. This allows us to leverage the body of research on high performance SAT solvers developed over the last years. Through extensive empirical evaluations, we have identified the SAT solver \clasp as the best solver when tuned on our specific instance set using SMAC, a sequential, model-based algorithm configurator. In addition to using a highly configured version of clasp, \SATFC solves easy instances using a heuristic pre-solving algorithm based on previous partial satisfiable assignments. Finally, some engineering was required to make the whole pipeline as efficient as possible.
+To take advantage of the specific distribution of encountered feasibility checking problems, \SATFC first translates feasibility checking into its propositional satisfiability (SAT) version. This allows us to leverage the body of research on high performance SAT solvers developed over the last years. Through extensive empirical evaluations, we have identified the SAT solver \clasp as the best solver when tuned on our specific instance set using SMAC, a sequential, model-based algorithm configurator. In addition to using a highly configured version of clasp, \SATFC solves easy instances using a heuristic pre-solving algorithm based on previous partial satisfiable assignments. Recent versions of \SATFC also include a configured version of \ubcsat, a local search based SAT solver. Finally, some engineering was required to make the whole pipeline as efficient as possible.
 
 \subsection{Efficient Usage}
 \SATFC was developed to work particularly well on the auction designs that are being studied by the FCC. For example, in these designs, one expects to encounter many problems to be solved sequentially, a good fraction of which are simple. \SATFC thus extensively leverages any partial feasible assignments to get rid of easy instances quickly, and has a main solver tuned for a specific (empirically defined) distribution of harder instances.
@@ -135,7 +136,9 @@ To take advantage of the specific distribution of encountered feasibility checki
 
 \subsection{Setting Up \SATFC}
 
-Compiled, ready-to-go releases of \SATFC are available from the \href{https://github.com/FCC/SATFC/releases}{SATFC  repository}. Packaged with \SATFC is a source jar, necessary libraries as well as a copy of \clasp. 
+Compiled, ready-to-go releases of \SATFC are available from the \href{https://github.com/FCC/SATFC/releases}{SATFC  repository}. Packaged with \SATFC is a source jar, necessary libraries as well as a copy of \clasp and \ubcsat. 
+
+\subsubsection{Compiling Clasp}
 
 \clasp will need to be compiled for your machine. To compile the \clasp packaged with a \SATFC release, do the following:
 \begin{lstlisting}[style=Bash]
@@ -143,8 +146,18 @@ Compiled, ready-to-go releases of \SATFC are available from the \href{https://gi
 > cd clasp/
 > bash compile.sh
 \end{lstlisting}
-This will put a compiled \clasp library, \texttt{libclaspjna.so}, in the clasp/jna folder.
+This will put a compiled \clasp library, \texttt{libjnaclasp.so}, in the clasp/jna folder.
 Note that this version of \clasp requires a recent version of libtbb (\url{https://www.threadingbuildingblocks.org/}) that may not be part of your distribution by default - keep an eye on the output of the compile script and check your package manager for the library. If the compile script fails, it may require some command line arguments depending on where you have libtbb on your machine. These two arguments are absolute paths to your TBB\_INCLUDE directory and TBB\_LIB directory, respectively. You may also have to update your LD\_LIBRARY\_PATH environment variable to include the TBB\_LIB folder.
+
+\subsubsection{Compiling UBCSAT}
+
+\ubcsat will need to be compiled for your machine. To compile the \ubcsat packaged with a \SATFC release, do the following:
+\begin{lstlisting}[style=Bash]
+> cd <SATFC release directory>
+> cd ubcsat/
+> bash compile.sh
+\end{lstlisting}
+This will put a compiled \ubcsat library, \texttt{libjnaubcsat.so}, in the ubcsat/jna folder.
 
 \subsubsection{Data}\label{sec:data}
 
@@ -156,7 +169,7 @@ The broadcast interference constraint data (as specified by the FCC) consists of
 \begin{center}
 	\texttt{<key>,<subject channel>,<target channel>,<subject station>,<target station 1>,\ldots}
 \end{center}
-There are three possible constraint keys: \texttt{CO}, \texttt{ADJ+1} and \texttt{ADJ-1}. The former indicates a \emph{co-channel constraint}, stating that the subject station and any target station cannot be on the same target/subject channel. The second describes an \emph{adjacent plus one constraint} which implies that the subject station cannot be on its subject channel $c$ together with any target station on the target channel $c+1$. The third one is an \emph{adjacent minus one constraint}, which is just an adjacent plus one constraint with subject station and channels interchanged with target station and channel, respectively.
+There are five possible constraint keys: \texttt{CO}, \texttt{ADJ+1}, \texttt{ADJ-1}, \texttt{ADJ+2}, and \texttt{ADJ-2}. The former indicates a \emph{co-channel constraint}, stating that the subject station and any target station cannot be on the same target/subject channel. The second describes an \emph{adjacent plus one constraint} which implies that the subject station cannot be on its subject channel $c$ together with any target station on the target channel $c+1$. The third one is an \emph{adjacent minus one constraint}, which is just an adjacent plus one constraint with subject station and channels interchanged with target station and channel, respectively. The fourth describes an \emph{adjacent plus two constraint} which implies that the subject station cannot be on its subject channel $c$ together with any target station on the target channel $c+2$. The third one is an \emph{adjacent minus two constraint}, which is just an adjacent plus two constraint with subject station and channels interchanged with target station and channel, respectively.
 
 Here are two examples of interference constraints:
 \begin{center}
@@ -173,7 +186,7 @@ This constraint implies that neither stations 1 and 2 nor stations 1 and 3 can b
 This constraint implies that neither stations 1 and 2 nor stations 1 and 3 can be on channels 8 and 7 respectively.
 
 \subsection{Understanding Output}
-When \SATFC solves a problem, it returns a run result, runtime, and a witness assignment. The run result can be one of \texttt{SAT}isfiable, \texttt{UNSAT}isfiable or \texttt{TIMEOUT} (or the rarer \texttt{CRASHED}, \texttt{INTERRUPTED}) and corresponds to the repackability of the given problem. The runtime is the CPU time, in seconds, that \SATFC has taken to solve the given problem. Finally, the witness assignment is present only if the given problem is repackable (\emph{i.e.} \texttt{SAT}) and consists of a new valid channel assignment for the given stations.
+When \SATFC solves a problem, it returns a run result, runtime, and a witness assignment. The run result can be one of \texttt{SAT}isfiable, \texttt{UNSAT}isfiable or \texttt{TIMEOUT} (or the rarer \texttt{CRASHED}) and corresponds to the repackability of the given problem. The runtime is the wall time, in seconds, that \SATFC has taken to solve the given problem. Finally, the witness assignment is present only if the given problem is repackable (\emph{i.e.} \texttt{SAT}) and consists of a new valid channel assignment for the given stations.
 
 \subsection{Using \SATFC As a Library}
 
@@ -261,7 +274,7 @@ In addition to the required arguments discussed above, command-line \SATFC also 
 \end{fwarning}
 \item \texttt{-SEED} -- the seed to use for any (non-\clasp) randomization done in \SATFC.
 \item \texttt{-CLASP-LIBRARY} -- a path to the compiled ``\texttt{.so}'' \clasp library to use.
-\item \texttt{-PARALLELISM-LEVEL} -- the maximum number of algorithms SATFC is allowed to execute in parallel.
+\item \texttt{-UBCSAT-LIBRARY} -- a path to the compiled ``\texttt{.so}'' \ubcsat library to use.
 \item \texttt{---log-level} -- \SATFC's logging level. Can be one of \texttt{ERROR}, \texttt{WARN}, \texttt{INFO}, \texttt{DEBUG}, \texttt{TRACE} (listed in increasing order of verbosity).
 \end{itemize}
 
@@ -309,7 +322,6 @@ You can use a single \SATFCServer instance even if your problems come from diffe
 
 and you would pass in the path to the \textit{constraint\_sets} folder as your argument to \texttt{----constraint.folder}.
 
-
 \subsection{Modifications to running \SATFC}
 Once the server is up and running, you can run \SATFC as before with the following changes. If you are running from the command line, you need to add the following parameters: \texttt{---serverURL <serverhost>:<serverport>/satfcserver}. If you run \SATFC using the facade, then you need to add the following lines to when you instantiate the facade:
 
@@ -324,6 +336,26 @@ satfcFacadeBuilder.setServerURL(<serverURL>)
 SATFCFacade satfc = satfcFacadeBuilder.build();
 \end{minted}
 
+\subsection{Dealing with memory errors}
+You may need to configure the JVM memory settings to increase the maximum heap size available to the \SATFCServer. This can be done with by opening up the \SATFCServer launch script and modifying the line starting with DEFAULT\_JVM\_OPTS, for example:
+\begin{lstlisting}[style=Bash]
+DEFAULT_JVM_OPTS='"-Xmx16g"'
+\end{lstlisting}
+would set the allowable memory consumption to 16 gigs. If adding more memory is not possible, then you can delete cache entries from the underlying redis and restart the server. By sending an HTTP \emph{POST} request to the \texttt{<host>:<port>/satfcserver/filter} endpoint, the \SATFCServer will prune entries that contain redundant information. These redundant cache entries will be deleted from the backing redis as well. Note that this filtering operation can take many hours and will take time proportional to the size of the cache. While the filtering operation is ongoing, the \SATFCServer should not be answering other requests.
+
+\subsection{A note on allocating resources}
+The \SATFCServer can handle multiple requests concurrently. However, the number of concurrent requests is limited by the underlying hardware. For example, if you run the \SATFCServer on a machine with 16 physical cores, then you should not expect to handle more than 16 concurrent requests without experiencing slowdown. 
+
+\section{Customizing the portfolio}\label{sec:customportfolio}
+\begin{fwarning}
+	This is an advanced and largely undocumented feature. Unless you have a compelling reason to alter the portfolio and are willing to read and understand the \SATFC source code, it's probably better to stay away and use the defaults. 
+\end{fwarning}
+\SATFC's portfolios are specified in \href{http://yaml.org/}{\emph{YAML}} files. There are default, provided files that ship with \SATFC and will run without user intervention. However, you can override the \emph{.yaml} file being used by calling the 
+\begin{minted}{java}
+satfcFacadeBuilder.setConfigFile("/pathtosomefile.yaml")
+\end{minted}
+method on the \texttt{SATFCFacadeBuilder}. The main reasons to want to alter a portfolio are to change the parameter configurations that are given to each solver, or to take greater advantage of multiple cores. The format for these \emph{.yaml} files can be inferred from a close read of the \texttt{YAMLBundle} class and looking at the files that ship with \SATFC; further documentation is unavailable at this time.
+
 \section{Working from Source: Building \SATFC}
 
 This section is for anyone that wishes to develop \SATFC. It can be skipped otherwise. \SATFC uses the \href{http://www.gradle.org/}{Gradle} build system for dependency resolution. To compile from source and build your own command-line executable version of \SATFC, check out the source code from \href{https://github.com/FCC/SATFC} and execute the following:
@@ -334,15 +366,6 @@ This section is for anyone that wishes to develop \SATFC. It can be skipped othe
 This builds and packages \SATFC in \texttt{<SATFC repository>satfc/build/install/}, and may be a lengthy process as it (possibly) installs Gradle, downloads all of \SATFC's dependencies (from external repositories) and builds the project. Note that it can sometimes fail while trying to download dependencies - restarting the process fixes this. 
 
 \SATFC uses \href{http://projectlombok.org/}{Lombok} annotations to streamline its source code. We suggest you install the \href{http://projectlombok.org/download.html}{Lombok plugin} for your favorite IDE. Otherwise, it possible to ``\href{http://projectlombok.org/features/delombok.html}{delombok}'' the source code, but that will make your code completely incompatible with \SATFC's pipeline.
-
-%\section{Frequently Asked Questions}
-%
-%A (short) list of frequently asked questions:
-%\begin{enumerate}
-% \item Missing double quotes
-% \item I want to know what caused UNSAT.
-% \item Support for windows.
-%\end{enumerate}
 
 \section{Acknowledgments} 
 

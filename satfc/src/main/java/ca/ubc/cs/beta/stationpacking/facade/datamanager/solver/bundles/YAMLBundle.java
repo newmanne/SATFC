@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -77,30 +79,23 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     public YAMLBundle(
             @NonNull ManagerBundle managerBundle,
-            @NonNull ConfigFile configFile,
-            String serverURL,
-            String claspLibraryPath,
-            String ubcsatLibraryPath,
-            String resultFile,
-            CNFSaverSolverDecorator.ICNFSaver CNFSaver
+            SATFCFacadeParameter parameter
     ) {
         super(managerBundle);
 
-        log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", configFile, serverURL, claspLibraryPath, ubcsatLibraryPath, resultFile);
+        log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", parameter.getConfigFile(), parameter.getServerURL(), parameter.getClaspLibrary(), parameter.getUbcsatLibrary(), parameter.getResultFile());
 
         final SATFCContext context = SATFCContext
                 .builder()
                 .managerBundle(managerBundle)
-                .clasp3LibraryGenerator(new Clasp3LibraryGenerator(claspLibraryPath))
-                .ubcsatLibraryGenerator(new UBCSATLibraryGenerator(ubcsatLibraryPath))
-                .serverURL(serverURL)
-                .resultFile(resultFile)
-                .CNFSaver(CNFSaver)
+                .clasp3LibraryGenerator(new Clasp3LibraryGenerator(parameter.getClaspLibrary()))
+                .ubcsatLibraryGenerator(new UBCSATLibraryGenerator(parameter.getUbcsatLibrary()))
+                .parameter(parameter)
                 .python(new PythonInterpreterFactory(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference()))
                 .build();
 
-        log.info("Reading configuration file {}", configFile);
-        final String configJSONString = configFile.getFileAsString();
+        log.info("Reading configuration file {}", parameter.getConfigFile());
+        final String configJSONString = parameter.getConfigFile().getFileAsString();
 
         log.info("Running configuration file through YAML parser to handle anchors...");
 
@@ -112,23 +107,23 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         try {
             fixed = YAMLUtils.getMapper().writeValueAsString(normalized);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Couldn't parse JSON from file " + configFile, e);
+            throw new RuntimeException("Couldn't parse JSON from file " + parameter.getConfigFile(), e);
         }
 
-        log.info("Parsing configuration file {}", configFile);
+        log.info("Parsing configuration file {}", parameter.getConfigFile());
 
         final JSONBundleConfig config;
         try {
             config = YAMLUtils.getMapper().readValue(fixed, JSONBundleConfig.class);
         } catch (IOException e) {
-            throw new RuntimeException("Couldn't parse JSON from file " + configFile, e);
+            throw new RuntimeException("Couldn't parse JSON from file " + parameter.getConfigFile(), e);
         }
 
         log.info("Configuration parsed! Building solvers...");
         final List<ISolverConfig> uhf = config.getUHF();
         final List<ISolverConfig> vhf = config.getVHF();
-        Preconditions.checkState(uhf != null && !uhf.isEmpty(), "No solver provided for UHF in config file %s", configFile);
-        Preconditions.checkState(vhf != null && !vhf.isEmpty(), "No solver provided for VHF in config file %s", configFile);
+        Preconditions.checkState(uhf != null && !uhf.isEmpty(), "No solver provided for UHF in config file %s", parameter.getConfigFile());
+        Preconditions.checkState(vhf != null && !vhf.isEmpty(), "No solver provided for VHF in config file %s", parameter.getConfigFile());
 
         UHFSolver = concat(uhf, context);
         VHFSolver = concat(vhf, context);
@@ -190,7 +185,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public boolean shouldSkip(SATFCContext context) {
-            return context.getServerURL() == null;
+            return context.getParameter().getServerURL() == null;
         }
     }
 
@@ -205,13 +200,11 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     @Builder
     @Data
     public static class SATFCContext {
-        private final String serverURL;
         private final Clasp3LibraryGenerator clasp3LibraryGenerator;
         private final UBCSATLibraryGenerator ubcsatLibraryGenerator;
         private final ManagerBundle managerBundle;
-        private final String resultFile;
-        private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
         private final PythonInterpreterFactory python;
+        private final SATFCFacadeParameter parameter;
     }
 
     @Data
@@ -289,7 +282,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(context.getServerURL(), context.getManagerBundle().getCacheCoordinate()));
+            final SATFCFacadeParameter parameter = context.getParameter();
+            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
         }
 
     }
@@ -300,7 +294,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(context.getServerURL(), context.getManagerBundle().getCacheCoordinate()));
+            final SATFCFacadeParameter parameter = context.getParameter();
+            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
         }
 
     }
@@ -311,7 +306,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(context.getServerURL(), context.getManagerBundle().getCacheCoordinate()));
+            final SATFCFacadeParameter parameter = context.getParameter();
+            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
         }
 
     }
@@ -333,12 +329,12 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new ResultSaverSolverDecorator(solverToDecorate, context.getResultFile());
+            return new ResultSaverSolverDecorator(solverToDecorate, context.getParameter().getResultFile());
         }
 
         @Override
         public boolean shouldSkip(SATFCContext context) {
-            return context.getResultFile() == null;
+            return context.getParameter().getResultFile() == null;
         }
     }
 
@@ -440,12 +436,12 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getCNFSaver(), encodingType, true);
+            return new CNFSaverSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getParameter().getCNFSaver(), encodingType, true);
         }
 
         @Override
         public boolean shouldSkip(SATFCContext context) {
-            return context.getCNFSaver() == null;
+            return context.getParameter().getCNFSaver() == null;
         }
 
         EncodingType encodingType = EncodingType.DIRECT;

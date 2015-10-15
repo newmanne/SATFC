@@ -183,9 +183,8 @@ public class ContainmentCacheController {
             List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
             log.info("Pruning {} UNSAT entries from Redis", UNSATPrunables.size());
             cacher.deleteUNSATCollection(UNSATPrunables);
-
-            log.info("Filter completed");
         });
+        log.info("Filter completed");
     }
 
 }

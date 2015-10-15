@@ -21,27 +21,24 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import java.io.File;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
-import com.google.common.base.Preconditions;
-import lombok.Data;
-import lombok.NonNull;
-import lombok.experimental.Builder;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
-
+import com.google.common.base.Preconditions;
 import com.google.common.io.Resources;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.experimental.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -52,9 +49,6 @@ import com.google.common.io.Resources;
 public class SATFCFacadeBuilder {
 
     private volatile static boolean logInitialized = false;
-    
-    public final static String SATFC_SEQUENTIAL = "satfc_sequential";
-    public final static String SATFC_PARALLEL = "satfc_parallel";
 
     // public params
     private boolean initializeLogging;
@@ -71,10 +65,18 @@ public class SATFCFacadeBuilder {
 
     /**
      * Set the YAML file used to build up the SATFC solver bundle
-     * @param configFile
+     * @param configFile path to a config file
      */
     public void setConfigFile(String configFile) {
         this.configFile = new YAMLBundle.ConfigFile(configFile, false);
+    }
+
+    /**
+     * Set the YAML file used to build up the SATFC solver bundle
+     * @param configFile
+     */
+    public void setConfigFile(InternalSATFCPortfolioFile configFile) {
+        this.configFile = new YAMLBundle.ConfigFile(configFile.getFilename(), true);
     }
 
     // developer params
@@ -130,7 +132,7 @@ public class SATFCFacadeBuilder {
     }
 
     public static YAMLBundle.ConfigFile autoDetectBundle() {
-        return new YAMLBundle.ConfigFile(Runtime.getRuntime().availableProcessors() >= 4 ? SATFCFacadeBuilder.SATFC_PARALLEL : SATFCFacadeBuilder.SATFC_SEQUENTIAL, true);
+        return new YAMLBundle.ConfigFile(Runtime.getRuntime().availableProcessors() >= 4 ? InternalSATFCPortfolioFile.SATFC_PARALLEL.getFilename() : InternalSATFCPortfolioFile.SATFC_SEQUENTIAL.getFilename(), true);
     }
 
     /**
@@ -207,6 +209,8 @@ public class SATFCFacadeBuilder {
                         .resultFile(fResultFile)
                         .serverURL(serverURL)
                         .configFile(configFile)
+                        .numServerAttempts(numServerAttempts)
+                        .noErrorOnServerUnavailable(noErrorOnServerUnavailable)
                         // developer
                         .hydraParams(developerOptions.getHydraParams())
                         .dataManager(developerOptions.getDataManager())

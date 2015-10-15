@@ -42,6 +42,9 @@ public class SATFCFacadeParameter {
 	private final String resultFile;
     private Level logLevel;
 
+    private int numServerAttempts;
+    private boolean noErrorOnServerUnavailable;
+
     // developer options
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final SATFCHydraParams hydraParams;

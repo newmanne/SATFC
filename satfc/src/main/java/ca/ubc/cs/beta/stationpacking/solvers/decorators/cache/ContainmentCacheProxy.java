@@ -66,19 +66,21 @@ public class ContainmentCacheProxy implements ICacher {
     private final String CACHE_URL;
     private final AtomicReference<Future<HttpResponse>> activeFuture;
     private final int numAttempts;
+    private final boolean noErrorOnServerUnavailable;
 
     static {
         httpClient = HttpAsyncClients.createDefault();
         httpClient.start();
     }
 
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts) {
+    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
         CACHE_URL = baseServerURL + "/v1/cache";
         this.coordinate = coordinate;
         activeFuture = new AtomicReference<>();
         this.numAttempts = numAttempts;
+        this.noErrorOnServerUnavailable = noErrorOnServerUnavailable;
     }
 
     /**
@@ -123,8 +125,13 @@ public class ContainmentCacheProxy implements ICacher {
                 log.error("Retrying web request. Request will be retried {} more time(s)", newRemainingAttempts);
                 return makePost(URL, request, responseClass, failure, terminationCriterion, newRemainingAttempts);
             } else {
-                log.error("The retry quota for this web request has been exceeded. Continuing to solve the problem without the server...");
-                return failure;
+                log.error("The retry quota for this web request has been exceeded");
+                if (noErrorOnServerUnavailable) {
+                    log.error("Continuing to solve the problem without the server...");
+                    return failure;
+                } else {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
