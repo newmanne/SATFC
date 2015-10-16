@@ -18,14 +18,14 @@ public class StationSamplerParameters extends AbstractOptions {
     public String fStationSamplingFile;
 
     public IStationSampler getStationSampler() throws IOException {
-        switch(fStationSamplingMethod){
-            case POPULATION_SIZE:
-                if(fStationSamplingFile == null) throw new IllegalStateException("Need to specify " + StationSamplingMethod.POPULATION_SIZE + " source file using flag -STATION-SAMPLER-SOURCE-FILE");
-                // TODO: fix
-                return new PopulationSizeStationSampler(fStationSamplingFile, null, null, 0);
-            default:
-                throw new IllegalStateException("Specified --STATION-SAMPLER is invalid");
-        }
+        throw new UnsupportedOperationException("not yet implemented");
+//        switch(fStationSamplingMethod){
+//            case POPULATION_SIZE:
+//                if(fStationSamplingFile == null) throw new IllegalStateException("Need to specify " + StationSamplingMethod.POPULATION_SIZE + " source file using flag -STATION-SAMPLER-SOURCE-FILE");
+//                return new PopulationVolumeSampler(fStationSamplingFile, null, 0);
+//            default:
+//                throw new IllegalStateException("Specified --STATION-SAMPLER is invalid");
+//        }
     }
 
     public enum StationSamplingMethod {

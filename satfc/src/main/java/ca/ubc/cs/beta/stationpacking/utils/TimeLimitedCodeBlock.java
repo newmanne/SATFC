@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.stationpacking.utils;
 
+import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +24,7 @@ public class TimeLimitedCodeBlock {
     }
 
     public static <T> T runWithTimeout(Callable<T> callable, long timeout, TimeUnit timeUnit) throws Exception {
-        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final ExecutorService executor = Executors.newSingleThreadExecutor(new SequentiallyNamedThreadFactory("SATFC Main Worker Thread"));
         final Future<T> future = executor.submit(callable);
         executor.shutdown(); // This does not cancel the already-scheduled task.
         try {

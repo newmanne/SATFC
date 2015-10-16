@@ -62,7 +62,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset) {
         fLibrary = library;
         this.seedOffset = seedOffset;
-        log.info("Using config {} for UBCSAT", parameters);
+        log.debug("Using config {} for UBCSAT", parameters);
         String mutableParameters = parameters;
         if (mutableParameters.contains("-seed ")) {
             throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!" + System.lineSeparator() + mutableParameters);

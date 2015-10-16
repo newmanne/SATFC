@@ -67,7 +67,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
      */
     public ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
         log.debug("Creating a fixed pool with {} threads", threadPoolSize);
-        executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(threadPoolSize));
+        executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(threadPoolSize, new Se));
         listOfSolverQueues = new ArrayList<>(solvers.size());
         for (ISolverFactory solverFactory : solvers) {
             final LinkedBlockingQueue<ISolver> solverQueue = Queues.newLinkedBlockingQueue(threadPoolSize);
@@ -107,7 +107,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         if (solver == null) {
                             throw new IllegalStateException("Couldn't take a solver from the queue!");
                         }
-                        // During this block (while you are added to this list) it is safe for you to be interrupted via the interrupt method
+                        // During this block (while you are added to this list) it is safe for you to be interrupted via the interrupt method. Note that you are not in the queue, and therefore won't be reassigned
                         solversSolvingCurrentProblem.add(solver);
                         log.debug("Begin solve {}", solver.getClass().getSimpleName());
                         final SolverResult solverResult = solver.solve(aInstance, interruptibleCriterion, aSeed);

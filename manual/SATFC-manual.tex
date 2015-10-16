@@ -344,7 +344,10 @@ DEFAULT_JVM_OPTS='"-Xmx16g"'
 would set the allowable memory consumption to 16 gigs. If adding more memory is not possible, then you can delete cache entries from the underlying redis and restart the server. By sending an HTTP \emph{POST} request to the \texttt{<host>:<port>/satfcserver/filter} endpoint, the \SATFCServer will prune entries that contain redundant information. These redundant cache entries will be deleted from the backing redis as well. Note that this filtering operation can take many hours and will take time proportional to the size of the cache. While the filtering operation is ongoing, the \SATFCServer should not be answering other requests.
 
 \subsection{A note on allocating resources}
-The \SATFCServer can handle multiple requests concurrently. However, the number of concurrent requests is limited by the underlying hardware. For example, if you run the \SATFCServer on a machine with 16 physical cores, then you should not expect to handle more than 16 concurrent requests without experiencing slowdown. 
+The \SATFCServer can handle multiple requests concurrently. However, the number of concurrent requests is limited by the underlying hardware. For example, if you run the \SATFCServer on a machine with 16 physical cores, then you should not expect to handle more than 16 concurrent requests without experiencing slowdown. The \SATFCServer has no built in mechanisms for scaling horizontally, and it is expected that users are running a single \SATFCServer. 
+
+\subsubsection{Metrics}
+A small number of metrics are available via \texttt{<host>:<port>/satfcserver/metrics} and \texttt{<host>:<port>/satfcserver/metrics/extra}.
 
 \section{Customizing the portfolio}\label{sec:customportfolio}
 \begin{fwarning}

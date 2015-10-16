@@ -11,60 +11,58 @@ UHF:
           - 
             - name: UNSAT_CACHE
             - name: SAT_CACHE
+            - name: DELAY
+              args: 
+                time: 1.0
+                noise: 1.0
           -   
+            - name: CLASP
+              args:
+                config: *claspH1
             - name: SAT_PRESOLVER
               args: 
                 solverConfig:
                   name: CLASP
                   args:
                     config: *claspH1
-                    encodingType: DIRECT
                 strategy: 
                   name: ITERATIVE_DEEPEN
                   args:
-                    scalingFactor: 0
                     baseCutoff: 10
                     config: 
                       name: NEIGHBOURHOOD
-                      args: 
-                        numLayers: 5000
           -
             - name: CLASP
               args: 
                 config: *claspH1
                 encodingType: DIRECT
           -
-            - name: CLASP
-              args: 
-                config: *claspH2
-                encodingType: DIRECT
-            - name: SAT_CACHE
+            - name: PARALLEL
+              args:
+                configs:
+                  -
+                    - name: SAT_CACHE
+                    - name: DELAY
+                      args: 
+                        time: 1.0
+                        noise: 1.0
+                  -
+                    - name: CLASP
+                      args: 
+                        config: *claspH2
+            - name: PYTHON_VERIFIER
             - name: VERIFIER
             - name: CACHE
             - name: CONNECTED_COMPONENTS
             - name: UNDERCONSTRAINED
-              args: 
-                expensive: true
-                recursive: true
             - name: ARC_CONSISTENCY
           -
-            - name: UNSAT_PRESOLVER
-              args:     
-                solverConfig:
-                  name: CLASP
-                  args:
-                    config: *claspH1
-                    encodingType: DIRECT
-                strategy: 
-                  name: ITERATIVE_DEEPEN
-                  args:
-                    scalingFactor: 0
-                    baseCutoff: 10
-                    config: 
-                      name: NEIGHBOURHOOD
-                      args: 
-                        numLayers: 5000
+            - name: UBCSAT
+              args:
+                config: *dcca
+                encodingType: DIRECT
     - name: RESULT_SAVER
+    - name: PYTHON_VERIFIER
     - name: VERIFIER
     - name: CACHE
 VHF:
@@ -83,15 +81,14 @@ VHF:
           name: CLASP
           args:
             config: *claspVHF
-            encodingType: DIRECT
         strategy: 
           name: ITERATIVE_DEEPEN
           args:
-            scalingFactor: 0
             baseCutoff: 5
             config: 
               name: NEIGHBOURHOOD
               args: 
                 numLayers: 1
     - name: RESULT_SAVER
+    - name: PYTHON_VERIFIER
     - name: VERIFIER

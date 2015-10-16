@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.facade.InternalSATFCPortfolioFile;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
@@ -77,7 +79,8 @@ public abstract class ASolverBundleTest {
 
     @Test
     public void testSimplestProblemPossible() throws Exception {
-    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, new YAMLBundle.ConfigFile(getBundleName(), true), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+        final SATFCFacadeParameter parameter = SATFCFacadeParameter.builder().configFile(new YAMLBundle.ConfigFile(getBundleName(), true)).claspLibrary(SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP)).ubcsatLibrary(SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT)).build();
+        try (final ISolverBundle bundle = new YAMLBundle(managerBundle, parameter)) {
     		final StationPackingInstance instance = StationPackingTestUtils.getSimpleInstance();
             final SolverResult solve = bundle.getSolver(instance).solve(instance, new WalltimeTerminationCriterion(60), 1);
             Assert.assertEquals(StationPackingTestUtils.getSimpleInstanceAnswer(), solve.getAssignment()); // There is only one answer to this problem
@@ -86,7 +89,8 @@ public abstract class ASolverBundleTest {
 
     @Test
     public void testAFewSrpks() throws Exception {
-    	try (final ISolverBundle bundle = new YAMLBundle(managerBundle, new YAMLBundle.ConfigFile(getBundleName(), true), null, SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP), SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT), null, null)) {
+        final SATFCFacadeParameter parameter = SATFCFacadeParameter.builder().configFile(new YAMLBundle.ConfigFile(getBundleName(), true)).claspLibrary(SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.CLASP)).ubcsatLibrary(SATFCFacadeBuilder.findSATFCLibrary(SATFCLibLocation.UBCSAT)).build();
+        try (final ISolverBundle bundle = new YAMLBundle(managerBundle, parameter)) {
             final List<String> lines = Files.readLines(new File(Resources.getResource(INSTANCE_FILE).getFile()), Charset.defaultCharset());
             final Map<String, SATResult> instanceFileToAnswers = new HashMap<>();
             lines.stream().forEach(line -> {
@@ -107,7 +111,7 @@ public abstract class ASolverBundleTest {
 
 		@Override
 		protected String getBundleName() {
-			return  SATFCFacadeBuilder.SATFC_SEQUENTIAL;
+			return InternalSATFCPortfolioFile.SATFC_SEQUENTIAL.getFilename();
 		}
 
     }
@@ -116,7 +120,7 @@ public abstract class ASolverBundleTest {
 
 		@Override
 		protected String getBundleName() {
-			return SATFCFacadeBuilder.SATFC_PARALLEL;
+			return InternalSATFCPortfolioFile.SATFC_PARALLEL.getFilename();
 		}
 
     }

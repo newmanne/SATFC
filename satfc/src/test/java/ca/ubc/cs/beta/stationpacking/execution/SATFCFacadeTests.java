@@ -32,7 +32,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.facade.InterruptibleSATFCResult;
-import com.google.common.collect.Iterables;
 import lombok.Cleanup;
 
 import lombok.extern.slf4j.Slf4j;
@@ -159,7 +158,7 @@ public class SATFCFacadeTests {
         for (Entry<InstanceParameters, Pair<SATResult, Double>> entry : TEST_CASES.entrySet()) {
             log.info("Starting problem " + i);
             InstanceParameters testCase = entry.getKey();
-            final InterruptibleSATFCResult interruptibleSATFCResult = facade.solveInterruptible(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername);
+            final InterruptibleSATFCResult interruptibleSATFCResult = facade.solveInterruptibly(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername);
             new Thread() {
 
                 @Override

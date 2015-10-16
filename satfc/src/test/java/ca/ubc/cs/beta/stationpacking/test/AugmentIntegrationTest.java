@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 import lombok.Data;
@@ -45,7 +46,7 @@ public class AugmentIntegrationTest {
             final IStationManager manager = new DomainStationManager(interference + File.separator + DataManager.DOMAIN_FILE);
             log.info("Finding starting state with {} stations", numStartingStations);
             final SATFCAugmentState state = getState(manager, facade);
-            facade.augment(getDomains(manager), state.getAssignment(), popFile, interference, 60.0);
+            facade.augment(getDomains(manager), state.getAssignment(), new IStationDB.CSVStationDB(popFile), interference, 60.0);
         }
     }
 

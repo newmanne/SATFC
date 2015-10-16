@@ -37,18 +37,16 @@ import com.google.common.collect.ImmutableSet;
 public class ChannelKillerDecorator extends ASolverDecorator {
 
     private final double subProblemCutoff;
+    private final boolean recursive;
     private final ISolver SATSolver;
     private final IConstraintManager constraintManager;
 
-    public ChannelKillerDecorator(ISolver aSolver, ISolver SATSolver, IConstraintManager constraintManager, double subProblemCutoff) {
+    public ChannelKillerDecorator(ISolver aSolver, ISolver SATSolver, IConstraintManager constraintManager, double subProblemCutoff, boolean recursive) {
         super(aSolver);
         this.SATSolver = SATSolver;
         this.constraintManager = constraintManager;
         this.subProblemCutoff = subProblemCutoff;
-    }
-
-    public ChannelKillerDecorator(ISolver aSolver, ISolver SATSolver, IConstraintManager constraintManager) {
-        this(aSolver, SATSolver, constraintManager, 0.01);
+        this.recursive = recursive;
     }
 
     @Override
@@ -117,7 +115,7 @@ public class ChannelKillerDecorator extends ASolverDecorator {
             if (domain.isEmpty()) {
                 log.debug("Station {} has an empty domain, instance is UNSAT", station);
                 return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolvedBy.CHANNEL_KILLER);
-            } else if (changed) {
+            } else if (changed && recursive) {
                 // re-enqueue all neighbors
                 stationQueue.addAll(neighborIndex.neighborsOf(station));
             }

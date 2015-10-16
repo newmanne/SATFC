@@ -19,11 +19,9 @@ UHF:
           name: CLASP
           args:
             config: *claspH1
-            encodingType: DIRECT
         strategy: 
           name: ITERATIVE_DEEPEN
           args:
-            scalingFactor: 0
             baseCutoff: 5
             config: 
               name: NEIGHBOURHOOD
@@ -50,11 +48,9 @@ VHF:
           name: CLASP
           args:
             config: *claspVHF
-            encodingType: DIRECT
         strategy: 
           name: ITERATIVE_DEEPEN
           args:
-            scalingFactor: 0
             baseCutoff: 5
             config: 
               name: NEIGHBOURHOOD

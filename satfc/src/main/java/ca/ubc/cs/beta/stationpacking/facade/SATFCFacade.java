@@ -24,8 +24,9 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationSizeStationSampler;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationVolumeSampler;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
@@ -59,7 +60,6 @@ import org.apache.commons.lang3.RandomUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
@@ -222,11 +222,11 @@ public class SATFCFacade implements AutoCloseable {
      * The problem will not begin solving automatically. The expected use case is that a reference to the {@link InterruptibleSATFCResult} will be made accessible to another thread, that may decide to interrupt the operation based on some external signal.
      * You can call {@link InterruptibleSATFCResult#interrupt()} from another thread to interrupt the problem while it is being solved. 
      */
-    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder) {
-        return solveInterruptible(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    public InterruptibleSATFCResult solveInterruptibly(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder) {
+        return solveInterruptibly(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
     }
 
-    public InterruptibleSATFCResult solveInterruptible(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder, String instanceName) {
+    public InterruptibleSATFCResult solveInterruptibly(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder, String instanceName) {
         return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
     }
 
@@ -327,7 +327,7 @@ public class SATFCFacade implements AutoCloseable {
             final DisjunctiveCompositeTerminationCriterion disjunctiveCompositeTerminationCriterion = new DisjunctiveCompositeTerminationCriterion(new WalltimeTerminationCriterion(aCutoff), criterion);
             
             //Solve instance.
-            SolverResult result = null;
+            final SolverResult result;
             try {
                 result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, disjunctiveCompositeTerminationCriterion, aSeed), totalSuicideGraceTimeInMillis, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
@@ -338,7 +338,7 @@ public class SATFCFacade implements AutoCloseable {
             SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
 
             log.debug("Transforming result into SATFC output...");
-            //Transform back solver result to output result.
+            // Transform back solver result to output result
             final Map<Integer, Integer> witness = new HashMap<>();
             for (Entry<Integer, Set<Station>> entry : result.getAssignment().entrySet()) {
                 Integer channel = entry.getKey();
@@ -370,13 +370,12 @@ public class SATFCFacade implements AutoCloseable {
      *
      * @param domains a map taking integer station IDs to set of integer channels domains.
      * @param previousAssignment a valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
-     * @param stationInformationFile
      * @param stationConfigFolder a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
      * @param cutoff
      */
     public void augment(@NonNull Map<Integer, Set<Integer>> domains,
                         @NonNull Map<Integer, Integer> previousAssignment,
-                        @NonNull String stationInformationFile,
+                        @NonNull IStationDB stationDB,
                         @NonNull String stationConfigFolder,
                         double cutoff
     ) {
@@ -384,16 +383,8 @@ public class SATFCFacade implements AutoCloseable {
         // These stations will be in every single problem
         final Set<Integer> exitedStations = previousAssignment.keySet();
 
-        final ISolverBundle bundle = getSolverBundle(stationConfigFolder);
-        final IStationManager manager = bundle.getStationManager();
-
         // Init the station sampler
-        final IStationSampler sampler;
-        try {
-            sampler = new PopulationSizeStationSampler(stationInformationFile, domains.keySet(), manager, RandomUtils.nextInt(0, Integer.MAX_VALUE));
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Problem parsing file " + stationInformationFile, e);
-        }
+        final IStationSampler sampler = new PopulationVolumeSampler(stationDB, domains.keySet(), RandomUtils.nextInt(0, Integer.MAX_VALUE));
 
         while(true) {
             log.debug("Starting to augment from the initial state");

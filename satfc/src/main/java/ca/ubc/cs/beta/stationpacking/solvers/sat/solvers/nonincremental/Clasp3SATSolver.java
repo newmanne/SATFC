@@ -64,7 +64,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     }
 
     public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset) {
-        log.info("Initializing clasp with params {}", parameters);
+        log.debug("Initializing clasp with params {}", parameters);
         fSeedOffset = seedOffset;
         fClaspLibrary = library;
         fParameters = parameters;

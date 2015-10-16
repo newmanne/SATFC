@@ -8,6 +8,8 @@ import java.util.Map;
 
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -32,12 +34,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -403,7 +399,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             return new AddNeighbourLayerStrategy(numLayers);
         }
 
-        private int numLayers;
+        private int numLayers = Integer.MAX_VALUE;
     }
 
     @Data
@@ -448,6 +444,45 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         
     }
 
+    @Data
+    public static class ChannelKillerConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new ChannelKillerDecorator(solverToDecorate, solverConfig.createSolver(context), context.getManagerBundle().getConstraintManager(), time, recurisve);
+        }
+
+        private double time;
+        private boolean recurisve;
+        private ISolverConfig solverConfig;
+
+    }
+
+    @Data
+    public static class DelayedSolverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new DelayedSolverDecorator(solverToDecorate, time);
+        }
+
+        private double time;
+        private double noise;
+
+    }
+
+    @Data
+    public static class TimeBoundedSolverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new TimeBoundedSolverDecorator(solverToDecorate, solverConfig.createSolver(context), time);
+        }
+
+        private ISolverConfig solverConfig;
+        private double time;
+    }
+
     /**
      * Terminology from Local Search on SAT-Encoded Colouring Problems, Steven Prestwich, http://www.cs.sfu.ca/CourseCentral/827/havens/papers/topic%236(SAT)/steve1.pdf
      */
@@ -470,7 +505,11 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         UNSAT_CACHE,
         PARALLEL,
         RESULT_SAVER,
-        CNF, NONE
+        CNF,
+        CHANNEL_KILLER,
+        DELAY,
+        TIME_BOUNDED,
+        NONE
     }
 
     public enum PresolverExpansion {
@@ -511,21 +550,24 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         private final Map<SolverType, Class<? extends ISolverConfig>> typeToConfigClass =
                 ImmutableMap.<SolverType, Class<? extends ISolverConfig>>builder()
-                        .put(SolverType.CLASP, YAMLBundle.ClaspConfig.class)
-                        .put(SolverType.UBCSAT, YAMLBundle.UBCSATConfig.class)
-                        .put(SolverType.SAT_PRESOLVER, YAMLBundle.SATPresolver.class)
-                        .put(SolverType.UNSAT_PRESOLVER, YAMLBundle.UNSATPresolver.class)
-                        .put(SolverType.UNDERCONSTRAINED, YAMLBundle.UnderconstrainedConfig.class)
-                        .put(SolverType.CONNECTED_COMPONENTS, YAMLBundle.ConnectedComponentsConfig.class)
-                        .put(SolverType.ARC_CONSISTENCY, YAMLBundle.ArcConsistencyConfig.class)
-                        .put(SolverType.VERIFIER, YAMLBundle.AssignmentVerifierConfig.class)
-                        .put(SolverType.CACHE, YAMLBundle.CacheConfig.class)
-                        .put(SolverType.SAT_CACHE, YAMLBundle.SATCacheConfig.class)
-                        .put(SolverType.UNSAT_CACHE, YAMLBundle.UNSATCacheConfig.class)
-                        .put(SolverType.PARALLEL, YAMLBundle.ParallelConfig.class)
-                        .put(SolverType.RESULT_SAVER, YAMLBundle.ResultSaverConfig.class)
-                        .put(SolverType.CNF, YAMLBundle.CNFSaverConfig.class)
+                        .put(SolverType.CLASP, ClaspConfig.class)
+                        .put(SolverType.UBCSAT, UBCSATConfig.class)
+                        .put(SolverType.SAT_PRESOLVER, SATPresolver.class)
+                        .put(SolverType.UNSAT_PRESOLVER, UNSATPresolver.class)
+                        .put(SolverType.UNDERCONSTRAINED, UnderconstrainedConfig.class)
+                        .put(SolverType.CONNECTED_COMPONENTS, ConnectedComponentsConfig.class)
+                        .put(SolverType.ARC_CONSISTENCY, ArcConsistencyConfig.class)
+                        .put(SolverType.VERIFIER, AssignmentVerifierConfig.class)
+                        .put(SolverType.CACHE, CacheConfig.class)
+                        .put(SolverType.SAT_CACHE, SATCacheConfig.class)
+                        .put(SolverType.UNSAT_CACHE, UNSATCacheConfig.class)
+                        .put(SolverType.PARALLEL, ParallelConfig.class)
+                        .put(SolverType.RESULT_SAVER, ResultSaverConfig.class)
+                        .put(SolverType.CNF, CNFSaverConfig.class)
                         .put(SolverType.PYTHON_VERIFIER, PythonVerifieConfig.class)
+                        .put(SolverType.CHANNEL_KILLER, ChannelKillerConfig.class)
+                        .put(SolverType.DELAY, DelayedSolverConfig.class)
+                        .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .build();
 
         @Override
@@ -561,8 +603,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     public static class StationAddingStrategyConfigurationDeserializer extends ANameArgsDeserializer<PresolverExpansion, IStationAddingStrategyConfig> {
 
         private final Map<PresolverExpansion, Class<? extends YAMLBundle.IStationAddingStrategyConfig>> typeToConfigClass = ImmutableMap.<PresolverExpansion, Class<? extends YAMLBundle.IStationAddingStrategyConfig>>builder()
-                .put(PresolverExpansion.NEIGHBOURHOOD, YAMLBundle.NeighbourLayerConfig.class)
-                .put(PresolverExpansion.UNIFORM_RANDOM, YAMLBundle.AddRandomNeighbourConfig.class)
+                .put(PresolverExpansion.NEIGHBOURHOOD, NeighbourLayerConfig.class)
+                .put(PresolverExpansion.UNIFORM_RANDOM, AddRandomNeighbourConfig.class)
                 .build();
 
         @Override

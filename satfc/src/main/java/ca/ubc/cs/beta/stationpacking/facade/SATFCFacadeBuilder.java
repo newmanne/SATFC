@@ -262,7 +262,7 @@ public class SATFCFacadeBuilder {
      * @param noErrorOnServerUnavailable if true, just continue solving the problem without the server's help. if false, throw an error after numServerAttempts is exceeded
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setServerRetries(int numServerAttempts, boolean noErrorOnServerUnavailable) {
+    public SATFCFacadeBuilder setServerAttempts(int numServerAttempts, boolean noErrorOnServerUnavailable) {
         Preconditions.checkState(numServerAttempts > 0, "number of server attempts must be positive");
         this.numServerAttempts = numServerAttempts;
         this.noErrorOnServerUnavailable = noErrorOnServerUnavailable;
