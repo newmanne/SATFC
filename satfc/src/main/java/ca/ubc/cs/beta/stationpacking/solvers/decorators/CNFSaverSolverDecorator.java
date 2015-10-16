@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -34,6 +33,7 @@ import org.apache.commons.io.FileUtils;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;

@@ -4,5 +4,5 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
-logger("ca.ubc.cs.beta.stationpacking.solvers.decorators", DEBUG)
+logger("ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt", TRACE)
 root(INFO, ["CONSOLE"])

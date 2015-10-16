@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
 
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 /**
@@ -7,6 +8,8 @@ import java.util.concurrent.ScheduledFuture;
 */
 public interface IPollingService {
 
-    ScheduledFuture schedule(Runnable runnable);
+    ScheduledFuture<?> schedule(Runnable runnable);
+
+    ScheduledExecutorService getService();
 
 }

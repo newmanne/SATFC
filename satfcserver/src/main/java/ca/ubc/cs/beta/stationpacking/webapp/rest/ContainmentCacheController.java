@@ -21,8 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCCacheAugmenter;
 import com.codahale.metrics.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -61,14 +66,16 @@ public class ContainmentCacheController {
     @Autowired
     RedisCacher cacher;
 
+    // Metrics
     @Autowired
     MetricRegistry registry;
-
     private Meter cacheAdditions;
     private Meter satCacheHits;
     private Timer satCacheTimer;
     private Meter unsatCacheHits;
     private Timer unsatCacheTimer;
+
+    private volatile Map<Integer, Set<Station>> lastCachedAssignment = new HashMap<>();
 
     @PostConstruct
     void init() {
@@ -167,6 +174,7 @@ public class ContainmentCacheController {
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
         cache.add(instance, request.getResult(), key);
         cacheAdditions.mark();
+        lastCachedAssignment = request.getResult().getAssignment();
     }
 
     @RequestMapping(value = "/filter", method = RequestMethod.POST)
@@ -186,5 +194,16 @@ public class ContainmentCacheController {
         });
         log.info("Filter completed");
     }
+
+    /**
+     * Return the last solved SAT problem you know about
+     */
+    @RequestMapping(value = "/previousAssignment", method = RequestMethod.GET)
+    @ResponseBody
+    public Map<Integer, Set<Station>> getPreviousAssignment() {
+        log.info("Returning the last cached SAT assignment");
+        return lastCachedAssignment;
+    }
+
 
 }

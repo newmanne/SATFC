@@ -40,7 +40,7 @@ dependencies {
     testCompile "org.mockito:mockito-all:1.10.8"
 }
 
-applicationDefaultJvmArgs = ['-Xms4g', '-Xmx8g']
+// applicationDefaultJvmArgs = ['-Xms4g', '-Xmx8g']
 
 //Project properties.
 applicationName = 'SATFCServer'

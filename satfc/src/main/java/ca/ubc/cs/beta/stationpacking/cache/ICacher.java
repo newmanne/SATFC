@@ -21,20 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 1/25/15.

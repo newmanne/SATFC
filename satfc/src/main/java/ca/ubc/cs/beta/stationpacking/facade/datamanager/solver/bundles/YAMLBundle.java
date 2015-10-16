@@ -6,10 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -17,6 +13,7 @@ import lombok.NonNull;
 import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
@@ -34,11 +31,20 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.DelayedSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.TimeBoundedSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -210,7 +216,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final Clasp3LibraryGenerator clasp3LibraryGenerator = context.getClasp3LibraryGenerator();
-            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset);
+            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset, context.getParameter().getPollingService());
             return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager, encodingType));
         }
 
@@ -226,7 +232,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset);
+            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset, context.getParameter().getPollingService());
             return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager, encodingType));
         }
 
@@ -259,8 +265,10 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new ConnectedComponentGroupingDecorator(solverToDecorate, new ConstraintGrouper(), context.getManagerBundle().getConstraintManager());
+            return new ConnectedComponentGroupingDecorator(solverToDecorate, new ConstraintGrouper(), context.getManagerBundle().getConstraintManager(), solveEverything);
         }
+
+        private boolean solveEverything = false;
     }
 
     @Data
@@ -279,7 +287,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
+            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
         }
 
     }
@@ -291,7 +299,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
+            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
         }
 
     }
@@ -303,7 +311,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable()));
+            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
         }
 
     }

@@ -45,7 +45,7 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
 
     @Override
     public double getRemainingTime() {
-        return hasToStop() ? 0.0 : decoratedCriterion.getRemainingTime();
+        return interrupt.get() ? 0.0 : decoratedCriterion.getRemainingTime();
     }
 
     @Override

@@ -16,6 +16,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATLibrary;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
@@ -39,9 +41,10 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     private final Lock lock = new ReentrantLock();
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
+    private final ProblemIncrementor problemIncrementor;
 
     public UBCSATSolver(String libraryPath, String parameters) {
-        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0);
+        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0, null);
     }
 
     /**
@@ -59,7 +62,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
      *                   strings. Alternatively, a simple way to test the legality of a parameter string is to run UBCSAT from
      *                   the command line with that parameter string and specifying a sample .cnf file via the "-inst" flag.
      */
-    public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset) {
+    public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset, IPollingService pollingService) {
         fLibrary = library;
         this.seedOffset = seedOffset;
         log.debug("Using config {} for UBCSAT", parameters);
@@ -78,13 +81,14 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         fLibrary.destroyProblem(jnaProblem);
         
         fParameters = mutableParameters;
+        problemIncrementor = new ProblemIncrementor(pollingService, this);
     }
 
-    public UBCSATSolver(UBCSATLibrary library, String parameters) {
-        this(library, parameters, 0);
+    public UBCSATSolver(UBCSATLibrary library, String parameters, IPollingService service) {
+        this(library, parameters, 0, service);
     }
 
-        @Override
+    @Override
     public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed) {
         return solve(aCNF, null, aTerminationCriterion, aSeed);
     }
@@ -104,6 +108,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
+            problemIncrementor.scheduleTermination(aTerminationCriterion);
             fState = fLibrary.initConfig(seededParameters);
 
             if (aTerminationCriterion.hasToStop()) {
@@ -145,9 +150,8 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             log.debug("Came back from UBCSAT after {}s.", runTime);
 
             return getSolverResult(fLibrary, fState, runTime);
-        //} catch (java.lang.Error e) {
-        //    return new SATSolverResult(SATResult.CRASHED, watch.getElapsedTime(), new HashSet<>(), SolvedBy.UNSOLVED);
         } finally {
+            problemIncrementor.jobDone();
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
             if (fState != null) {
                 log.debug("Destroying problem");

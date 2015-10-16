@@ -21,12 +21,14 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import lombok.Value;
 import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.PollingService;
 import ch.qos.logback.classic.Level;
 
 @Value
@@ -45,11 +47,15 @@ public class SATFCFacadeParameter {
     private int numServerAttempts;
     private boolean noErrorOnServerUnavailable;
 
+    private AutoAugmentOptions autoAugmentOptions;
+
+
     // developer options
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final SATFCHydraParams hydraParams;
     private final DataManager dataManager;
     private final SolverChoice solverChoice;
+    private final IPollingService pollingService = new PollingService();
 
 	public enum SolverChoice
 	{

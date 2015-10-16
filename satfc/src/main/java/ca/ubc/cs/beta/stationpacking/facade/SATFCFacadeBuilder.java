@@ -21,6 +21,17 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
+
+import lombok.Data;
+import lombok.NonNull;
+import lombok.experimental.Builder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
@@ -28,17 +39,9 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
+
 import com.google.common.base.Preconditions;
 import com.google.common.io.Resources;
-import lombok.Data;
-import lombok.NonNull;
-import lombok.experimental.Builder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.net.URISyntaxException;
-import java.net.URL;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
@@ -62,6 +65,7 @@ public class SATFCFacadeBuilder {
     private boolean noErrorOnServerUnavailable;
     private YAMLBundle.ConfigFile configFile;
     private DeveloperOptions developerOptions;
+    private AutoAugmentOptions autoAugmentOptions;
 
     /**
      * Set the YAML file used to build up the SATFC solver bundle
@@ -128,6 +132,7 @@ public class SATFCFacadeBuilder {
         configFile = autoDetectBundle();
         numServerAttempts = 1;
         noErrorOnServerUnavailable = false;
+        autoAugmentOptions = AutoAugmentOptions.builder().build();
         developerOptions = DeveloperOptions.builder().solverChoice(SolverChoice.YAML).build();
     }
 
@@ -211,6 +216,7 @@ public class SATFCFacadeBuilder {
                         .configFile(configFile)
                         .numServerAttempts(numServerAttempts)
                         .noErrorOnServerUnavailable(noErrorOnServerUnavailable)
+                        .autoAugmentOptions(autoAugmentOptions)
                         // developer
                         .hydraParams(developerOptions.getHydraParams())
                         .dataManager(developerOptions.getDataManager())
@@ -231,6 +237,20 @@ public class SATFCFacadeBuilder {
             throw new IllegalArgumentException("Cannot provide a null library.");
         }
         fClaspLibrary = aLibrary;
+        return this;
+    }
+
+    /**
+     * Set the (ubcsat) library SATFC should use.
+     *
+     * @param aLibrary
+     * @return this {@code Builder} object
+     */
+    public SATFCFacadeBuilder setUBCSATLibrary(String aLibrary) {
+        if (aLibrary == null) {
+            throw new IllegalArgumentException("Cannot provide a null library.");
+        }
+        fUBCSATLibrary = aLibrary;
         return this;
     }
 
@@ -281,6 +301,15 @@ public class SATFCFacadeBuilder {
         return this;
     }
 
+    /**
+     * @param autoAugmentOptions create an AugmentOptions with {@link AutoAugmentOptions#builder()}
+     * @return
+     */
+    public SATFCFacadeBuilder setAutoAugmentOptions(AutoAugmentOptions autoAugmentOptions) {
+        this.autoAugmentOptions = autoAugmentOptions;
+        return this;
+    }
+
     // Developer methods
     public SATFCFacadeBuilder setDeveloperOptions(DeveloperOptions developerOptions) {
     	this.developerOptions = developerOptions;
@@ -290,7 +319,6 @@ public class SATFCFacadeBuilder {
 
     public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
-
         // regular parameters
         if (parameters.fClaspLibrary != null) {
             builder.setClaspLibrary(parameters.fClaspLibrary);
@@ -328,14 +356,6 @@ public class SATFCFacadeBuilder {
         return builder.build();
     }
 
-    public SATFCFacadeBuilder setUBCSATLibrary(String aLibrary) {
-        if (aLibrary == null) {
-            throw new IllegalArgumentException("Cannot provide a null library.");
-        }
-        fUBCSATLibrary = aLibrary;
-        return this;
-    }
-    
     private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";
 
     public static void initializeLogging(Level logLevel, String logFileName) {

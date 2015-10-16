@@ -50,7 +50,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 public class SATFCFacadeTests {
 
     //A map taking a (data foldername, domains) pair of string to its expected result in the form of a (SAT result, runtime double) pair.
-    private final static Map<InstanceParameters, Pair<SATResult, Double>> TEST_CASES = new HashMap<InstanceParameters, Pair<SATResult, Double>>();
+    public final static Map<InstanceParameters, Pair<SATResult, Double>> TEST_CASES = new HashMap<InstanceParameters, Pair<SATResult, Double>>();
 
     //Add in some test cases.
     static {
@@ -156,6 +156,7 @@ public class SATFCFacadeTests {
         int i = 0;
 
         for (Entry<InstanceParameters, Pair<SATResult, Double>> entry : TEST_CASES.entrySet()) {
+        	i++;
             log.info("Starting problem " + i);
             InstanceParameters testCase = entry.getKey();
             final InterruptibleSATFCResult interruptibleSATFCResult = facade.solveInterruptibly(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername);
@@ -174,7 +175,7 @@ public class SATFCFacadeTests {
 
             }.start();
             final SATFCResult result = interruptibleSATFCResult.computeResult();
-             assertEquals(SATResult.TIMEOUT, result.getResult());
+            assertEquals(SATResult.TIMEOUT, result.getResult());
         }
     }
 

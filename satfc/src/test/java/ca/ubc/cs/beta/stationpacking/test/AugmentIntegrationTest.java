@@ -2,30 +2,30 @@ package ca.ubc.cs.beta.stationpacking.test;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeTests;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.*;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.math3.util.Pair;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
-import com.google.common.collect.Sets;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Created by newmanne on 29/06/15.
@@ -36,18 +36,50 @@ public class AugmentIntegrationTest {
     final int clearingTarget = 38;
     final int numStartingStations = 670;
     final String interference = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M";
-    final String popFile = "/ubc/cs/research/arrow/satfc/public/populations_encoded.csv";
+    final String popFile = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M/Station_Info.csv";
 
-    @Ignore
     @Test
+    @Ignore
     public void driver() throws Exception {
         final SATFCFacadeBuilder b = new SATFCFacadeBuilder();
         try (SATFCFacade facade = b.build()) {
             final IStationManager manager = new DomainStationManager(interference + File.separator + DataManager.DOMAIN_FILE);
             log.info("Finding starting state with {} stations", numStartingStations);
             final SATFCAugmentState state = getState(manager, facade);
-            facade.augment(getDomains(manager), state.getAssignment(), new IStationDB.CSVStationDB(popFile), interference, 60.0);
+            facade.augment(getDomains(manager), state.getAssignment(), new CSVStationDB(popFile), interference, 60.0);
         }
+    }
+
+    @Test
+    @Ignore
+    public void testAutoAugment() throws Exception {
+        final SATFCFacadeBuilder b = new SATFCFacadeBuilder();
+        b.setServerURL("http://localhost:8040/satfcserver");
+        b.setAutoAugmentOptions(AutoAugmentOptions.builder()
+                .augment(true)
+                .augmentCutoff(15.0)
+                .augmentStationConfigurationFolder(interference)
+                .idleTimeBeforeAugmentation(10.0)
+                .pollingInterval(1.0)
+                .build());
+        try (SATFCFacade facade = b.build()) {
+            TimeUnit.MINUTES.sleep(2);
+            int i = 0;
+            for (Map.Entry<InstanceParameters, Pair<SATResult, Double>> entry : SATFCFacadeTests.TEST_CASES.entrySet()) {
+                i++;
+                log.info("Starting problem " + i);
+                InstanceParameters testCase = entry.getKey();
+                Pair<SATResult, Double> expectedResult = entry.getValue();
+
+                SATFCResult result = facade.solve(testCase.getDomains(), testCase.getPreviousAssignment(), testCase.Cutoff, testCase.Seed, testCase.fDataFoldername);
+
+                assertEquals(expectedResult.getFirst(), result.getResult());
+                if (result.getRuntime() > expectedResult.getSecond()) {
+                    log.warn("[WARNING] Test case " + testCase.toString() + " took more time (" + result.getRuntime() + ") than expected (" + expectedResult.getSecond() + ").");
+                }
+            }
+        }
+        TimeUnit.MINUTES.sleep(1);
     }
 
     Map<Integer, Set<Integer>> getDomains(IStationManager manager) {

@@ -26,9 +26,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
-import ca.ubc.cs.beta.stationpacking.cache.ICacher;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,10 +43,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ISATFCInterruptible;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Created by newmanne on 01/03/15.
@@ -57,7 +61,7 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
  * Not threadsafe!
  */
 @Slf4j
-public class ContainmentCacheProxy implements ICacher {
+public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
 
     private final CacheCoordinate coordinate;
     private final static CloseableHttpAsyncClient httpClient;
@@ -67,13 +71,18 @@ public class ContainmentCacheProxy implements ICacher {
     private final AtomicReference<Future<HttpResponse>> activeFuture;
     private final int numAttempts;
     private final boolean noErrorOnServerUnavailable;
+    private final ProblemIncrementor problemIncrementor;
 
     static {
         httpClient = HttpAsyncClients.createDefault();
         httpClient.start();
     }
 
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable) {
+    public static CloseableHttpAsyncClient getClient() {
+        return httpClient;
+    }
+
+    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
         CACHE_URL = baseServerURL + "/v1/cache";
@@ -81,6 +90,7 @@ public class ContainmentCacheProxy implements ICacher {
         activeFuture = new AtomicReference<>();
         this.numAttempts = numAttempts;
         this.noErrorOnServerUnavailable = noErrorOnServerUnavailable;
+        problemIncrementor = new ProblemIncrementor(pollingService, this);
     }
 
     /**
@@ -103,11 +113,21 @@ public class ContainmentCacheProxy implements ICacher {
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, numAttempts);
+        try {
+            problemIncrementor.scheduleTermination(terminationCriterion);
+            return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, numAttempts);
+        } finally {
+            problemIncrementor.jobDone();
+        }
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, numAttempts);
+        try {
+            problemIncrementor.scheduleTermination(terminationCriterion);
+            return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, numAttempts);
+        } finally {
+            problemIncrementor.jobDone();
+        }
     }
 
     @Override

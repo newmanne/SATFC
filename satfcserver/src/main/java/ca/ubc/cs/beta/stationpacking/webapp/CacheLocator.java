@@ -101,7 +101,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
                 dataManager.addData(folder.getAbsolutePath());
                 // add cache coordinate to map
                 final ManagerBundle bundle = dataManager.getData(folder.getAbsolutePath());
-                log.info("Folder corresponds to coordinate {}", folder.getAbsolutePath());
+                log.info("Folder {} corresponds to coordinate {}", folder.getAbsolutePath(), bundle.getCacheCoordinate());
                 coordinateToBundle.put(bundle.getCacheCoordinate(), bundle);
 
                 final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(bundle.getStationManager().getStations());

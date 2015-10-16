@@ -86,7 +86,7 @@ public class ParallelSolverComposite implements ISolver {
 
 	@Override
 	public void interrupt() {
-		throw new RuntimeException("Interrupt not yet implemeneted...");
+        // Just wait for the individual solvers to terminate
 	}
 
 }

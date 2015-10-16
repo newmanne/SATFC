@@ -1,11 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import com.google.common.base.Preconditions;
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
 * Created by newmanne on 13/10/15.
@@ -14,10 +13,12 @@ public class InterruptibleSATFCResult {
 
     private final ITerminationCriterion.IInterruptibleTerminationCriterion criterion;
     private final Callable<SATFCResult> solveTask;
+    private final CountDownLatch latch;
 
     public InterruptibleSATFCResult(ITerminationCriterion.IInterruptibleTerminationCriterion criterion, Callable<SATFCResult> solveTask) {
         this.criterion = criterion;
         this.solveTask = solveTask;
+        latch = new CountDownLatch(1);
     }
 
     /**
@@ -38,10 +39,20 @@ public class InterruptibleSATFCResult {
      */
     public SATFCResult computeResult() {
         try {
-            return solveTask.call();
+            final SATFCResult call = solveTask.call();
+            latch.countDown();
+            return call;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Blocks until the problem is terminated (and the SATFCFacade is safe to use to start another problem.
+     * Note that {@link #computeResult()} should be used to solve the problem, this is for another thread that might want to wait
+     */
+    public void blockUntilTerminated() throws InterruptedException {
+        latch.await();
     }
 
 }

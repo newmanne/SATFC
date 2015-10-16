@@ -21,12 +21,24 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.*;
+
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationVolumeSampler;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
@@ -47,24 +59,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTermin
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import lombok.AllArgsConstructor;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.lang3.RandomUtils;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -78,6 +74,11 @@ import java.util.concurrent.TimeoutException;
 public class SATFCFacade implements AutoCloseable {
 
     private final SolverManager fSolverManager;
+    private SATFCCacheAugmenter augmenter;
+    private final SATFCFacadeParameter parameter;
+    // measures idle time since the last time this facade solved a problem
+    private final Watch idleTime;
+    private volatile ScheduledFuture<?> future;
 
     /**
      * Construct a SATFC solver facade
@@ -85,18 +86,19 @@ public class SATFCFacade implements AutoCloseable {
      * @param aSATFCParameters parameters needed by the facade.
      */
     SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
+        this.parameter = aSATFCParameters;
         //Check provided library.
         validateLibraries(aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
 
         log.info("Using clasp library {}", aSATFCParameters.getClaspLibrary());
         log.info("Using ubcsat library {}", aSATFCParameters.getUbcsatLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
-        
+
         fSolverManager = new SolverManager(
                 dataBundle -> {
                     switch (aSATFCParameters.getSolverChoice()) {
                         case HYDRA:
-                            return new SATFCHydraBundle(dataBundle, aSATFCParameters.getHydraParams(), aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
+                            return new SATFCHydraBundle(dataBundle, aSATFCParameters);
                         case YAML:
                             return new YAMLBundle(dataBundle, aSATFCParameters);
                         default:
@@ -105,40 +107,16 @@ public class SATFCFacade implements AutoCloseable {
                 },
                 aSATFCParameters.getDataManager() == null ? new DataManager() : aSATFCParameters.getDataManager()
         );
+
+        if (aSATFCParameters.getServerURL() != null && aSATFCParameters.getAutoAugmentOptions().isAugment()) {
+            log.info("Augment parameters {}", aSATFCParameters.getAutoAugmentOptions());
+            augmenter = new SATFCCacheAugmenter(this);
+            // schedule it
+            scheduleAugment(aSATFCParameters);
+        }
+
+        idleTime = Watch.constructAutoStartWatch();
     }
-
-	private void validateLibraries(final String claspLib, final String ubcsatLib) {
-		validateLibraryFile(claspLib);
-        validateLibraryFile(ubcsatLib);
-        try {
-            new Clasp3SATSolver(claspLib, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
-        } catch (UnsatisfiedLinkError e) {
-            unsatisfiedLinkWarn(claspLib, e);
-        }
-        try {
-        	new UBCSATSolver(ubcsatLib,  UBCSATLibSATSolverParameters.DEFAULT_DCCA);
-        }catch (UnsatisfiedLinkError e) {
-            unsatisfiedLinkWarn(ubcsatLib, e);
-        }
-	}
-
-	private void unsatisfiedLinkWarn(final String libPath, UnsatisfiedLinkError e) {
-		log.error("\n--------------------------------------------------------\n" +
-		                "Could not load native library : {}. \n" +
-		                "Possible Solutions:\n" +
-		                "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
-		                "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
-		                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" or \"-UBCSAT-LIBRARY\" options.\n" +
-		                "--------------------------------------------------------", libPath,libPath);
-		throw new IllegalArgumentException("Could not load JNA library", e);
-	}
-
-	private void validateLibraryFile(final String libraryFilePath) {
-		Preconditions.checkNotNull(libraryFilePath, "Cannot provide null library");
-        final File libraryFile = new File(libraryFilePath);
-        Preconditions.checkArgument(libraryFile.exists(), "Provided library " + libraryFile.getAbsolutePath() + " does not exist.");
-        Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided library is a directory.");
-	}
 
     /**
      * Solve a station packing problem.
@@ -151,13 +129,22 @@ public class SATFCFacade implements AutoCloseable {
      * @return a result about the packability of the provided problem, with the time it took to solve, and corresponding valid witness assignment of station IDs to channels.
      */
     public SATFCResult solve(
+            Map<Integer, Set<Integer>> aDomains,
+            Map<Integer, Integer> aPreviousAssignment,
+            double aCutoff,
+            long aSeed,
+            String aStationConfigFolder) {
+        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    }
+
+    public SATFCResult solve(
             @NonNull Map<Integer, Set<Integer>> aDomains,
             @NonNull Map<Integer, Integer> aPreviousAssignment,
             double aCutoff,
             long aSeed,
             @NonNull String aStationConfigFolder,
             String instanceName) {
-        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName).computeResult();
+        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName, false).computeResult();
     }
 
     public SATFCResult solve(Set<Integer> aStations,
@@ -171,15 +158,7 @@ public class SATFCFacade implements AutoCloseable {
         return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
     }
 
-    public SATFCResult solve(
-            Map<Integer, Set<Integer>> aDomains,
-            Map<Integer, Integer> aPreviousAssignment,
-            double aCutoff,
-            long aSeed,
-            String aStationConfigFolder) {
-        return solve(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
-    }
-    
+
     /**
      * Solve a station packing problem. The channel domain of a station will be the intersection of the station's original domain (given in data files) with the packing channels,
      * and additionally intersected with its reduced domain if available and if non-empty.
@@ -191,6 +170,7 @@ public class SATFCFacade implements AutoCloseable {
      * @param aCutoff              - a cutoff in seconds for SATFC's execution.
      * @param aSeed                - a long seed for randomization in SATFC.
      * @param aStationConfigFolder - a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
+     * @param instanceName         - a name you can give to the instance to identify it in the logs
      * @return a result about the packability of the provided problem, with the time it took to solve, and corresponding valid witness assignment of station IDs to channels.
      */
     public SATFCResult solve(@NonNull Set<Integer> aStations,
@@ -218,30 +198,44 @@ public class SATFCFacade implements AutoCloseable {
     }
 
     /**
-     * @return An interruptibleSATFCResult. Call {@link InterruptibleSATFCResult#computeResult} to start solving the problem. 
+     * @return An interruptibleSATFCResult. Call {@link InterruptibleSATFCResult#computeResult} to start solving the problem.
      * The problem will not begin solving automatically. The expected use case is that a reference to the {@link InterruptibleSATFCResult} will be made accessible to another thread, that may decide to interrupt the operation based on some external signal.
-     * You can call {@link InterruptibleSATFCResult#interrupt()} from another thread to interrupt the problem while it is being solved. 
+     * You can call {@link InterruptibleSATFCResult#interrupt()} from another thread to interrupt the problem while it is being solved.
      */
     public InterruptibleSATFCResult solveInterruptibly(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder) {
         return solveInterruptibly(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
     }
 
     public InterruptibleSATFCResult solveInterruptibly(Map<Integer, Set<Integer>> aDomains, Map<Integer, Integer> aPreviousAssignment, double aCutoff, long aSeed, String aStationConfigFolder, String instanceName) {
-        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName);
+        return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName, false);
     }
 
-    private InterruptibleSATFCResult createInterruptibleSATFCResult(
+    InterruptibleSATFCResult createInterruptibleSATFCResult(
             @NonNull Map<Integer, Set<Integer>> aDomains,
             @NonNull Map<Integer, Integer> aPreviousAssignment,
             double aCutoff,
             long aSeed,
             @NonNull String aStationConfigFolder,
-            String instanceName) {
+            String instanceName,
+            boolean internal) {
         log.debug("Setting termination criterion...");
         //Set termination criterion.
         final InterruptibleTerminationCriterion termination = new InterruptibleTerminationCriterion();
-        final SATFCProblemSolveCallable satfcProblemSolveCallable = new SATFCProblemSolveCallable(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, termination, instanceName);
+        final SATFCProblemSolveCallable satfcProblemSolveCallable = new SATFCProblemSolveCallable(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, termination, instanceName, internal);
         return new InterruptibleSATFCResult(termination, satfcProblemSolveCallable);
+    }
+
+    /**
+     * Augment the cache by generating and solving new problems indefinitely
+     * @param domains Domains used for augmentation. A station used to augment the assignment will be drawn from this map, with this domain. A map taking integer station IDs to set of integer channels domains
+     * @param assignment The starting point for the augmentation. All augmentation will proceed from this starting point. A valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
+     * @param aStationConfigFolder a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
+     * @param stationDB
+     * @param cutoff how long to spend on each generated problem before giving up
+     */
+    public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff) {
+        final SATFCCacheAugmenter satfcCacheAugmenter = new SATFCCacheAugmenter(this);
+        satfcCacheAugmenter.augment(domains, assignment, stationDB, aStationConfigFolder, cutoff);
     }
 
     @AllArgsConstructor
@@ -254,9 +248,18 @@ public class SATFCFacade implements AutoCloseable {
         private final String aStationConfigFolder;
         private final ITerminationCriterion criterion;
         private final String instanceName;
+        private final boolean internal;
 
         @Override
         public SATFCResult call() throws Exception {
+            if (parameter.getAutoAugmentOptions().isAugment() && !internal) {
+                log.debug("Cancelling any ongoing augmentation operation");
+                // Cancel any ongoing augmentation
+                augmenter.stop();
+            } else {
+                idleTime.reset();
+            }
+
             if (aDomains.isEmpty()) {
                 log.warn("Provided an empty domains map.");
                 return new SATFCResult(SATResult.SAT, 0.0, ImmutableMap.of());
@@ -291,7 +294,7 @@ public class SATFCFacade implements AutoCloseable {
             for (Station station : domains.keySet()) {
                 final Integer previousChannel = aPreviousAssignment.get(station.getID());
                 if (previousChannel != null && previousChannel > 0) {
-                    Preconditions.checkState(domains.get(station).contains(previousChannel), "Provided previous assignment assigned channel " + previousChannel + " to station "+station+" which is not in its problem domain "+ domains.get(station)+".");
+                    Preconditions.checkState(domains.get(station).contains(previousChannel), "Provided previous assignment assigned channel " + previousChannel + " to station " + station + " which is not in its problem domain " + domains.get(station) + ".");
                     previousAssignment.put(station, previousChannel);
                 }
             }
@@ -325,7 +328,7 @@ public class SATFCFacade implements AutoCloseable {
             final long totalSuicideGraceTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
 
             final DisjunctiveCompositeTerminationCriterion disjunctiveCompositeTerminationCriterion = new DisjunctiveCompositeTerminationCriterion(new WalltimeTerminationCriterion(aCutoff), criterion);
-            
+
             //Solve instance.
             final SolverResult result;
             try {
@@ -349,8 +352,17 @@ public class SATFCFacade implements AutoCloseable {
 
             final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness);
             log.debug("Result: {}.", outputResult);
+
+            if (!internal && parameter.getAutoAugmentOptions().isAugment()) {
+                log.debug("Starting up timer again from 0 for augmentation");
+                // Start measuring time again and reschedule jobs
+                idleTime.start();
+                scheduleAugment(parameter);
+            }
+
             return outputResult;
         }
+
     }
 
     private ISolverBundle getSolverBundle(String aStationConfigFolder) {
@@ -366,62 +378,72 @@ public class SATFCFacade implements AutoCloseable {
         return bundle;
     }
 
-    /**
-     *
-     * @param domains a map taking integer station IDs to set of integer channels domains.
-     * @param previousAssignment a valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
-     * @param stationConfigFolder a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
-     * @param cutoff
-     */
-    public void augment(@NonNull Map<Integer, Set<Integer>> domains,
-                        @NonNull Map<Integer, Integer> previousAssignment,
-                        @NonNull IStationDB stationDB,
-                        @NonNull String stationConfigFolder,
-                        double cutoff
-    ) {
-        log.info("Augmenting the following stations {}", previousAssignment.keySet());
-        // These stations will be in every single problem
-        final Set<Integer> exitedStations = previousAssignment.keySet();
-
-        // Init the station sampler
-        final IStationSampler sampler = new PopulationVolumeSampler(stationDB, domains.keySet(), RandomUtils.nextInt(0, Integer.MAX_VALUE));
-
-        while(true) {
-            log.debug("Starting to augment from the initial state");
-            // The set of stations that we are going to pack in every problem
-            final Set<Integer> packingStations = new HashSet<>(exitedStations);
-            Map<Integer, Integer> currentAssignment = new HashMap<>(previousAssignment);
-
-            // Augment
-            while (true) {
-                // Sample a new station
-                final Integer sampledStationId = sampler.sample(packingStations);
-                log.info("Trying to augment station {}", sampledStationId);
-                packingStations.add(sampledStationId);
-                final Map<Integer, Set<Integer>> reducedDomains = Maps.filterEntries(domains, new Predicate<Entry<Integer, Set<Integer>>>() {
-                    @Override
-                    public boolean apply(Entry<Integer, Set<Integer>> input) {
-                        return packingStations.contains(input.getKey());
+    private void scheduleAugment(final SATFCFacadeParameter aSATFCParameters) {
+        final ScheduledExecutorService service = aSATFCParameters.getPollingService().getService();
+        final long pollingInterval = (long) (1000 * aSATFCParameters.getAutoAugmentOptions().getPollingInterval());
+        future = service.schedule(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final double elapsedTime = idleTime.getElapsedTime();
+                    log.debug("Checking to see if cache augmentation should happen. SATFC Facade has been idle for {}s and we require it to be idle for {}s", elapsedTime, aSATFCParameters.getAutoAugmentOptions().getIdleTimeBeforeAugmentation());
+                    if (elapsedTime >= aSATFCParameters.getAutoAugmentOptions().getIdleTimeBeforeAugmentation()) {
+                        log.info("SATFC Facade has been idle for {}, time to start performing cache augmentations", elapsedTime);
+                        augmenter.augment(aSATFCParameters.getAutoAugmentOptions().getAugmentStationConfigurationFolder(), aSATFCParameters.getServerURL(), aSATFCParameters.getAutoAugmentOptions().getAugmentCutoff());
+                    } else {
+                        // not time to augment, check again later
+                        log.debug("SATFC Facade has been occupied recently, not time to augment");
+                        service.schedule(this, pollingInterval, TimeUnit.MILLISECONDS);
                     }
-                });
-                // Solve!
-                final SATFCResult result = solve(reducedDomains, currentAssignment, cutoff, RandomUtils.nextInt(1, Integer.MAX_VALUE), stationConfigFolder);
-                log.debug("Result is {}", result);
-                if (result.getResult().equals(SATResult.SAT)) {
-                    // Result was SAT. Let's continue down this trajectory
-                    log.info("Result was SAT. Adding station {} to trajectory", sampledStationId);
-                    currentAssignment = result.getWitnessAssignment();
-                } else {
-                    log.info("Non-SAT result reached. Restarting from initial state");
-                    // Either UNSAT or TIMEOUT. Time to restart
-                    break;
+                } catch (Throwable t) {
+                    log.error("Caught exception in ScheduledExecutorService for scheduling augment", t);
                 }
             }
+        }, pollingInterval, TimeUnit.MILLISECONDS);
+    }
+
+    private void validateLibraries(final String claspLib, final String ubcsatLib) {
+        validateLibraryFile(claspLib);
+        validateLibraryFile(ubcsatLib);
+        try {
+            new Clasp3SATSolver(claspLib, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+        } catch (UnsatisfiedLinkError e) {
+            unsatisfiedLinkWarn(claspLib, e);
+        }
+        try {
+            new UBCSATSolver(ubcsatLib, UBCSATLibSATSolverParameters.DEFAULT_DCCA);
+        } catch (UnsatisfiedLinkError e) {
+            unsatisfiedLinkWarn(ubcsatLib, e);
         }
     }
 
+    private void unsatisfiedLinkWarn(final String libPath, UnsatisfiedLinkError e) {
+        log.error("\n--------------------------------------------------------\n" +
+                "Could not load native library : {}. \n" +
+                "Possible Solutions:\n" +
+                "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
+                "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
+                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" or \"-UBCSAT-LIBRARY\" options.\n" +
+                "--------------------------------------------------------", libPath, libPath);
+        throw new IllegalArgumentException("Could not load JNA library", e);
+    }
+
+    private void validateLibraryFile(final String libraryFilePath) {
+        Preconditions.checkNotNull(libraryFilePath, "Cannot provide null library");
+        final File libraryFile = new File(libraryFilePath);
+        Preconditions.checkArgument(libraryFile.exists(), "Provided library " + libraryFile.getAbsolutePath() + " does not exist.");
+        Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided library is a directory.");
+    }
+
+
     @Override
     public void close() throws Exception {
+        if (future != null) {
+            future.cancel(false);
+        }
+        if (augmenter != null) {
+            augmenter.stop();
+        }
         log.info("Shutting down...");
         fSolverManager.close();
         log.info("Goodbye!");

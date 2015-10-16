@@ -21,11 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
-import ilog.cplex.IloCplex;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -67,7 +62,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundl
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;

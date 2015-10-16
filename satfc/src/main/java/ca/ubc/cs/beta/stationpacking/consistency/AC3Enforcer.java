@@ -44,12 +44,7 @@ public class AC3Enforcer {
         final AC3Output output = new AC3Output(reducedDomains);
         final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(ConstraintGrouper.getConstraintGraph(instance.getDomains(), constraintManager));
         final LinkedBlockingQueue<Pair<Station, Station>> workList = getInterferingStationPairs(neighborIndex, instance);
-        while (!workList.isEmpty()) {
-            if (criterion.hasToStop()) {
-                log.debug("AC3 timed out");
-                output.setTimedOut(true);
-                return output;
-            }
+        while (!criterion.hasToStop() && !workList.isEmpty()) {
             final Pair<Station, Station> pair = workList.poll();
             if (removeInconsistentValues(pair, output)) {
                 final Station referenceStation = pair.getLeft();

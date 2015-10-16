@@ -22,11 +22,11 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories;
 
 import lombok.RequiredArgsConstructor;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
 
 /**
 * Created by newmanne on 03/06/15.
@@ -36,10 +36,11 @@ public class Clasp3ISolverFactory implements ISATSolverFactory {
 
     private final Clasp3LibraryGenerator claspLibraryGenerator;
     private final SATCompressor satCompressor;
+    private final IPollingService pollingService;
 
     @Override
     public CompressedSATBasedSolver create(String aConfig, int seedOffset) {
-        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createLibrary(), aConfig, seedOffset);
+        final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(claspLibraryGenerator.createLibrary(), aConfig, seedOffset, pollingService);
         return new CompressedSATBasedSolver(claspSATsolver, satCompressor);
     }
 

@@ -1,22 +1,26 @@
 package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
 
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ISATFCInterruptible;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import lombok.NonNull;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ISATFCInterruptible;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+
 /**
 * Created by newmanne on 15/10/15.
+* Some SATFC methods delve into long blocks of code that will not periodically check for interrupt signals (because we didn't write them). However, often these code blocks expose an interrupt mechanism.
+* This class provides an easy way to poll periodically to see if you should trigger this interrupt signal
 */
+@Slf4j
 public class ProblemIncrementor {
 
     private final AtomicLong problemID;
     private final IPollingService pollingService;
-    private final Map<Long, ScheduledFuture> idToFuture;
+    private final Map<Long, ScheduledFuture<?>> idToFuture;
     private ISATFCInterruptible solver;
 
     public ProblemIncrementor(IPollingService pollingService, @NonNull ISATFCInterruptible solver) {
@@ -31,11 +35,17 @@ public class ProblemIncrementor {
             return;
         }
         final long newProblemId = problemID.getAndIncrement();
-        final ScheduledFuture scheduledFuture = pollingService.schedule(new Runnable() {
+        log.trace("New problem ID {}", newProblemId);
+        final ScheduledFuture<?> scheduledFuture = pollingService.schedule(new Runnable() {
             @Override
             public void run() {
-                if (criterion.hasToStop() && problemID.get() == newProblemId) {
-                    solver.interrupt();
+                try {
+                    if (criterion.hasToStop() && problemID.get() == newProblemId) {
+                        log.trace("Interupting problem {}", problemID);
+                        solver.interrupt();
+                    }
+                } catch (Throwable t) {
+                    log.error("Caught exception in ScheduledExecutorService for interrupting problem", t);
                 }
             }
         });
@@ -49,6 +59,7 @@ public class ProblemIncrementor {
         final long completedJobID = problemID.getAndIncrement();
         final ScheduledFuture scheduledFuture = idToFuture.remove(completedJobID);
         if (scheduledFuture != null) {
+            log.trace("Cancelling future for completed ID {}", completedJobID);
             scheduledFuture.cancel(false);
         }
     }

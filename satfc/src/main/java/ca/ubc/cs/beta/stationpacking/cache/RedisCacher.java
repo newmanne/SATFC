@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,6 +54,11 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 02/12/14.
@@ -182,10 +186,13 @@ public class RedisCacher {
         while (count < limit && scan.hasNext()) {
             final String key = new String(scan.next());
             count++;
-            if (key.startsWith("SATFC:SAT:")) {
-                SATKeys.add(key);
-            } else if (key.startsWith("SATFC:UNSAT:")) {
-                UNSATKeys.add(key);
+            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
+            if (coordinateToPermutation.containsKey(coordinate)) {
+                if (key.startsWith("SATFC:SAT:")) {
+                    SATKeys.add(key);
+                } else if (key.startsWith("SATFC:UNSAT:")) {
+                    UNSATKeys.add(key);
+                }
             }
         }
 

@@ -36,6 +36,8 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
@@ -54,16 +56,17 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
     private final int fSeedOffset;
+    private final ProblemIncrementor problemIncrementor;
 
     public Clasp3SATSolver(String libraryPath, String parameters) {
-        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters);
+        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters, null);
     }
 
-    public Clasp3SATSolver(Clasp3Library library, String parameters) {
-        this(library, parameters, 0);
+    public Clasp3SATSolver(Clasp3Library library, String parameters, IPollingService service) {
+        this(library, parameters, 0, service);
     }
 
-    public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset) {
+    public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset, IPollingService pollingService) {
         log.debug("Initializing clasp with params {}", parameters);
         fSeedOffset = seedOffset;
         fClaspLibrary = library;
@@ -83,6 +86,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         } finally {
             fClaspLibrary.destroyProblem(jnaProblem);
         }
+        problemIncrementor = new ProblemIncrementor(pollingService, this);
     }
 
     /*
@@ -102,6 +106,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 return SATSolverResult.timeout(watch.getElapsedTime());
             }
 
+            problemIncrementor.scheduleTermination(aTerminationCriterion);
             currentProblemPointer = fClaspLibrary.initConfig(params);
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
 
@@ -146,6 +151,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             log.trace("Full result: {}", output);
             return output;
         } finally {
+            problemIncrementor.jobDone();
             // Cleanup in the finally block so it always executes: if we instantiated a problem, we make sure that we free it
             if (currentProblemPointer != null) {
                 log.trace("Destroying problem");
@@ -192,7 +198,6 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     public static ClaspResult getSolverResult(Clasp3Library library,
                                               Pointer problem,
                                               double runtime) {
-
         final SATResult satResult;
         int[] assignment = {0};
         int state = library.getResultState(problem);

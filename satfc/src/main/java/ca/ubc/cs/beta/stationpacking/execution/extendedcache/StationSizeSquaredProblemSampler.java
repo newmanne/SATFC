@@ -3,10 +3,10 @@ package ca.ubc.cs.beta.stationpacking.execution.extendedcache;
 import java.util.ArrayList;
 import java.util.List;
 
-import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 /**
