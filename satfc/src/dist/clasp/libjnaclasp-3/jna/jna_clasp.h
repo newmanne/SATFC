@@ -8,6 +8,7 @@
 #include <clasp/cli/clasp_options.h>
 #include "clasp/clasp_facade.h"
 #include <sys/times.h>   // times()
+#include <unistd.h>
 
 using namespace Clasp;
 namespace JNA {
