@@ -28,5 +28,10 @@ public class PollingService implements IPollingService {
         return scheduledExecutorService;
     }
 
+    @Override
+    public void notifyShutdown() {
+        scheduledExecutorService.shutdown();
+    }
+
 
 }

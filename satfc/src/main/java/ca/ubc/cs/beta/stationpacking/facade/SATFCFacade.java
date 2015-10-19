@@ -444,6 +444,7 @@ public class SATFCFacade implements AutoCloseable {
         if (augmenter != null) {
             augmenter.stop();
         }
+        parameter.getPollingService().notifyShutdown();
         log.info("Shutting down...");
         fSolverManager.close();
         log.info("Goodbye!");

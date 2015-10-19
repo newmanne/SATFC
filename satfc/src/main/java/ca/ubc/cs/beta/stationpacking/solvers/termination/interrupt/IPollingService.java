@@ -12,4 +12,6 @@ public interface IPollingService {
 
     ScheduledExecutorService getService();
 
+    void notifyShutdown();
+
 }
