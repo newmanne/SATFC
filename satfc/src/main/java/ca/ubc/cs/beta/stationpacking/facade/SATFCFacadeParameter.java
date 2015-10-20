@@ -49,13 +49,11 @@ public class SATFCFacadeParameter {
 
     private AutoAugmentOptions autoAugmentOptions;
 
-
     // developer options
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final SATFCHydraParams hydraParams;
     private final DataManager dataManager;
     private final SolverChoice solverChoice;
-    private final IPollingService pollingService = new PollingService();
 
 	public enum SolverChoice
 	{

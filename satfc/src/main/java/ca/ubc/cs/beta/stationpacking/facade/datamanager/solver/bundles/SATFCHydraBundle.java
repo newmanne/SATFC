@@ -47,11 +47,10 @@ public class SATFCHydraBundle extends ASolverBundle {
     ISolver fSolver;
     private final Clasp3LibraryGenerator claspLibraryGenerator;
 
-    public SATFCHydraBundle(ManagerBundle dataBundle, SATFCFacadeParameter parameters) {
+    public SATFCHydraBundle(ManagerBundle dataBundle, SATFCFacadeParameter parameters, IPollingService pollingService) {
         super(dataBundle);
 
         final SATFCHydraParams params = parameters.getHydraParams();
-        final IPollingService pollingService = parameters.getPollingService();
         
         IConstraintManager aConstraintManager = dataBundle.getConstraintManager();
         params.claspConfig = params.claspConfig.replaceAll("_SPACE_", " ");

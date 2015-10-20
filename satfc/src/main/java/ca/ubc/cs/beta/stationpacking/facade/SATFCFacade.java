@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -31,6 +32,8 @@ import java.util.Set;
 import java.util.concurrent.*;
 
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.PollingService;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -61,6 +64,8 @@ import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -79,6 +84,8 @@ public class SATFCFacade implements AutoCloseable {
     // measures idle time since the last time this facade solved a problem
     private final Watch idleTime;
     private volatile ScheduledFuture<?> future;
+    private final IPollingService pollingService;
+    private final CloseableHttpAsyncClient httpClient;
 
     /**
      * Construct a SATFC solver facade
@@ -87,6 +94,14 @@ public class SATFCFacade implements AutoCloseable {
      */
     SATFCFacade(final SATFCFacadeParameter aSATFCParameters) {
         this.parameter = aSATFCParameters;
+        pollingService = new PollingService();
+        if (parameter.getServerURL() != null) {
+            log.debug("Starting http client");
+            httpClient = HttpAsyncClients.createDefault();
+            httpClient.start();
+        } else {
+            httpClient = null;
+        }
         //Check provided library.
         validateLibraries(aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
 
@@ -98,7 +113,7 @@ public class SATFCFacade implements AutoCloseable {
                 dataBundle -> {
                     switch (aSATFCParameters.getSolverChoice()) {
                         case HYDRA:
-                            return new SATFCHydraBundle(dataBundle, aSATFCParameters);
+                            return new SATFCHydraBundle(dataBundle, aSATFCParameters, pollingService);
                         case YAML:
                             return new YAMLBundle(dataBundle, aSATFCParameters);
                         default:
@@ -227,11 +242,12 @@ public class SATFCFacade implements AutoCloseable {
 
     /**
      * Augment the cache by generating and solving new problems indefinitely
-     * @param domains Domains used for augmentation. A station used to augment the assignment will be drawn from this map, with this domain. A map taking integer station IDs to set of integer channels domains
-     * @param assignment The starting point for the augmentation. All augmentation will proceed from this starting point. A valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
+     *
+     * @param domains              Domains used for augmentation. A station used to augment the assignment will be drawn from this map, with this domain. A map taking integer station IDs to set of integer channels domains
+     * @param assignment           The starting point for the augmentation. All augmentation will proceed from this starting point. A valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
      * @param aStationConfigFolder a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
      * @param stationDB
-     * @param cutoff how long to spend on each generated problem before giving up
+     * @param cutoff               how long to spend on each generated problem before giving up
      */
     public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff) {
         final SATFCCacheAugmenter satfcCacheAugmenter = new SATFCCacheAugmenter(this);
@@ -379,7 +395,7 @@ public class SATFCFacade implements AutoCloseable {
     }
 
     private void scheduleAugment(final SATFCFacadeParameter aSATFCParameters) {
-        final ScheduledExecutorService service = aSATFCParameters.getPollingService().getService();
+        final ScheduledExecutorService service = pollingService.getService();
         final long pollingInterval = (long) (1000 * aSATFCParameters.getAutoAugmentOptions().getPollingInterval());
         future = service.schedule(new Runnable() {
             @Override
@@ -389,7 +405,7 @@ public class SATFCFacade implements AutoCloseable {
                     log.debug("Checking to see if cache augmentation should happen. SATFC Facade has been idle for {}s and we require it to be idle for {}s", elapsedTime, aSATFCParameters.getAutoAugmentOptions().getIdleTimeBeforeAugmentation());
                     if (elapsedTime >= aSATFCParameters.getAutoAugmentOptions().getIdleTimeBeforeAugmentation()) {
                         log.info("SATFC Facade has been idle for {}, time to start performing cache augmentations", elapsedTime);
-                        augmenter.augment(aSATFCParameters.getAutoAugmentOptions().getAugmentStationConfigurationFolder(), aSATFCParameters.getServerURL(), aSATFCParameters.getAutoAugmentOptions().getAugmentCutoff());
+                        augmenter.augment(aSATFCParameters.getAutoAugmentOptions().getAugmentStationConfigurationFolder(), aSATFCParameters.getServerURL(), httpClient, aSATFCParameters.getAutoAugmentOptions().getAugmentCutoff());
                     } else {
                         // not time to augment, check again later
                         log.debug("SATFC Facade has been occupied recently, not time to augment");
@@ -438,15 +454,18 @@ public class SATFCFacade implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        if (future != null) {
-            future.cancel(false);
-        }
+        log.info("Shutting down...");
         if (augmenter != null) {
             augmenter.stop();
         }
-        parameter.getPollingService().notifyShutdown();
-        log.info("Shutting down...");
         fSolverManager.close();
+        if (httpClient != null) {
+            httpClient.close();
+        }
+        pollingService.notifyShutdown();
+        if (future != null) {
+            future.cancel(false);
+        }
         log.info("Goodbye!");
     }
 

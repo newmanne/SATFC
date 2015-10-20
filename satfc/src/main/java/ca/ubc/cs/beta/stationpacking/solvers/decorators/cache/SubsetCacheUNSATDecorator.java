@@ -68,8 +68,4 @@ public class SubsetCacheUNSATDecorator extends ASolverDecorator {
         super.interrupt();
     }
 
-    @Override
-    public void notifyShutdown() {
-        containmentCache.notifyShutdown();
-    }
 }

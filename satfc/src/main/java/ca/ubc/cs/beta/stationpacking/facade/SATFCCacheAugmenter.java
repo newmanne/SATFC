@@ -11,19 +11,23 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
+
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.util.EntityUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -55,7 +59,7 @@ public class SATFCCacheAugmenter {
      * @param stationConfigFolder a station configuration folder also containing a station info and augment domain file
      * @param cutoff cutoff to use for augmenting
      */
-    public void augment(String stationConfigFolder, String serverURL, double cutoff) {
+    void augment(String stationConfigFolder, String serverURL, CloseableHttpAsyncClient httpClient, double cutoff) {
         final String stationInfoFile = stationConfigFolder + File.separator + "Station_Info.csv";
         Preconditions.checkState(new File(stationInfoFile).exists(), "Station info file %s does not exist", stationInfoFile);
         final CSVStationDB csvStationDB = new CSVStationDB(stationInfoFile);
@@ -73,7 +77,7 @@ public class SATFCCacheAugmenter {
 
         // get a previous assignment from the cache
         log.info("Asking cache for last seen SAT assignment");
-        final Map<Integer, Integer> previousAssignment = getPreviousAssignmentFromCache(serverURL);
+        final Map<Integer, Integer> previousAssignment = getPreviousAssignmentFromCache(serverURL, httpClient);
 
         // now some of the channels from this previous assignment might actually be off domain. If they are, let's assume impairment and fix them
         final Map<Integer, Set<Integer>> domains = new HashMap<>();
@@ -90,14 +94,14 @@ public class SATFCCacheAugmenter {
         augment(domains, previousAssignment, csvStationDB, stationConfigFolder, cutoff);
     }
 
-    private Map<Integer, Integer> getPreviousAssignmentFromCache(String serverURL) {
+    private Map<Integer, Integer> getPreviousAssignmentFromCache(String serverURL, CloseableHttpAsyncClient httpClient) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverURL + "/v1/cache/previousAssignment");
         final String uriString = builder.build().toUriString();
         final HttpGet httpPost = new HttpGet(uriString);
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<HttpResponse> serverResponse = new AtomicReference<>();
         final AtomicReference<Exception> exception = new AtomicReference<>();
-        ContainmentCacheProxy.getClient().execute(httpPost, new FutureCallback<HttpResponse>() {
+        httpClient.execute(httpPost, new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse result) {
                 log.info("Got back answer from server");

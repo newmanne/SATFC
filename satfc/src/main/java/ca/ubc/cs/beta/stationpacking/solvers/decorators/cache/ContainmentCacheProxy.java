@@ -64,7 +64,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
 
     private final CacheCoordinate coordinate;
-    private final static CloseableHttpAsyncClient httpClient;
+    private final CloseableHttpAsyncClient httpClient;
     private final String SAT_URL;
     private final String UNSAT_URL;
     private final String CACHE_URL;
@@ -73,16 +73,8 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
     private final boolean noErrorOnServerUnavailable;
     private final ProblemIncrementor problemIncrementor;
 
-    static {
-        httpClient = HttpAsyncClients.createDefault();
-        httpClient.start();
-    }
-
-    public static CloseableHttpAsyncClient getClient() {
-        return httpClient;
-    }
-
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService) {
+    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService, CloseableHttpAsyncClient httpClient) {
+        this.httpClient = httpClient;
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
         CACHE_URL = baseServerURL + "/v1/cache";
@@ -222,14 +214,6 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
         if (future != null) {
             log.debug("Cancelling web request future");
             future.cancel(true);
-        }
-    }
-
-    public synchronized void notifyShutdown() {
-        try {
-            httpClient.close();
-        } catch (IOException e) {
-            throw new RuntimeException("Couldn't close http client", e);
         }
     }
 

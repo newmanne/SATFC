@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -66,6 +67,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
 /**
  * Created by newmanne on 01/10/15.
@@ -207,6 +209,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private final ManagerBundle managerBundle;
         private final PythonInterpreterFactory python;
         private final SATFCFacadeParameter parameter;
+        private final IPollingService pollingService;
+        private final CloseableHttpAsyncClient httpClient;
     }
 
     @Data
@@ -216,7 +220,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final Clasp3LibraryGenerator clasp3LibraryGenerator = context.getClasp3LibraryGenerator();
-            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset, context.getParameter().getPollingService());
+            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService());
             return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager, encodingType));
         }
 
@@ -232,7 +236,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset, context.getParameter().getPollingService());
+            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService());
             return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager, encodingType));
         }
 
@@ -287,7 +291,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
+            return new CacheResultDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getPollingService(), context.getHttpClient()));
         }
 
     }
@@ -299,7 +303,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
+            return new SupersetCacheSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getPollingService(), context.getHttpClient()));
         }
 
     }
@@ -311,7 +315,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final SATFCFacadeParameter parameter = context.getParameter();
-            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getParameter().getPollingService()));
+            return new SubsetCacheUNSATDecorator(solverToDecorate, new ContainmentCacheProxy(parameter.getServerURL(), context.getManagerBundle().getCacheCoordinate(), parameter.getNumServerAttempts(), parameter.isNoErrorOnServerUnavailable(), context.getPollingService(), context.getHttpClient()));
         }
 
     }
