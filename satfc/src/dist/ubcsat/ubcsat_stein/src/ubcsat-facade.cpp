@@ -379,20 +379,11 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
 
   StartRunClock();
 
-  double s = 0;
-
   while ((iStep < iCutoff) && (!bSolutionFound) && !bTerminateRun && !state->terminateRun) {
 
      // check walltime cutoff
      getMonotonicTime(&now);
      double seconds = getElapsedTime(&tmstart, &now);
-
-     if (abs(s - seconds) > 0.5) {
-      s = seconds;
-      printf("%f seconds and %f timeout\n", seconds, timeoutTime); 
-      fflush(stdout);
-     }
-     
 
      if (seconds > timeoutTime) {
        break;
