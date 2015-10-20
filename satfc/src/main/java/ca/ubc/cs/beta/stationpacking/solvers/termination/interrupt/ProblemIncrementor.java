@@ -38,15 +38,17 @@ public class ProblemIncrementor {
         if (pollingService == null) {
             return;
         }
-        final long newProblemId = problemID.getAndIncrement();
+        final long newProblemId = problemID.incrementAndGet();
         log.trace("New problem ID {}", newProblemId);
         final ScheduledFuture<?> scheduledFuture = pollingService.schedule(new Runnable() {
             @Override
             public void run() {
                 try {
                     lock.lock();
-                    if (criterion.hasToStop() && problemID.get() == newProblemId) {
-                        log.trace("Interupting problem {}", problemID);
+                    long currentProblemId = problemID.get();
+                    log.trace("Problem id is {} and we are {}", currentProblemId, newProblemId);
+                    if (criterion.hasToStop() && currentProblemId == newProblemId) {
+                        log.trace("Interupting problem {}", currentProblemId);
                         solver.interrupt();
                     }
                 } catch (Throwable t) {
@@ -67,10 +69,8 @@ public class ProblemIncrementor {
             lock.lock();
             final long completedJobID = problemID.getAndIncrement();
             final ScheduledFuture scheduledFuture = idToFuture.remove(completedJobID);
-            if (scheduledFuture != null) {
-                log.trace("Cancelling future for completed ID {}", completedJobID);
-                scheduledFuture.cancel(false);
-            }
+            log.trace("Cancelling future for completed ID {}", completedJobID);
+            scheduledFuture.cancel(false);
         } finally {
             lock.unlock();
         }
