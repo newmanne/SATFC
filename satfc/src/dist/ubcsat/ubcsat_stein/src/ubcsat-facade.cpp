@@ -5,6 +5,10 @@
 #include <sstream>
 #include "ubcsat-facade.hpp"
 #include "ubcsat-globals.h"
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
 
 /**
  * This is a convenience function intended as a nominal attempt to deal with the horror of
@@ -48,6 +52,29 @@ void initLibrary() {
 //  AddReportTriggers();
 //  AddLocal();
 }
+
+// Use clock_gettime in linux, clock_get_time in OS X.
+// see http://stackoverflow.com/questions/21665641/ns-precision-monotonic-clock-in-c-on-linux-and-os-x/21665642#21665642
+void getMonotonicTime(struct timespec *ts){
+#ifdef __MACH__
+  clock_serv_t cclock;
+  mach_timespec_t mts;
+  host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
+  clock_get_time(cclock, &mts);
+  mach_port_deallocate(mach_task_self(), cclock);
+  ts->tv_sec = mts.tv_sec;
+  ts->tv_nsec = mts.tv_nsec;
+#else
+  clock_gettime(CLOCK_MONOTONIC, ts);
+#endif
+}
+
+double getElapsedTime(struct timespec *before, struct timespec *after){
+  double deltat_s  = after->tv_sec - before->tv_sec;
+  double deltat_ns = after->tv_nsec - before->tv_nsec;
+  return deltat_s + deltat_ns*1e-9;
+}
+
 
 char** split(char *command, int* size) {
   char** ret = (char**) malloc(sizeof(char*) * MAXTOTALPARMS);
@@ -337,11 +364,9 @@ int initAssignment(void* ubcsatState, const long* assignment, int sizeOfAssignme
 
 int solveProblem(void* ubcsatState, double timeoutTime) {
 
-  fTimeOut = timeoutTime;
-
   // measure elapsed wall time
   struct timespec now, tmstart;
-  clock_gettime(CLOCK_REALTIME, &tmstart);
+  getMonotonicTime(&tmstart);
 
   UBCSATState* state = (UBCSATState*) ubcsatState;
   iStep = 0;
@@ -351,12 +376,24 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
 
   StartRunClock();
 
-  while ((iStep < iCutoff) && (! bSolutionFound) && !bTerminateRun && !state->terminateRun) {
+  double sec = 0;
+
+  while ((iStep < iCutoff) && (!bSolutionFound) && !bTerminateRun && !state->terminateRun) {
 
      // check walltime cutoff
-     clock_gettime(CLOCK_REALTIME, &now);
-     double seconds = (double)((now.tv_sec+now.tv_nsec*1e-9) - (double)(tmstart.tv_sec+tmstart.tv_nsec*1e-9));
+     getMonotonicTime(&now);
+     double seconds = getElapsedTime(&tmstart, &now);
+     if (abs(sec - seconds) > 0.5) {
+        sec = seconds;
+        printf("seconds elapsed: %f\n (timeout time %f)", seconds, timeoutTime);
+        fflush(stdout);
+     }
+
+
+
      if (seconds > timeoutTime) {
+       printf("timing out because timeout time");
+       fflush(stdout);
        break;
      }
 
@@ -405,6 +442,8 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
   else if (state->resultState == 0) { // resultState has not been changed since initialization
     state->resultState = 2;
   }
+
+  printf("Reasons for returning:\n iStep < iCutoff is %d \n !bSolutionFound is %d\n!bTerminateRun is %d\n !state->terminateRun is %d\n", iStep < iCutoff, !bSolutionFound, !bTerminateRun, !state->terminateRun);
   fflush(stdout);
   return TRUE;
 }
