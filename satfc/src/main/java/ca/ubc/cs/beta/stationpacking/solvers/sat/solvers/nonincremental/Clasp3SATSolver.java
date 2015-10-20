@@ -128,7 +128,10 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             log.debug("Send problem to clasp cutting off after {}s", cutoff);
             final Watch runtime = Watch.constructAutoStartWatch();
             fClaspLibrary.solveProblem(currentProblemPointer, cutoff);
-            log.debug("Came back from clasp after {}s. (initial cutoff was {}s)", runtime.getElapsedTime(), cutoff);
+            double runtimeDouble = runtime.getElapsedTime();
+            log.debug("Came back from clasp after {}s. (initial cutoff was {}s)", runtimeDouble, cutoff);
+            Preconditions.checkState(runtimeDouble < cutoff + 5, "Runtime %s greatly exceeded cutoff %s!", runtimeDouble, cutoff);
+
             lock.lock();
             isCurrentlySolving.set(false);
             lock.unlock();

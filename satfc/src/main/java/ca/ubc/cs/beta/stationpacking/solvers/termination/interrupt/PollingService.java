@@ -20,7 +20,7 @@ public class PollingService implements IPollingService {
 
     @Override
     public ScheduledFuture<?> schedule(Runnable runnable) {
-        return scheduledExecutorService.scheduleAtFixedRate(runnable, 1000, 1000, TimeUnit.MILLISECONDS);
+        return scheduledExecutorService.scheduleWithFixedDelay(runnable, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override

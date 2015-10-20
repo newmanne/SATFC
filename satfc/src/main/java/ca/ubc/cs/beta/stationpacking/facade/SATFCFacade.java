@@ -315,13 +315,13 @@ public class SATFCFacade implements AutoCloseable {
             /*
              * Logging problem info
              */
-            log.debug("Solving instance {} ...", instance);
-            log.debug("Instance stats:");
-            log.debug("{} stations.", instance.getStations().size());
-            log.debug("stations: {}.", instance.getStations());
-            log.debug("{} all channels.", instance.getAllChannels().size());
-            log.debug("all channels: {}.", instance.getAllChannels());
-            log.debug("Previous assignment: {}", instance.getPreviousAssignment());
+            log.trace("Solving instance {} ...", instance);
+            log.trace("Instance stats:");
+            log.trace("{} stations.", instance.getStations().size());
+            log.trace("stations: {}.", instance.getStations());
+            log.trace("{} all channels.", instance.getAllChannels().size());
+            log.trace("all channels: {}.", instance.getAllChannels());
+            log.trace("Previous assignment: {}", instance.getPreviousAssignment());
 
             // Make sure that SATFC doesn't get hung. We give a VERY generous timeout window before throwing an exception
             final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
