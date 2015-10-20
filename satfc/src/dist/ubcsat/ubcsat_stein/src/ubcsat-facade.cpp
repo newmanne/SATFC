@@ -379,24 +379,13 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
 
   StartRunClock();
 
-  double sec = 0;
-
   while ((iStep < iCutoff) && (!bSolutionFound) && !bTerminateRun && !state->terminateRun) {
 
      // check walltime cutoff
      getMonotonicTime(&now);
      double seconds = getElapsedTime(&tmstart, &now);
-     if (abs(sec - seconds) > 0.5) {
-        sec = seconds;
-        printf("seconds elapsed: %f\n (timeout time %f)", seconds, timeoutTime);
-        fflush(stdout);
-     }
-
-
 
      if (seconds > timeoutTime) {
-       printf("timing out because timeout time");
-       fflush(stdout);
        break;
      }
 
@@ -446,8 +435,8 @@ int solveProblem(void* ubcsatState, double timeoutTime) {
     state->resultState = 2;
   }
 
-  printf("Reasons for returning:\n iStep < iCutoff is %d \n !bSolutionFound is %d\n!bTerminateRun is %d\n !state->terminateRun is %d\n", iStep < iCutoff, !bSolutionFound, !bTerminateRun, !state->terminateRun);
-  fflush(stdout);
+  // printf("Reasons for returning:\n iStep < iCutoff is %d \n !bSolutionFound is %d\n!bTerminateRun is %d\n !state->terminateRun is %d\n", iStep < iCutoff, !bSolutionFound, !bTerminateRun, !state->terminateRun);
+  // fflush(stdout);
   return TRUE;
 }
 
