@@ -94,7 +94,7 @@ public class AC3Enforcer {
         final List<Integer> xValuesToPurge = new ArrayList<>();
         for (int vx : domains.get(x)) {
             if (channelViolatesArcConsistency(x, vx, y, domains.get(y))) {
-                log.debug("Purging channel {} from station {}'s domain", vx, x.getID());
+                log.trace("Purging channel {} from station {}'s domain", vx, x.getID());
                 output.setNumReducedChannels(output.getNumReducedChannels() + 1);
                 xValuesToPurge.add(vx);
             }

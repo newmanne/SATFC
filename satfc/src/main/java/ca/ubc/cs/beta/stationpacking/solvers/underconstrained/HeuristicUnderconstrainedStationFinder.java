@@ -115,7 +115,7 @@ public class HeuristicUnderconstrainedStationFinder implements IUnderconstrained
                         .sum();
 
                 if (interferingStationsMaxChannelSpread < domain.size()) {
-                    log.debug("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
+                    log.trace("Station {} is underconstrained as it has {} domain channels, but the neighbouring interfering stations can only spread to a max of {} of them", station, domain.size(), interferingStationsMaxChannelSpread);
                     underconstrainedStations.add(station);
                 }
             }

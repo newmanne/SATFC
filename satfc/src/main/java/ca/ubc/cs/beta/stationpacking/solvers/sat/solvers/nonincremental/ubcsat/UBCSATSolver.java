@@ -138,7 +138,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             }
 
             // Start solving
-            log.debug("Sending problem to UBCSAT with cutoff time of " + cutoff + "s");
+            log.debug("Sending problem to UBCSAT with cutoff time of {} s", cutoff);
 
             status = fLibrary.solveProblem(fState, cutoff);
             lock.lock();
@@ -147,7 +147,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             checkStatus(status, fLibrary, fState);
 
             runTime = watch.getElapsedTime() - preTime;
-            log.debug("Came back from UBCSAT after {}s.", runTime);
+            log.debug("Came back from UBCSAT after {}s (initial cutoff was {} s).", runTime, cutoff);
 
             return getSolverResult(fLibrary, fState, runTime);
         } finally {
