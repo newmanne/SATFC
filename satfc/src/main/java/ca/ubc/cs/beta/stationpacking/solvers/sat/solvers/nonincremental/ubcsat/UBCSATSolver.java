@@ -141,13 +141,16 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
             log.debug("Sending problem to UBCSAT with cutoff time of " + cutoff + "s");
 
             status = fLibrary.solveProblem(fState, cutoff);
+            log.trace("Back from solving problem. Acquiring lock");
             lock.lock();
             isCurrentlySolving.set(false);
             lock.unlock();
+            log.trace("Checking status");
             checkStatus(status, fLibrary, fState);
 
             runTime = watch.getElapsedTime() - preTime;
             log.debug("Came back from UBCSAT after {}s.", runTime);
+            Preconditions.checkState(runTime < cutoff + 5, "Runtime %s greatly exceeded cutoff %s!", runTime, cutoff);
 
             return getSolverResult(fLibrary, fState, runTime);
         } finally {
@@ -231,7 +234,9 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
 
     @Override
     public void interrupt() {
+        log.trace("Acquiring lock to interrupt UBCSAT");
         lock.lock();
+        log.trace("Lock acquired");
         if (isCurrentlySolving.get()) {
             log.debug("Interrupting UBCSAT");
             fLibrary.interrupt(fState);
