@@ -23,10 +23,10 @@ public abstract class AVHFUHFSolverBundle extends ASolverBundle {
     public ISolver getSolver(StationPackingInstance aInstance) {
         //Return the right solver based on the channels in the instance.
         if (StationPackingUtils.HVHF_CHANNELS.containsAll(aInstance.getAllChannels()) || StationPackingUtils.LVHF_CHANNELS.containsAll(aInstance.getAllChannels())) {
-            log.debug("Returning clasp configured for VHF");
+            log.debug("Returning solver configured for VHF");
             return getVHFSolver();
         } else {
-            log.debug("Returning clasp configured for UHF");
+            log.debug("Returning solver configured for UHF");
             return getUHFSolver();
         }
     }
