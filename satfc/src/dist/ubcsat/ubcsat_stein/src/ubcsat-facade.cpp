@@ -9,6 +9,9 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
+#ifdef __APPLE__
+#include "fmemopen.h"
+#endif
 
 /**
  * This is a convenience function intended as a nominal attempt to deal with the horror of
