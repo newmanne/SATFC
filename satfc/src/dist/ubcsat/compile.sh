@@ -10,5 +10,9 @@ cmake ..
 make jnaubcsat
 echo "Moving UBCSAT library ..."
 mkdir -p ../../jna
+if [ -f libjnaubcsat.dylib ]
+  then
+    mv libjnaubcsat.dylib libjnaubcsat.so
+fi
 mv libjnaubcsat.so ../../jna
 cd ../..

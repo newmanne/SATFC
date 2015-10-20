@@ -4,6 +4,14 @@ project(SATenstein)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -fPIC -lm -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-comment")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+# Need this because of inline functions
+if (APPLE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu89")
+ENDIF()
+
+if (CMAKE_SYSTEM_NAME STREQUAL Linux) 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lrt")
+ENDIF()
 
 include_directories( src )
 include_directories( test )
@@ -48,10 +56,12 @@ set(SOURCE_FILES
         src/vw.c
         src/walksat.c
         src/walksat-tabu.c
-
         src/dcca.c
         src/satenstein-types.h
         src/sparrow.c
+
+        src/fmemopen.c
+        src/fmemopen.h
 )
 
 add_executable(ubcsat src/ubcsat.c ${SOURCE_FILES})
