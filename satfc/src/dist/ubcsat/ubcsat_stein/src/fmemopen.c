@@ -20,6 +20,8 @@
 #include <string.h>
 #include <sys/mman.h>
 
+#ifdef __APPLE__
+
 struct fmem {
   size_t pos;
   size_t size;
@@ -104,3 +106,5 @@ FILE *fmemopen(void *buf, size_t size, const char *mode) {
   // funopen's man page: https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/funopen.3.html
   return funopen(mem, readfn, writefn, seekfn, closefn);
 }
+
+#endif // #ifdef __APPLE__
