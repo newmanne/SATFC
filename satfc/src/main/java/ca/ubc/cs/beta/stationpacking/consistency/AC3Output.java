@@ -11,7 +11,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 */
 @Data
 public class AC3Output {
-    private boolean timedOut = false;
     private boolean noSolution = false;
     private final Map<Station, Set<Integer>> reducedDomains;
     private int numReducedChannels = 0;

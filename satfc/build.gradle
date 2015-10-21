@@ -44,13 +44,14 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
     compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion"
     
     compile 'com.beust:jcommander:1.35-patched'
     compile 'commons-collections:commons-collections:3.2.1'
     compile 'net.java.dev.jna:jna:4.0.0'
     compile 'com.mangosdk:spi:0.2.4'
-	compile 'io.dropwizard.metrics:metrics-core:3.1.0'
-	compile 'io.dropwizard.metrics:metrics-jvm:3.1.0'
+	compile "io.dropwizard.metrics:metrics-core:$dropwizardMetricVersion"
+	compile "io.dropwizard.metrics:metrics-jvm:$dropwizardMetricVersion"
     compile 'org.python:jython-standalone:2.7.0'
 
     // redis
@@ -93,16 +94,16 @@ def createScript(project, mainClass, name, jvmArgs) {
 }
 
 //createScript(project,
-//             'ca.ubc.cs.beta.stationpacking.execution.ExtendedCacheProblemProducer',
-//             'ExtendedCacheProblemProducer',
-//             ['-Xmx2048m'])
+//             'ca.ubc.cs.beta.stationpacking.tae.SATFCHydraExecutor',
+//             'HydraLauncher',
+//             ['-Xmx4048m'])
 
 //Project properties.
 applicationName = 'SATFC'
 jar.baseName = applicationName
 version = "$SATFCVersion-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
-applicationDefaultJvmArgs = ['-Xmx2048m']
+applicationDefaultJvmArgs = ['-Xmx4g']
 
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()

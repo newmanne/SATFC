@@ -37,6 +37,7 @@ import ca.ubc.cs.beta.aeatk.probleminstance.ProblemInstance;
 import ca.ubc.cs.beta.aeatk.probleminstance.ProblemInstanceSeedPair;
 import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.TargetAlgorithmEvaluator;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -149,7 +150,7 @@ public class TAESATSolver extends AbstractCompressedSATSolver{
 		//Clean up
 		aCNFFile.delete();
 		
-		return new SATSolverResult(aResult,aRuntime,aAssignment);
+		return new SATSolverResult(aResult,aRuntime,aAssignment, SolvedBy.UNKNOWN);
 		
 	}
 

@@ -31,7 +31,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -42,7 +41,7 @@ import org.jgrapht.graph.SimpleGraph;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 
 import com.codahale.metrics.Metric;
@@ -149,7 +148,7 @@ public class SATFCMetrics {
             try {
                 metricsLock.lock();
                 // ensure that you only edit the "current problem" metrics.
-                if (activeProblemMetrics != null && activeProblemMetrics.getName().startsWith(name)) {
+                if (activeProblemMetrics != null && name.startsWith(activeProblemMetrics.getName())) {
                     final InstanceInfo info = getInfo(name);
                     if (info != null) {
                         callback.doWithLock(info);

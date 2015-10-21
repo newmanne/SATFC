@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import lombok.Data;
@@ -35,7 +36,7 @@ import com.google.common.collect.ImmutableMap;
  */
 @Data
 @Accessors(prefix="f")
-public class SATFCResult
+public class SATFCResult implements Serializable
 {
 	private final ImmutableMap<Integer,Integer> fWitnessAssignment;
 	private final SATResult fResult;
@@ -58,4 +59,5 @@ public class SATFCResult
 	{
 		return fRuntime+","+fResult+","+fWitnessAssignment.toString();
 	}
+
 }

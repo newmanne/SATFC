@@ -13,5 +13,5 @@ public interface IStationSampler {
      * @param stationsInProblem a set representing stations that are present in a problem
      * @return stationID of the station to be added
      */
-    Integer sample(Set<Integer> stationsInProblem);
+    Integer sample(Set<Integer> stationsAlreadyInProblem);
 }

@@ -26,9 +26,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.math3.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -39,6 +39,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.ISATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -47,9 +48,8 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 /**
  * SAT based ISolver that uses a SAT solver to solve station packing problems.
  */
+@Slf4j
 public class GenericSATBasedSolver implements ISolver {
-
-    private static Logger log = LoggerFactory.getLogger(GenericSATBasedSolver.class);
 
     private final ISATEncoder fSATEncoder;
     private final ISATSolver fSATSolver;
@@ -67,9 +67,9 @@ public class GenericSATBasedSolver implements ISolver {
         log.debug("Solving instance of {}...", aInstance.getInfo());
 
         log.debug("Encoding subproblem in CNF...");
-        Pair<CNF, ISATDecoder> aEncoding = fSATEncoder.encode(aInstance);
-        CNF aCNF = aEncoding.getKey();
-        ISATDecoder aDecoder = aEncoding.getValue();
+        SATEncoder.CNFEncodedProblem aEncoding = fSATEncoder.encodeWithAssignment(aInstance);
+        CNF aCNF = aEncoding.getCnf();
+        ISATDecoder aDecoder = aEncoding.getDecoder();
         log.debug("CNF has {} clauses.", aCNF.size());
         if (aTerminationCriterion.hasToStop()) {
             log.debug("All time spent.");
@@ -78,9 +78,10 @@ public class GenericSATBasedSolver implements ISolver {
         else
         {
             log.debug("Solving the subproblem CNF with " + aTerminationCriterion.getRemainingTime() + " s remaining.");
-            SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aTerminationCriterion, aSeed);
+            SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aEncoding.getInitialAssignment(), aTerminationCriterion, aSeed);
             log.debug("Parsing result.");
             Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
+            final Set<Station> assignedStations = new HashSet<>();
             if (satSolverResult.getResult().equals(SATResult.SAT)) {
                 HashMap<Long, Boolean> aLitteralChecker = new HashMap<Long, Boolean>();
                 for (Literal aLiteral : satSolverResult.getAssignment()) {
@@ -101,6 +102,9 @@ public class GenericSATBasedSolver implements ISolver {
                     if (aSign) {
                         Pair<Station, Integer> aStationChannelPair = aDecoder.decode(aVariable);
                         Station aStation = aStationChannelPair.getKey();
+                        if (assignedStations.contains(aStation)) {
+                            continue;
+                        }
                         Integer aChannel = aStationChannelPair.getValue();
     
                         if (!aInstance.getStations().contains(aStation) || !aInstance.getDomains().get(aStation).contains(aChannel)) {
@@ -111,6 +115,7 @@ public class GenericSATBasedSolver implements ISolver {
                             aStationAssignment.put(aChannel, new HashSet<Station>());
                         }
                         aStationAssignment.get(aChannel).add(aStation);
+                        assignedStations.add(aStation);
                     }
                 }
             }
@@ -118,7 +123,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("...done.");
             log.debug("Cleaning up...");
     
-            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, SolverResult.SolvedBy.CLASP);
+            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, satSolverResult.getSolvedBy());
     
             log.debug("Result:");
             log.debug(solverResult.toParsableString());

@@ -43,10 +43,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.ICacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.ISATFCInterruptible;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Created by newmanne on 01/03/15.
@@ -54,24 +61,36 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
  * Not threadsafe!
  */
 @Slf4j
-public class ContainmentCacheProxy {
+public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
 
     private final CacheCoordinate coordinate;
     private final static CloseableHttpAsyncClient httpClient;
     private final String SAT_URL;
     private final String UNSAT_URL;
+    private final String CACHE_URL;
     private final AtomicReference<Future<HttpResponse>> activeFuture;
+    private final int numAttempts;
+    private final boolean noErrorOnServerUnavailable;
+    private final ProblemIncrementor problemIncrementor;
 
     static {
         httpClient = HttpAsyncClients.createDefault();
         httpClient.start();
     }
 
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate) {
+    public static CloseableHttpAsyncClient getClient() {
+        return httpClient;
+    }
+
+    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService) {
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";
+        CACHE_URL = baseServerURL + "/v1/cache";
         this.coordinate = coordinate;
         activeFuture = new AtomicReference<>();
+        this.numAttempts = numAttempts;
+        this.noErrorOnServerUnavailable = noErrorOnServerUnavailable;
+        problemIncrementor = new ProblemIncrementor(pollingService, this);
     }
 
     /**
@@ -80,28 +99,74 @@ public class ContainmentCacheProxy {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ContainmentCacheRequest {
+
+        public ContainmentCacheRequest(StationPackingInstance instance, CacheCoordinate coordinate) {
+            this.instance = instance;
+            this.coordinate = coordinate;
+        }
+
         private StationPackingInstance instance;
         private CacheCoordinate coordinate;
+        private SolverResult result;
     }
 
     public ContainmentCacheSATResult proveSATBySuperset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(SAT_URL, instance, ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion);
+        try {
+            problemIncrementor.scheduleTermination(terminationCriterion);
+            return makePost(SAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheSATResult.class, ContainmentCacheSATResult.failure(), terminationCriterion, numAttempts);
+        } finally {
+            problemIncrementor.jobDone();
+        }
     }
 
     public ContainmentCacheUNSATResult proveUNSATBySubset(StationPackingInstance instance, ITerminationCriterion terminationCriterion) {
-        return makePost(UNSAT_URL, instance, ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion);
+        try {
+            problemIncrementor.scheduleTermination(terminationCriterion);
+            return makePost(UNSAT_URL, new ContainmentCacheRequest(instance, coordinate), ContainmentCacheUNSATResult.class, ContainmentCacheUNSATResult.failure(), terminationCriterion, numAttempts);
+        } finally {
+            problemIncrementor.jobDone();
+        }
     }
 
-    private <T> T makePost(String URL, StationPackingInstance instance, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion) {
+    @Override
+    public void cacheResult(StationPackingInstance instance, SolverResult result, ITerminationCriterion terminationCriterion) {
+        makePost(CACHE_URL, new ContainmentCacheRequest(instance, coordinate, result), null, null, terminationCriterion, numAttempts);
+    }
+
+    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion, int remainingAttempts) {
+        try {
+            return makePost(URL, request, responseClass, failure, terminationCriterion);
+        } catch (Exception e) {
+            log.error("Error making a web request", e);
+            int newRemainingAttempts = remainingAttempts - 1;
+            if (newRemainingAttempts > 0) {
+                log.error("Retrying web request. Request will be retried {} more time(s)", newRemainingAttempts);
+                return makePost(URL, request, responseClass, failure, terminationCriterion, newRemainingAttempts);
+            } else {
+                log.error("The retry quota for this web request has been exceeded");
+                if (noErrorOnServerUnavailable) {
+                    log.error("Continuing to solve the problem without the server...");
+                    return failure;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    private <T> T makePost(String URL, ContainmentCacheRequest request, Class<T> responseClass, T failure, ITerminationCriterion terminationCriterion) {
         final UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(URL);
         final String uriString = builder.build().toUriString();
         final HttpPost httpPost = new HttpPost(uriString);
-        log.debug("Making a request to the cache server for instance " + instance.getName() + " " + uriString);
-        final ContainmentCacheRequest request = new ContainmentCacheRequest(instance, coordinate);
+        log.debug("Making a request to the cache server for instance " + request.getInstance().getName() + " " + uriString);
         final String jsonRequest = JSONUtils.toString(request);
         final StringEntity stringEntity = new StringEntity(jsonRequest, ContentType.APPLICATION_JSON);
         httpPost.setEntity(stringEntity);
+        if (terminationCriterion.hasToStop()) {
+            return failure;
+        }
         try {
             final CountDownLatch latch = new CountDownLatch(1);
             final AtomicReference<HttpResponse> httpResponse = new AtomicReference<>();
@@ -141,8 +206,12 @@ public class ContainmentCacheProxy {
             if (terminationCriterion.hasToStop()) {
                 return failure;
             }
-            final String response = EntityUtils.toString(httpResponse.get().getEntity());
-            return JSONUtils.toObject(response, responseClass);
+            if (responseClass != null) {
+                final String response = EntityUtils.toString(httpResponse.get().getEntity());
+                return JSONUtils.toObject(response, responseClass);
+            } else {
+                return null; // Not expecting a response
+            }
         } catch (IOException e) {
             throw new RuntimeException("Error reading input stream from httpResponse", e);
         }

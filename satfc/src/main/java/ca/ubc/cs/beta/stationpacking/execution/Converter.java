@@ -21,10 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
-import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
-import ilog.cplex.IloCplex;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -62,11 +58,11 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.solvers.mip.MIPBasedSolver;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoder;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -84,8 +80,7 @@ public class Converter {
 
     private static enum OutType {
         INSTANCE,
-        CNF,
-        MIP;
+        CNF
     }
 
     @UsageTextField(title = "Converter Parameters", description = "Parameters needed to convert station packing instances.")
@@ -485,7 +480,7 @@ public class Converter {
                     if (satEncoders.containsKey(configFoldername)) {
                         satEncoder = satEncoders.get(configFoldername);
                     } else {
-                        satEncoder = new SATEncoder(constraintManager);
+                        satEncoder = new SATCompressor(constraintManager, EncodingType.DIRECT);
                         satEncoders.put(configFoldername, satEncoder);
                     }
                     log.debug("Converting instance from {} to CNF ...", source);
@@ -519,31 +514,6 @@ public class Converter {
                     }
 
                     break;
-                case MIP:
-                    Pair<IloCplex, Map<IloIntVar, Pair<Station, Integer>>> mipEncoding;
-                    try {
-                        log.debug("Encoding into MIP ...");
-                        mipEncoding = MIPBasedSolver.encodeMIP(instance, constraintManager);
-                    } catch (IloException e) {
-                        e.printStackTrace();
-                        throw new IllegalStateException("Could not encode instance from " + source + " to MIP (" + e.getMessage() + ").");
-                    }
-                    IloCplex mip = mipEncoding.getFirst();
-
-                    String mipFilename = FilenameUtils.concat(outputDir, FilenameUtils.getBaseName(source) + ".mps");
-                    File mipFile = new File(mipFilename);
-                    if (mipFile.exists()) {
-                        log.warn("MIP file already exists with name \"" + mipFile + "\".");
-                    }
-                    try {
-                        log.debug("Saving encoding to file {}", mipFilename);
-                        mip.exportModel(mipFilename);
-                    } catch (IloException e) {
-                        e.printStackTrace();
-                        throw new IllegalStateException("Could not export MIP to file.");
-                    }
-                    break;
-
                 default:
                     throw new ParameterException("Unrecognized out type " + outType + ".");
             }

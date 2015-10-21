@@ -1,0 +1,10 @@
+---
+UHF:
+  - name: CLASP
+    args:
+      encodingType: DIRECT
+      config: ''
+  - name: PYTHON_VERIFIER
+  - name: VERIFIER
+VHF:
+  - name: VERIFIER

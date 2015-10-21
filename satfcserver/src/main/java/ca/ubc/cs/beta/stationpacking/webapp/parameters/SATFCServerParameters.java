@@ -39,6 +39,14 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private int numPermutations = 1;
 
+    @Parameter(names = "--accept.regex", description = "Only accept cache entries that match this regex", hidden = true)
+    @Getter
+    private String acceptRegex = null;
+
+    @Parameter(names = "--cache.size.limit", description = "Only use the first limit entries from the cache", hidden = true)
+    @Getter
+    private long cacheSizeLimit = Long.MAX_VALUE;
+
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
     }

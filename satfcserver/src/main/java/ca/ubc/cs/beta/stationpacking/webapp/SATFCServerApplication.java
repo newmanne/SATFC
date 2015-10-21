@@ -21,28 +21,29 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlets.AdminServlet;
+import com.codahale.metrics.servlets.MetricsServlet;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-
 import org.springframework.util.ReflectionUtils;
+
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.stationpacking.cache.CacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
@@ -51,6 +52,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 
+import com.beust.jcommander.Parameter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -83,6 +85,8 @@ public class SATFCServerApplication {
         SpringApplication.run(SATFCServerApplication.class, args);
     }
 
+    @Autowired MetricRegistry registry;
+
     @Bean
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
         final MappingJackson2HttpMessageConverter mappingJacksonHttpMessageConverter = new MappingJackson2HttpMessageConverter();
@@ -110,7 +114,7 @@ public class SATFCServerApplication {
 
     @Bean
     ICacheLocator containmentCache() {
-        return new CacheLocator(satisfiabilityCacheFactory());
+        return new CacheLocator(satisfiabilityCacheFactory(), parameters);
     }
 
     @Bean
@@ -126,6 +130,11 @@ public class SATFCServerApplication {
 
     @Bean SATFCServerParameters satfcServerParameters() {
         return parameters;
+    }
+
+    @Bean
+    public ServletRegistrationBean servletRegistrationBean(){
+        return new ServletRegistrationBean(new MetricsServlet(registry),"/metrics/extra/*");
     }
 
 }

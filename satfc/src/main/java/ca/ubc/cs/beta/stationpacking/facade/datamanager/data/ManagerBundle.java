@@ -21,7 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.data;
 
+import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 
@@ -30,39 +32,29 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
  */
 public class ManagerBundle {
 
-	private IStationManager fStationManager;
-	private IConstraintManager fConstraintManager;
-	
-	/**
+	@Getter
+	private IStationManager stationManager;
+	@Getter
+	private IConstraintManager constraintManager;
+	@Getter
+	private final String interferenceFolder;
+	@Getter
+	private CacheCoordinate cacheCoordinate;
+
+    /**
 	 * Creates a new bundle containing the given station and constraint manager.
 	 * @param stationManager station manager to be bundled.
 	 * @param constraintManager constraint manager to be bundled.
 	 */
-	public ManagerBundle(IStationManager stationManager, IConstraintManager constraintManager) {
-		fStationManager = stationManager;
-		fConstraintManager = constraintManager;
+	public ManagerBundle(IStationManager stationManager, IConstraintManager constraintManager, String interferenceFolder) {
+		this.stationManager = stationManager;
+		this.constraintManager = constraintManager;
+		this.interferenceFolder = interferenceFolder;
+		cacheCoordinate = new CacheCoordinate(stationManager.getDomainHash(), constraintManager.getConstraintHash());
 	}
 
-	/**
-	 * Returns the bundled station manager.
-	 * @return the bundled station manager.
-	 */
-	public IStationManager getStationManager()
-	{
-		return fStationManager;
-	}
-	
-	/**
-	 * Returns the bundled constraint manager.
-	 * @return the bundled station manager.
-	 */
-	public IConstraintManager getConstraintManager()
-	{
-		return fConstraintManager;
-	}
-
-    public CacheCoordinate getCacheCoordinate() {
-        return new CacheCoordinate(fStationManager.getDomainHash(), fConstraintManager.getConstraintHash());
+    public boolean isCompactInterference() {
+        return getConstraintManager() instanceof ChannelSpecificConstraintManager;
     }
-	
+
 }

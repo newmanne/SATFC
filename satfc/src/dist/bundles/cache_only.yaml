@@ -1,0 +1,11 @@
+---
+# This bundle is to evaluate the cache performance (without any additional solvers). It does not add anything to the cache.
+UHF:
+  - name: SAT_CACHE
+  - name: CONNECTED_COMPONENTS
+  - name: UNDERCONSTRAINED
+  - name: UNSAT_CACHE
+  - name: SAT_CACHE
+  - name: VERIFIER
+VHF:
+  - name: VERIFIER

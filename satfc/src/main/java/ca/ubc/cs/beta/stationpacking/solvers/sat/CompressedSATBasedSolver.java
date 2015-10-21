@@ -21,7 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.sat;
 
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 
@@ -31,7 +30,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
  */
 public class CompressedSATBasedSolver extends GenericSATBasedSolver {
 
-	public CompressedSATBasedSolver(AbstractCompressedSATSolver aSATSolver, SATCompressor aSATCompressor, IConstraintManager aConstraintManager)
+	public CompressedSATBasedSolver(AbstractCompressedSATSolver aSATSolver, SATCompressor aSATCompressor)
 	{
 		super(aSATSolver,aSATCompressor);
 	}

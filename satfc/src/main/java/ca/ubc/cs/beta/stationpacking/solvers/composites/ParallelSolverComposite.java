@@ -21,11 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.composites;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -45,8 +45,8 @@ public class ParallelSolverComposite implements ISolver {
     Collection<ISolver> solvers;
     private final ForkJoinPool forkJoinPool;
 
-    public ParallelSolverComposite(int threadPoolSize, List<ISolver> solvers) {
-        this.solvers = new ArrayList<>(solvers);
+    public ParallelSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
+        this.solvers = solvers.stream().map(ISolverFactory::create).collect(Collectors.toList());
         log.debug("Creating a fork join pool with {} threads", threadPoolSize);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
     }
@@ -65,13 +65,15 @@ public class ParallelSolverComposite implements ISolver {
                             // Interrupt only if the result is conclusive
                             if (solve.getResult().isConclusive() && interruptibleCriterion.interrupt()) {
                                 log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
+                                solvers.forEach(ISolver::interrupt);
                             }
                             return solve;
                         })
                         .filter(result -> result.getResult().isConclusive())
                         .findAny();
             }).get().orElse(SolverResult.createTimeoutResult(watch.getElapsedTime()));
-            return SolverResult.relabelTime(endResult, watch.getElapsedTime());
+            // Note that we don't modify time here, even though you might have to wait a while for the other threads to finish between the time the result is created and the time it can be returned. This solver is used for experimental purposes, to make sure that all threads have "caught up" before the next problem is started
+            return endResult;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error processing jobs in parallel!", e);
         }
@@ -84,7 +86,7 @@ public class ParallelSolverComposite implements ISolver {
 
 	@Override
 	public void interrupt() {
-		throw new RuntimeException("Interrupt not yet implemeneted...");
+        // Just wait for the individual solvers to terminate
 	}
 
 }

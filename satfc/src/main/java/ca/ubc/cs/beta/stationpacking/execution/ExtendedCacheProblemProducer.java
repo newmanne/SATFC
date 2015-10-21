@@ -18,7 +18,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.cache.ICacher.SATCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IProblemSampler;

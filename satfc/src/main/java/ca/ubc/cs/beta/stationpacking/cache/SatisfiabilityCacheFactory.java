@@ -73,7 +73,6 @@ public class SatisfiabilityCacheFactory implements ISatisfiabilityCacheFactory {
         final IContainmentCache<Station, ContainmentCacheSATEntry> undecoratedSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
         final ILockableContainmentCache<Station, ContainmentCacheSATEntry> SATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedSATCache, SAT_BUFFER_SIZE);
         final IContainmentCache<Station, ContainmentCacheUNSATEntry> undecoratedUNSATCache = new MultiPermutationBitSetCache<>(permutation, permutations, RedBlackTree::new);
-        final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedUNSATCache, UNSAT_BUFFER_SIZE);
-        return new SatisfiabilityCache(permutation, SATCache, UNSATCache);
+        final ILockableContainmentCache<Station, ContainmentCacheUNSATEntry> UNSATCache = BufferedThreadSafeCacheDecorator.makeBufferedThreadSafe(undecoratedUNSATCache, UNSAT_BUFFER_SIZE);        return new SatisfiabilityCache(permutation, SATCache, UNSATCache);
     }
 }

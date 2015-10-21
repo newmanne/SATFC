@@ -188,7 +188,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     @Override
     public void interrupt() {
-        throw new RuntimeException("Not yet implemented");
+        // Just wait for the individual solvers to terminate
     }
 
 }

@@ -77,9 +77,13 @@ public class SATFCFacadeExecutor {
                             problem.getInstanceName()
                     );
                     log.info("..done!");
-                    System.out.println(result.getResult());
-                    System.out.println(result.getRuntime());
-                    System.out.println(result.getWitnessAssignment());
+                    if (!log.isInfoEnabled()) {
+                        System.out.println(result.getResult());
+                        System.out.println(result.getRuntime());
+                        System.out.println(result.getWitnessAssignment());
+                    } else {
+                        log.info("Result:" + System.lineSeparator() + result.getResult() + System.lineSeparator() + result.getRuntime() + System.lineSeparator() + result.getWitnessAssignment());
+                    }
                     problemReader.onPostProblem(problem, result);
                     metricWriter.writeMetrics();
                     SATFCMetrics.clear();

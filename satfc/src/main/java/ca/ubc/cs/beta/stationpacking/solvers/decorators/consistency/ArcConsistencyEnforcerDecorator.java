@@ -33,9 +33,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
         final AC3Output ac3Output = ac3Enforcer.AC3(aInstance, aTerminationCriterion);
-        if (ac3Output.isTimedOut()) {
-            return SolverResult.createTimeoutResult(watch.getElapsedTime());
-        } else if (ac3Output.isNoSolution()) {
+        if (ac3Output.isNoSolution()) {
             return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolverResult.SolvedBy.ARC_CONSISTENCY);
         } else {
             log.debug("Removed {} channels", ac3Output.getNumReducedChannels());

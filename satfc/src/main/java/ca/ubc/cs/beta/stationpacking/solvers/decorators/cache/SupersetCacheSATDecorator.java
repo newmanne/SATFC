@@ -27,7 +27,6 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -48,7 +47,7 @@ public class SupersetCacheSATDecorator extends ASolverDecorator {
 
     private final ContainmentCacheProxy proxy;
 
-    public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy, CacheCoordinate coordinate) {
+    public SupersetCacheSATDecorator(ISolver aSolver, ContainmentCacheProxy proxy) {
         super(aSolver);
         this.proxy = proxy;
     }
