@@ -130,7 +130,10 @@ public class ContainmentCacheController {
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
             final ContainmentCacheSATResult containmentCacheSATResult = cache.proveSATBySuperset(instance);
             if (containmentCacheSATResult.isValid()) {
+                log.info("Query for SAT cache with coordinate {} for entry {} is a hit", request.getCoordinate(), description);
                 satCacheHits.mark();
+            } else {
+                log.info("Query for SAT cache with coordinate {} for entry {} is a miss", request.getCoordinate(), description);
             }
             return containmentCacheSATResult;
         } finally {
@@ -152,7 +155,10 @@ public class ContainmentCacheController {
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
             final ContainmentCacheUNSATResult result = cache.proveUNSATBySubset(instance);
             if (result.isValid()) {
+                log.info("Query for UNSAT cache with coordinate {} for entry {} is a hit", request.getCoordinate(), description);
                 unsatCacheHits.mark();
+            } else {
+                log.info("Query for UNSAT cache with coordinate {} for entry {} is a miss", request.getCoordinate(), description);
             }
             return result;
         } finally {

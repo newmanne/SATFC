@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.http.HttpResponse;
@@ -73,7 +74,7 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
     private final boolean noErrorOnServerUnavailable;
     private final ProblemIncrementor problemIncrementor;
 
-    public ContainmentCacheProxy(String baseServerURL, CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService, CloseableHttpAsyncClient httpClient) {
+    public ContainmentCacheProxy(@NonNull String baseServerURL, @NonNull CacheCoordinate coordinate, int numAttempts, boolean noErrorOnServerUnavailable, IPollingService pollingService, @NonNull CloseableHttpAsyncClient httpClient) {
         this.httpClient = httpClient;
         SAT_URL = baseServerURL + "/v1/cache/query/SAT";
         UNSAT_URL = baseServerURL + "/v1/cache/query/UNSAT";

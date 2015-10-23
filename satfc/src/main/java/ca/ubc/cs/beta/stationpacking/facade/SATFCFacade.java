@@ -64,8 +64,11 @@ import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.apache.http.*;
+import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.apache.http.protocol.HttpContext;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -96,9 +99,8 @@ public class SATFCFacade implements AutoCloseable {
         this.parameter = aSATFCParameters;
         pollingService = new PollingService();
         if (parameter.getServerURL() != null) {
-            log.debug("Starting http client");
-            httpClient = HttpAsyncClients.createDefault();
-            httpClient.start();
+            log.info("Starting http client");
+            httpClient = createHttpClient();
         } else {
             httpClient = null;
         }
@@ -115,7 +117,7 @@ public class SATFCFacade implements AutoCloseable {
                         case HYDRA:
                             return new SATFCHydraBundle(dataBundle, aSATFCParameters, pollingService);
                         case YAML:
-                            return new YAMLBundle(dataBundle, aSATFCParameters);
+                            return new YAMLBundle(dataBundle, aSATFCParameters, httpClient, pollingService);
                         default:
                             throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                     }
@@ -131,6 +133,44 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         idleTime = Watch.constructAutoStartWatch();
+    }
+
+    private CloseableHttpAsyncClient createHttpClient() {
+        CloseableHttpAsyncClient client = HttpAsyncClients
+                .custom()
+//                .addInterceptorFirst(new HttpRequestInterceptor() {
+//                    @Override
+//                    public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
+//                        if (!request.containsHeader("Accept-Encoding")) {
+//                            request.addHeader("Accept-Encoding", "gzip");
+//                        }
+//                    }
+//                })
+//                .addInterceptorFirst(new HttpResponseInterceptor() {
+//
+//                    public void process(
+//                            final HttpResponse response,
+//                            final HttpContext context) throws HttpException, IOException {
+//                        HttpEntity entity = response.getEntity();
+//                        if (entity != null) {
+//                            Header ceheader = entity.getContentEncoding();
+//                            if (ceheader != null) {
+//                                HeaderElement[] codecs = ceheader.getElements();
+//                                for (int i = 0; i < codecs.length; i++) {
+//                                    if (codecs[i].getName().equalsIgnoreCase("gzip")) {
+//                                        log.info("Yay I'm doing gzip");
+//                                        response.setEntity(new GzipDecompressingEntity(response.getEntity()));
+//                                        return;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                })
+                .build();
+        client.start();
+        return client;
     }
 
     /**

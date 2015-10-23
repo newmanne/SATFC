@@ -83,11 +83,20 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     public YAMLBundle(
             @NonNull ManagerBundle managerBundle,
-            SATFCFacadeParameter parameter
+            SATFCFacadeParameter parameter,
+            CloseableHttpAsyncClient httpClient,
+            IPollingService pollingService
     ) {
         super(managerBundle);
 
         log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", parameter.getConfigFile(), parameter.getServerURL(), parameter.getClaspLibrary(), parameter.getUbcsatLibrary(), parameter.getResultFile());
+
+        PythonInterpreterFactory python = null;
+        try {
+            python = new PythonInterpreterFactory(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference());
+        } catch (Exception e) {
+            log.warn("Could not initialize jython. Secondary assignment verifier will be skipped");
+        }
 
         final SATFCContext context = SATFCContext
                 .builder()
@@ -95,7 +104,9 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 .clasp3LibraryGenerator(new Clasp3LibraryGenerator(parameter.getClaspLibrary()))
                 .ubcsatLibraryGenerator(new UBCSATLibraryGenerator(parameter.getUbcsatLibrary()))
                 .parameter(parameter)
-                .python(new PythonInterpreterFactory(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference()))
+                .pollingService(pollingService)
+                .python(python)
+                .httpClient(httpClient)
                 .build();
 
         log.info("Reading configuration file {}", parameter.getConfigFile());
@@ -131,6 +142,12 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         UHFSolver = concat(uhf, context);
         VHFSolver = concat(vhf, context);
+    }
+
+    @Override
+    public void close() throws Exception {
+        // TODO: kill the jython
+        super.close();
     }
 
     private static ISolver concat(List<ISolverConfig> configs, SATFCContext context) {
