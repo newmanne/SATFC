@@ -48,6 +48,7 @@ public class CacheCoordinate {
     // transform a redis key into a cache coordinate
     public static CacheCoordinate fromKey(String key) {
         final List<String> strings = Splitter.on(":").splitToList(key);
+        Preconditions.checkState(strings.size() == 3, "Key %s not of expected cache key format");
         return new CacheCoordinate(strings.get(2), strings.get(3));
     }
 

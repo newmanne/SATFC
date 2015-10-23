@@ -186,15 +186,16 @@ public class RedisCacher {
         while (count < limit && scan.hasNext()) {
             final String key = new String(scan.next());
             count++;
-            final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
-            if (coordinateToPermutation.containsKey(coordinate)) {
-                if (key.startsWith("SATFC:SAT:")) {
-                    SATKeys.add(key);
-                } else if (key.startsWith("SATFC:UNSAT:")) {
-                    UNSATKeys.add(key);
-                }
+            if (key.startsWith("SATFC:SAT:")) {
+                SATKeys.add(key);
+            } else if (key.startsWith("SATFC:UNSAT:")) {
+                UNSATKeys.add(key);
             }
         }
+
+        // filter out coordinates we don't know about
+        SATKeys.removeIf(key -> !coordinateToPermutation.containsKey(CacheCoordinate.fromKey(key)));
+        UNSATKeys.removeIf(key -> !coordinateToPermutation.containsKey(CacheCoordinate.fromKey(key)));
 
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
