@@ -15,12 +15,12 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
  * Created by emily404 on 9/23/15.
  */
 @Slf4j
-public class PythonInterpreterFactory {
+public class PythonInterpreterContainer {
 
     private final ReadWriteLock fLock = new ReentrantReadWriteLock();
     private PythonInterpreter python;
 
-    public PythonInterpreterFactory(String interferenceFolder, boolean compact) {
+    public PythonInterpreterContainer(String interferenceFolder, boolean compact) {
 
         python = new PythonInterpreter();
         python.execfile(getClass().getClassLoader().getResourceAsStream("verifier.py"));

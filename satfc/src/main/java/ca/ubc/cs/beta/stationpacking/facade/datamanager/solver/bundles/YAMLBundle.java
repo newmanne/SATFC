@@ -1,45 +1,21 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.experimental.Builder;
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterContainer;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.DelayedSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.TimeBoundedSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
@@ -51,9 +27,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
@@ -67,7 +43,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.Builder;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by newmanne on 01/10/15.
@@ -91,11 +79,11 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         log.info("Using the following variables to build the bundle: configFile={}, serverURL={}, clasp={}, ubcsat={}, resultFile={}", parameter.getConfigFile(), parameter.getServerURL(), parameter.getClaspLibrary(), parameter.getUbcsatLibrary(), parameter.getResultFile());
 
-        PythonInterpreterFactory python = null;
+        PythonInterpreterContainer python = null;
         try {
-            python = new PythonInterpreterFactory(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference());
+            python = new PythonInterpreterContainer(managerBundle.getInterferenceFolder(), managerBundle.isCompactInterference());
         } catch (Exception e) {
-            log.warn("Could not initialize jython. Secondary assignment verifier will be skipped");
+            log.warn("Could not initialize jython. Secondary assignment verifier will be skipped", e);
         }
 
         final SATFCContext context = SATFCContext
@@ -224,7 +212,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private final Clasp3LibraryGenerator clasp3LibraryGenerator;
         private final UBCSATLibraryGenerator ubcsatLibraryGenerator;
         private final ManagerBundle managerBundle;
-        private final PythonInterpreterFactory python;
+        private final PythonInterpreterContainer python;
         private final SATFCFacadeParameter parameter;
         private final IPollingService pollingService;
         private final CloseableHttpAsyncClient httpClient;
@@ -273,11 +261,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class PythonVerifieConfig implements ISolverConfig {
+    public static class PythonVerifierConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             return new PythonAssignmentVerifierDecorator(solverToDecorate, context.getPython());
+        }
+
+        @Override
+        public boolean shouldSkip(SATFCContext context) {
+            return context.getPython() == null;
         }
     }
 
@@ -593,7 +586,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.PARALLEL, ParallelConfig.class)
                         .put(SolverType.RESULT_SAVER, ResultSaverConfig.class)
                         .put(SolverType.CNF, CNFSaverConfig.class)
-                        .put(SolverType.PYTHON_VERIFIER, PythonVerifieConfig.class)
+                        .put(SolverType.PYTHON_VERIFIER, PythonVerifierConfig.class)
                         .put(SolverType.CHANNEL_KILLER, ChannelKillerConfig.class)
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)

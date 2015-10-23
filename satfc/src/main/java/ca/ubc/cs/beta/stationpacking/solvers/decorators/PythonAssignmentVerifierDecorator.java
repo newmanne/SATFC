@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.python.core.PyObject;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterContainer;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -20,12 +20,12 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 @Slf4j
 public class PythonAssignmentVerifierDecorator extends ASolverDecorator {
 
-    private final PythonInterpreterFactory python;
+    private final PythonInterpreterContainer python;
 
     /**
      * @param aSolver - decorated ISolver, verifying assignemnt in python.
      */
-    public PythonAssignmentVerifierDecorator(ISolver aSolver, PythonInterpreterFactory pythonInterpreter) {
+    public PythonAssignmentVerifierDecorator(ISolver aSolver, PythonInterpreterContainer pythonInterpreter) {
         super(aSolver);
         python = pythonInterpreter;
     }

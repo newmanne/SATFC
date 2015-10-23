@@ -17,7 +17,7 @@ import org.junit.Test;
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterContainer;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -41,7 +41,7 @@ public class PythonAssignmentVerifierDecoratorTest {
     public static void setUp() {
         final String interferenceFolder = Resources.getResource("data/021814SC3M").getPath();
         final boolean compact = true;
-        pythonAssignmentVerifierDecorator = new PythonAssignmentVerifierDecorator(solver, new PythonInterpreterFactory(interferenceFolder, compact));
+        pythonAssignmentVerifierDecorator = new PythonAssignmentVerifierDecorator(solver, new PythonInterpreterContainer(interferenceFolder, compact));
     }
 
     @Test(expected=IllegalStateException.class)

@@ -8,9 +8,7 @@ buildscript {
 apply plugin: 'spring-boot'
 
 dependencies {
-    compile (project(':satfc')) {
-        exclude module: 'jython-standalone' // save space, since it's a huge jar
-    }
+    compile project(':satfc')
 
     // spring
     compile("org.springframework.boot:spring-boot-starter-web")
