@@ -84,10 +84,6 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         problemIncrementor = new ProblemIncrementor(pollingService, this);
     }
 
-    public UBCSATSolver(UBCSATLibrary library, String parameters, IPollingService service) {
-        this(library, parameters, 0, service);
-    }
-
     @Override
     public SATSolverResult solve(CNF aCNF, ITerminationCriterion aTerminationCriterion, long aSeed) {
         return solve(aCNF, null, aTerminationCriterion, aSeed);

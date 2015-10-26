@@ -32,7 +32,11 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ContentType;
@@ -200,7 +204,18 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
                 return failure;
             }
             if (responseClass != null) {
-                final String response = EntityUtils.toString(httpResponse.get().getEntity());
+                HttpEntity entity = httpResponse.get().getEntity();
+                // No idea why this doesn't work via an interceptor, but it desn't seem to work that way
+                Header ceheader = entity.getContentEncoding();
+                if (ceheader != null) {
+                    HeaderElement[] codecs = ceheader.getElements();
+                    for (int i = 0; i < codecs.length; i++) {
+                        if (codecs[i].getName().equalsIgnoreCase("gzip")) {
+                            entity = new GzipDecompressingEntity(entity);
+                        }
+                    }
+                }
+                final String response = EntityUtils.toString(entity);
                 return JSONUtils.toObject(response, responseClass);
             } else {
                 return null; // Not expecting a response

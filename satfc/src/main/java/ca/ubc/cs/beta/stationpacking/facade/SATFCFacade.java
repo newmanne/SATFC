@@ -69,6 +69,7 @@ import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -138,36 +139,14 @@ public class SATFCFacade implements AutoCloseable {
     private CloseableHttpAsyncClient createHttpClient() {
         CloseableHttpAsyncClient client = HttpAsyncClients
                 .custom()
-//                .addInterceptorFirst(new HttpRequestInterceptor() {
-//                    @Override
-//                    public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
-//                        if (!request.containsHeader("Accept-Encoding")) {
-//                            request.addHeader("Accept-Encoding", "gzip");
-//                        }
-//                    }
-//                })
-//                .addInterceptorFirst(new HttpResponseInterceptor() {
-//
-//                    public void process(
-//                            final HttpResponse response,
-//                            final HttpContext context) throws HttpException, IOException {
-//                        HttpEntity entity = response.getEntity();
-//                        if (entity != null) {
-//                            Header ceheader = entity.getContentEncoding();
-//                            if (ceheader != null) {
-//                                HeaderElement[] codecs = ceheader.getElements();
-//                                for (int i = 0; i < codecs.length; i++) {
-//                                    if (codecs[i].getName().equalsIgnoreCase("gzip")) {
-//                                        log.info("Yay I'm doing gzip");
-//                                        response.setEntity(new GzipDecompressingEntity(response.getEntity()));
-//                                        return;
-//                                    }
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                })
+                .addInterceptorFirst(new HttpRequestInterceptor() {
+                    @Override
+                    public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
+                        if (!request.containsHeader("Accept-Encoding")) {
+                            request.addHeader("Accept-Encoding", "gzip");
+                        }
+                    }
+                })
                 .build();
         client.start();
         return client;
