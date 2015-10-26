@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlets.AdminServlet;
 import com.codahale.metrics.servlets.MetricsServlet;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ public class SATFCServerApplication {
     public static void main(String[] args) {
         // Jcommander will throw an exception if it sees parameters it does not know about, but these are possibly spring boot commands
         final List<String> jcommanderArgs = new ArrayList<>();
-        final List<String> jcommanderFields = new ArrayList<>();
+        final List<String> jcommanderFields = Lists.newArrayList("--help");
         ReflectionUtils.doWithFields(SATFCServerParameters.class, field -> Collections.addAll(jcommanderFields, field.getAnnotation(Parameter.class).names()));
         for (String arg : args) {
             for (String jcommanderField : jcommanderFields) {
