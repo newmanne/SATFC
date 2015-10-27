@@ -137,17 +137,7 @@ public class SATFCFacade implements AutoCloseable {
     }
 
     private CloseableHttpAsyncClient createHttpClient() {
-        CloseableHttpAsyncClient client = HttpAsyncClients
-                .custom()
-                .addInterceptorFirst(new HttpRequestInterceptor() {
-                    @Override
-                    public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
-                        if (!request.containsHeader("Accept-Encoding")) {
-                            request.addHeader("Accept-Encoding", "gzip");
-                        }
-                    }
-                })
-                .build();
+        final CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();
         client.start();
         return client;
     }
