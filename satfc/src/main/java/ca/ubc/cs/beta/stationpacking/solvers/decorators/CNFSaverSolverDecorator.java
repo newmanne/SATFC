@@ -91,7 +91,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
         if (saveAssignment) {
             // Create assignment
             final String assignmentString = Joiner.on(System.lineSeparator()).join(aEncoding.getInitialAssignment().entrySet().stream()
-                    .map(entry -> entry.getKey() + " " + (entry.getValue() ? 1 : 0)).collect(Collectors.toList()));
+                    .map(entry -> entry.getValue() ? entry.getKey() : -entry.getKey()).collect(Collectors.toList()));
             fCNFSaver.saveAssignment(CNFName, assignmentString);
         }
 
