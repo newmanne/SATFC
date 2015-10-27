@@ -21,10 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.cache;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.GZIPOutputStream;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,13 +37,17 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.entity.EntityBuilder;
 import org.apache.http.client.entity.GzipDecompressingEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
@@ -67,6 +76,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  */
 @Slf4j
 public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
+
+    // if the text is smaller than this length in bytes, then compression probably isn't worth the trouble
+    public static final int MIN_GZIP_LENGTH = 860;
 
     private final CacheCoordinate coordinate;
     private final CloseableHttpAsyncClient httpClient;
@@ -159,8 +171,24 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
         final HttpPost httpPost = new HttpPost(uriString);
         log.debug("Making a request to the cache server for instance " + request.getInstance().getName() + " " + uriString);
         final String jsonRequest = JSONUtils.toString(request);
-        final StringEntity stringEntity = new StringEntity(jsonRequest, ContentType.APPLICATION_JSON);
-        httpPost.setEntity(stringEntity);
+        // possibly do gzip compression
+        if (jsonRequest.length() > MIN_GZIP_LENGTH) {
+            final ByteArrayOutputStream arr = new ByteArrayOutputStream();
+            try {
+                final OutputStream zipper = new GZIPOutputStream(arr);
+                zipper.write(jsonRequest.getBytes());
+                zipper.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Error compressing json http post request to gzip", e);
+            }
+            final ByteArrayEntity postEntity = new ByteArrayEntity(arr.toByteArray());
+            postEntity.setContentEncoding("gzip");
+            postEntity.setContentType("application/json");
+            httpPost.setEntity(postEntity);
+        } else {
+            httpPost.setEntity(new StringEntity(jsonRequest, ContentType.APPLICATION_JSON));
+        }
+        httpPost.addHeader("Accept-Encoding", "gzip");
         if (terminationCriterion.hasToStop()) {
             return failure;
         }
@@ -204,18 +232,15 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
                 return failure;
             }
             if (responseClass != null) {
-                HttpEntity entity = httpResponse.get().getEntity();
-                // No idea why this doesn't work via an interceptor, but it desn't seem to work that way
-                Header ceheader = entity.getContentEncoding();
-                if (ceheader != null) {
-                    HeaderElement[] codecs = ceheader.getElements();
-                    for (int i = 0; i < codecs.length; i++) {
-                        if (codecs[i].getName().equalsIgnoreCase("gzip")) {
-                            entity = new GzipDecompressingEntity(entity);
-                        }
-                    }
+                HttpEntity responseEntity = httpResponse.get().getEntity();
+                // Check to see if the response is compressed using gzip
+                final Header ceheader = responseEntity.getContentEncoding();
+                if (ceheader != null && Arrays.stream(ceheader.getElements()).anyMatch(codec -> codec.getName().equalsIgnoreCase("gzip"))) {
+                    log.trace("gzip response detected");
+                    responseEntity = new GzipDecompressingEntity(responseEntity);
+
                 }
-                final String response = EntityUtils.toString(entity);
+                final String response = EntityUtils.toString(responseEntity);
                 return JSONUtils.toObject(response, responseClass);
             } else {
                 return null; // Not expecting a response
