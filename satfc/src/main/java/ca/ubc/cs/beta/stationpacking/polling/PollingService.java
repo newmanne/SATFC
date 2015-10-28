@@ -1,9 +1,7 @@
-package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
+package ca.ubc.cs.beta.stationpacking.polling;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 
@@ -16,11 +14,6 @@ public class PollingService implements IPollingService {
 
     public PollingService() {
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new SequentiallyNamedThreadFactory("SATFC Interrupt Polling"));
-    }
-
-    @Override
-    public ScheduledFuture<?> schedule(Runnable runnable) {
-        return scheduledExecutorService.scheduleWithFixedDelay(runnable, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override

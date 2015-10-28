@@ -35,10 +35,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
  * Created by newmanne on 19/04/15.
  */
 public interface ISatisfiabilityCache {
+
     ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance);
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
-    void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
 
+    void add(final StationPackingInstance aInstance, final SolverResult result, final String key);
     void add(ContainmentCacheSATEntry SATEntry);
     default void addAllSAT(Collection<ContainmentCacheSATEntry> SATEntries) {
         SATEntries.forEach(this::add);
@@ -47,7 +48,9 @@ public interface ISatisfiabilityCache {
     default void addAllUNSAT(Collection<ContainmentCacheUNSATEntry> UNSATEntries) {
         UNSATEntries.forEach(this::add);
     }
+
     List<ContainmentCacheSATEntry> filterSAT();
     List<ContainmentCacheUNSATEntry> filterUNSAT();
+
     List<ContainmentCacheSATEntry> findMaxIntersections(final StationPackingInstance instance, int k);
 }

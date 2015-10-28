@@ -21,22 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
-import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
-import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.webapp.filters.GzipRequestFilter;
-import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
-import com.beust.jcommander.Parameter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.servlets.MetricsServlet;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.Filter;
+
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.protocol.HTTP;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -47,20 +40,23 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.util.ReflectionUtils;
-import redis.clients.jedis.JedisShardInfo;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import redis.clients.jedis.JedisShardInfo;
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.webapp.filters.GzipRequestFilter;
+import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
+
+import com.beust.jcommander.Parameter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.servlets.MetricsServlet;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 
 /**
  * Created by newmanne on 23/03/15.

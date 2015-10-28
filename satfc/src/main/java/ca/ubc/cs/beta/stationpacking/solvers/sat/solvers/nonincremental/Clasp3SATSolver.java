@@ -28,6 +28,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
+import ca.ubc.cs.beta.stationpacking.polling.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -36,8 +38,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
@@ -58,8 +58,8 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private final int fSeedOffset;
     private final ProblemIncrementor problemIncrementor;
 
-    public Clasp3SATSolver(String libraryPath, String parameters) {
-        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters, null);
+    public Clasp3SATSolver(String libraryPath, String parameters, IPollingService service) {
+        this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters, service);
     }
 
     public Clasp3SATSolver(Clasp3Library library, String parameters, IPollingService service) {

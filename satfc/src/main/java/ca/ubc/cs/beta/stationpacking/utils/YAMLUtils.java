@@ -8,6 +8,7 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 
 /**
  * Created by newmanne on 05/10/15.
+ * Used to read and write YAML
  */
 public class YAMLUtils {
 

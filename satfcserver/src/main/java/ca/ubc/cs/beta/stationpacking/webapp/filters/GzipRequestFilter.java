@@ -1,13 +1,26 @@
 package ca.ubc.cs.beta.stationpacking.webapp.filters;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.http.protocol.HTTP;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PushbackInputStream;
+import java.util.zip.GZIPInputStream;
 
-import javax.servlet.*;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ReadListener;
+import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
-import java.io.*;
-import java.util.zip.GZIPInputStream;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.http.protocol.HTTP;
 
 /**
  * Created by newmanne on 27/10/15.

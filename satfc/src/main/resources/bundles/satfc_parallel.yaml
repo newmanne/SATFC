@@ -57,7 +57,7 @@ UHF:
             - name: UNDERCONSTRAINED
             - name: ARC_CONSISTENCY
           -
-            - name: UBCSAT
+            - name: SATENSTEIN
               args:
                 config: *dcca
                 encodingType: DIRECT
@@ -69,7 +69,6 @@ VHF:
     - name: CLASP
       args: 
         config: *claspVHF
-        encodingType: DIRECT
     - name: CONNECTED_COMPONENTS
     - name: UNDERCONSTRAINED
       args: 

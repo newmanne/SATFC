@@ -25,7 +25,7 @@ import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.CompressionBijection;
 
@@ -41,9 +41,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.CompressionBije
 public class SATCompressor implements ISATEncoder {
 
     private final IConstraintManager fConstraintManager;
-    private YAMLBundle.EncodingType encodingType;
+    private EncodingType encodingType;
 
-    public SATCompressor(IConstraintManager aConstraintManager, YAMLBundle.EncodingType encodingType) {
+    public SATCompressor(IConstraintManager aConstraintManager, EncodingType encodingType) {
         fConstraintManager = aConstraintManager;
         this.encodingType = encodingType;
     }

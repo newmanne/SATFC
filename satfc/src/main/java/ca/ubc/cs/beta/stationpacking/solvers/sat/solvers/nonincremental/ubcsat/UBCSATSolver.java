@@ -8,6 +8,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import lombok.extern.slf4j.Slf4j;
+import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
+import ca.ubc.cs.beta.stationpacking.polling.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -16,8 +18,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSo
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATLibrary;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.ProblemIncrementor;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
@@ -43,8 +43,8 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
     private final ProblemIncrementor problemIncrementor;
 
-    public UBCSATSolver(String libraryPath, String parameters) {
-        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0, null);
+    public UBCSATSolver(String libraryPath, String parameters, IPollingService pollingService) {
+        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0, pollingService);
     }
 
     /**
@@ -190,7 +190,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         if(assignment == null) {
             assignment = new HashSet<>();
         }
-        return new SATSolverResult(satResult, runtime, assignment, SolvedBy.UBCSAT);
+        return new SATSolverResult(satResult, runtime, assignment, SolvedBy.SATENSTEIN);
     }
 
     private HashSet<Literal> getAssignment(UBCSATLibrary fLibrary, Pointer fState) {

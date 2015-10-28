@@ -32,11 +32,19 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Created by newmanne on 10/08/15.
+ * Consider a station and its neighbours only
+ * Fix that station to a single channel
+ * Assume that this reduced problem is UNSAT
+ * Then that channel can be soundly removed from that station's domain
+ *
+ * This class uses this idea to shrink domains by solving many of the above type of problems with short cutoffs
  */
 @Slf4j
 public class ChannelKillerDecorator extends ASolverDecorator {
 
+    // how long to spend on each problem
     private final double subProblemCutoff;
+    // if true, any time a station's domain changes, we will recheck all of its neighbours
     private final boolean recursive;
     private final ISolver SATSolver;
     private final IConstraintManager constraintManager;

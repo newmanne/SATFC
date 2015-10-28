@@ -1,14 +1,12 @@
-package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
+package ca.ubc.cs.beta.stationpacking.polling;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 
 /**
 * Created by newmanne on 15/10/15.
+* Wrapper to hold a ScheduledExecutor for polling jobs
 */
 public interface IPollingService {
-
-    ScheduledFuture<?> schedule(Runnable runnable);
 
     ScheduledExecutorService getService();
 

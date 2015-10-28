@@ -1,26 +1,19 @@
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationVolumeSampler;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.type.MapType;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
-
-import lombok.Data;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -31,17 +24,25 @@ import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.util.EntityUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationSampler;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationVolumeSampler;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 
 /**
  * Created by newmanne on 15/10/15.
+ * The goal of this class is to use downtime to augment the cache for the SATFCServer by generating problems that might occur from a given starting point
  */
 @Slf4j
 public class SATFCCacheAugmenter {
@@ -126,6 +127,10 @@ public class SATFCCacheAugmenter {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+        final Exception ex = exception.get();
+        if (ex != null) {
+            throw new RuntimeException("Error making web request", ex);
+        }
         final String response;
         final Map<Integer, Set<Station>> assignment;
         try {
@@ -134,10 +139,7 @@ public class SATFCCacheAugmenter {
         } catch (IOException e) {
             throw new RuntimeException("Can't parse server result", e);
         }
-        final Exception ex = exception.get();
-        if (ex != null) {
-            throw new RuntimeException("Error making web request", ex);
-        }
+
         log.info("Back from server");
         return StationPackingUtils.stationToChannelFromChannelToStation(assignment).entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getID(), Map.Entry::getValue));
     }
@@ -154,6 +156,7 @@ public class SATFCCacheAugmenter {
                         @NonNull String stationConfigFolder,
                         double cutoff
     ) {
+        // Note that with auto augment, if the stop method is called in the period of time between the scheduler deciding to augment, and setting this isAugmenting variable, this can get stuck in a loop
         isAugmenting.set(true);
         log.info("Augmenting the following stations {}", previousAssignment.keySet());
         // These stations will be in every single problem

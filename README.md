@@ -19,6 +19,10 @@ Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The m
 
 Rough information about the evolution of **SATFC** through releases.
 
+### SATFC 2.0-BETA [15/10/2015]
+
+* Introduce SATenstein, a local search based solver
+
 ### SATFC 1.8-BETA [19/08/2015]
 
 * ADJ+2 and ADJ-2 constraints 

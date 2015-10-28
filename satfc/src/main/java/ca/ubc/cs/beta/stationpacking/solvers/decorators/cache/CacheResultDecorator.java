@@ -30,6 +30,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 1/25/15.
+ * Cache result in the SATFCServer
  */
 public class CacheResultDecorator extends ASolverDecorator {
 
@@ -64,6 +65,9 @@ public class CacheResultDecorator extends ASolverDecorator {
 
     }
 
+    /**
+     * Don't bother caching a result if we solved the problem using the cache, because it can't possibly have any added value
+     */
     public static class CacheConclusiveNewInfoStrategy implements CachingStrategy {
 
         @Override

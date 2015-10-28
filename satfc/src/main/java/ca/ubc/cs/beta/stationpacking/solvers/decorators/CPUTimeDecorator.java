@@ -8,6 +8,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 05/10/15.
+ * Used for configuration experiments, to return the CPU time of a single problem
  */
 public class CPUTimeDecorator extends ASolverDecorator {
 

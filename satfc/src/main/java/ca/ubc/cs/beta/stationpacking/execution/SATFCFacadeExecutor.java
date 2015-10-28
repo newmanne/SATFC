@@ -22,7 +22,13 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.Properties;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,9 +130,10 @@ public class SATFCFacadeExecutor {
         return log;
     }
 
-    private static void logVersionInfo(Logger log) {
+    public static void logVersionInfo(Logger log) {
         try {
-            log.info("Version info: " + System.lineSeparator() + Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8));
+            final String versionProperties = Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8);
+            log.info("Version info: " + System.lineSeparator() + versionProperties);
         } catch (IllegalArgumentException | IOException e) {
             log.error("Could not log version info.");
         }

@@ -36,7 +36,7 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ConfigFile;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
 
@@ -56,14 +56,14 @@ public class SATFCFacadeBuilder {
     // public params
     private boolean initializeLogging;
     private String fClaspLibrary;
-    private String fUBCSATLibrary;
+    private String fSATensteinLibrary;
     private String fResultFile;
     private String serverURL;
     private Level logLevel;
     private String logFileName;
     private int numServerAttempts;
     private boolean noErrorOnServerUnavailable;
-    private YAMLBundle.ConfigFile configFile;
+    private ConfigFile configFile;
     private DeveloperOptions developerOptions;
     private AutoAugmentOptions autoAugmentOptions;
 
@@ -72,15 +72,15 @@ public class SATFCFacadeBuilder {
      * @param configFile path to a config file
      */
     public void setConfigFile(String configFile) {
-        this.configFile = new YAMLBundle.ConfigFile(configFile, false);
+        this.configFile = new ConfigFile(configFile, false);
     }
 
     /**
      * Set the YAML file used to build up the SATFC solver bundle
      * @param configFile
      */
-    public void setConfigFile(InternalSATFCPortfolioFile configFile) {
-        this.configFile = new YAMLBundle.ConfigFile(configFile.getFilename(), true);
+    public void setConfigFile(InternalSATFCConfigFile configFile) {
+        this.configFile = new ConfigFile(configFile.getFilename(), true);
     }
 
     // developer params
@@ -100,7 +100,7 @@ public class SATFCFacadeBuilder {
      */
     public enum SATFCLibLocation {
         CLASP ("SATFC_CLASP_LIBRARY", "clasp" + File.separator + "jna" + File.separator + "libjnaclasp.so"),
-        UBCSAT ("SATFC_UBCSAT_LIBRARY", "ubcsat" + File.separator + "jna" + File.separator + "libjnaubcsat.so");
+        SATENSTEIN ("SATFC_SATENSTEIN_LIBRARY", "satenstein" + File.separator + "jna" + File.separator + "libjnasatenstein.so");
 
         /**
          * The name of the environment variable that the user may set to specify the library location.
@@ -124,20 +124,20 @@ public class SATFCFacadeBuilder {
     public SATFCFacadeBuilder() {
         // public params
         fClaspLibrary = findSATFCLibrary(SATFCLibLocation.CLASP);
-        fUBCSATLibrary = findSATFCLibrary(SATFCLibLocation.UBCSAT);
+        fSATensteinLibrary = findSATFCLibrary(SATFCLibLocation.SATENSTEIN);
         fResultFile = null;
         serverURL = null;
         logLevel = Level.INFO;
         logFileName = "SATFC.log";
         configFile = autoDetectBundle();
-        numServerAttempts = 1;
+        numServerAttempts = 3;
         noErrorOnServerUnavailable = false;
         autoAugmentOptions = AutoAugmentOptions.builder().build();
         developerOptions = DeveloperOptions.builder().solverChoice(SolverChoice.YAML).build();
     }
 
-    public static YAMLBundle.ConfigFile autoDetectBundle() {
-        return new YAMLBundle.ConfigFile(Runtime.getRuntime().availableProcessors() >= 4 ? InternalSATFCPortfolioFile.SATFC_PARALLEL.getFilename() : InternalSATFCPortfolioFile.SATFC_SEQUENTIAL.getFilename(), true);
+    public static ConfigFile autoDetectBundle() {
+        return new ConfigFile(Runtime.getRuntime().availableProcessors() >= 4 ? InternalSATFCConfigFile.SATFC_PARALLEL.getFilename() : InternalSATFCConfigFile.SATFC_SEQUENTIAL.getFilename(), true);
     }
 
     /**
@@ -198,7 +198,7 @@ public class SATFCFacadeBuilder {
      * @return a SATFC facade configured according to the builder's options.
      */
     public SATFCFacade build() {
-        if (fClaspLibrary == null || fUBCSATLibrary == null) {
+        if (fClaspLibrary == null || fSATensteinLibrary == null) {
             throw new IllegalArgumentException("Facade builder did not auto-detect default library, and no other library was provided.");
         }
         if (developerOptions.getSolverChoice().equals(SolverChoice.YAML)) {
@@ -210,7 +210,7 @@ public class SATFCFacadeBuilder {
         return new SATFCFacade(
                 SATFCFacadeParameter.builder()
                         .claspLibrary(fClaspLibrary)
-                        .ubcsatLibrary(fUBCSATLibrary)
+                        .satensteinLibrary(fSATensteinLibrary)
                         .resultFile(fResultFile)
                         .serverURL(serverURL)
                         .configFile(configFile)
@@ -227,30 +227,30 @@ public class SATFCFacadeBuilder {
     }
 
     /**
-     * Set the (clasp) library SATFC should use.
+     * Set the clasp library SATFC should use.
      *
      * @param aLibrary
      * @return this {@code Builder} object
      */
     public SATFCFacadeBuilder setClaspLibrary(String aLibrary) {
         if (aLibrary == null) {
-            throw new IllegalArgumentException("Cannot provide a null library.");
+            throw new IllegalArgumentException("Cannot provide a null clasp library.");
         }
         fClaspLibrary = aLibrary;
         return this;
     }
 
     /**
-     * Set the (ubcsat) library SATFC should use.
+     * Set the SATenstein library SATFC should use.
      *
      * @param aLibrary
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setUBCSATLibrary(String aLibrary) {
+    public SATFCFacadeBuilder setSATensteinLibrary(String aLibrary) {
         if (aLibrary == null) {
-            throw new IllegalArgumentException("Cannot provide a null library.");
+            throw new IllegalArgumentException("Cannot provide a null SATenstein library.");
         }
-        fUBCSATLibrary = aLibrary;
+        fSATensteinLibrary = aLibrary;
         return this;
     }
 
@@ -260,7 +260,7 @@ public class SATFCFacadeBuilder {
      * @param aResultFile
      * @return this {@code Builder} object
      */
-    public SATFCFacadeBuilder setResultFile(String aResultFile) {
+    public SATFCFacadeBuilder setResultFile(@NonNull String aResultFile) {
         fResultFile = aResultFile;
         return this;
     }
@@ -305,13 +305,13 @@ public class SATFCFacadeBuilder {
      * @param autoAugmentOptions create an AugmentOptions with {@link AutoAugmentOptions#builder()}
      * @return
      */
-    public SATFCFacadeBuilder setAutoAugmentOptions(AutoAugmentOptions autoAugmentOptions) {
+    public SATFCFacadeBuilder setAutoAugmentOptions(@NonNull AutoAugmentOptions autoAugmentOptions) {
         this.autoAugmentOptions = autoAugmentOptions;
         return this;
     }
 
     // Developer methods
-    public SATFCFacadeBuilder setDeveloperOptions(DeveloperOptions developerOptions) {
+    public SATFCFacadeBuilder setDeveloperOptions(@NonNull DeveloperOptions developerOptions) {
     	this.developerOptions = developerOptions;
     	return this;
     }
@@ -323,8 +323,8 @@ public class SATFCFacadeBuilder {
         if (parameters.fClaspLibrary != null) {
             builder.setClaspLibrary(parameters.fClaspLibrary);
         }
-        if (parameters.fUBCSATLibrary != null) {
-            builder.setUBCSATLibrary(parameters.fUBCSATLibrary);
+        if (parameters.fSATensteinLibrary != null) {
+            builder.setSATensteinLibrary(parameters.fSATensteinLibrary);
         }
         if (parameters.configFile != null) {
             builder.setConfigFile(parameters.configFile);

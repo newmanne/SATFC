@@ -34,15 +34,13 @@ import com.fasterxml.jackson.databind.KeyDeserializer;
 public class StationDeserializer extends JsonDeserializer<Station> {
 
     @Override
-    public Station deserialize(JsonParser p, DeserializationContext ctxt)
-            throws IOException {
+    public Station deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         return new Station(p.readValueAs(Integer.class));
     }
 
     public static class StationClassKeyDeserializer extends KeyDeserializer {
         @Override
-        public Object deserializeKey(final String key,
-                                     final DeserializationContext ctxt) throws IOException {
+        public Object deserializeKey(final String key, final DeserializationContext ctxt) throws IOException {
             return new Station(Integer.parseInt(key));
         }
     }

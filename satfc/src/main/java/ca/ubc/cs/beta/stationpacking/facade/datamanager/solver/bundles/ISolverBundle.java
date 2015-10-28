@@ -26,6 +26,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 
+import java.util.List;
+
 /**
  * A solver bundle that holds solvers for a specific problem domain.
  * Also performs solver selection when queried with a problem instance.
@@ -45,13 +47,8 @@ public interface ISolverBundle extends AutoCloseable {
 	IStationManager getStationManager();
 	
 	/**
-	 * Returns the constraint manager contained in the bundle.
 	 * @return the constraint manager contained in the bundle.
 	 */
 	IConstraintManager getConstraintManager();
-
-	public String getInterferenceFolder();
-
-	public boolean isCompactInteference();
 
 }

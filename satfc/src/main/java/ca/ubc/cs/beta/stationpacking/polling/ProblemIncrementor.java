@@ -1,8 +1,9 @@
-package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
+package ca.ubc.cs.beta.stationpacking.polling;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,13 +21,16 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 @Slf4j
 public class ProblemIncrementor {
 
+    public static final int POLLING_TIME_IN_MS = 1000;
+
+    // A constantly increasing value that identifies the current problem being solved
     private final AtomicLong problemID;
     private final IPollingService pollingService;
     private final Map<Long, ScheduledFuture<?>> idToFuture;
-    private ISATFCInterruptible solver;
+    private final ISATFCInterruptible solver;
     private final Lock lock;
 
-    public ProblemIncrementor(IPollingService pollingService, @NonNull ISATFCInterruptible solver) {
+    public ProblemIncrementor(@NonNull IPollingService pollingService, @NonNull ISATFCInterruptible solver) {
         this.solver = solver;
         problemID = new AtomicLong();
         this.pollingService = pollingService;
@@ -34,13 +38,15 @@ public class ProblemIncrementor {
         lock = new ReentrantLock();
     }
 
+    /**
+     * Call this method to schedule a task to periodically poll for whether or not the termination criterion says to stop. If it does, interrupt the solver.
+     * Must alternate calls between this and @link{#jobDone} to cancel the polling when the problem in question is finished solving
+     * @param criterion termination criterion to check
+     */
     public void scheduleTermination(ITerminationCriterion criterion) {
-        if (pollingService == null) {
-            return;
-        }
         final long newProblemId = problemID.incrementAndGet();
         log.trace("New problem ID {}", newProblemId);
-        final ScheduledFuture<?> scheduledFuture = pollingService.schedule(new Runnable() {
+        final ScheduledFuture<?> scheduledFuture = pollingService.getService().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -57,14 +63,14 @@ public class ProblemIncrementor {
                     lock.unlock();
                 }
             }
-        });
+        }, POLLING_TIME_IN_MS, POLLING_TIME_IN_MS, TimeUnit.MILLISECONDS);
         idToFuture.put(newProblemId, scheduledFuture);
     }
 
+    /**
+     * Cancel polling for the current job
+     */
     public void jobDone() {
-        if (pollingService == null) {
-            return;
-        }
         try {
             lock.lock();
             final long completedJobID = problemID.getAndIncrement();

@@ -57,7 +57,8 @@ import com.google.common.eventbus.Subscribe;
 
 /**
  * Created by newmanne on 15/01/15.
- * TODO: if you solve the same problem twice in a row, metrics behaviour is undefined (because we use name to reference things. Oh well)
+ * Collects metrics on solving SATFC problems
+ * If your problems don't have  unique names, behaviour is undefined (because we use names to reference problems)
  */
 @Slf4j
 public class SATFCMetrics {

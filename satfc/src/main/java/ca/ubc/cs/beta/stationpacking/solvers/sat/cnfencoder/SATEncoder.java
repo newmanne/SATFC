@@ -34,7 +34,7 @@ import org.apache.commons.math3.util.Pair;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Clause;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
@@ -52,9 +52,9 @@ public class SATEncoder implements ISATEncoder {
 
     private final IConstraintManager constraintManager;
     private final IBijection<Long, Long> bijection;
-    private final YAMLBundle.EncodingType encodingType;
+    private final EncodingType encodingType;
 
-    public SATEncoder(IConstraintManager constraintManager, IBijection<Long, Long> bijection, YAMLBundle.EncodingType encodingType) {
+    public SATEncoder(IConstraintManager constraintManager, IBijection<Long, Long> bijection, EncodingType encodingType) {
         this.constraintManager = constraintManager;
         this.bijection = bijection;
         this.encodingType = encodingType;
@@ -159,7 +159,7 @@ public class SATEncoder implements ISATEncoder {
             }
             aCNF.add(aStationValidAssignmentBaseClause);
 
-            if (encodingType.equals(YAMLBundle.EncodingType.DIRECT)) {
+            if (encodingType.equals(EncodingType.DIRECT)) {
                 //A station can be on at most one channel,
                 for (int i = 0; i < aStationInstanceDomain.size(); i++) {
                     for (int j = i + 1; j < aStationInstanceDomain.size(); j++) {

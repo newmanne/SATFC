@@ -30,17 +30,12 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 /**
  * Immutable container class for the station object.
  * Uniquely identified by its integer ID.
- * Also contains the station's domain (channels it can be on).
  * @author afrechet
  */
 @JsonSerialize(using = ToStringSerializer.class, as=String.class)
 @JsonDeserialize(using = StationDeserializer.class)
 public class Station implements Comparable<Station>, Serializable{
 	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
 	private final int fID;
 	
 	/**

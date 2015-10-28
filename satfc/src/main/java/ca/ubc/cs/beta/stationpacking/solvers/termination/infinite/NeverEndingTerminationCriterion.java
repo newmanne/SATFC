@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
  * Created by newmanne on 29/07/15.
+ * A termination criterion that always has time remaining and never says it's time to stop
  */
 public class NeverEndingTerminationCriterion implements ITerminationCriterion {
 

@@ -52,16 +52,4 @@ public abstract class ASolverBundle implements ISolverBundle {
 		return managerBundle.getConstraintManager();
 	}
 
-	@Override
-	public String getInterferenceFolder()
-	{
-		return managerBundle.getInterferenceFolder();
-	}
-
-	@Override
-	public boolean isCompactInteference()
-	{
-		return managerBundle.isCompactInterference();
-	}
-
 }

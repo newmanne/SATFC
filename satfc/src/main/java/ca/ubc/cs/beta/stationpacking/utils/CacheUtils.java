@@ -25,6 +25,9 @@ import java.util.BitSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 
 /**
@@ -36,6 +39,12 @@ public class CacheUtils {
         final BitSet bitSet = new BitSet();
         answer.values().stream().forEach(stations -> stations.forEach(station -> bitSet.set(permutation.get(station))));
         return bitSet;
+    }
+    
+    public static CloseableHttpAsyncClient createHttpClient() {
+        final CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();
+        client.start();
+        return client;
     }
 
 }

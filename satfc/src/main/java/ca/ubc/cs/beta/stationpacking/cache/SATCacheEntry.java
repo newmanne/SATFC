@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SATCacheEntry implements ICacher.ISATFCCacheEntry {
+public class SATCacheEntry implements ISATFCCacheEntry {
     private Map<String, Object> metadata;
     private Map<Integer, Set<Station>> assignment;
 

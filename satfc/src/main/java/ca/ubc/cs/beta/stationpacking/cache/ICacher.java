@@ -21,8 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.util.Map;
-
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -33,10 +31,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 public interface ICacher {
 
     void cacheResult(StationPackingInstance instance, SolverResult result, ITerminationCriterion criterion);
-
-    public interface ISATFCCacheEntry {
-        Map<String, Object> getMetadata();
-    }
 
 
 }

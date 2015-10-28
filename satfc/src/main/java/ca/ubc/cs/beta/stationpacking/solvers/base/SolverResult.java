@@ -71,7 +71,7 @@ public class SolverResult implements Serializable {
         UNKNOWN,
         UNSOLVED, 
         DCCA,
-        UBCSAT,
+        SATENSTEIN,
         UNDERCONSTRAINED
     }
 	

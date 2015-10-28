@@ -104,6 +104,6 @@ add_dependencies(runTests migrateResources)
 # FACADE #
 ##########
 
-add_library(jnaubcsat SHARED src/ubcsat-facade.cpp ${SOURCE_FILES})
+add_library(jnasatenstein SHARED src/ubcsat-facade.cpp ${SOURCE_FILES})
 
 

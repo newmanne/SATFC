@@ -41,6 +41,7 @@ import com.google.common.collect.Sets;
 
 /**
  * Created by newmanne on 28/01/15.
+ * Query the SATFCServer to see if it contains a SAT superset entry for the problem
  */
 @Slf4j
 public class SupersetCacheSATDecorator extends ASolverDecorator {

@@ -214,7 +214,7 @@ public class SATFCTargetAlgorithmEvaluator extends AbstractSyncTargetAlgorithmEv
 
                 SATFCFacadeBuilder satfcFacadeBuilder = new SATFCFacadeBuilder()
                         .setClaspLibrary(fLibPath)
-                        .setUBCSATLibrary(fUBCSATPath)
+                        .setSATensteinLibrary(fUBCSATPath)
                         .setDeveloperOptions(DeveloperOptions
                                 .builder()
                                 .solverChoice(SolverChoice.HYDRA)

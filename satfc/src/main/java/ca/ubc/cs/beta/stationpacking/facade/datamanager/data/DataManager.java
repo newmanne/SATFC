@@ -120,25 +120,12 @@ public class DataManager {
 			}
 			else if(uaE == null)
 			{
-				if(unabridgedConstraintManager == null)
-				{
-					throw new IllegalStateException("Parsing of unabridged formatted interference constraints had no exceptions, but corresponding manager is null.");
-				}
-				log.info("Unabridged format recognized for interference constraints.");
+                log.info("Unabridged format recognized for interference constraints.");
 				constraintManager = unabridgedConstraintManager;
 			}
-			else if(csE == null)
-			{
-				if(channelspecificConstraintManager == null)
-				{
-					throw new IllegalStateException("Parsing of channel specific formatted interference constraints had no exceptions, but corresponding manager is null.");
-				}
-				log.info("Channel specific format recognized for interference constraints.");
+			else {
+                log.info("Channel specific format recognized for interference constraints.");
 				constraintManager = channelspecificConstraintManager;
-			}
-			else
-			{
-				throw new IllegalStateException("Could not parse interference constraints with any recognized format.");
 			}
 
 			fData.put(path, new ManagerBundle(stationManager, constraintManager, path));

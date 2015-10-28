@@ -78,10 +78,10 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	public String fClaspLibrary;
 
 	/**
-     * UBCSAT library to use (optional - can be automatically detected).
+     * SATenstein library to use (optional - can be automatically detected).
      */
-    @Parameter(names = "-UBCSAT-LIBRARY",description = "UBCSAT library file")
-    public String fUBCSATLibrary;
+    @Parameter(names = "-SATENSTEIN-LIBRARY",description = "SATenstein library file")
+    public String fSATensteinLibrary;
 
 	/**
 	 * Logging options.

@@ -1,16 +1,17 @@
 package ca.ubc.cs.beta.stationpacking.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeTests;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
-import ca.ubc.cs.beta.stationpacking.facade.*;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,11 +22,19 @@ import org.junit.Test;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeTests;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
+import ca.ubc.cs.beta.stationpacking.facade.AutoAugmentOptions;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 
 /**
  * Created by newmanne on 29/06/15.
@@ -50,8 +59,8 @@ public class AugmentIntegrationTest {
         }
     }
 
-    @Test
     @Ignore
+    @Test
     public void testAutoAugment() throws Exception {
         final SATFCFacadeBuilder b = new SATFCFacadeBuilder();
         b.setServerURL("http://localhost:8040/satfcserver");

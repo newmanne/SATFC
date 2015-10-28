@@ -2,12 +2,13 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 
 /**
 * Created by newmanne on 13/10/15.
+ * A SATFCResult object that is returned immediately from the facade. The {@link #computeResult()} method must be called to begin computation. The {@link #interrupt()} method can
+ * be called at any time (e.g. by another thread) to interrupt the problem.
 */
 public class InterruptibleSATFCResult {
 

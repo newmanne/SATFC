@@ -14,6 +14,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * Created by pcernek on 5/8/15.
+ * Enforce arc consistency on the problem domains with the hope of shrinking them
  */
 @Slf4j
 public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {

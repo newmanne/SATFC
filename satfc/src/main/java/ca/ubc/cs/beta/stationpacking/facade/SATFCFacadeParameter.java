@@ -25,10 +25,8 @@ import lombok.Value;
 import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ConfigFile;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.PollingService;
 import ch.qos.logback.classic.Level;
 
 @Value
@@ -37,8 +35,8 @@ public class SATFCFacadeParameter {
 
     // public options
 	private final String claspLibrary;
-	private final String ubcsatLibrary;
-	private final YAMLBundle.ConfigFile configFile;
+	private final String satensteinLibrary;
+	private final ConfigFile configFile;
 	private final String serverURL;
 	
 	private final String resultFile;
@@ -52,6 +50,7 @@ public class SATFCFacadeParameter {
     // developer options
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
     private final SATFCHydraParams hydraParams;
+    // It's possible to specify a datamanager here so that facade's can be quickly rebuilt without reloading constraints
     private final DataManager dataManager;
     private final SolverChoice solverChoice;
 

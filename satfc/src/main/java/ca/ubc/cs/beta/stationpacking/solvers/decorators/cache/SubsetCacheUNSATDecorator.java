@@ -34,6 +34,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 /**
  * Created by newmanne on 28/01/15.
+ * Query the SATFCServer to see if it contains an UNSAT subset entry for this problem
  */
 @Slf4j
 public class SubsetCacheUNSATDecorator extends ASolverDecorator {

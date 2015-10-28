@@ -24,24 +24,27 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.IPollingService;
-import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.PollingService;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import com.google.common.base.Charsets;
+import com.google.common.base.Splitter;
+import com.google.common.io.Resources;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.ClaspLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
@@ -50,6 +53,8 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBu
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
+import ca.ubc.cs.beta.stationpacking.polling.PollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -59,17 +64,13 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.composite.DisjunctiveCompositeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt.InterruptibleTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import org.apache.http.*;
-import org.apache.http.client.entity.GzipDecompressingEntity;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-import org.apache.http.impl.nio.client.HttpAsyncClients;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.EntityUtils;
 
 /**
  * A facade for solving station packing problems with SATFC.
@@ -93,6 +94,7 @@ public class SATFCFacade implements AutoCloseable {
 
     /**
      * Construct a SATFC solver facade
+     * Package protected to enforce use of the builder
      *
      * @param aSATFCParameters parameters needed by the facade.
      */
@@ -101,15 +103,15 @@ public class SATFCFacade implements AutoCloseable {
         pollingService = new PollingService();
         if (parameter.getServerURL() != null) {
             log.info("Starting http client");
-            httpClient = createHttpClient();
+            httpClient = CacheUtils.createHttpClient();
         } else {
             httpClient = null;
         }
         //Check provided library.
-        validateLibraries(aSATFCParameters.getClaspLibrary(), aSATFCParameters.getUbcsatLibrary());
+        validateLibraries(aSATFCParameters.getClaspLibrary(), aSATFCParameters.getSatensteinLibrary(), pollingService);
 
         log.info("Using clasp library {}", aSATFCParameters.getClaspLibrary());
-        log.info("Using ubcsat library {}", aSATFCParameters.getUbcsatLibrary());
+        log.info("Using SATenstein library {}", aSATFCParameters.getSatensteinLibrary());
         log.info("Using bundle {}", aSATFCParameters.getSolverChoice());
 
         fSolverManager = new SolverManager(
@@ -118,7 +120,7 @@ public class SATFCFacade implements AutoCloseable {
                         case HYDRA:
                             return new SATFCHydraBundle(dataBundle, aSATFCParameters, pollingService);
                         case YAML:
-                            return new YAMLBundle(dataBundle, aSATFCParameters, httpClient, pollingService);
+                            return new YAMLBundle(dataBundle, aSATFCParameters, pollingService, httpClient);
                         default:
                             throw new IllegalArgumentException("Unrecognized solver choice " + aSATFCParameters.getSolverChoice());
                     }
@@ -134,12 +136,6 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         idleTime = Watch.constructAutoStartWatch();
-    }
-
-    private CloseableHttpAsyncClient createHttpClient() {
-        final CloseableHttpAsyncClient client = HttpAsyncClients.createDefault();
-        client.start();
-        return client;
     }
 
     /**
@@ -171,18 +167,6 @@ public class SATFCFacade implements AutoCloseable {
         return createInterruptibleSATFCResult(aDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, instanceName, false).computeResult();
     }
 
-    public SATFCResult solve(Set<Integer> aStations,
-                             Set<Integer> aChannels,
-                             Map<Integer, Set<Integer>> aReducedDomains,
-                             Map<Integer, Integer> aPreviousAssignment,
-                             double aCutoff,
-                             long aSeed,
-                             String aStationConfigFolder
-    ) {
-        return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
-    }
-
-
     /**
      * Solve a station packing problem. The channel domain of a station will be the intersection of the station's original domain (given in data files) with the packing channels,
      * and additionally intersected with its reduced domain if available and if non-empty.
@@ -194,9 +178,19 @@ public class SATFCFacade implements AutoCloseable {
      * @param aCutoff              - a cutoff in seconds for SATFC's execution.
      * @param aSeed                - a long seed for randomization in SATFC.
      * @param aStationConfigFolder - a folder in which to find station config data (<i>i.e.</i> interferences and domains files).
-     * @param instanceName         - a name you can give to the instance to identify it in the logs
      * @return a result about the packability of the provided problem, with the time it took to solve, and corresponding valid witness assignment of station IDs to channels.
      */
+    public SATFCResult solve(Set<Integer> aStations,
+                             Set<Integer> aChannels,
+                             Map<Integer, Set<Integer>> aReducedDomains,
+                             Map<Integer, Integer> aPreviousAssignment,
+                             double aCutoff,
+                             long aSeed,
+                             String aStationConfigFolder
+    ) {
+        return solve(aStations, aChannels, aReducedDomains, aPreviousAssignment, aCutoff, aSeed, aStationConfigFolder, null);
+    }
+
     public SATFCResult solve(@NonNull Set<Integer> aStations,
                              @NonNull Set<Integer> aChannels,
                              @NonNull Map<Integer, Set<Integer>> aReducedDomains,
@@ -250,7 +244,7 @@ public class SATFCFacade implements AutoCloseable {
     }
 
     /**
-     * Augment the cache by generating and solving new problems indefinitely
+     * Augment the cache by generating and solving new problems indefinitely. This call never terminates.
      *
      * @param domains              Domains used for augmentation. A station used to augment the assignment will be drawn from this map, with this domain. A map taking integer station IDs to set of integer channels domains
      * @param assignment           The starting point for the augmentation. All augmentation will proceed from this starting point. A valid (proved to not create any interference) partial (can concern only some of the provided station) station to channel assignment.
@@ -273,12 +267,13 @@ public class SATFCFacade implements AutoCloseable {
         private final String aStationConfigFolder;
         private final ITerminationCriterion criterion;
         private final String instanceName;
+        // true if the call was generated from a cache augmenter
         private final boolean internal;
 
         @Override
         public SATFCResult call() throws Exception {
             if (parameter.getAutoAugmentOptions().isAugment() && !internal) {
-                log.debug("Cancelling any ongoing augmentation operation");
+                log.debug("Cancelling any ongoing augmentation operation (if one exists)");
                 // Cancel any ongoing augmentation
                 augmenter.stop();
             } else {
@@ -427,18 +422,18 @@ public class SATFCFacade implements AutoCloseable {
         }, pollingInterval, TimeUnit.MILLISECONDS);
     }
 
-    private void validateLibraries(final String claspLib, final String ubcsatLib) {
+    private void validateLibraries(final String claspLib, final String satensteinLib, final IPollingService pollingService) {
         validateLibraryFile(claspLib);
-        validateLibraryFile(ubcsatLib);
+        validateLibraryFile(satensteinLib);
         try {
-            new Clasp3SATSolver(claspLib, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1);
+            new Clasp3SATSolver(claspLib, ClaspLibSATSolverParameters.UHF_CONFIG_04_15_h1, pollingService);
         } catch (UnsatisfiedLinkError e) {
             unsatisfiedLinkWarn(claspLib, e);
         }
         try {
-            new UBCSATSolver(ubcsatLib, UBCSATLibSATSolverParameters.DEFAULT_DCCA);
+            new UBCSATSolver(satensteinLib, UBCSATLibSATSolverParameters.DEFAULT_DCCA, pollingService);
         } catch (UnsatisfiedLinkError e) {
-            unsatisfiedLinkWarn(ubcsatLib, e);
+            unsatisfiedLinkWarn(satensteinLib, e);
         }
     }
 
@@ -448,7 +443,7 @@ public class SATFCFacade implements AutoCloseable {
                 "Possible Solutions:\n" +
                 "1) Try rebuilding the library, on Linux this can be done by going to the clasp folder and running \"bash compile.sh\"\n" +
                 "2) Check that all library dependancies are met, e.g., run \"ldd {}\".\n" +
-                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" or \"-UBCSAT-LIBRARY\" options.\n" +
+                "3) Manually set the library to use with the \"-CLASP-LIBRARY\" or \"-SATENSTEIN-LIBRARY\" options.\n" +
                 "--------------------------------------------------------", libPath, libPath);
         throw new IllegalArgumentException("Could not load JNA library", e);
     }
@@ -460,21 +455,23 @@ public class SATFCFacade implements AutoCloseable {
         Preconditions.checkArgument(!libraryFile.isDirectory(), "Provided library is a directory.");
     }
 
-
     @Override
     public void close() throws Exception {
         log.info("Shutting down...");
         if (augmenter != null) {
+            log.trace("Closing augmenter");
             augmenter.stop();
         }
         fSolverManager.close();
         if (httpClient != null) {
+            log.trace("Closing http client");
             httpClient.close();
         }
-        pollingService.notifyShutdown();
         if (future != null) {
             future.cancel(false);
         }
+        log.trace("Closing polling service");
+        pollingService.notifyShutdown();
         log.info("Goodbye!");
     }
 

@@ -166,7 +166,7 @@ task generateMyResources {
             generatedFolder.mkdirs()
         }
         def generated = new File(generatedResources, "version.properties")
-        generated.text = getGitInfo()
+        generated.text = "version=$version" + System.lineSeparator() + getGitInfo()
     }
 }
 

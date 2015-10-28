@@ -12,8 +12,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
-import ca.ubc.cs.beta.stationpacking.cache.UNSATCacheEntry;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +24,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.cache.SATCacheEntry;
+import ca.ubc.cs.beta.stationpacking.cache.UNSATCacheEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;

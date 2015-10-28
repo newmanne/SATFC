@@ -1,14 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
+
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class DelayedSolverDecoratorTest {
 

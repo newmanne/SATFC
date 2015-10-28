@@ -41,7 +41,7 @@ public class SATFCResult implements Serializable
 	private final ImmutableMap<Integer,Integer> fWitnessAssignment;
 	private final SATResult fResult;
 	private final double fRuntime;
-	
+
 	/**
 	 * @param aResult - the satisfiability result.
 	 * @param aRuntime - the time (s) it took to get to such result.

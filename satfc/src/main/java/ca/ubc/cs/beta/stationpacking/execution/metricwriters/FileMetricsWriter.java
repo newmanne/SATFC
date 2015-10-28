@@ -33,6 +33,7 @@ import com.google.common.io.Files;
 
 /**
  * Created by newmanne on 29/05/15.
+ * Write metrics to a file on disk, appending each problem's metrics as a line of json
  */
 @Slf4j
 public class FileMetricsWriter implements IMetricWriter {

@@ -7,8 +7,8 @@ import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.SolverType;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.SolverType;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
@@ -64,7 +64,7 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.UBCSAT);
+        list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.SATENSTEIN);
         if (presolver) {
             list.add(presolverType);
         }

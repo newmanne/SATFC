@@ -18,7 +18,9 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.Converter;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSATSolverParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle.EncodingType;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
+import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
+import ca.ubc.cs.beta.stationpacking.polling.PollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
@@ -38,12 +40,13 @@ import com.google.common.io.Resources;
  */
 public class UBCSATSolverTest {
 
-    private static final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.UBCSAT);
+    private static final String libraryPath = SATFCFacadeBuilder.findSATFCLibrary(SATFCFacadeBuilder.SATFCLibLocation.SATENSTEIN);
 
     private static SATEncoder.CNFEncodedProblem unsatProblem;
     private static SATEncoder.CNFEncodedProblem easyProblem;
     private static SATEncoder.CNFEncodedProblem moderateProblem;
     private static SATEncoder.CNFEncodedProblem otherProblem;
+    final IPollingService pollingService = new PollingService();
 
     @BeforeClass
     public static void init() throws IOException {
@@ -60,7 +63,7 @@ public class UBCSATSolverTest {
 
     @Test
     public void testSolveEasy() throws Exception {
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN, pollingService);
         SATEncoder.CNFEncodedProblem currentProblem = easyProblem;
         ITerminationCriterion terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         SATSolverResult result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
@@ -71,7 +74,7 @@ public class UBCSATSolverTest {
 
     @Test
     public void testTimeout() throws Exception {
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN, pollingService);
 
         Watch watch = Watch.constructAutoStartWatch();
 
@@ -87,7 +90,7 @@ public class UBCSATSolverTest {
 
     @Test
     public void testSolveMultipleInstances() throws Exception {
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN, pollingService);
 
         // Problem 1
         SATEncoder.CNFEncodedProblem currentProblem = easyProblem;
@@ -118,19 +121,19 @@ public class UBCSATSolverTest {
         ITerminationCriterion terminationCriterion;
         SATSolverResult result;
 
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_QCP_PARAMILS);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_QCP_PARAMILS, pollingService);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
-        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_R3SAT_PARAMILS);
+        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_R3SAT_PARAMILS, pollingService);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
         checkSolutionMakesSense(result, currentProblem.getCnf().getVariables().size());
 
-        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS);
+        solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS, pollingService);
         terminationCriterion = new CPUTimeTerminationCriterion(1.0);
         result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
         assertEquals(SATResult.SAT, result.getResult());
@@ -147,7 +150,7 @@ public class UBCSATSolverTest {
         SATSolverResult result;
 
         for (int i=0; i < 100; i++) {
-            solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS);
+            solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.STEIN_FAC_PARAMILS, pollingService);
             terminationCriterion = new CPUTimeTerminationCriterion(1.0);
             result = solver.solve(currentProblem.getCnf(), currentProblem.getInitialAssignment(), terminationCriterion, 1);
             assertEquals(SATResult.SAT, result.getResult());
@@ -157,7 +160,7 @@ public class UBCSATSolverTest {
 
     @Test
     public void testInterrupt() throws Exception {
-        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN);
+        UBCSATSolver solver = new UBCSATSolver(libraryPath, UBCSATLibSATSolverParameters.DEFAULT_SATENSTEIN, pollingService);
 
         Thread interrupter = new Thread(() -> {
             try {

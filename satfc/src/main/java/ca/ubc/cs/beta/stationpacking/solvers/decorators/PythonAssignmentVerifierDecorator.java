@@ -16,6 +16,8 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 
 /**
  * Created by emily404 on 8/31/15.
+ * Verifies that SAT results returned by solvers don't violate the constraints
+ * This verifier is actually written in python, by someone who has not seen any other constraint parsing code, just to be doubly sure of correctness.
  */
 @Slf4j
 public class PythonAssignmentVerifierDecorator extends ASolverDecorator {

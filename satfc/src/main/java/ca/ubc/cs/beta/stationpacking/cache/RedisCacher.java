@@ -117,7 +117,7 @@ public class RedisCacher {
         return result;
     }
 
-    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ICacher.ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, Matcher acceptRegexMatcher, SATResult entryTypeName, Class<CACHE_ENTRY> klazz, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry, int partitionSize) {
+    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, Matcher acceptRegexMatcher, SATResult entryTypeName, Class<CACHE_ENTRY> klazz, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry, int partitionSize) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
         final AtomicInteger numProcessed = new AtomicInteger();
         Lists.partition(new ArrayList<>(keys), partitionSize).stream().forEach(keyChunk -> {

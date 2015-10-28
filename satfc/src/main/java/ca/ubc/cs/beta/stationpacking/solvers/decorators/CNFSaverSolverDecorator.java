@@ -33,7 +33,7 @@ import org.apache.commons.io.FileUtils;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
@@ -53,13 +53,13 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
     private final IConstraintManager fConstraintManager;
     private final ICNFSaver fCNFSaver;
-    private YAMLBundle.EncodingType encodingType;
+    private EncodingType encodingType;
     private boolean saveAssignment;
 
     public CNFSaverSolverDecorator(@NonNull ISolver aSolver,
                                    @NonNull IConstraintManager aConstraintManager,
                                    @NonNull ICNFSaver aCNFSaver,
-                                   @NonNull YAMLBundle.EncodingType encodingType,
+                                   @NonNull EncodingType encodingType,
                                    boolean saveAssignment) {
         super(aSolver);
         this.fCNFSaver = aCNFSaver;

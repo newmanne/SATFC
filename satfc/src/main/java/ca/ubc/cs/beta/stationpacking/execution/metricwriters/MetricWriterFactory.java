@@ -26,6 +26,7 @@ import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 
 /**
  * Created by newmanne on 29/05/15.
+ * Determine what implementation of @link{IMetricWriter} to use
  */
 public class MetricWriterFactory {
 
@@ -34,6 +35,7 @@ public class MetricWriterFactory {
             SATFCMetrics.init();
             return new FileMetricsWriter(parameters.fMetricsFile);
         } else {
+            // a void implementation that does nothing
             return new IMetricWriter() {
                 @Override
                 public void writeMetrics() {

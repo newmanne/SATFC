@@ -14,7 +14,7 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UNSATCacheEntry implements ICacher.ISATFCCacheEntry {
+public class UNSATCacheEntry implements ISATFCCacheEntry {
     private Map<String, Object> metadata;
     Map<Station, Set<Integer>> domains;
 }
