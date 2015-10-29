@@ -75,8 +75,10 @@ public class ProblemIncrementor {
             lock.lock();
             final long completedJobID = problemID.getAndIncrement();
             final ScheduledFuture scheduledFuture = idToFuture.remove(completedJobID);
-            log.trace("Cancelling future for completed ID {}", completedJobID);
-            scheduledFuture.cancel(false);
+            if (scheduledFuture != null) {
+                log.trace("Cancelling future for completed ID {}", completedJobID);
+                scheduledFuture.cancel(false);
+            }
         } finally {
             lock.unlock();
         }

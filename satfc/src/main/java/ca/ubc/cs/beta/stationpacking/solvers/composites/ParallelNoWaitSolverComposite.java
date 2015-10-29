@@ -146,6 +146,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
                         if (t instanceof CancellationException) {
                             return;
                         }
+                        log.error("Error occured while executing a task", t);
                         // Only set the first error
                         error.compareAndSet(null, t);
                         // Wake up the main thread (if it's still sleeping)
@@ -175,7 +176,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
     private void checkForErrors() {
     	final Throwable e = error.getAndSet(null); // clear error for future uses
         if (e != null) {
-            log.error("Error occured while executing a task", e);
+            log.error("Found an error from a parallel task, e");
             throw new RuntimeException("Error occurred while executing a task", e);
         }
     }
