@@ -25,8 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPOutputStream;
 
@@ -36,6 +38,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.math.util.FastMath;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -73,6 +76,7 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
 
     // if the text is smaller than this length in bytes, then compression probably isn't worth the trouble
     public static final int MIN_GZIP_LENGTH = 860;
+    public static Date lastSuccessfulCommunication;
 
     private final CacheCoordinate coordinate;
     private final CloseableHttpAsyncClient httpClient;
@@ -195,6 +199,7 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
                 public void completed(HttpResponse result) {
                     log.trace("Back from making web request");
                     httpResponse.set(result);
+                    lastSuccessfulCommunication = new Date();
                     latch.countDown();
                 }
 
@@ -213,10 +218,17 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
             if (terminationCriterion.hasToStop()) {
                 return failure;
             }
+            boolean timedOut;
             try {
-                latch.await();
+                double waitTime = FastMath.max(0, terminationCriterion.getRemainingTime());
+                long waitTimeInMs = (long) (1000 * waitTime);
+                timedOut = !latch.await(waitTimeInMs, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 throw new RuntimeException("Interrupted while waiting for countdown latch", e);
+            }
+            if (timedOut) {
+                log.debug("Timed out while waiting for server to respond");
+                interrupt();
             }
             final Exception ex = exception.get();
             if (ex != null) {

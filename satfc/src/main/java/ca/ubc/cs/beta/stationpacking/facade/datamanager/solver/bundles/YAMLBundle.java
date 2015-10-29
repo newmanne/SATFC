@@ -1,12 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import com.google.common.base.Joiner;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Lists;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -88,7 +90,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     private PythonInterpreterContainer pythonInterpreterContainer;
     private static boolean skipJython = false;
-    
+    private final String checkers;
+
     public YAMLBundle(
             @NonNull ManagerBundle managerBundle,
             @NonNull SATFCFacadeParameter parameter,
@@ -141,7 +144,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         UHFSolver = concat(uhf, context);
         VHFSolver = concat(vhf, context);
+
+        checkers = Joiner.on(',').join(context.getSolverTypes());
     }
+
+    @Override
+    public String getCheckers() {
+        return checkers;
+    }
+
 
     private static ISolver concat(List<ISolverConfig> configs, SATFCContext context) {
         log.debug("Starting with a void solver...");
@@ -150,13 +161,13 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             if (!config.shouldSkip(context)) {
                 log.debug("Decorating with {} using config of type {}", solver.getClass().getSimpleName(), config.getClass().getSimpleName());
                 solver = config.createSolver(context, solver);
+                context.getSolverTypes().add(SolverConfigDeserializer.typeToConfigClass.inverse().get(config.getClass()));
             } else {
                 log.debug("Skipping decorator {}", config.getClass().getSimpleName());
             }
         }
         return solver;
     }
-
 
     @Builder
     @Data
@@ -168,6 +179,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private final IPollingService pollingService;
         private final CloseableHttpAsyncClient httpClient;
         private PythonInterpreterContainer python;
+
+        private final Set<SolverType> solverTypes = new HashSet<>();
     }
 
     /**
@@ -238,14 +251,18 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
             if (skipJython) {
                 return true;
             } else {
-                try {
-                    final PythonInterpreterContainer pythonInterpreterContainer = new PythonInterpreterContainer(context.getManagerBundle().getInterferenceFolder(), context.getManagerBundle().isCompactInterference());
-                    context.setPython(pythonInterpreterContainer);
-                    return true;
-                } catch (Exception e) {
-                    log.warn("Could not initialize jython. Secondary assignment verifier will be skipped", e);
-                    skipJython = true;
+                if (context.getPython() != null) {
                     return false;
+                } else {
+                    try {
+                        final PythonInterpreterContainer pythonInterpreterContainer = new PythonInterpreterContainer(context.getManagerBundle().getInterferenceFolder(), context.getManagerBundle().isCompactInterference());
+                        context.setPython(pythonInterpreterContainer);
+                        return false;
+                    } catch (Exception e) {
+                        log.warn("Could not initialize jython. Secondary assignment verifier will be skipped", e);
+                        skipJython = true;
+                        return true;
+                    }
                 }
             }
         }
@@ -533,8 +550,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     public static class SolverConfigDeserializer extends ANameArgsDeserializer<SolverType, ISolverConfig> {
 
-        private final Map<SolverType, Class<? extends ISolverConfig>> typeToConfigClass =
-                ImmutableMap.<SolverType, Class<? extends ISolverConfig>>builder()
+        public static final BiMap<SolverType, Class<? extends ISolverConfig>> typeToConfigClass =
+                ImmutableBiMap.<SolverType, Class<? extends ISolverConfig>>builder()
                         .put(SolverType.CLASP, ClaspConfig.class)
                         .put(SolverType.SATENSTEIN, UBCSATConfig.class)
                         .put(SolverType.SAT_PRESOLVER, SATPresolver.class)

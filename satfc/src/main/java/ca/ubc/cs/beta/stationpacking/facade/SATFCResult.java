@@ -32,32 +32,37 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * Container for the result returned by a SATFC facade.
+ *
  * @author afrechet
  */
 @Data
-@Accessors(prefix="f")
-public class SATFCResult implements Serializable
-{
-	private final ImmutableMap<Integer,Integer> fWitnessAssignment;
-	private final SATResult fResult;
-	private final double fRuntime;
+@Accessors(prefix = "f")
+public class SATFCResult implements Serializable {
 
-	/**
-	 * @param aResult - the satisfiability result.
-	 * @param aRuntime - the time (s) it took to get to such result.
-	 * @param aWitnessAssignment - the witness assignment
-	 */
-	public SATFCResult(SATResult aResult, double aRuntime, Map<Integer,Integer> aWitnessAssignment)
-	{
-		fResult = aResult;
-		fRuntime = aRuntime;
-		fWitnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
-	}
-	
-	@Override
-	public String toString()
-	{
-		return fRuntime+","+fResult+","+fWitnessAssignment.toString();
-	}
+    private final ImmutableMap<Integer, Integer> fWitnessAssignment;
+    private final SATResult fResult;
+    private final double fRuntime;
+    private final String fExtraInfo;
+
+    /**
+     * @param aResult            - the satisfiability result.
+     * @param aRuntime           - the time (s) it took to get to such result.
+     * @param aWitnessAssignment - the witness assignment
+     */
+    public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment) {
+        this(aResult, aRuntime, aWitnessAssignment, "");
+    }
+
+    public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment, String extraInfo) {
+        fResult = aResult;
+        fRuntime = aRuntime;
+        fWitnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
+        fExtraInfo = extraInfo;
+    }
+
+    @Override
+    public String toString() {
+        return fRuntime + "," + fResult + "," + fWitnessAssignment.toString();
+    }
 
 }

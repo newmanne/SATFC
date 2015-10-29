@@ -32,10 +32,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.io.Resources;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -91,6 +93,8 @@ public class SATFCFacade implements AutoCloseable {
     private volatile ScheduledFuture<?> future;
     private final IPollingService pollingService;
     private final CloseableHttpAsyncClient httpClient;
+    @Getter
+    private String versionInfo;
 
     /**
      * Construct a SATFC solver facade
@@ -136,6 +140,21 @@ public class SATFCFacade implements AutoCloseable {
         }
 
         idleTime = Watch.constructAutoStartWatch();
+
+        try {
+            final String versionProperties = Resources.toString(Resources.getResource("version.properties"), Charsets.UTF_8);
+            final Iterator<String> split = Splitter.on(System.lineSeparator()).split(versionProperties).iterator();
+            Preconditions.checkState(split.hasNext(), "No version string in version properties file");
+            final String versionString = Splitter.on('=').splitToList(split.next()).get(1);
+            Preconditions.checkState(split.hasNext(), "No build time in version properties file");
+            final String buildTimeString = Splitter.on('=').splitToList(split.next()).get(1);
+            versionInfo = String.format("Using SATFC version %s, built on %s", versionString, buildTimeString);
+            log.info(versionInfo);
+        } catch (IllegalArgumentException | IOException e) {
+            log.error("Problem retrieving version info");
+            versionInfo = "Unknown version";
+        }
+
     }
 
     /**
@@ -370,7 +389,9 @@ public class SATFCFacade implements AutoCloseable {
                 }
             }
 
-            final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness);
+            final String extraInfo = getExtraInfo(bundle);
+
+            final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness, extraInfo);
             log.debug("Result: {}.", outputResult);
 
             if (!internal && parameter.getAutoAugmentOptions().isAugment()) {
@@ -381,6 +402,24 @@ public class SATFCFacade implements AutoCloseable {
             }
 
             return outputResult;
+        }
+
+        private String getExtraInfo(ISolverBundle bundle) {
+            final StringBuilder extraInfo = new StringBuilder();
+            extraInfo.append(getVersionInfo()).append(System.lineSeparator());
+            if (parameter.getServerURL() != null) {
+                extraInfo.append("SATFCServer registered at URL ").append(parameter.getServerURL());
+                if (ContainmentCacheProxy.lastSuccessfulCommunication != null) {
+                    extraInfo.append(" last contacted succesfully at ").append(ContainmentCacheProxy.lastSuccessfulCommunication.toString());
+                } else {
+                    extraInfo.append(" has not yet been contacted");
+                }
+                extraInfo.append(System.lineSeparator());
+            } else {
+                extraInfo.append("SATFCServer is not being used").append(System.lineSeparator());
+            }
+            extraInfo.append("Enabled checkers: ").append(System.lineSeparator()).append(bundle.getCheckers());
+            return extraInfo.toString();
         }
 
     }
