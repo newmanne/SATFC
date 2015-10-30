@@ -174,7 +174,7 @@ public class RedisCacher {
         return results;
     }
 
-    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String acceptRegex) {
+    public ContainmentCacheInitData getContainmentCacheInitData(long limit, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, String acceptRegex, boolean skipSAT, boolean skipUNSAT) {
         log.info("Pulling precache data from redis");
         final Watch watch = Watch.constructAutoStartWatch();
 
@@ -182,13 +182,11 @@ public class RedisCacher {
         final Set<String> UNSATKeys = new HashSet<>();
 
         final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
-        long count = 0;
-        while (count < limit && scan.hasNext()) {
+        while (SATKeys.size() + UNSATKeys.size() < limit && scan.hasNext()) {
             final String key = new String(scan.next());
-            count++;
-            if (key.startsWith("SATFC:SAT:")) {
+            if (key.startsWith("SATFC:SAT:") && !skipSAT) {
                 SATKeys.add(key);
-            } else if (key.startsWith("SATFC:UNSAT:")) {
+            } else if (key.startsWith("SATFC:UNSAT:") && !skipUNSAT) {
                 UNSATKeys.add(key);
             }
         }

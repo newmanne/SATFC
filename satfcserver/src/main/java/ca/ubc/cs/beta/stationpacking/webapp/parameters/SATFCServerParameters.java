@@ -47,6 +47,15 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private long cacheSizeLimit = Long.MAX_VALUE;
 
+    @Parameter(names = "--skipSAT", description = "Do not load SAT entries from redis")
+    @Getter
+    private boolean skipSAT = false;
+
+    @Parameter(names = "--skipUNSAT", description = "Do not load UNSAT entries from redis")
+    @Getter
+    private boolean skipUNSAT = true;
+
+
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
     }

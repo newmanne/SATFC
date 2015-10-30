@@ -313,7 +313,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         }
 
         private double minTimeToCache = 0;
-        private boolean doNotCacheUNSAT = false;
+        private boolean doNotCacheUNSAT = true;
 
     }
 

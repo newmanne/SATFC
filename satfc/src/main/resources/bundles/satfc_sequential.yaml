@@ -27,7 +27,6 @@ UHF:
               name: NEIGHBOURHOOD
               args: 
                 numLayers: 1
-    - name: UNSAT_CACHE
     - name: SAT_CACHE
     - name: RESULT_SAVER
     - name: VERIFIER

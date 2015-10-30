@@ -113,7 +113,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         });
 
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), coordinateToPermutation, parameters.getAcceptRegex());
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), coordinateToPermutation, parameters.getAcceptRegex(), parameters.isSkipSAT(), parameters.isSkipUNSAT());
         coordinateToBundle.keySet().forEach(cacheCoordinate -> {
             final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
             log.info("Cache created for coordinate " + cacheCoordinate);
