@@ -36,20 +36,23 @@ public class PythonAssignmentVerifierDecoratorTest {
 
     final static ISolver solver = mock(ISolver.class);
     static PythonAssignmentVerifierDecorator pythonAssignmentVerifierDecorator;
+    static PythonAssignmentVerifierDecorator nonCompactPythonAssignmentVerifierDecorator;
+    final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
+    final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
+    final long seed = 0;
 
     @BeforeClass
     public static void setUp() {
+
         final String interferenceFolder = Resources.getResource("data/021814SC3M").getPath();
         final boolean compact = true;
         pythonAssignmentVerifierDecorator = new PythonAssignmentVerifierDecorator(solver, new PythonInterpreterContainer(interferenceFolder, compact));
+        nonCompactPythonAssignmentVerifierDecorator = new PythonAssignmentVerifierDecorator(solver, new PythonInterpreterContainer(interferenceFolder, !compact));
+
     }
 
     @Test(expected=IllegalStateException.class)
-    public void testDomainViolation() {
-
-        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
-        final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
-        final long seed = 0;
+    public void testDomainViolationCompactIntereference() {
 
         Map<Integer,Set<Station>> domainViolationAnswer = ImmutableMap.of(-1, ImmutableSet.of(new Station(1)));
         when(solver.solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed)))
@@ -59,18 +62,24 @@ public class PythonAssignmentVerifierDecoratorTest {
 
     }
 
-
     @Test
-    public void testNoViolation() {
-
-        final StationPackingInstance instance = new StationPackingInstance(Maps.newHashMap());
-        final ITerminationCriterion terminationCriterion = mock(ITerminationCriterion.class);
-        final long seed = 0;
+    public void testNoViolationCompactInterference() {
 
         when(solver.solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed)))
                 .thenReturn(new SolverResult(SATResult.SAT, 0, StationPackingTestUtils.getSimpleInstanceAnswer(), SolverResult.SolvedBy.UNKNOWN));
 
         SolverResult result = pythonAssignmentVerifierDecorator.solve(instance, terminationCriterion, seed);
+        assertEquals(result.getAssignment(), StationPackingTestUtils.getSimpleInstanceAnswer());
+
+    }
+
+    @Test
+    public void testNoViolationNonCompactInterference() {
+
+        when(solver.solve(any(StationPackingInstance.class), eq(terminationCriterion), eq(seed)))
+                .thenReturn(new SolverResult(SATResult.SAT, 0, StationPackingTestUtils.getSimpleInstanceAnswer(), SolverResult.SolvedBy.UNKNOWN));
+
+        SolverResult result = nonCompactPythonAssignmentVerifierDecorator.solve(instance, terminationCriterion, seed);
         assertEquals(result.getAssignment(), StationPackingTestUtils.getSimpleInstanceAnswer());
 
     }
