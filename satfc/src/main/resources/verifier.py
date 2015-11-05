@@ -136,7 +136,7 @@ def load_interference(path):
         for line in lines:
             store_interference(interference_dict, line)
 
-    return interference_dict
+    return 0
 
 def check_constraint_violation(station_to_channel, interference_dict):
     for station in station_to_channel:
