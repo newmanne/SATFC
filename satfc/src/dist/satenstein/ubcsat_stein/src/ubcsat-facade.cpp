@@ -271,7 +271,7 @@ int initProblem(void* ubcsatState, const char* problem) {
         *pNextLit = SetLitFromFile(l);
 
         if (GetVarFromLit(*pNextLit) > iNumVars) {
-          ReportPrint2(pRepErr,"Error: Invalid Literal [%" P32 "] in clause [%" P32 "]\n",l,j);
+          ReportPrint3(pRepErr,"Error: Invalid Literal [%" PS32 "] in clause [%" P32 "] exceeds total number of variables [%" P32 "]\n",l,j, iNumVars);
           AbnormalExit();
         }
 
