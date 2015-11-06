@@ -26,16 +26,30 @@ import java.util.Map;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 
 import com.google.common.collect.ImmutableMap;
+import com.sun.jna.Library;
+import com.sun.jna.Platform;
 
 /**
  * Created by newmanne on 20/05/15.
  */
 public class NativeUtils {
 
-    private final static int RTLD_LOCAL = 0x00000;
-    private final static int RTLD_LAZY = 0x00001;
+    private final static int RTLD_LOCAL;
+    private final static int RTLD_LAZY;
+    public static final Map NATIVE_OPTIONS;
 
-    public static final Map NATIVE_OPTIONS = ImmutableMap.of(Clasp3Library.OPTION_OPEN_FLAGS, RTLD_LAZY | RTLD_LOCAL);
-
+    static {
+        if (Platform.isMac()) {
+            RTLD_LOCAL = 0x00000004;
+            RTLD_LAZY = 0x00000001;
+        } else {
+            if (!Platform.isLinux()) {
+                System.err.println("OS was not detected as mac or linux. Assuming values for <dlfcn.h> RTLD_LOCAL and RTLD_LAZY are same as linux. Unexpected errors can occur if this is not the case");
+            }
+            RTLD_LOCAL = 0x00000000;
+            RTLD_LAZY = 0x00000001;
+        }
+        NATIVE_OPTIONS = ImmutableMap.of(Library.OPTION_OPEN_FLAGS, RTLD_LAZY | RTLD_LOCAL);
+    }
 
 }
