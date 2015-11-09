@@ -151,12 +151,12 @@ This will put a compiled \clasp library, \texttt{libjnaclasp.so}, in the clasp/j
 Note that this version of \clasp requires a recent version of libtbb (\url{https://www.threadingbuildingblocks.org/}) that may not be part of your distribution by default - keep an eye on the output of the compile script and check your package manager for the library. If the compile script fails, it may require some command line arguments depending on where you have libtbb on your machine. These two arguments are absolute paths to your TBB\_INCLUDE directory and TBB\_LIB directory, respectively. You may also have to update your LD\_LIBRARY\_PATH environment variable to include the TBB\_LIB folder.
 
 \subsubsection{Compiling \satenstein}
-
-\satenstein will need to be compiled for your machine. To compile the \satenstein packaged with a \SATFC release, do the following:
-\begin{lstlisting}[style=Bash]
-> cd <SATFC release directory>
-> cd satenstein/
-> bash compile.sh
+ 
+ \satenstein will need to be compiled for your machine. To compile the \satenstein packaged with a \SATFC release, you will need to install \href{https://cmake.org/}{CMake} and do the following:
+ \begin{lstlisting}[style=Bash]
+ > cd <SATFC release directory>
+ > cd satenstein/
+ > bash compile.sh
 \end{lstlisting}
 This will put a compiled \satenstein library, \texttt{libjnasatenstein.so}, in the satenstein/jna folder.
 
