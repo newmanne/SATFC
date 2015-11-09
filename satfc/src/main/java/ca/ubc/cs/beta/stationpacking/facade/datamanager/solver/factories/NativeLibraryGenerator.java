@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sun.jna.NativeLibrary;
 import lombok.AccessLevel;
 import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
