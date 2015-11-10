@@ -17,13 +17,13 @@ Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The m
 
 ## Release Notes
 
-Rough information about the evolution of **SATFC** through releases.
+Rough information about the evolution of **SATFC** through major releases.
 
-### SATFC 2.0-BETA [15/10/2015]
+### SATFC 2.0 [15/10/2015]
 
 * Introduce SATenstein, a local search based solver
 
-### SATFC 1.8-BETA [19/08/2015]
+### SATFC 1.8 [19/08/2015]
 
 * ADJ+2 and ADJ-2 constraints 
 * Enforce arc consistency as a form of preprocessing
