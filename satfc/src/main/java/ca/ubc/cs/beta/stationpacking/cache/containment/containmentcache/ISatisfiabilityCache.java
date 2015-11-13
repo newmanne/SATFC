@@ -36,7 +36,11 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
  */
 public interface ISatisfiabilityCache {
 
-    ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance);
+    ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance, final String ignoreAuction);
+    default ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
+        return proveSATBySuperset(aInstance, null);
+    }
+
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
 
     void add(final StationPackingInstance aInstance, final SolverResult result, final String key);

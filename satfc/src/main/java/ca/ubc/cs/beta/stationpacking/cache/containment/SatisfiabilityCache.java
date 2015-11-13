@@ -65,7 +65,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     }
 
     @Override
-    public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
+    public ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance, final String ignoreAuction) {
         // try to narrow down the entries we have to search by only looking at supersets
         try {
             SATCache.getReadLock().lock();
@@ -76,6 +76,14 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                      * The entry should also be a solution to the problem, which it will be as long as the solution can project onto the query's domains since they come from the set of interference constraints
                      */
                     .filter(entry -> entry.isSolutionTo(aInstance))
+                    .filter(entry -> {
+                        if (ignoreAuction == null) {
+                            return true;
+                        } else {
+                            log.info("Auction is {} and entry auction is {}", ignoreAuction, entry.getAuction());
+                            return !entry.getAuction().equals(ignoreAuction);
+                        }
+                    })
                     .map(entry -> new ContainmentCacheSATResult(entry.getAssignmentChannelToStation(), entry.getKey()))
                     .findAny()
                     .orElse(ContainmentCacheSATResult.failure());

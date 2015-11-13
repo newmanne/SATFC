@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.base.Splitter;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -206,4 +207,8 @@ public class StationPackingInstance {
 		return (String) metadata.getOrDefault(NAME_KEY, "UNTITLED");
 	}
 
+    public String getAuction() {
+        final String name = (String) metadata.get(NAME_KEY);
+        return Splitter.on('_').splitToList(name).get(0);
+    }
 }

@@ -22,5 +22,6 @@ public enum SolverType {
     CHANNEL_KILLER,
     DELAY,
     TIME_BOUNDED,
+    HASH_INDEX,
     NONE
 }

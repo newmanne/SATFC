@@ -55,6 +55,9 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private boolean skipUNSAT = true;
 
+    @Parameter(names = "--excludeSameAuction", description = "Do not count a solution if it is derived from the same auction as the problem", hidden = true)
+    @Getter
+    private boolean excludeSameAuction = false;
 
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);

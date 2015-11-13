@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Splitter;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,7 +81,15 @@ public class RedisCacher {
         T create(V cacheEntry, String key, ImmutableBiMap<Station, Integer> permutation);
     }
 
-    private final CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry> SATCacheEntryToContainmentCacheEntryFactory = (thing, key, permutation) -> new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation);
+    private final CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry> SATCacheEntryToContainmentCacheEntryFactory = (thing, key, permutation) -> {
+        final String name = (String) thing.getMetadata().get(StationPackingInstance.NAME_KEY);
+        if (name != null) {
+            final String auction = Splitter.on('_').splitToList(name).get(0);
+            return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation, auction);
+        } else {
+            return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation);
+        }
+    };
     private final CacheEntryToContainmentCacheEntryFactory<UNSATCacheEntry, ContainmentCacheUNSATEntry> UNSATCacheEntryToContainmentCacheEntryFactory = (thing, key, permutation) -> new ContainmentCacheUNSATEntry(thing.getDomains(), key, permutation);
 
     public String cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {

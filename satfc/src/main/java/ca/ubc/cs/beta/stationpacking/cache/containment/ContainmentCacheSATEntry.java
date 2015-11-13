@@ -53,6 +53,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     private final BitSet bitSet;
     private final ImmutableBiMap<Station, Integer> permutation;
     private final String key;
+    private String auction;
 
     public ContainmentCacheSATEntry(
     		@NonNull Map<Integer, Set<Station>> answer, 
@@ -70,6 +71,16 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
             channels[j] = stationToChannel.get(inversePermutation.get(bit)).byteValue();
             j++;
         }
+    }
+
+    public ContainmentCacheSATEntry(
+            Map<Integer, Set<Station>> answer,
+            String key,
+            BiMap<Station, Integer> permutation,
+            String auction
+    ) {
+        this(answer, key, permutation);
+        this.auction = auction;
     }
 
     // aInstance is already known to be a subset of this entry

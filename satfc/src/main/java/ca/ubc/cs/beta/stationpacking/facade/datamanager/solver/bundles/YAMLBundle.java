@@ -5,6 +5,8 @@ import java.util.*;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
@@ -16,6 +18,7 @@ import lombok.NonNull;
 import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -44,14 +47,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.AssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ConnectedComponentGroupingDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.DelayedSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.PythonAssignmentVerifierDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.ResultSaverSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.TimeBoundedSolverDecorator;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.UnderconstrainedStationRemoverSolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
@@ -514,6 +509,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private double time;
     }
 
+    @Data
+    public static class HashSaverDecoratorConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new HashSaverDecorator(solverToDecorate, RandomStringUtils.randomAlphabetic(10) + ".txt");
+        }
+    }
+
     public enum PresolverExpansion {
         NEIGHBOURHOOD, UNIFORM_RANDOM
     }
@@ -570,6 +574,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.CHANNEL_KILLER, ChannelKillerConfig.class)
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
+                        .put(SolverType.HASH_INDEX, HashSaverDecoratorConfig.class)
                         .build();
 
         @Override

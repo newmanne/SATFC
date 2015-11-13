@@ -28,6 +28,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import ca.ubc.cs.beta.stationpacking.webapp.SATFCServerApplication;
+import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.catalina.connector.ClientAbortException;
@@ -68,6 +70,9 @@ public class ContainmentCacheController {
 
     @Autowired
     RedisCacher cacher;
+
+    @Autowired
+    SATFCServerParameters parameters;
 
     // Metrics
     @Autowired
@@ -131,7 +136,13 @@ public class ContainmentCacheController {
             final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
             log.info("Querying the SAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
-            final ContainmentCacheSATResult containmentCacheSATResult = cache.proveSATBySuperset(instance);
+            final ContainmentCacheSATResult containmentCacheSATResult;
+            if (parameters.isExcludeSameAuction()) {
+                final String auction = instance.getAuction();
+                containmentCacheSATResult = cache.proveSATBySuperset(instance, auction);
+            } else {
+                containmentCacheSATResult = cache.proveSATBySuperset(instance);
+            }
             if (containmentCacheSATResult.isValid()) {
                 log.info("Query for SAT cache with coordinate {} for entry {} is a hit", request.getCoordinate(), description);
                 satCacheHits.mark();
@@ -143,6 +154,7 @@ public class ContainmentCacheController {
             context.stop();
         }
     }
+
 
     // note that while this is conceptually a GET request, the fact that we need to send json means that its simpler to achieve as a POST
     @RequestMapping(value = "/query/UNSAT", method = RequestMethod.POST, produces = JSON_CONTENT, consumes = MediaType.APPLICATION_JSON_VALUE)
