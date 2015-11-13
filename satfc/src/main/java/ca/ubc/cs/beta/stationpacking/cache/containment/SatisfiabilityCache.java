@@ -76,14 +76,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
                      * The entry should also be a solution to the problem, which it will be as long as the solution can project onto the query's domains since they come from the set of interference constraints
                      */
                     .filter(entry -> entry.isSolutionTo(aInstance))
-                    .filter(entry -> {
-                        if (ignoreAuction == null) {
-                            return true;
-                        } else {
-                            log.info("Auction is {} and entry auction is {}", ignoreAuction, entry.getAuction());
-                            return !entry.getAuction().equals(ignoreAuction);
-                        }
-                    })
+                    .filter(entry -> ignoreAuction == null || !entry.getAuction().equals(ignoreAuction))
                     .map(entry -> new ContainmentCacheSATResult(entry.getAssignmentChannelToStation(), entry.getKey()))
                     .findAny()
                     .orElse(ContainmentCacheSATResult.failure());
