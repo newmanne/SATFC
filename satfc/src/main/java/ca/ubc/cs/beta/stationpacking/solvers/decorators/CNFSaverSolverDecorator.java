@@ -85,7 +85,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
         final String cnfFileContentString = CNF.toDIMACS(comments);
 
         //Save instance to redis
-        final String CNFName = aInstance.getHashString();
+        final String CNFName = aInstance.getName();
         fCNFSaver.saveCNF(aInstance.getName(), CNFName, cnfFileContentString);
 
         if (saveAssignment) {

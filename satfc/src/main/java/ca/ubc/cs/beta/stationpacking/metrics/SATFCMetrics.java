@@ -123,7 +123,9 @@ public class SATFCMetrics {
         public final static String FIND_SUPERSET = "find_superset";
         public final static String FIND_SUBSET = "find_subset";
         public final static String FIND_UNDERCONSTRAINED_STATIONS = "find_underconstrained_stations";
+        public final static String PUT_BACK_UNDERCONSTRAINED_STATIONS = "put_back_underconstrained_stations";
         public final static String CONNECTED_COMPONENTS = "split_connected_components";
+        public final static String ARC_CONSISTENCY = "arc_consistency";
 
         private final String name;
         private final String timedEvent;
