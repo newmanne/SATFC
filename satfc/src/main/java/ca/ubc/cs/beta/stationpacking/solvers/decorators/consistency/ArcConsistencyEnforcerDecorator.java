@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency;
 
+import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.consistency.AC3Enforcer;
@@ -34,6 +35,7 @@ public class ArcConsistencyEnforcerDecorator extends ASolverDecorator {
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Watch watch = Watch.constructAutoStartWatch();
         final AC3Output ac3Output = ac3Enforcer.AC3(aInstance, aTerminationCriterion);
+        SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.ARC_CONSISTENCY, watch.getElapsedTime()));
         if (ac3Output.isNoSolution()) {
             return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolverResult.SolvedBy.ARC_CONSISTENCY);
         } else {
