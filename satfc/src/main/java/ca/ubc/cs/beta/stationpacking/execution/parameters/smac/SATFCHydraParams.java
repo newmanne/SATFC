@@ -64,9 +64,10 @@ public class SATFCHydraParams extends AbstractOptions {
 
     public List<SolverType> getSolverOrder() {
         final List<SolverType> list = new ArrayList<>();
-        list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.SATENSTEIN);
         if (presolver) {
             list.add(presolverType);
+        } else {
+            list.add(solverChoice.equals(SatSolverChoice.CLASP) ? SolverType.CLASP : SolverType.SATENSTEIN);
         }
         if (connectedComponents) {
             list.add(SolverType.CONNECTED_COMPONENTS);
