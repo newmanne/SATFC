@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import com.google.common.base.Splitter;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -108,7 +110,15 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
     @Override
     public void add(StationPackingInstance aInstance, SolverResult result, String key) {
         if (result.getResult().equals(SATResult.SAT)) {
-            add(new ContainmentCacheSATEntry(result.getAssignment(), key, permutation));
+            final ContainmentCacheSATEntry entry;
+            final String name = (String) aInstance.getMetadata().get(StationPackingInstance.NAME_KEY);
+            if (name != null) {
+                final String auction = Splitter.on('_').splitToList(name).get(0);
+                entry = new ContainmentCacheSATEntry(result.getAssignment(), key, permutation, auction);
+            } else {
+                entry = new ContainmentCacheSATEntry(result.getAssignment(), key, permutation);
+            }
+            add(entry);
         } else if (result.getResult().equals(SATResult.UNSAT)) {
             add(new ContainmentCacheUNSATEntry(aInstance.getDomains(), key, permutation));
         } else {

@@ -176,7 +176,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
     private void checkForErrors() {
     	final Throwable e = error.getAndSet(null); // clear error for future uses
         if (e != null) {
-            log.error("Found an error from a parallel task, e");
+            log.error("Found an error from a parallel task", e);
             throw new RuntimeException("Error occurred while executing a task", e);
         }
     }

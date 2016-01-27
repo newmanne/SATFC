@@ -80,6 +80,9 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
             String auction
     ) {
         this(answer, key, permutation);
+        if (auction == null) {
+            throw new IllegalArgumentException("auction for key " + key + " is null");
+        }
         this.auction = auction;
     }
 
