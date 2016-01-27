@@ -6,11 +6,9 @@ import java.util.*;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.Lists;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -518,6 +516,17 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         }
     }
 
+    @Data
+    public static class PreviousAssignmentConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new PreviousAssignmentContainsAnswerDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+        }
+
+    }
+
+
     public enum PresolverExpansion {
         NEIGHBOURHOOD, UNIFORM_RANDOM
     }
@@ -575,6 +584,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .put(SolverType.HASH_INDEX, HashSaverDecoratorConfig.class)
+                        .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
                         .build();
 
         @Override
