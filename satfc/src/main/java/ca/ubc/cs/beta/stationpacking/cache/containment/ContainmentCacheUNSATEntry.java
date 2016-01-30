@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
 import lombok.Data;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -41,8 +42,8 @@ import containmentcache.ICacheEntry;
 * Created by newmanne on 25/03/15.
 */
 @Data
-public class ContainmentCacheUNSATEntry implements ICacheEntry<Station> {
-	
+public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCCacheEntry {
+
     private final BitSet bitSet;
     private final ImmutableMap<Station, Set<Integer>> domains;
     private final String key;

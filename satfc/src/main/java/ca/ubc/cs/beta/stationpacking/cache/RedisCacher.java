@@ -21,19 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import com.google.common.base.Splitter;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +41,6 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 
 import com.google.common.base.Preconditions;
@@ -69,7 +58,8 @@ import com.google.common.collect.Sets;
 public class RedisCacher {
 
     private final static int SAT_PIPELINE_SIZE = 10000;
-    private final static int UNSAT_PIPELINE_SIZE = 200;
+    private final static int UNSAT_PIPELINE_SIZE = 2500;
+    public static final String HASH_NUM = "SATFC:HASHNUM";
 
     private final StringRedisTemplate redisTemplate;
 
@@ -77,56 +67,49 @@ public class RedisCacher {
         this.redisTemplate = template;
     }
 
-    private interface CacheEntryToContainmentCacheEntryFactory<V, T> {
-        T create(V cacheEntry, String key, ImmutableBiMap<Station, Integer> permutation);
+    private interface RedisCacheEntryToContainmentCacheEntryConverter<T> {
+        T convert(Map<String, String> redisCacheEntry, String key, ImmutableBiMap<Station, Integer> permutation);
     }
 
-    private final CacheEntryToContainmentCacheEntryFactory<SATCacheEntry, ContainmentCacheSATEntry> SATCacheEntryToContainmentCacheEntryFactory = (thing, key, permutation) -> {
-        final String name = (String) thing.getMetadata().get(StationPackingInstance.NAME_KEY);
-        if (name != null) {
-            final String auction = Splitter.on('_').splitToList(name).get(0);
-            return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation, auction);
-        } else {
-            return new ContainmentCacheSATEntry(thing.getAssignment(), key, permutation);
+    public static final String ASSIGNMENT_KEY = "assignment";
+    public static final String BITSET_KEY = "bitset";
+    public static final String NAME_KEY = "name";
+    public static final String DOMAINS_KEY = "domains";
+    private static final Set<String> SAT_REQUIRED_KEYS = Sets.newHashSet(ASSIGNMENT_KEY, BITSET_KEY);
+
+    private final static RedisCacheEntryToContainmentCacheEntryConverter<ContainmentCacheSATEntry> SATCacheConverter = (entry, key, permutation) -> {
+        if (!entry.keySet().containsAll(SAT_REQUIRED_KEYS)) {
+            throw new IllegalArgumentException("Entry does not contain required keys " + SAT_REQUIRED_KEYS + ". Only have keys " + entry.keySet());
         }
+        final BitSet bitSet = BitSet.valueOf(entry.get(BITSET_KEY).getBytes());
+        final byte[] channels = entry.get(ASSIGNMENT_KEY).getBytes();
+        return new ContainmentCacheSATEntry(bitSet, channels, key, permutation, entry.get(NAME_KEY));
     };
-    private final CacheEntryToContainmentCacheEntryFactory<UNSATCacheEntry, ContainmentCacheUNSATEntry> UNSATCacheEntryToContainmentCacheEntryFactory = (thing, key, permutation) -> new ContainmentCacheUNSATEntry(thing.getDomains(), key, permutation);
 
     public String cacheResult(CacheCoordinate cacheCoordinate, StationPackingInstance instance, SolverResult result) {
         Preconditions.checkState(result.isConclusive(), "Result must be SAT or UNSAT in order to cache");
-        final String jsonResult;
-        final Map<String, Object> metadata = instance.getMetadata();
-        metadata.put(StationPackingInstance.CACHE_DATE_KEY, new Date());
-        if (result.getResult().equals(SATResult.SAT)) {
-            final SATCacheEntry entry = new SATCacheEntry(metadata, result.getAssignment());
-            jsonResult = JSONUtils.toString(entry);
-        } else {
-            final UNSATCacheEntry entry = new UNSATCacheEntry(metadata, instance.getDomains());
-            jsonResult = JSONUtils.toString(entry);
+        final String key;
+        final Map<String, String> hash = new HashMap<>();
+        hash.put(BITSET_KEY, null);
+        final Long newID = redisTemplate.boundValueOps(HASH_NUM).increment(1);
+        if (instance.hasName()) {
+            hash.put(NAME_KEY, instance.getName());
         }
-        final String key = cacheCoordinate.toKey(result.getResult(), instance);
+        if (result.getResult().equals(SATResult.SAT)) {
+            hash.put(ASSIGNMENT_KEY, null);
+        } else {
+            hash.put(DOMAINS_KEY, null);
+        }
+        key = cacheCoordinate.toKey(result.getResult(), newID);
+        redisTemplate.opsForHash().putAll(key, hash);
         log.info("Adding result for " + instance.getName() + " to cache with key " + key);
-        redisTemplate.boundValueOps(key).set(jsonResult);
         return key;
     }
 
-    private <T> Optional<T> parseCacheEntry(String key, Class<T> klazz, String value) {
-        final Optional<T> result;
-        if (value != null) {
-            final T cacheEntry;
-            try {
-                cacheEntry = JSONUtils.toObjectWithException(value, klazz);
-            } catch (IOException e) {
-                throw new RuntimeException("Error parsing key " + key + ". The value at key " + key + " could not be parsed into an object of type " + klazz.getSimpleName() + ". Either fix the malformed JSON in redis (by performing a SET on this key with the corrected JSON), or else simply delete this malformed key", e);
-            }
-            result = Optional.of(cacheEntry);
-        } else {
-            result = Optional.empty();
-        }
-        return result;
-    }
 
-    public <CONTAINMENT_CACHE_ENTRY, CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, Matcher acceptRegexMatcher, SATResult entryTypeName, Class<CACHE_ENTRY> klazz, CacheEntryToContainmentCacheEntryFactory<CACHE_ENTRY, CONTAINMENT_CACHE_ENTRY> cacheEntryToContainmentCacheEntry, int partitionSize) {
+    private final static RedisCacheEntryToContainmentCacheEntryConverter<ContainmentCacheUNSATEntry> UNSATCacheConverter = (entry, key, permutation) -> null;
+
+    public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, SATResult entryTypeName, RedisCacheEntryToContainmentCacheEntryConverter<CONTAINMENT_CACHE_ENTRY> redisCacheEntryToContainmentCacheEntryConverter, int partitionSize) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
         final AtomicInteger numProcessed = new AtomicInteger();
         Lists.partition(new ArrayList<>(keys), partitionSize).stream().forEach(keyChunk -> {
@@ -145,7 +128,7 @@ public class RedisCacher {
                             continue;
                         }
                         orderedKeys.add(key);
-                        stringRedisConn.get(key);
+                        stringRedisConn.hGetAll(key);
                     }
                     // Must return null, actual list returned will be populated
                     return null;
@@ -154,26 +137,11 @@ public class RedisCacher {
             Preconditions.checkState(redisAnswers.size() == orderedKeys.size(), "Different number of queries and answers from redis!");
             for (int i = 0; i < redisAnswers.size(); i++) {
                 final String key = orderedKeys.get(i);
-                final String answer = (String) redisAnswers.get(i);
-                final Optional<CACHE_ENTRY> t = parseCacheEntry(key, klazz, answer);
-                if (!t.isPresent()) {
-                    log.warn("There was no corresponding cache entry for key {}", key);
-                    continue;
-                }
-                CACHE_ENTRY cacheEntry = t.get();
-
-                if (acceptRegexMatcher != null) {
-                    final String name = (String) cacheEntry.getMetadata().get(StationPackingInstance.NAME_KEY);
-                    if (name != null && !acceptRegexMatcher.reset(name).matches()) {
-                        log.debug("Skipping entry {} because name does not match accept regex", name);
-                        continue;
-                    }
-                }
-
                 final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
                 final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
-                final CONTAINMENT_CACHE_ENTRY entry = cacheEntryToContainmentCacheEntry.create(cacheEntry, key, permutation);
-                results.put(coordinate, entry);
+                final Map<String, String> answer = (Map<String, String>) redisAnswers.get(i);
+                final CONTAINMENT_CACHE_ENTRY cacheEntry = redisCacheEntryToContainmentCacheEntryConverter.convert(answer, key, permutation);
+                results.put(coordinate, cacheEntry);
             }
         });
         log.info("Finished processing {} {} entries", numProcessed, entryTypeName);
@@ -207,15 +175,8 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        Matcher acceptRegexMatcher = null;
-        if (acceptRegex != null) {
-            log.info("Only accepting entries matching regex {}", acceptRegex);
-            final Pattern acceptRegexPattern = Pattern.compile(acceptRegex);
-            acceptRegexMatcher = acceptRegexPattern.matcher("");
-        }
-
-        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, acceptRegexMatcher, SATResult.SAT, SATCacheEntry.class, SATCacheEntryToContainmentCacheEntryFactory, SAT_PIPELINE_SIZE);
-        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, acceptRegexMatcher, SATResult.UNSAT, UNSATCacheEntry.class, UNSATCacheEntryToContainmentCacheEntryFactory, UNSAT_PIPELINE_SIZE);
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, SATResult.SAT, SATCacheConverter, SAT_PIPELINE_SIZE);
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, SATResult.UNSAT, UNSATCacheConverter, UNSAT_PIPELINE_SIZE);
 
         log.info("It took {}s to pull precache data from redis", watch.getElapsedTime());
         return new ContainmentCacheInitData(SATResults, UNSATResults);
@@ -230,7 +191,6 @@ public class RedisCacher {
             return Sets.union(SATResults.keySet(), UNSATResults.keySet());
         }
     }
-
 
     /**
      * Removes the cache entries in Redis

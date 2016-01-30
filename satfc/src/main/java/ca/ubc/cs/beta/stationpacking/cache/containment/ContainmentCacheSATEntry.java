@@ -25,8 +25,12 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
+import com.google.common.base.Splitter;
+import com.google.common.collect.*;
 import lombok.Data;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -35,32 +39,34 @@ import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimaps;
-
 import containmentcache.ICacheEntry;
+import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 25/03/15.
 */
+@Slf4j
 @Data
-public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
-    
+public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCacheEntry {
+
+
 	private final byte[] channels;
     private final BitSet bitSet;
     private final ImmutableBiMap<Station, Integer> permutation;
     private final String key;
     private String auction;
 
+    // warning: watch out for type erasure on these constructors....
+
+    // Construct from a result
     public ContainmentCacheSATEntry(
-    		@NonNull Map<Integer, Set<Station>> answer, 
-    		@NonNull String key, 
-    		@NonNull BiMap<Station, Integer> permutation) {
-    	this.permutation = ImmutableBiMap.copyOf(permutation);
-    	this.key = key;
+            @NonNull Map<Integer, Set<Station>> answer,
+            @NonNull String key,
+            @NonNull BiMap<Station, Integer> permutation,
+                     String name
+    ) {
+        this.permutation = ImmutableBiMap.copyOf(permutation);
+        this.key = key;
         this.bitSet = CacheUtils.toBitSet(answer, permutation);
         final Map<Station, Integer> stationToChannel = StationPackingUtils.stationToChannelFromChannelToStation(answer);
         final int numStations = this.bitSet.cardinality();
@@ -73,17 +79,30 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
         }
     }
 
+    // construct from Redis cache entry
     public ContainmentCacheSATEntry(
-            Map<Integer, Set<Station>> answer,
-            String key,
-            BiMap<Station, Integer> permutation,
-            String auction
+            @NonNull BitSet bitSet,
+            @NonNull byte[] channels,
+            @NonNull String key,
+            @NonNull BiMap<Station, Integer> permutation,
+                     String name
     ) {
-        this(answer, key, permutation);
-        if (auction == null) {
-            throw new IllegalArgumentException("auction for key " + key + " is null");
+        log.info("Bitset length is {}", bitSet.length());
+        this.permutation = ImmutableBiMap.copyOf(permutation);
+        this.key = key;
+        this.bitSet = bitSet;
+        this.channels = channels;
+        parseAuction(name);
+    }
+
+    private void parseAuction(String name) {
+        if (name != null) {
+            try {
+                this.auction = Splitter.on('_').splitToList(name).get(0);
+            } catch (Exception ignored) {
+                log.trace("Format incorrect for name to parse out auction. Skipping");
+            }
         }
-        this.auction = auction;
     }
 
     // aInstance is already known to be a subset of this entry
@@ -116,7 +135,15 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
     @Override
     public Set<Station> getElements() {
         final Map<Integer, Station> inversePermutation = permutation.inverse();
-        return bitSet.stream().mapToObj(inversePermutation::get).collect(GuavaCollectors.toImmutableSet());
+        bitSet.stream().mapToObj(b -> {
+            if (inversePermutation.get(b) == null) {
+                log.warn("Inverse permutation didn't contain {}, {}", b, inversePermutation);
+                throw new IllegalStateException("");
+            }
+            return null;
+        }).collect(Collectors.toList());
+        throw new IllegalStateException("");
+//        return bitSet.stream().mapToObj(inversePermutation::get).collect(GuavaCollectors.toImmutableSet());
     }
 
     /*
