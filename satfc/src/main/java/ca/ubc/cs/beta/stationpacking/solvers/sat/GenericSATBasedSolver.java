@@ -79,6 +79,10 @@ public class GenericSATBasedSolver implements ISolver {
         {
             log.debug("Solving the subproblem CNF with " + aTerminationCriterion.getRemainingTime() + " s remaining.");
             SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aEncoding.getInitialAssignment(), aTerminationCriterion, aSeed);
+            // Even if the SAT solver was interrupted, this would be due to the fact that SATFC timed out. So to avoid confusion in output results, we make this change
+            if (satSolverResult.getResult().equals(SATResult.INTERRUPTED)) {
+                satSolverResult = new SATSolverResult(SATResult.TIMEOUT, satSolverResult.getRuntime(), satSolverResult.getAssignment(), satSolverResult.getSolvedBy());
+            }
             log.debug("Parsing result.");
             Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
             final Set<Station> assignedStations = new HashSet<>();

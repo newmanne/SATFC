@@ -114,9 +114,6 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
                 break;
             }
         }
-        long solvedByPrev = solverResults.stream().filter(result -> result.getSolvedBy().equals(SolverResult.SolvedBy.PREVIOUS_ASSIGNMENT)).count();
-        log.info("Solved by prev {}, total {}", solvedByPrev, componentInstances.size());
-        Preconditions.checkState(solvedByPrev == componentInstances.size() - 1, "More than 1 component not solved in previous assignment!");
         final SolverResult mergedResult = SolverHelper.mergeComponentResults(solverResults);
         final SolverResult result = SolverResult.relabelTimeAndSolvedBy(mergedResult, watch.getElapsedTime(), SolverResult.SolvedBy.CONNECTED_COMPONENTS);
 

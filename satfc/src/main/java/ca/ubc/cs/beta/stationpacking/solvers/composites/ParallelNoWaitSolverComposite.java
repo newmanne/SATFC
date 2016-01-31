@@ -32,6 +32,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
+import ca.ubc.cs.beta.aeatk.concurrent.threadfactory.SequentiallyNamedThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
@@ -67,7 +68,7 @@ public class ParallelNoWaitSolverComposite implements ISolver {
      */
     public ParallelNoWaitSolverComposite(int threadPoolSize, List<ISolverFactory> solvers) {
         log.debug("Creating a fixed pool with {} threads", threadPoolSize);
-        executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(threadPoolSize));
+        executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(threadPoolSize, new SequentiallyNamedThreadFactory("SATFC Parallel Worker Thread")));
         listOfSolverQueues = new ArrayList<>(solvers.size());
         for (ISolverFactory solverFactory : solvers) {
             final LinkedBlockingQueue<ISolver> solverQueue = Queues.newLinkedBlockingQueue(threadPoolSize);
@@ -183,8 +184,8 @@ public class ParallelNoWaitSolverComposite implements ISolver {
 
     @Override
     public void notifyShutdown() {
-        executorService.shutdown();
         listOfSolverQueues.forEach(queue -> queue.forEach(ISolver::notifyShutdown));
+        executorService.shutdown();
     }
 
     @Override

@@ -8,47 +8,39 @@ UHF:
     - name: PARALLEL
       args: 
         configs:
-          - 
+          -
             - name: SAT_CACHE
             - name: DELAY
-              args: 
+              args:
                 time: 1.0
                 noise: 1.0
-          -   
+          -
             - name: CLASP
               args:
                 config: *claspS1
             - name: SAT_PRESOLVER
-              args: 
+              args:
                 solverConfig:
                   name: CLASP
                   args:
                     config: *claspS1
-                strategy: 
+                strategy:
                   name: ITERATIVE_DEEPEN
                   args:
                     baseCutoff: 10
-                    config: 
+                    config:
                       name: NEIGHBOURHOOD
           -
             - name: CLASP
-              args: 
+              args:
                 config: *claspS1
                 encodingType: DIRECT
           -
-            - name: PARALLEL
+            - name: CLASP
               args:
-                configs:
-                  -
-                    - name: SAT_CACHE
-                    - name: DELAY
-                      args: 
-                        time: 1.0
-                        noise: 1.0
-                  -
-                    - name: CLASP
-                      args: 
-                        config: *claspH2
+                config: *claspH2
+            - name: SAT_CACHE
+            - name: PREVIOUS_ASSIGNMENT
             - name: PYTHON_VERIFIER
             - name: VERIFIER
             - name: CACHE
