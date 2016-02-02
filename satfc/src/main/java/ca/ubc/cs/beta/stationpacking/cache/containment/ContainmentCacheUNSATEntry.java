@@ -46,12 +46,11 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCC
 
     private final BitSet bitSet;
     private final ImmutableMap<Station, Set<Integer>> domains;
-    private final String key;
+    private String key;
     private final ImmutableBiMap<Station, Integer> permutation;
 
     public ContainmentCacheUNSATEntry(
     		@NonNull Map<Station, Set<Integer>> domains, 
-    		@NonNull String key, 
     		@NonNull BiMap<Station, Integer> permutation) {
         this.key = key;
         this.domains = ImmutableMap.copyOf(domains);

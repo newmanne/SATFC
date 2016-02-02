@@ -28,6 +28,9 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import ca.ubc.cs.beta.stationpacking.cache.ICacheScreener;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.webapp.SATFCServerApplication;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +76,9 @@ public class ContainmentCacheController {
 
     @Autowired
     SATFCServerParameters parameters;
+
+    @Autowired
+    ICacheScreener screener;
 
     // Metrics
     @Autowired
@@ -133,7 +139,7 @@ public class ContainmentCacheController {
         final Timer.Context context = satCacheTimer.time();
         try {
             final StationPackingInstance instance = request.getInstance();
-            final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+            final String description = instance.hasName() ? instance.getName() : instance.getInfo();
             log.info("Querying the SAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
             final ContainmentCacheSATResult containmentCacheSATResult;
@@ -165,7 +171,7 @@ public class ContainmentCacheController {
         final Timer.Context context = unsatCacheTimer.time();
         try {
             final StationPackingInstance instance = request.getInstance();
-            final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
+            final String description = instance.hasName() ? instance.getName() : instance.getInfo();
             log.info("Querying the UNSAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
             final ContainmentCacheUNSATResult result = cache.proveUNSATBySubset(instance);
@@ -187,15 +193,33 @@ public class ContainmentCacheController {
             @RequestBody final ContainmentCacheRequest request
     ) {
         final StationPackingInstance instance = request.getInstance();
-        final String description = instance.getMetadata().containsKey(StationPackingInstance.NAME_KEY) ? instance.getName() : instance.getInfo();
-        log.info("Adding entry to the cache with coordinate {}. Entry {}", request.getCoordinate(), description);
-
-        // add to redis
-        final String key = cacher.cacheResult(request.getCoordinate(), instance, request.getResult());
+        final String description = instance.hasName() ? instance.getName() : instance.getInfo();
+        final SolverResult result = request.getResult();
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
-        cache.add(instance, request.getResult(), key);
-        cacheAdditions.mark();
-        lastCachedAssignment = request.getResult().getAssignment();
+
+        if (screener.screen(request.getCoordinate(), instance, result)) {
+            final String key;
+            if (result.getResult().equals(SATResult.SAT)) {
+                final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(result.getAssignment(), cache.getPermutation());
+                key = cacher.cacheSATResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                entry.setKey(key);
+                cache.add(entry);
+                lastCachedAssignment = request.getResult().getAssignment();
+            } else if (result.getResult().equals(SATResult.UNSAT)) {
+                final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(instance.getDomains(), cache.getPermutation());
+                cache.add(entry);
+                key = cacher.cacheUNSATResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                entry.setKey(key);
+            } else {
+                throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+            }
+            log.info("Adding entry to the cache with coordinate {} with key {}. Entry {}", request.getCoordinate(), key, description);
+            // add to permanent storage
+            cacheAdditions.mark();
+        } else {
+            log.info("Not adding entry {} to cache {}. No new info", request.getCoordinate(), description);
+        }
+
     }
 
     @RequestMapping(value = "/filter", method = RequestMethod.POST)

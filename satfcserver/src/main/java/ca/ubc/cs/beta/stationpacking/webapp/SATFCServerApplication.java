@@ -28,6 +28,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.servlet.Filter;
 
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.*;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,12 +44,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.util.ReflectionUtils;
 
+import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.JedisShardInfo;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
-import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
-import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
-import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.webapp.filters.GzipRequestFilter;
@@ -101,14 +101,23 @@ public class SATFCServerApplication {
 
     @Bean
     RedisConnectionFactory redisConnectionFactory() {
+        return new JedisConnectionFactory(getShardInfo());
+    }
+
+    private JedisShardInfo getShardInfo() {
         final SATFCServerParameters satfcServerParameters = satfcServerParameters();
         final int timeout = (int) TimeUnit.SECONDS.toMillis(60);
-        return new JedisConnectionFactory(new JedisShardInfo(satfcServerParameters.getRedisURL(), satfcServerParameters.getRedisPort(), timeout));
+        return new JedisShardInfo(satfcServerParameters.getRedisURL(), satfcServerParameters.getRedisPort(), timeout);
+    }
+
+    @Bean
+    BinaryJedis binaryJedis() {
+        return new BinaryJedis(getShardInfo());
     }
 
     @Bean
     RedisCacher cacher() {
-        return new RedisCacher(redisTemplate());
+        return new RedisCacher(redisTemplate(), binaryJedis());
     }
 
     @Bean
@@ -117,7 +126,7 @@ public class SATFCServerApplication {
     }
 
     @Bean
-    ICacheLocator containmentCache() {
+    ICacheLocator containmentCacheLocator() {
         return new CacheLocator(satisfiabilityCacheFactory(), parameters);
     }
 
@@ -146,6 +155,36 @@ public class SATFCServerApplication {
     public Filter gzipFilter() {
         // Apply a filter to decompress incoming compressed requests
         return new GzipRequestFilter();
+    }
+
+    @Bean
+    public ICacheScreener cacheScreener() {
+        final ICacheScreener screener;
+        final SATFCServerParameters parameters = satfcServerParameters();
+        switch (parameters.getCacheScreenerChoice()) {
+            case NEW_INFO:
+                screener = new ICacheScreener.NewInfoScreener(containmentCacheLocator());
+                break;
+            case ADD_EVERYTHING:
+                screener = new ICacheScreener() {
+                    @Override
+                    public boolean screen(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
+                        return true;
+                    }
+                };
+                break;
+            case ADD_NOTHING:
+                screener = new ICacheScreener() {
+                    @Override
+                    public boolean screen(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
+                        return false;
+                    }
+                };
+                break;
+            default:
+                throw new IllegalStateException("Unrecognized value for " + parameters.getCacheScreenerChoice());
+        }
+        return screener;
     }
 
 }

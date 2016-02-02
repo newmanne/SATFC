@@ -185,7 +185,7 @@ public class StationPackingInstance {
 	 */
 	public String getInfo()
 	{
-		return domains.keySet().size()+" stations, "+getAllChannels().size()+" all channels.";
+		return domains.keySet().size()+" stations, "+getAllChannels().size()+" all channels";
 	}
 	
 	/**
