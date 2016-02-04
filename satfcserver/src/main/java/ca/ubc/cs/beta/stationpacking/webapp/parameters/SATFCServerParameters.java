@@ -53,7 +53,7 @@ public class SATFCServerParameters extends AbstractOptions {
 
     @Parameter(names = "--skipUNSAT", description = "Do not load UNSAT entries from redis")
     @Getter
-    private boolean skipUNSAT = true;
+    private boolean skipUNSAT = false;
 
     @Parameter(names = "--excludeSameAuction", description = "Do not count a solution if it is derived from the same auction as the problem", hidden = true)
     @Getter
