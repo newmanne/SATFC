@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.Data;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -85,6 +86,13 @@ public class RedisCacher {
 
     private interface RedisCacheEntryToContainmentCacheEntryConverter<T> {
         T convert(Map<String, byte[]> redisCacheEntry, String key, ImmutableBiMap<Station, Integer> permutation, StringRedisSerializer s);
+
+        static BitSet parseBitSet(byte[] bytes) {
+            // Need to change the endian-ness of the bytes to use the BitSet.valueOf function properly
+            final ByteBuffer wrappedBytes = ByteBuffer.wrap(bytes);
+            wrappedBytes.order(ByteOrder.LITTLE_ENDIAN);
+            return BitSet.valueOf(wrappedBytes);
+        }
     }
 
     public static final String ASSIGNMENT_KEY = "assignment";
@@ -92,26 +100,41 @@ public class RedisCacher {
     public static final String NAME_KEY = "name";
     public static final String DOMAINS_KEY = "domains";
     private static final Set<String> SAT_REQUIRED_KEYS = Sets.newHashSet(ASSIGNMENT_KEY, BITSET_KEY);
+    private static final Set<String> UNSAT_REQUIRED_KEYS = Sets.newHashSet(DOMAINS_KEY, BITSET_KEY);
 
     private final static RedisCacheEntryToContainmentCacheEntryConverter<ContainmentCacheSATEntry> SATCacheConverter = (entry, key, permutation, s) -> {
         if (!entry.keySet().containsAll(SAT_REQUIRED_KEYS)) {
             throw new IllegalArgumentException("Entry does not contain required keys " + SAT_REQUIRED_KEYS + ". Only have keys " + entry.keySet());
         }
-        // Need to change the endian-ness of the bytes to use the BitSet.valueOf function properly
-        final ByteBuffer wrappedBytes = ByteBuffer.wrap(entry.get(BITSET_KEY));
-        wrappedBytes.order(ByteOrder.LITTLE_ENDIAN);
-        final BitSet bitSet = BitSet.valueOf(wrappedBytes);
+        final BitSet bitSet = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(BITSET_KEY));
         final byte[] channels = entry.get(ASSIGNMENT_KEY);
-        return new ContainmentCacheSATEntry(bitSet, channels, key, permutation, s.deserialize(entry.get(NAME_KEY)));
+        final String name = s.deserialize(entry.get(NAME_KEY));
+        final String auction = StationPackingUtils.parseAuctionFromName(name);
+        return new ContainmentCacheSATEntry(bitSet, channels, key, permutation, auction);
     };
 
-    public String cacheSATResult(CacheCoordinate coordinate, ContainmentCacheSATEntry entry, String name) {
+    private final static RedisCacheEntryToContainmentCacheEntryConverter<ContainmentCacheUNSATEntry> UNSATCacheConverter = (entry, key, permutation, s) -> {
+        if (!entry.keySet().containsAll(UNSAT_REQUIRED_KEYS)) {
+            throw new IllegalArgumentException("Entry does not contain required keys " + UNSAT_REQUIRED_KEYS + ". Only have keys " + entry.keySet());
+        }
+        final BitSet bitSet = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(BITSET_KEY));
+        final BitSet domains = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(DOMAINS_KEY));
+        final String name = s.deserialize(entry.get(NAME_KEY));
+        final String auction = StationPackingUtils.parseAuctionFromName(name);
+        return new ContainmentCacheUNSATEntry(bitSet, domains, key, permutation, auction);
+    };
+
+    public <T extends ISATFCCacheEntry> String cacheResult(CacheCoordinate coordinate, T entry, String name) {
         final long newID = redisTemplate.boundValueOps(HASH_NUM).increment(1);
         final String key = coordinate.toKey(SATResult.SAT, newID);
         final byte[] keyBytes = stringRedisSerializer.serialize(key);
         final Transaction multi = binaryJedis.multi();
             multi.hset(keyBytes, stringRedisSerializer.serialize(BITSET_KEY), entry.getBitSet().toByteArray());
-            multi.hset(keyBytes, stringRedisSerializer.serialize(ASSIGNMENT_KEY), entry.getChannels());
+            if (entry instanceof ContainmentCacheSATEntry) {
+                multi.hset(keyBytes, stringRedisSerializer.serialize(ASSIGNMENT_KEY), ((ContainmentCacheSATEntry) entry).getChannels());
+            } else if (entry instanceof ContainmentCacheUNSATEntry) {
+                multi.hset(keyBytes, stringRedisSerializer.serialize(DOMAINS_KEY), ((ContainmentCacheUNSATEntry) entry).getDomainsBitSet().toByteArray());
+            }
             if (name != null) {
                 multi.hset(keyBytes, stringRedisSerializer.serialize(NAME_KEY), stringRedisSerializer.serialize(name));
             }
@@ -121,26 +144,6 @@ public class RedisCacher {
         }
         return key;
     }
-
-    public String cacheUNSATResult(CacheCoordinate coordinate, ContainmentCacheUNSATEntry entry, String name) {
-        throw new IllegalStateException("NOT IMPLEMENTED");
-//        final long newID = redisTemplate.boundValueOps(HASH_NUM).increment(1);
-//        final String key = coordinate.toKey(SATResult.SAT, newID);
-//        final byte[] keyBytes = stringRedisSerializer.serialize(key);
-//        final Transaction multi = binaryJedis.multi();
-//        multi.hset(keyBytes, stringRedisSerializer.serialize(BITSET_KEY), entry.getBitSet().toByteArray());
-//        //                hash.put(DOMAINS_KEY, null);
-//        if (name != null) {
-//            multi.hset(keyBytes, stringRedisSerializer.serialize(NAME_KEY), stringRedisSerializer.serialize(name));
-//        }
-//        multi.exec();
-//        if (name != null) {
-//            log.info("Adding result for {} to cache with key {]", name, key);
-//        }
-//        return key;
-    }
-
-    private final static RedisCacheEntryToContainmentCacheEntryConverter<ContainmentCacheUNSATEntry> UNSATCacheConverter = (entry, key, permutation, s) -> null;
 
     public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, SATResult entryTypeName, RedisCacheEntryToContainmentCacheEntryConverter<CONTAINMENT_CACHE_ENTRY> redisCacheEntryToContainmentCacheEntryConverter, int partitionSize) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();

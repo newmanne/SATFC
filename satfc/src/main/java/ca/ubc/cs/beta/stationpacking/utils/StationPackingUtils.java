@@ -28,7 +28,10 @@ import java.util.Map;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import com.google.common.base.Splitter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class StationPackingUtils {
 
     private StationPackingUtils()
@@ -50,4 +53,15 @@ public class StationPackingUtils {
         });
         return stationToChannel;
     }
+
+    public static String parseAuctionFromName(String name) {
+        if (name != null) {
+            try {
+                return Splitter.on('_').splitToList(name).get(0);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
 }

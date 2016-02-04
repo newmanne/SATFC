@@ -158,25 +158,25 @@ public class SATFCServerApplication {
     }
 
     @Bean
-    public ICacheScreener cacheScreener() {
-        final ICacheScreener screener;
+    public ICacheEntryFilter cacheScreener() {
+        final ICacheEntryFilter screener;
         final SATFCServerParameters parameters = satfcServerParameters();
         switch (parameters.getCacheScreenerChoice()) {
             case NEW_INFO:
-                screener = new ICacheScreener.NewInfoScreener(containmentCacheLocator());
+                screener = new ICacheEntryFilter.NewInfoEntryFilter(containmentCacheLocator());
                 break;
             case ADD_EVERYTHING:
-                screener = new ICacheScreener() {
+                screener = new ICacheEntryFilter() {
                     @Override
-                    public boolean screen(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
+                    public boolean shouldCache(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
                         return true;
                     }
                 };
                 break;
             case ADD_NOTHING:
-                screener = new ICacheScreener() {
+                screener = new ICacheEntryFilter() {
                     @Override
-                    public boolean screen(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
+                    public boolean shouldCache(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
                         return false;
                     }
                 };

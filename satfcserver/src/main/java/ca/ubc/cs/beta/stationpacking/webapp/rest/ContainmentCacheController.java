@@ -28,10 +28,9 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
-import ca.ubc.cs.beta.stationpacking.cache.ICacheScreener;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheEntryFilter;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.webapp.SATFCServerApplication;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
 import lombok.extern.slf4j.Slf4j;
 
@@ -78,7 +77,7 @@ public class ContainmentCacheController {
     SATFCServerParameters parameters;
 
     @Autowired
-    ICacheScreener screener;
+    ICacheEntryFilter cacheEntryFilter;
 
     // Metrics
     @Autowired
@@ -197,18 +196,18 @@ public class ContainmentCacheController {
         final SolverResult result = request.getResult();
         final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
 
-        if (screener.screen(request.getCoordinate(), instance, result)) {
+        if (cacheEntryFilter.shouldCache(request.getCoordinate(), instance, result)) {
             final String key;
             if (result.getResult().equals(SATResult.SAT)) {
                 final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(result.getAssignment(), cache.getPermutation());
-                key = cacher.cacheSATResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
                 entry.setKey(key);
                 cache.add(entry);
                 lastCachedAssignment = request.getResult().getAssignment();
             } else if (result.getResult().equals(SATResult.UNSAT)) {
                 final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(instance.getDomains(), cache.getPermutation());
                 cache.add(entry);
-                key = cacher.cacheUNSATResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
                 entry.setKey(key);
             } else {
                 throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");

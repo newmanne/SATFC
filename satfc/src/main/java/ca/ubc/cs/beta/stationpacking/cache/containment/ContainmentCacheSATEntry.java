@@ -82,23 +82,13 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
             @NonNull byte[] channels,
             @NonNull String key,
             @NonNull BiMap<Station, Integer> permutation,
-                     String name
+                     String auction
     ) {
         this.permutation = ImmutableBiMap.copyOf(permutation);
         this.key = key;
         this.bitSet = bitSet;
         this.channels = channels;
-        parseAuction(name);
-    }
-
-    private void parseAuction(String name) {
-        if (name != null) {
-            try {
-                this.auction = Splitter.on('_').splitToList(name).get(0);
-            } catch (Exception ignored) {
-                log.trace("Format incorrect for name to parse out auction. Skipping");
-            }
-        }
+        this.auction = auction;
     }
 
     // aInstance is already known to be a subset of this entry
@@ -142,7 +132,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
      */
     public boolean hasMoreSolvingPower(ContainmentCacheSATEntry cacheEntry) {
         // skip checking against itself
-        if (!this.getKey().equals(cacheEntry.getKey())) {
+        if (this != cacheEntry) {
             final Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
             final Map<Integer, Set<Station>> superset = getAssignmentChannelToStation();
             if (superset.keySet().containsAll(subset.keySet())) {
