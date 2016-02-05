@@ -31,7 +31,7 @@ public class SatisfiabilityCacheTest {
         final SatisfiabilityCacheFactory factory = new SatisfiabilityCacheFactory(3, 0);
         final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(UNIVERSE);
         final ISatisfiabilityCache satisfiabilityCache = factory.create(permutation);
-        satisfiabilityCache.add(new ContainmentCacheSATEntry(ImmutableMap.of(1, UNIVERSE), "", permutation));
+        satisfiabilityCache.add(new ContainmentCacheSATEntry(ImmutableMap.of(1, UNIVERSE), permutation));
 
         // Expected superset
         final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1)));
@@ -50,15 +50,15 @@ public class SatisfiabilityCacheTest {
         final SatisfiabilityCacheFactory factory = new SatisfiabilityCacheFactory(3, 0);
         final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(UNIVERSE);
         final ISatisfiabilityCache satisfiabilityCache = factory.create(permutation);
-        satisfiabilityCache.add(new ContainmentCacheUNSATEntry(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1)), "", permutation));
+        satisfiabilityCache.add(new ContainmentCacheUNSATEntry(ImmutableMap.of(s1, Sets.newHashSet(15), s2, Sets.newHashSet(15)), permutation));
 
         // Expected subset
-        final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(1), s2, Sets.newHashSet(1), s3, Sets.newHashSet(1)));
+        final StationPackingInstance instance = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(15), s2, Sets.newHashSet(15), s3, Sets.newHashSet(15)));
         final ContainmentCacheUNSATResult result = satisfiabilityCache.proveUNSATBySubset(instance);
         assertTrue(result.isValid());
 
         // No expected subset
-        final StationPackingInstance instance2 = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(1)));
+        final StationPackingInstance instance2 = new StationPackingInstance(ImmutableMap.of(s1, Sets.newHashSet(15)));
         final ContainmentCacheUNSATResult result2 = satisfiabilityCache.proveUNSATBySubset(instance2);
         assertFalse(result2.isValid());
     }

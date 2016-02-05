@@ -111,9 +111,9 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
                 throw new IllegalStateException(folder.getAbsolutePath() + " is not a valid station configuration folder (missing Domain or Interference files?)", e);
             }
         });
-
+        cacher.setCoordinateToPermutation(coordinateToPermutation);
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), coordinateToPermutation, parameters.getAcceptRegex(), parameters.isSkipSAT(), parameters.isSkipUNSAT());
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), parameters.isSkipSAT(), parameters.isSkipUNSAT());
         coordinateToBundle.keySet().forEach(cacheCoordinate -> {
             final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
             log.info("Cache created for coordinate " + cacheCoordinate);

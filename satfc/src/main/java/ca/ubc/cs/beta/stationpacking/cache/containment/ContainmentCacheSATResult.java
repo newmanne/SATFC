@@ -35,19 +35,22 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 * Created by newmanne on 25/03/15.
 */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class ContainmentCacheSATResult {
+
+    public ContainmentCacheSATResult() {
+        valid = false;
+    }
+
+    public ContainmentCacheSATResult(Map<Integer, Set<Station>> result, String key) {
+        this.key = key;
+        this.result = result;
+        this.valid = true;
+    }
 
     private Map<Integer, Set<Station>> result;
     // the redis key of the problem whose solution "solves" this problem
     private String key;
-
-    /** true if a solution was found */
-    @JsonIgnore
-    public boolean isValid() {
-        return result != null && key != null;
-    }
+    private boolean valid;
 
     // return an empty or failed result, that represents an error or that the problem was not solvable via the cache
     public static ContainmentCacheSATResult failure() {

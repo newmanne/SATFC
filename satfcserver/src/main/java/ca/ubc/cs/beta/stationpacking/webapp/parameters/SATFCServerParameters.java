@@ -53,11 +53,19 @@ public class SATFCServerParameters extends AbstractOptions {
 
     @Parameter(names = "--skipUNSAT", description = "Do not load UNSAT entries from redis")
     @Getter
-    private boolean skipUNSAT = true;
+    private boolean skipUNSAT = false;
 
     @Parameter(names = "--excludeSameAuction", description = "Do not count a solution if it is derived from the same auction as the problem", hidden = true)
     @Getter
     private boolean excludeSameAuction = false;
+
+    @Parameter(names = "--cache.screener", description = "Determine what goes into the cache", hidden = true)
+    @Getter
+    private CACHE_SCREENER_CHOICE cacheScreenerChoice = CACHE_SCREENER_CHOICE.NEW_INFO;
+
+    public enum CACHE_SCREENER_CHOICE {
+        NEW_INFO, ADD_EVERYTHING, ADD_NOTHING
+    }
 
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);

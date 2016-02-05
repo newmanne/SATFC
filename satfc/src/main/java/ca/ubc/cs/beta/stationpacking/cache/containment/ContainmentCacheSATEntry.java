@@ -25,9 +25,14 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
+import com.google.common.base.Splitter;
+import com.google.common.collect.*;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -35,32 +40,30 @@ import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimaps;
-
 import containmentcache.ICacheEntry;
+import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 25/03/15.
 */
+@Slf4j
 @Data
-public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
-    
+public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCacheEntry {
+
 	private final byte[] channels;
     private final BitSet bitSet;
     private final ImmutableBiMap<Station, Integer> permutation;
-    private final String key;
+    private String key;
     private String auction;
 
+    // warning: watch out for type erasure on these constructors....
+
+    // Construct from a result
     public ContainmentCacheSATEntry(
-    		@NonNull Map<Integer, Set<Station>> answer, 
-    		@NonNull String key, 
-    		@NonNull BiMap<Station, Integer> permutation) {
-    	this.permutation = ImmutableBiMap.copyOf(permutation);
-    	this.key = key;
+            @NonNull Map<Integer, Set<Station>> answer,
+            @NonNull BiMap<Station, Integer> permutation
+    ) {
+        this.permutation = ImmutableBiMap.copyOf(permutation);
         this.bitSet = CacheUtils.toBitSet(answer, permutation);
         final Map<Station, Integer> stationToChannel = StationPackingUtils.stationToChannelFromChannelToStation(answer);
         final int numStations = this.bitSet.cardinality();
@@ -73,16 +76,18 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
         }
     }
 
+    // construct from Redis cache entry
     public ContainmentCacheSATEntry(
-            Map<Integer, Set<Station>> answer,
-            String key,
-            BiMap<Station, Integer> permutation,
-            String auction
+            @NonNull BitSet bitSet,
+            @NonNull byte[] channels,
+            @NonNull String key,
+            @NonNull BiMap<Station, Integer> permutation,
+                     String auction
     ) {
-        this(answer, key, permutation);
-        if (auction == null) {
-            throw new IllegalArgumentException("auction for key " + key + " is null");
-        }
+        this.permutation = ImmutableBiMap.copyOf(permutation);
+        this.key = key;
+        this.bitSet = bitSet;
+        this.channels = channels;
         this.auction = auction;
     }
 
@@ -127,7 +132,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station> {
      */
     public boolean hasMoreSolvingPower(ContainmentCacheSATEntry cacheEntry) {
         // skip checking against itself
-        if (!this.getKey().equals(cacheEntry.getKey())) {
+        if (this != cacheEntry) {
             final Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
             final Map<Integer, Set<Station>> superset = getAssignmentChannelToStation();
             if (superset.keySet().containsAll(subset.keySet())) {

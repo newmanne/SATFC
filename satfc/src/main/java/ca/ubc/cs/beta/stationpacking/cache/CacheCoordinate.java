@@ -53,9 +53,9 @@ public class CacheCoordinate {
     }
 
     // create a redis key from a coordinate, a result, and an instance
-    public String toKey(SATResult result, StationPackingInstance instance) {
+    public String toKey(SATResult result, long num) {
         Preconditions.checkArgument(result.equals(SATResult.SAT) || result.equals(SATResult.UNSAT));
-        return Joiner.on(":").join(ImmutableList.of("SATFC", result, domainHash, interferenceHash, StationPackingInstanceHasher.hash(instance)));
+        return Joiner.on(":").join(ImmutableList.of("SATFC", result, domainHash, interferenceHash, num));
     }
 
 }
