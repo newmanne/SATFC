@@ -86,13 +86,6 @@ public class RedisCacher {
 
     private interface RedisCacheEntryToContainmentCacheEntryConverter<T> {
         T convert(Map<String, byte[]> redisCacheEntry, String key, ImmutableBiMap<Station, Integer> permutation, StringRedisSerializer s);
-
-        static BitSet parseBitSet(byte[] bytes) {
-            // Need to change the endian-ness of the bytes to use the BitSet.valueOf function properly
-            final ByteBuffer wrappedBytes = ByteBuffer.wrap(bytes);
-            wrappedBytes.order(ByteOrder.LITTLE_ENDIAN);
-            return BitSet.valueOf(wrappedBytes);
-        }
     }
 
     public static final String ASSIGNMENT_KEY = "assignment";
@@ -106,7 +99,7 @@ public class RedisCacher {
         if (!entry.keySet().containsAll(SAT_REQUIRED_KEYS)) {
             throw new IllegalArgumentException("Entry does not contain required keys " + SAT_REQUIRED_KEYS + ". Only have keys " + entry.keySet());
         }
-        final BitSet bitSet = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(BITSET_KEY));
+        final BitSet bitSet = BitSet.valueOf(entry.get(BITSET_KEY));
         final byte[] channels = entry.get(ASSIGNMENT_KEY);
         final String name = s.deserialize(entry.get(NAME_KEY));
         final String auction = StationPackingUtils.parseAuctionFromName(name);
@@ -117,8 +110,8 @@ public class RedisCacher {
         if (!entry.keySet().containsAll(UNSAT_REQUIRED_KEYS)) {
             throw new IllegalArgumentException("Entry does not contain required keys " + UNSAT_REQUIRED_KEYS + ". Only have keys " + entry.keySet());
         }
-        final BitSet bitSet = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(BITSET_KEY));
-        final BitSet domains = RedisCacheEntryToContainmentCacheEntryConverter.parseBitSet(entry.get(DOMAINS_KEY));
+        final BitSet bitSet = BitSet.valueOf(entry.get(BITSET_KEY));
+        final BitSet domains = BitSet.valueOf(entry.get(DOMAINS_KEY));
         final String name = s.deserialize(entry.get(NAME_KEY));
         final String auction = StationPackingUtils.parseAuctionFromName(name);
         return new ContainmentCacheUNSATEntry(bitSet, domains, key, permutation, auction);

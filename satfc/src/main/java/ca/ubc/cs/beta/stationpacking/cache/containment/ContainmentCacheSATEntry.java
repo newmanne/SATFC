@@ -121,7 +121,15 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
     @Override
     public Set<Station> getElements() {
         final Map<Integer, Station> inversePermutation = permutation.inverse();
-        return bitSet.stream().mapToObj(inversePermutation::get).collect(GuavaCollectors.toImmutableSet());
+        final ImmutableSet.Builder<Station> builder = ImmutableSet.builder();
+        for (int bit = bitSet.nextSetBit(0); bit >= 0; bit = bitSet.nextSetBit(bit+1)) {
+            final Station station = inversePermutation.get(bit);
+            if (station == null) {
+                throw new IllegalStateException("Bit " + bit + " is set, but inverse permutation does not contain it!\n" + inversePermutation);
+            }
+            builder.add(station);
+        }
+        return builder.build();
     }
 
     /*
