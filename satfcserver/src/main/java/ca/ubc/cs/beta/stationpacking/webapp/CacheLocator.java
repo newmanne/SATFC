@@ -85,37 +85,14 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         final RedisCacher cacher = context.getBean(RedisCacher.class);
         final DataManager dataManager = context.getBean(DataManager.class);
 
-        final Map<CacheCoordinate, ManagerBundle> coordinateToBundle = new HashMap<>();
-        final Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation = new HashMap<>();
-
         // Set up the data manager
         final String constraintFolder = parameters.getConstraintFolder();
+        dataManager.loadMultipleConstraintSets(constraintFolder);
 
-        log.info("Looking in {} for station configuration folders", constraintFolder);
-        final File[] stationConfigurationFolders = new File(constraintFolder).listFiles(File::isDirectory);
-        log.info("Found {} station configuration folders", stationConfigurationFolders.length);
-        Arrays.stream(stationConfigurationFolders).forEach(folder -> {
-            try {
-                final String path = folder.getAbsolutePath();
-                log.info("Adding data for station configuration folder {}", path);
-                dataManager.addData(folder.getAbsolutePath());
-                // add cache coordinate to map
-                final ManagerBundle bundle = dataManager.getData(folder.getAbsolutePath());
-                log.info("Folder {} corresponds to coordinate {}", folder.getAbsolutePath(), bundle.getCacheCoordinate());
-                coordinateToBundle.put(bundle.getCacheCoordinate(), bundle);
-
-                final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(bundle.getStationManager().getStations());
-                coordinateToPermutation.put(bundle.getCacheCoordinate(), permutation);
-
-            } catch (FileNotFoundException e) {
-                throw new IllegalStateException(folder.getAbsolutePath() + " is not a valid station configuration folder (missing Domain or Interference files?)", e);
-            }
-        });
-        cacher.setCoordinateToPermutation(coordinateToPermutation);
         log.info("Beginning to init caches");
         final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), parameters.isSkipSAT(), parameters.isSkipUNSAT());
-        coordinateToBundle.keySet().forEach(cacheCoordinate -> {
-            final ISatisfiabilityCache cache = cacheFactory.create(coordinateToPermutation.get(cacheCoordinate));
+        dataManager.getCoordinateToBundle().keySet().forEach(cacheCoordinate -> {
+            final ISatisfiabilityCache cache = cacheFactory.create(dataManager.getData(cacheCoordinate).getPermutation());
             log.info("Cache created for coordinate " + cacheCoordinate);
             caches.put(cacheCoordinate, cache);
             if (containmentCacheInitData.getCaches().contains(cacheCoordinate)) {

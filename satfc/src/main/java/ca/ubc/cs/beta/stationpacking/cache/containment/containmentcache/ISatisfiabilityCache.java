@@ -23,6 +23,7 @@ package ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -30,6 +31,7 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import com.google.common.collect.ImmutableBiMap;
 
@@ -38,9 +40,9 @@ import com.google.common.collect.ImmutableBiMap;
  */
 public interface ISatisfiabilityCache {
 
-    ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance, final String ignoreAuction);
+    ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance, final Predicate<ContainmentCacheSATEntry> filterPredicate);
     default ContainmentCacheSATResult proveSATBySuperset(final StationPackingInstance aInstance) {
-        return proveSATBySuperset(aInstance, null);
+        return proveSATBySuperset(aInstance, unused -> true);
     }
 
     ContainmentCacheUNSATResult proveUNSATBySubset(final StationPackingInstance aInstance);
@@ -54,7 +56,7 @@ public interface ISatisfiabilityCache {
         UNSATEntries.forEach(this::add);
     }
 
-    List<ContainmentCacheSATEntry> filterSAT();
+    List<ContainmentCacheSATEntry> filterSAT(IStationManager stationManager);
     List<ContainmentCacheUNSATEntry> filterUNSAT();
 
     List<ContainmentCacheSATEntry> findMaxIntersections(final StationPackingInstance instance, int k);

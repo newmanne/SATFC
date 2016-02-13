@@ -117,7 +117,7 @@ public class SATFCServerApplication {
 
     @Bean
     RedisCacher cacher() {
-        return new RedisCacher(redisTemplate(), binaryJedis());
+        return new RedisCacher(dataManager(), redisTemplate(), binaryJedis());
     }
 
     @Bean

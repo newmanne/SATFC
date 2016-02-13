@@ -209,7 +209,7 @@ public class StationPackingInstance {
 	}
 
     public boolean hasName() {
-        return getName().equals(UNTITLED);
+        return !getName().equals(UNTITLED);
     }
 
     public String getAuction() {

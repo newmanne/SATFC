@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 
 import ca.ubc.cs.beta.stationpacking.cache.ICacheEntryFilter;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
@@ -78,6 +79,9 @@ public class ContainmentCacheController {
 
     @Autowired
     ICacheEntryFilter cacheEntryFilter;
+
+    @Autowired
+    DataManager dataManager;
 
     // Metrics
     @Autowired
@@ -144,7 +148,12 @@ public class ContainmentCacheController {
             final ContainmentCacheSATResult containmentCacheSATResult;
             if (parameters.isExcludeSameAuction()) {
                 final String auction = instance.getAuction();
-                containmentCacheSATResult = cache.proveSATBySuperset(instance, auction);
+                containmentCacheSATResult = cache.proveSATBySuperset(instance, c -> {
+                    if (c.getAuction() != null && auction != null) {
+                        return !c.getAuction().equals(auction);
+                    }
+                    return true;
+                });
             } else {
                 containmentCacheSATResult = cache.proveSATBySuperset(instance);
             }
@@ -227,7 +236,7 @@ public class ContainmentCacheController {
     	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
             log.info("Finding SAT entries to be filted at cacheCoordinate {}", cacheCoordinate);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
-            List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT();
+            List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT(dataManager.getData(cacheCoordinate).getStationManager());
             log.info("Pruning {} SAT entries from Redis", SATPrunables.size() );
             cacher.deleteSATCollection(SATPrunables);
 

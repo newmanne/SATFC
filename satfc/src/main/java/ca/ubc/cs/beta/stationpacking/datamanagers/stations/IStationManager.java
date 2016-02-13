@@ -36,7 +36,7 @@ public interface IStationManager {
 	/**
 	 * @return - all the stations represented by the station manager.
 	 */
-	public Set<Station> getStations();
+	Set<Station> getStations();
 	
 	/**
 	 * 
@@ -44,20 +44,26 @@ public interface IStationManager {
 	 * @return the station for the particular ID.
 	 * @throws IllegalArgumentException - if the provided ID cannot be found in the stations.
 	 */
-	public Station getStationfromID(Integer aID) throws IllegalArgumentException;
+	Station getStationfromID(Integer aID) throws IllegalArgumentException;
 	
 	/**
 	 * @param aStation - a station.
 	 * @return the channels on which this station can be packed.
 	 */
-	public Set<Integer> getDomain(Station aStation);
+	Set<Integer> getDomain(Station aStation);
+
+	default Set<Integer> getRestrictedDomain(Station station, int maxChannel) {
+		final Set<Integer> domain = getDomain(station);
+		domain.removeIf(chan -> chan > maxChannel);
+		return domain;
+	}
 	
 	/**
 	 * 
 	 * @param aIDs - a collection of station IDs.
 	 * @return the set of stations with provided IDs.
 	 */
-	public Set<Station> getStationsfromID(Collection<Integer> aIDs);
+	Set<Station> getStationsfromID(Collection<Integer> aIDs);
 
 	/**
 	 * @return a hash of the domain

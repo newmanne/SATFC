@@ -29,6 +29,7 @@ import java.util.Set;
 
 import lombok.Data;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -48,6 +49,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IBijection;
  *
  * @author afrechet
  */
+@Slf4j
 public class SATEncoder implements ISATEncoder {
 
     private final IConstraintManager constraintManager;
@@ -189,6 +191,11 @@ public class SATEncoder implements ISATEncoder {
             clause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getSource().getID(), constraint.getSourceChannel())), false));
             clause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getTarget().getID(), constraint.getTargetChannel())), false));
             cnf.add(clause);
+
+            if (constraint.getSourceChannel() == 14 && constraint.getTargetChannel() == 14 && (constraint.getSource().getID() == 1000301 || constraint.getSource().getID() == 1000321) && (constraint.getTarget().getID() == 1000301 || constraint.getTarget().getID() == 1000321)) {
+                log.info("{}", clause);
+                log.info("Source is {} maps to {} and sink is {} maps to {}", constraint.getSource().getID(), bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getSource().getID(), constraint.getSourceChannel())), constraint.getTarget().getID(), bijection.map(SATEncoderUtils.SzudzikElegantPairing(constraint.getTarget().getID(), constraint.getTargetChannel())));
+            }
         });
 
         return cnf;

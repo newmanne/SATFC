@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.Data;
@@ -73,13 +74,13 @@ public class RedisCacher {
     private final static int UNSAT_PIPELINE_SIZE = 2500;
     public static final String HASH_NUM = "SATFC:HASHNUM";
 
+    private final DataManager dataManager;
     private final StringRedisTemplate redisTemplate;
     private final BinaryJedis binaryJedis;
     private final StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
-    @Setter
-    private Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation;
 
-    public RedisCacher(StringRedisTemplate redisTemplate, BinaryJedis binaryJedis) {
+    public RedisCacher(DataManager dataManager, StringRedisTemplate redisTemplate, BinaryJedis binaryJedis) {
+        this.dataManager = dataManager;
         this.redisTemplate = redisTemplate;
         this.binaryJedis = binaryJedis;
     }
@@ -138,7 +139,7 @@ public class RedisCacher {
         return key;
     }
 
-    public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, Map<CacheCoordinate, ImmutableBiMap<Station, Integer>> coordinateToPermutation, SATResult entryTypeName, RedisCacheEntryToContainmentCacheEntryConverter<CONTAINMENT_CACHE_ENTRY> redisCacheEntryToContainmentCacheEntryConverter, int partitionSize) {
+    public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, SATResult entryTypeName, RedisCacheEntryToContainmentCacheEntryConverter<CONTAINMENT_CACHE_ENTRY> redisCacheEntryToContainmentCacheEntryConverter, int partitionSize) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
         final AtomicInteger numProcessed = new AtomicInteger();
         Lists.partition(new ArrayList<>(keys), partitionSize).stream().forEach(keyChunk -> {
@@ -149,9 +150,9 @@ public class RedisCacher {
             for (String key : keyChunk) {
                 numProcessed.incrementAndGet();
                 final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
-                final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
+                final ImmutableBiMap<Station, Integer> permutation = dataManager.getData(coordinate).getPermutation();
                 if (permutation == null) {
-                    log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, coordinateToPermutation.keySet());
+                    log.warn("Skipping cache entry from key {}. Could not find a permutation known for coordinate {}. This probably means that the cache entry does not correspond to any known constraint folders ({})", key, coordinate, dataManager.getCoordinateToBundle().keySet());
                     continue;
                 }
                 orderedKeys.add(key);
@@ -162,11 +163,16 @@ public class RedisCacher {
             for (int i = 0; i < responses.size(); i++) {
                 final String key = orderedKeys.get(i);
                 final CacheCoordinate coordinate = CacheCoordinate.fromKey(key);
-                final ImmutableBiMap<Station, Integer> permutation = coordinateToPermutation.get(coordinate);
+                final ImmutableBiMap<Station, Integer> permutation = dataManager.getData(coordinate).getPermutation();
                 final Map<byte[], byte[]> answer = responses.get(i).get();
                 final Map<String, byte[]> stringKeyAnswer = answer.entrySet().stream().collect(Collectors.toMap(entry -> stringRedisSerializer.deserialize(entry.getKey()), Map.Entry::getValue));
-                final CONTAINMENT_CACHE_ENTRY cacheEntry = redisCacheEntryToContainmentCacheEntryConverter.convert(stringKeyAnswer, key, permutation, stringRedisSerializer);
-                results.put(coordinate, cacheEntry);
+                try {
+                    final CONTAINMENT_CACHE_ENTRY cacheEntry = redisCacheEntryToContainmentCacheEntryConverter.convert(stringKeyAnswer, key, permutation, stringRedisSerializer);
+                    results.put(coordinate, cacheEntry);
+                } catch (Exception e) {
+                    log.error("Error making cache entry for key {}", key);
+                }
+
             }
         });
         log.info("Finished processing {} {} entries", numProcessed, entryTypeName);
@@ -177,7 +183,6 @@ public class RedisCacher {
     }
 
     public ContainmentCacheInitData getContainmentCacheInitData(long limit, boolean skipSAT, boolean skipUNSAT) {
-        Preconditions.checkNotNull(coordinateToPermutation);
         log.info("Pulling precache data from redis");
         final Watch watch = Watch.constructAutoStartWatch();
 
@@ -195,14 +200,14 @@ public class RedisCacher {
         }
 
         // filter out coordinates we don't know about
-        SATKeys.removeIf(key -> !coordinateToPermutation.containsKey(CacheCoordinate.fromKey(key)));
-        UNSATKeys.removeIf(key -> !coordinateToPermutation.containsKey(CacheCoordinate.fromKey(key)));
+        SATKeys.removeIf(key -> !dataManager.getCoordinateToBundle().containsKey(CacheCoordinate.fromKey(key)));
+        UNSATKeys.removeIf(key -> !dataManager.getCoordinateToBundle().containsKey(CacheCoordinate.fromKey(key)));
 
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, coordinateToPermutation, SATResult.SAT, SATCacheConverter, SAT_PIPELINE_SIZE);
-        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, coordinateToPermutation, SATResult.UNSAT, UNSATCacheConverter, UNSAT_PIPELINE_SIZE);
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, SATResult.SAT, SATCacheConverter, SAT_PIPELINE_SIZE);
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, SATResult.UNSAT, UNSATCacheConverter, UNSAT_PIPELINE_SIZE);
 
         log.info("It took {}s to pull precache data from redis", watch.getElapsedTime());
         return new ContainmentCacheInitData(SATResults, UNSATResults);

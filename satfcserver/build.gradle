@@ -40,7 +40,25 @@ dependencies {
     testCompile "org.mockito:mockito-all:1.10.8"
 }
 
-// applicationDefaultJvmArgs = ['-Xms4g', '-Xmx8g']
+// Creates scripts for entry points
+// Subproject must apply application plugin to be able to call this method.
+def createScript(project, mainClass, name, jvmArgs) {
+    project.tasks.create(name: name, type: CreateStartScripts) {
+        outputDir = new File(project.buildDir, 'scripts')
+        mainClassName = mainClass
+        applicationName = name
+        classpath = project.tasks[JavaPlugin.JAR_TASK_NAME].outputs.files + project.configurations.runtime
+        applicationDefaultJvmArgs = jvmArgs
+    }
+    project.tasks[name].dependsOn(project.jar)
+    project.applicationDistribution.with {
+        into("bin") {
+            from(project.tasks[name])
+            fileMode = 0755
+        }
+    }
+}
+createScript(project, 'ca.ubc.cs.beta.stationpacking.cache.scripts.VerifyCache', 'CACHE_FILTER', ['-Xmx16g'])
 
 //Project properties.
 applicationName = 'SATFCServer'

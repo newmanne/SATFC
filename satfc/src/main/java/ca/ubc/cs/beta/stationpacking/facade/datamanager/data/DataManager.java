@@ -23,8 +23,13 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.data;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import com.google.common.base.Preconditions;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -49,6 +54,8 @@ public class DataManager {
 	public static String INTERFERENCES_FILE = "Interference_Paired.csv";
 
 	private HashMap<String, ManagerBundle> fData;
+	@Getter
+	private Map<CacheCoordinate, ManagerBundle> coordinateToBundle;
 
 	/**
 	 * Create a new (empty) data manager.
@@ -56,6 +63,25 @@ public class DataManager {
 	public DataManager()
 	{
 		fData = new HashMap<>();
+		coordinateToBundle = new HashMap<>();
+	}
+
+	public void loadMultipleConstraintSets(String constraintFolder) {
+		log.info("Looking in {} for station configuration folders", constraintFolder);
+		final File[] stationConfigurationFolders = new File(constraintFolder).listFiles(File::isDirectory);
+		log.info("Found {} station configuration folders", stationConfigurationFolders.length);
+		Arrays.stream(stationConfigurationFolders).forEach(folder -> {
+			try {
+				final String path = folder.getAbsolutePath();
+				log.info("Adding data for station configuration folder {}", path);
+				addData(folder.getAbsolutePath());
+				// add cache coordinate to map
+				final ManagerBundle bundle = getData(folder.getAbsolutePath());
+				log.info("Folder {} corresponds to coordinate {}", folder.getAbsolutePath(), bundle.getCacheCoordinate());
+			} catch (FileNotFoundException e) {
+				throw new IllegalStateException(folder.getAbsolutePath() + " is not a valid station configuration folder (missing Domain or Interference files?)", e);
+			}
+		});
 	}
 
 	/**
@@ -128,7 +154,9 @@ public class DataManager {
 				constraintManager = channelspecificConstraintManager;
 			}
 
-			fData.put(path, new ManagerBundle(stationManager, constraintManager, path));
+			final ManagerBundle managerBundle = new ManagerBundle(stationManager, constraintManager, path);
+			fData.put(path, managerBundle);
+			coordinateToBundle.put(managerBundle.getCacheCoordinate(), managerBundle);
 			return true;
 		}
 	}
@@ -148,6 +176,12 @@ public class DataManager {
 			addData(path);
 			bundle = fData.get(path);
 		}
+		return bundle;
+	}
+
+	public ManagerBundle getData(CacheCoordinate coordinate) {
+		ManagerBundle bundle = coordinateToBundle.get(coordinate);
+		Preconditions.checkNotNull(bundle, "Unknown coordinate %s, known coordinates %s", coordinate, coordinateToBundle.keySet());
 		return bundle;
 	}
 

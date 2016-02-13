@@ -99,6 +99,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
         final Watch watch = Watch.constructAutoStartWatch();
         final int seed = Math.abs(new Random(aSeed + fSeedOffset).nextInt());
         final String params = fParameters + " --seed=" + seed;
+        log.info(params);
         try {
             // create the problem - config params have already been validated in the constructor, so this should work
             Preconditions.checkState(currentProblemPointer == null, "Went to solve a new problem, but there is a problem in progress!");
@@ -108,6 +109,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
 
             problemIncrementor.scheduleTermination(aTerminationCriterion);
             currentProblemPointer = fClaspLibrary.initConfig(params);
+            log.info(aCNF.toDIMACS(null));
             fClaspLibrary.initProblem(currentProblemPointer, aCNF.toDIMACS(null));
 
             if (aTerminationCriterion.hasToStop()) {

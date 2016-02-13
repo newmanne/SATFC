@@ -29,15 +29,13 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
-import com.google.common.base.Splitter;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NonNull;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 import containmentcache.ICacheEntry;
@@ -88,18 +86,19 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
         this.key = key;
         this.bitSet = bitSet;
         this.channels = channels;
+        Preconditions.checkArgument(bitSet.cardinality() == channels.length, "Number of stations in bitset %s and size of assignment %s do not align! (KEY=%s)", bitSet.cardinality(), channels.length, key);
         this.auction = auction;
     }
 
     // aInstance is already known to be a subset of this entry
     public boolean isSolutionTo(StationPackingInstance aInstance) {
         final ImmutableMap<Station, Set<Integer>> domains = aInstance.getDomains();
-        final Map<Integer, Integer> stationToChannel = getAssignment();
+        final Map<Integer, Integer> stationToChannel = getAssignmentStationToChannel();
         return domains.entrySet().stream().allMatch(entry -> entry.getValue().contains(stationToChannel.get(entry.getKey().getID())));
     }
 
     public Map<Integer, Set<Station>> getAssignmentChannelToStation() {
-        final Map<Integer, Integer> stationToChannel = getAssignment();
+        final Map<Integer, Integer> stationToChannel = getAssignmentStationToChannel();
         final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
         stationToChannel.entrySet().forEach(entry -> {
             channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
@@ -107,7 +106,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
         return Multimaps.asMap(channelAssignment);
     }
 
-    public Map<Integer,Integer> getAssignment() {
+    public Map<Integer,Integer> getAssignmentStationToChannel() {
         final Map<Integer, Integer> stationToChannel = new HashMap<>();
         int j = 0;
         final Map<Integer, Station> inversePermutation = permutation.inverse();
@@ -141,12 +140,15 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
     public boolean hasMoreSolvingPower(ContainmentCacheSATEntry cacheEntry) {
         // skip checking against itself
         if (this != cacheEntry) {
-            final Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
-            final Map<Integer, Set<Station>> superset = getAssignmentChannelToStation();
-            if (superset.keySet().containsAll(subset.keySet())) {
-                return StreamSupport.stream(subset.keySet().spliterator(), false)
-                        .allMatch(channel -> superset.get(channel).containsAll(subset.get(channel)));
+            final Map<Integer, Integer> subset = cacheEntry.getAssignmentStationToChannel();
+            final Map<Integer, Integer> superset = getAssignmentStationToChannel();
+            // Check the overlapping stations: does the subset ever use lower channels?
+            for (int station : subset.keySet()) {
+                if (superset.get(station) > subset.get(station)) {
+                    return false;
+                }
             }
+            return true;
         }
         return false;
     }

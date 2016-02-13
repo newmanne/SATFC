@@ -21,6 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.data;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import com.google.common.collect.ImmutableBiMap;
+import containmentcache.util.PermutationUtils;
 import lombok.Getter;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
@@ -40,8 +43,10 @@ public class ManagerBundle {
 	private final String interferenceFolder;
 	@Getter
 	private CacheCoordinate cacheCoordinate;
+	@Getter
+	private final ImmutableBiMap<Station, Integer> permutation;
 
-    /**
+	/**
 	 * Creates a new bundle containing the given station and constraint manager.
 	 * @param stationManager station manager to be bundled.
 	 * @param constraintManager constraint manager to be bundled.
@@ -51,6 +56,7 @@ public class ManagerBundle {
 		this.constraintManager = constraintManager;
 		this.interferenceFolder = interferenceFolder;
 		cacheCoordinate = new CacheCoordinate(stationManager.getDomainHash(), constraintManager.getConstraintHash());
+		permutation = PermutationUtils.makePermutation(getStationManager().getStations());
 	}
 
     public boolean isCompactInterference() {
