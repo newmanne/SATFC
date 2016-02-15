@@ -22,11 +22,9 @@
 package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import org.jgrapht.graph.DefaultEdge;
@@ -93,9 +91,9 @@ public class ConstraintGraphNeighborhoodPresolver extends ASolverDecorator {
         final Watch watch = Watch.constructAutoStartWatch();
         final Set<Station> stationsWithNoPreviousAssignment = getStationsNotInPreviousAssignment(aInstance);
 
-        if (aInstance.getPreviousAssignment().isEmpty() || stationsWithNoPreviousAssignment.isEmpty() || !constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(aInstance.getPreviousAssignment().entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getID(), Map.Entry::getValue))))) {
+        if (aInstance.getPreviousAssignment().isEmpty() || stationsWithNoPreviousAssignment.isEmpty()) {
             // This can happen, for example, if the new station to be packed is underconstrained and that is run first
-            log.debug("Could not usefully use the previous assignment. Nothing to do here...");
+            log.debug("Could not identify a set of stations not present in the previous assignment, or else no previous assignment given. Nothing to do here...");
             return fDecoratedSolver.solve(aInstance, aTerminationCriterion, aSeed);
         }
 

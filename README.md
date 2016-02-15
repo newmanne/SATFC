@@ -19,6 +19,11 @@ Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The m
 
 Rough information about the evolution of **SATFC** through major releases.
 
+### SATFC 2.2 [15/2/2016]
+
+* Improve the memory usage of SATFCServer
+* Various bugfixes
+
 ### SATFC 2.0 [15/10/2015]
 
 * Introduce SATenstein, a local search based solver

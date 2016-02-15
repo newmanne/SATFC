@@ -7,6 +7,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -26,6 +27,7 @@ public class GenConstraintHashes {
     public final String folder = "/ubc/cs/research/arrow/satfc/instances/interference-data";
 
     @Test
+    @Ignore
     public void test() throws IOException {
         final Map<String, Map<String, String>> output = new HashMap<>();
         final DataManager dm = new DataManager();

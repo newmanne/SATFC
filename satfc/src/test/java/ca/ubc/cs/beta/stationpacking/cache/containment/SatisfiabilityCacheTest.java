@@ -101,9 +101,9 @@ public class SatisfiabilityCacheTest {
                 return "whocares";
             }
         };
-        List<ContainmentCacheSATEntry> containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager);
+        List<ContainmentCacheSATEntry> containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager, true);
         assertEquals(Iterables.getOnlyElement(containmentCacheSATEntries), c1);
-        containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager);
+        containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager, true);
         assertEquals(containmentCacheSATEntries.size(), 0);
     }
 

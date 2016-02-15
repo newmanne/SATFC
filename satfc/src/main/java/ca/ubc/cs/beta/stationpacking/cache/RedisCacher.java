@@ -128,7 +128,7 @@ public class RedisCacher {
 
     public <T extends ISATFCCacheEntry> String cacheResult(CacheCoordinate coordinate, T entry, String name) {
         final long newID = redisTemplate.boundValueOps(HASH_NUM).increment(1);
-        final String key = coordinate.toKey(SATResult.SAT, newID);
+        final String key = coordinate.toKey(entry.getResult(), newID);
         final byte[] keyBytes = stringRedisSerializer.serialize(key);
         final Transaction multi = binaryJedis.multi();
             multi.hset(keyBytes, stringRedisSerializer.serialize(BITSET_KEY), entry.getBitSet().toByteArray());

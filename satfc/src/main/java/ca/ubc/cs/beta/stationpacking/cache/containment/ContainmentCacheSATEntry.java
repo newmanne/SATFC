@@ -133,17 +133,13 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
      * SAT entry with same key is not considered as a superset
      */
     public boolean hasMoreSolvingPower(ContainmentCacheSATEntry cacheEntry) {
-        // skip checking against itself
         if (this != cacheEntry) {
-            final Map<Integer, Integer> subset = cacheEntry.getAssignmentStationToChannel();
-            final Map<Integer, Integer> superset = getAssignmentStationToChannel();
-            // Check the overlapping stations: does the subset ever use lower channels?
-            for (int station : subset.keySet()) {
-                if (superset.get(station) > subset.get(station)) {
-                    return false;
-                }
+            final Map<Integer, Set<Station>> subset = cacheEntry.getAssignmentChannelToStation();
+            final Map<Integer, Set<Station>> superset = getAssignmentChannelToStation();
+            if (superset.keySet().containsAll(subset.keySet())) {
+                return subset.keySet().stream()
+                        .allMatch(channel -> superset.get(channel).containsAll(subset.get(channel)));
             }
-            return true;
         }
         return false;
     }
