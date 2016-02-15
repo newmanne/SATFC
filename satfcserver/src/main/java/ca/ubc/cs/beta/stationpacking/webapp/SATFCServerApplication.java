@@ -28,9 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.servlet.Filter;
 
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.*;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +40,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.ReflectionUtils;
 
 import redis.clients.jedis.BinaryJedis;
@@ -62,6 +61,7 @@ import com.google.common.collect.Lists;
  * Created by newmanne on 23/03/15.
  */
 @Slf4j
+@EnableScheduling
 @SpringBootApplication
 public class SATFCServerApplication {
 
@@ -163,23 +163,13 @@ public class SATFCServerApplication {
         final SATFCServerParameters parameters = satfcServerParameters();
         switch (parameters.getCacheScreenerChoice()) {
             case NEW_INFO:
-                screener = new ICacheEntryFilter.NewInfoEntryFilter(containmentCacheLocator());
+                screener = new NewInfoEntryFilter(containmentCacheLocator());
                 break;
             case ADD_EVERYTHING:
-                screener = new ICacheEntryFilter() {
-                    @Override
-                    public boolean shouldCache(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
-                        return true;
-                    }
-                };
+                screener = (coordinate, instance, result) -> true;
                 break;
             case ADD_NOTHING:
-                screener = new ICacheEntryFilter() {
-                    @Override
-                    public boolean shouldCache(CacheCoordinate coordinate, StationPackingInstance instance, SolverResult result) {
-                        return false;
-                    }
-                };
+                screener = (coordinate, instance, result) -> false;
                 break;
             default:
                 throw new IllegalStateException("Unrecognized value for " + parameters.getCacheScreenerChoice());

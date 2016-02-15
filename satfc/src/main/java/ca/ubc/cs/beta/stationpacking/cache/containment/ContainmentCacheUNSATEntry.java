@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 import com.google.common.base.Preconditions;
@@ -140,4 +141,8 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCC
         return false;
     }
 
+    @Override
+    public SATResult getResult() {
+        return SATResult.UNSAT;
+    }
 }

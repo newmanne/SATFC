@@ -4,8 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import com.google.common.collect.Iterables;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -19,6 +23,7 @@ import com.google.common.collect.Sets;
 
 import containmentcache.util.PermutationUtils;
 
+@Slf4j
 public class SatisfiabilityCacheTest {
 
     final Station s1 = new Station(1);
@@ -62,4 +67,44 @@ public class SatisfiabilityCacheTest {
         final ContainmentCacheUNSATResult result2 = satisfiabilityCache.proveUNSATBySubset(instance2);
         assertFalse(result2.isValid());
     }
+
+    @Test
+    public void testFilterSAT() throws Exception {
+        final SatisfiabilityCacheFactory factory = new SatisfiabilityCacheFactory(1, 0);
+        final ImmutableBiMap<Station, Integer> permutation = PermutationUtils.makePermutation(UNIVERSE);
+        final ISatisfiabilityCache satisfiabilityCache = factory.create(permutation);
+        final ContainmentCacheSATEntry c1 = new ContainmentCacheSATEntry(ImmutableMap.of(2, Sets.newHashSet(s1), 3, Sets.newHashSet(s2)), permutation);
+        final ContainmentCacheSATEntry c2 = new ContainmentCacheSATEntry(ImmutableMap.of(1, UNIVERSE), permutation);
+        c1.setKey("k1");
+        c2.setKey("k2");
+        satisfiabilityCache.add(c1);
+        satisfiabilityCache.add(c2);
+        final IStationManager stationManager = new IStationManager() {
+
+            @Override
+            public Set<Station> getStations() {
+                return UNIVERSE;
+            }
+
+            @Override
+            public Station getStationfromID(Integer aID) throws IllegalArgumentException {
+                return new Station(aID);
+            }
+
+            @Override
+            public Set<Integer> getDomain(Station aStation) {
+                return Sets.newHashSet(1,2,3);
+            }
+
+            @Override
+            public String getDomainHash() {
+                return "whocares";
+            }
+        };
+        List<ContainmentCacheSATEntry> containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager);
+        assertEquals(Iterables.getOnlyElement(containmentCacheSATEntries), c1);
+        containmentCacheSATEntries = satisfiabilityCache.filterSAT(stationManager);
+        assertEquals(containmentCacheSATEntries.size(), 0);
+    }
+
 }

@@ -25,10 +25,9 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import lombok.Data;
@@ -99,11 +98,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
 
     public Map<Integer, Set<Station>> getAssignmentChannelToStation() {
         final Map<Integer, Integer> stationToChannel = getAssignmentStationToChannel();
-        final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
-        stationToChannel.entrySet().forEach(entry -> {
-            channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
-        });
-        return Multimaps.asMap(channelAssignment);
+        return StationPackingUtils.channelToStationFromStationToChannel(stationToChannel);
     }
 
     public Map<Integer,Integer> getAssignmentStationToChannel() {
@@ -152,5 +147,9 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
         }
         return false;
     }
-    
+
+    @Override
+    public SATResult getResult() {
+        return SATResult.SAT;
+    }
 }

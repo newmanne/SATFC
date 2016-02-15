@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -14,6 +15,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.beust.jcommander.Parameter;
@@ -24,9 +26,12 @@ import com.google.common.collect.Sets;
 import lombok.Cleanup;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisShardInfo;
 
-import java.io.FileNotFoundException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,21 +47,13 @@ public class VerifyCache {
     @UsageTextField(title = "Verify script", description = "Parameters needed to verify SAT entries in a cache")
     public static class FilterMandatoryStationsOptions extends AbstractOptions {
 
-        @ParametersDelegate
+        @Parameter(names = "-MAX-CHANNEL", description = "The clearing target used for any cache entries that trigger resolving", required = true)
         @Getter
-        private SimpleRedisOptions redisOptions;
+        private int maxChannel;
 
         @ParametersDelegate
         @Getter
-        private ConstraintFolderOptions constraintFolderOptions;
-
-        @Parameter(names = "-MAX-CHAN", description = "The highest allowable channel")
-        @Getter
-        private int maxChannel = StationPackingUtils.UHFmax;
-
-        @ParametersDelegate
-        @Getter
-        private SATFCFacadeParameters facadeParameters;
+        public SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
         @Parameter(names = "-MANDATORY-STATIONS", description = "Stations that must be present in each entry")
         private Set<Integer> stations;
@@ -69,35 +66,8 @@ public class VerifyCache {
         @Getter
         private String masterConstraintFolder;
 
-    }
-
-    @UsageTextField(title="Redis Options",description="Parameters about connecting to redis")
-    public static class SimpleRedisOptions extends AbstractOptions {
-
-        @Parameter(names = "-REDIS-PORT", description = "Redis port", required = true)
-        private int redisPort;
-        @Parameter(names = "-REDIS-HOST", description = "Redis host", required = true)
-        private String redisHost ;
-
-        public Jedis getJedis() {
-            return new Jedis(redisHost, redisPort, (int) TimeUnit.SECONDS.toMillis(60));
-        }
-
-    }
-
-    @UsageTextField(title="Constraint Folder Options",description="Parameters about where to find constraint sets")
-    public static class ConstraintFolderOptions extends AbstractOptions {
-
-        @Parameter(names = "--constraint.folder", description = "Folder containing all of the station configuration folders", required = true)
-        @Getter
-        private String constraintFolder;
-
-    }
-
-    public static class CacheIterator {
-
-        public Iterable<ContainmentCacheSATEntry> iterateSAT() { return null; }
-
+        @Parameter(names = "-ALL-CONSTRAINTS", description = "Folder with all constraint sets", required=true)
+        private String allConstraints;
     }
 
     public static void main(String[] args) throws Exception {
@@ -107,31 +77,31 @@ public class VerifyCache {
 
         Preconditions.checkArgument(options.facadeParameters.cachingParams.serverURL != null, "No server URL specified!");
 
-        // Redis
-        final Jedis jedis = options.getRedisOptions().getJedis();
+        final Jedis jedis = options.getFacadeParameters().fRedisParameters.getJedis();
 
         final Set<Station> requiredStations = options.getRequiredStations();
         final int maxChannel = options.getMaxChannel();
-        log.info("Retrying every cache entry that does not contain stations {} and / or has channels in the assignment above {}", requiredStations, maxChannel);
+        log.info("Retrying every cache entry that does not contain stations {}", requiredStations);
 
         // Load constraint folders
         final DataManager dataManager = new DataManager();
-        dataManager.loadMultipleConstraintSets(options.getConstraintFolderOptions().getConstraintFolder());
-
+        dataManager.loadMultipleConstraintSets(options.allConstraints);
         final ManagerBundle managerBundle = dataManager.getData(options.getMasterConstraintFolder());
         final IStationManager stationManager = managerBundle.getStationManager();
         final IConstraintManager constraintManager = managerBundle.getConstraintManager();
         final CacheCoordinate masterCoordinate = managerBundle.getCacheCoordinate();
 
+        log.info("Migrating all cache entries to match constraints in {} ({})", options.getMasterConstraintFolder(), masterCoordinate);
+
         // Load up a facade
         @Cleanup
         final SATFCFacade facade = SATFCFacadeBuilder.buildFromParameters(options.facadeParameters);
 
-        final CacheIterator cacheIterator = new CacheIterator(); // TODO:
-        for (final ContainmentCacheSATEntry entry : cacheIterator.iterateSAT()) {
+        final RedisCacher redisCacher = new RedisCacher(dataManager, options.getFacadeParameters().fRedisParameters.getStringRedisTemplate(), options.getFacadeParameters().fRedisParameters.getBinaryJedis());
 
+        for (final ContainmentCacheSATEntry entry : redisCacher.iterateSAT()) {
+            log.debug("Examining entry {}", entry.getKey());
             boolean needsSolving = false;
-            boolean deleteEntry = false;
 
             final CacheCoordinate coordinate = CacheCoordinate.fromKey(entry.getKey());
             boolean rightCoordinate = coordinate.equals(masterCoordinate);
@@ -141,11 +111,13 @@ public class VerifyCache {
 
             // Did you just add any new stations? Then we need to resolve the problem
             if (entryStations.size() < allRequiredStations.size()) {
+                log.info("Entry is missing stations... requires resolve");
                 needsSolving = true;
             }
 
             // Under this (possibly new) constraint set, is the solution actually valid? Otherwise, it needs resolving
             if (!constraintManager.isSatisfyingAssignment(entry.getAssignmentChannelToStation())) {
+                log.info("Entry violates constraints... needs resolve");
                 needsSolving = true;
                 if (rightCoordinate) {
                     log.warn("Entry for key {} does not have a satisfying assignment (but it should!). Investigate further", entry.getKey());
@@ -153,40 +125,41 @@ public class VerifyCache {
             }
 
             // Are some of the values that the stations take in this assignment above the clearing target?
-            final Map<Integer, Integer> prevAssignRaw = entry.getAssignmentStationToChannel();
-            for (int channel : prevAssignRaw.values()) {
-                if (channel > options.getMaxChannel()) {
-                    needsSolving = true;
-                    break;
-                }
-            }
+//            final Map<Integer, Integer> prevAssignRaw = entry.getAssignmentStationToChannel();
+//            for (int channel : prevAssignRaw.values()) {
+//                if (channel > options.getMaxChannel()) {
+//                    needsSolving = true;
+//                    break;
+//                }
+//            }
 
             if (needsSolving) {
-                deleteEntry = true;
                 // Create the domains map
                 final Map<Integer, Set<Integer>> domains = new HashMap<>();
                 for (Station s: allRequiredStations) {
-                    // TODO: this makes no sense and is dumb (e.g. imagine 52)
                     domains.put(s.getID(), stationManager.getRestrictedDomain(s, maxChannel));
                 }
                 // Make the previous assignment compatible with these domains
-                // TODO: the previous assignment might still not be SAT (will this break anything besides making the presolver doomed?)
-                final Map<Integer, Integer> previousAssignment = Maps.filterEntries(prevAssignRaw, e -> domains.get(e.getKey()).contains(e.getValue()));
-                // This will cause a re-cache of the newly done solution (unless something already exists in the cache)
-                facade.solve(domains, previousAssignment, options.facadeParameters.fInstanceParameters.Cutoff, options.facadeParameters.fInstanceParameters.Seed, managerBundle.getInterferenceFolder());
+                final Map<Integer, Integer> previousAssignment = Maps.filterEntries(entry.getAssignmentStationToChannel(), e -> domains.get(e.getKey()).contains(e.getValue()));
+
+                if (!domains.values().stream().anyMatch(Set::isEmpty)) {
+                    // This will cause a re-cache of the newly done solution (unless something already exists in the cache)
+                    facade.solve(domains, previousAssignment, options.facadeParameters.fInstanceParameters.Cutoff, options.facadeParameters.fInstanceParameters.Seed, managerBundle.getInterferenceFolder());
+                } else {
+                    log.info("Skipping resolve due to empty domain");
+                }
+                log.info("Deleting entry {}", entry.getKey());
+                jedis.del(entry.getKey());
             } else {
                 // Make sure the entry has the right coordinate, otherwise rename it
                 if (!rightCoordinate) {
-                    final long num = Long.parseLong(entry.getKey().substring(entry.getKey().lastIndexOf(':') + 1));
+                    final long num = CacheUtils.parseKey(entry.getKey()).getNum() + 1;
                     final String newKey = masterCoordinate.toKey(SATResult.SAT, num);
                     jedis.rename(entry.getKey(), newKey);
                 }
             }
-            if (deleteEntry) {
-                log.debug("Deleting entry {}", entry.getKey());
-                jedis.del(entry.getKey());
-            }
         }
+        log.info("Finished. You should now restart the SATFCServer");
     }
 
 }

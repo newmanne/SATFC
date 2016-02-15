@@ -123,16 +123,6 @@ public class DomainStationManager implements IStationManager{
 	}
 
 	@Override
-	public Set<Station> getStationsfromID(Collection<Integer> aIDs) {
-		Set<Station> stations = new HashSet<Station>();
-		for(Integer aID : aIDs)
-		{
-			stations.add(getStationfromID(aID));
-		}
-		return stations;
-	}
-
-	@Override
 	public Set<Integer> getDomain(Station aStation) {
 		Set<Integer> domain = fDomains.get(aStation);
 		if(domain == null)

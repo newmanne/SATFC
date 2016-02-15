@@ -56,7 +56,7 @@ public interface ISatisfiabilityCache {
         UNSATEntries.forEach(this::add);
     }
 
-    List<ContainmentCacheSATEntry> filterSAT(IStationManager stationManager);
+    List<ContainmentCacheSATEntry> filterSAT(IStationManager stationManager, boolean strong);
     List<ContainmentCacheUNSATEntry> filterUNSAT();
 
     List<ContainmentCacheSATEntry> findMaxIntersections(final StationPackingInstance instance, int k);

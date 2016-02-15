@@ -133,7 +133,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
      * @return list of cache entries to be removed
      */
     @Override
-    public List<ContainmentCacheSATEntry> filterSAT(IStationManager stationManager) {
+    public List<ContainmentCacheSATEntry> filterSAT(IStationManager stationManager, boolean strong) {
         List<ContainmentCacheSATEntry> prunableEntries = Collections.synchronizedList(new ArrayList<>());
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
@@ -141,16 +141,8 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         try {
             StreamSupport.stream(satEntries.spliterator(), false)
                     .forEach(cacheEntry -> {
-                        final Map<Station, Set<Integer>> domains = new HashMap<>();
-                        for (Map.Entry<Integer, Integer> e : cacheEntry.getAssignmentStationToChannel().entrySet()) {
-                            final Station station = stationManager.getStationfromID(e.getKey());
-                            domains.put(station, stationManager.getRestrictedDomain(station, e.getValue()));
-                        }
-                        final StationPackingInstance i = new StationPackingInstance(domains);
-                        final ContainmentCacheSATResult containmentCacheSATResult = proveSATBySuperset(i, entry -> !entry.getKey().equals(cacheEntry.getKey()));
-                        if (containmentCacheSATResult.isValid()) {
+                        if ((strong && shouldFilterStrong(cacheEntry, stationManager)) || (!strong && shouldFilterWeak(cacheEntry))) {
                             prunableEntries.add(cacheEntry);
-                            // TODO: this doesn't work b/c iterating plus false gah
                             if (prunableEntries.size() % 2000 == 0) {
                                 log.info("Found " + prunableEntries.size() + " prunables");
                             }
@@ -162,6 +154,23 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
 
         prunableEntries.forEach(SATCache::remove);
         return prunableEntries;
+    }
+
+    private boolean shouldFilterWeak(ContainmentCacheSATEntry cacheEntry) {
+        Iterable<ContainmentCacheSATEntry> supersets = SATCache.getSupersets(cacheEntry);
+        return StreamSupport.stream(supersets.spliterator(), false)
+                        .filter(entry -> entry.hasMoreSolvingPower(cacheEntry))
+                        .findAny().isPresent();
+    }
+
+    private boolean shouldFilterStrong(ContainmentCacheSATEntry cacheEntry, IStationManager stationManager) {
+        final Map<Station, Set<Integer>> domains = new HashMap<>();
+        for (Map.Entry<Integer, Integer> e : cacheEntry.getAssignmentStationToChannel().entrySet()) {
+            final Station station = stationManager.getStationfromID(e.getKey());
+            domains.put(station, stationManager.getRestrictedDomain(station, e.getValue()));
+        }
+        final StationPackingInstance i = new StationPackingInstance(domains);
+        return proveSATBySuperset(i, entry -> !entry.getKey().equals(cacheEntry.getKey())).isValid();
     }
 
     /**

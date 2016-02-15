@@ -9,6 +9,7 @@ UHF:
       args: 
         configs:
           -
+            - name: UNSAT_CACHE
             - name: SAT_CACHE
             - name: DELAY
               args:
@@ -39,11 +40,13 @@ UHF:
             - name: CLASP
               args:
                 config: *claspH2
+            - name: CACHE
+              args:
+                doNotCacheSAT: true
             - name: SAT_CACHE
             - name: PREVIOUS_ASSIGNMENT
             - name: PYTHON_VERIFIER
             - name: VERIFIER
-            - name: CACHE
             - name: CONNECTED_COMPONENTS
             - name: UNDERCONSTRAINED
             - name: ARC_CONSISTENCY

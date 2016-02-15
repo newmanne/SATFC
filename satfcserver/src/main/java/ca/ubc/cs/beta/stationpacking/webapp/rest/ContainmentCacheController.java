@@ -21,10 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp.rest;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
@@ -33,17 +31,15 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
+import com.google.common.collect.Queues;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -93,6 +89,8 @@ public class ContainmentCacheController {
     private Timer unsatCacheTimer;
 
     private volatile Map<Integer, Set<Station>> lastCachedAssignment = new HashMap<>();
+
+    private final Queue<ContainmentCacheRequest> pendingCacheAdditions = Queues.newArrayDeque();
 
     @PostConstruct
     void init() {
@@ -200,47 +198,57 @@ public class ContainmentCacheController {
     public void cache(
             @RequestBody final ContainmentCacheRequest request
     ) {
-        final StationPackingInstance instance = request.getInstance();
-        final String description = instance.hasName() ? instance.getName() : instance.getInfo();
-        final SolverResult result = request.getResult();
-        final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+        // Just dump the entry and return - we don't want to delay the SATFC thread
+        pendingCacheAdditions.add(request);
+    }
 
-        if (cacheEntryFilter.shouldCache(request.getCoordinate(), instance, result)) {
-            final String key;
-            if (result.getResult().equals(SATResult.SAT)) {
-                final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(result.getAssignment(), cache.getPermutation());
-                key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
-                entry.setKey(key);
-                cache.add(entry);
-                lastCachedAssignment = request.getResult().getAssignment();
-            } else if (result.getResult().equals(SATResult.UNSAT)) {
-                final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(instance.getDomains(), cache.getPermutation());
-                cache.add(entry);
-                key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
-                entry.setKey(key);
+    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    public void addCacheEntries() {
+        log.debug("Waking up to check list of potential cache additions");
+        while (!pendingCacheAdditions.isEmpty()) {
+            final ContainmentCacheRequest request = pendingCacheAdditions.poll();
+            final StationPackingInstance instance = request.getInstance();
+            final String description = instance.hasName() ? instance.getName() : instance.getInfo();
+            final SolverResult result = request.getResult();
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
+
+            if (cacheEntryFilter.shouldCache(request.getCoordinate(), instance, result)) {
+                final String key;
+                if (result.getResult().equals(SATResult.SAT)) {
+                    final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(result.getAssignment(), cache.getPermutation());
+                    key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                    entry.setKey(key);
+                    cache.add(entry);
+                    lastCachedAssignment = request.getResult().getAssignment();
+                } else if (result.getResult().equals(SATResult.UNSAT)) {
+                    final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(instance.getDomains(), cache.getPermutation());
+                    cache.add(entry);
+                    key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
+                    entry.setKey(key);
+                } else {
+                    throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+                }
+                log.info("Adding entry to the cache with coordinate {} with key {}. Entry {}", request.getCoordinate(), key, description);
+                // add to permanent storage
+                cacheAdditions.mark();
             } else {
-                throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+                log.info("Not adding entry {} to cache {}. No new info", request.getCoordinate(), description);
             }
-            log.info("Adding entry to the cache with coordinate {} with key {}. Entry {}", request.getCoordinate(), key, description);
-            // add to permanent storage
-            cacheAdditions.mark();
-        } else {
-            log.info("Not adding entry {} to cache {}. No new info", request.getCoordinate(), description);
         }
-
+        log.debug("Done checking potential cache additions");
     }
 
     @RequestMapping(value = "/filter", method = RequestMethod.POST)
     @ResponseBody
-    public void filterCache() {
+    public void filterCache(@RequestParam(value = "strong", required = false, defaultValue = "true") boolean strong) {
     	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
-            log.info("Finding SAT entries to be filted at cacheCoordinate {}", cacheCoordinate);
+            log.info("Finding SAT entries to be filtered at cacheCoordinate {} ({})", cacheCoordinate, strong);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
-            List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT(dataManager.getData(cacheCoordinate).getStationManager());
+            List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT(dataManager.getData(cacheCoordinate).getStationManager(), strong);
             log.info("Pruning {} SAT entries from Redis", SATPrunables.size() );
             cacher.deleteSATCollection(SATPrunables);
 
-            log.info("Finding UNSAT entries to be filted at cacheCoordinate {}", cacheCoordinate);
+            log.info("Finding UNSAT entries to be filtered at cacheCoordinate {}", cacheCoordinate);
             List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
             log.info("Pruning {} UNSAT entries from Redis", UNSATPrunables.size());
             cacher.deleteUNSATCollection(UNSATPrunables);

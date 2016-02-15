@@ -74,10 +74,10 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
 
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
-        return solve(aInstance, aTerminationCriterion, aSeed, aInstance.getStations());
+        return solve(aInstance, aTerminationCriterion, aSeed, aInstance.getStations(), Watch.constructAutoStartWatch());
     }
 
-    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, Set<Station> stationsToCheck) {
+    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, Set<Station> stationsToCheck, Watch overallWatch) {
         Watch watch = Watch.constructAutoStartWatch();
         final Map<Station, Set<Integer>> domains = aInstance.getDomains();
         if (aTerminationCriterion.hasToStop()) {
@@ -109,10 +109,11 @@ public class UnderconstrainedStationRemoverSolverDecorator extends ASolverDecora
                 final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
                 final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
                 final Set<Station> stationsToRecheck = underconstrainedStations.stream().map(neighborIndex::neighborsOf).flatMap(Collection::stream).filter(s -> !underconstrainedStations.contains(s)).collect(Collectors.toSet());
-                subResult = solve(alteredInstance, aTerminationCriterion, aSeed, stationsToRecheck);
+                subResult = solve(alteredInstance, aTerminationCriterion, aSeed, stationsToRecheck, overallWatch);
             } else { // we bottomed out
                 //Solve the reduced instance.
-                SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, watch.getElapsedTime()));
+                log.debug("Spent {} overall on finding underconstrained stations", overallWatch.getElapsedTime());
+                SATFCMetrics.postEvent(new SATFCMetrics.TimingEvent(aInstance.getName(), SATFCMetrics.TimingEvent.FIND_UNDERCONSTRAINED_STATIONS, overallWatch.getElapsedTime()));
                 log.debug("Solving the sub-instance...");
                 subResult = fDecoratedSolver.solve(alteredInstance, aTerminationCriterion, aSeed);
             }

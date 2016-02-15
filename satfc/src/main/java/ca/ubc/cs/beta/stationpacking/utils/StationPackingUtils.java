@@ -29,6 +29,8 @@ import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.google.common.base.Splitter;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimaps;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -64,4 +66,11 @@ public class StationPackingUtils {
         return null;
     }
 
+    public static Map<Integer, Set<Station>> channelToStationFromStationToChannel(Map<Integer, Integer> stationToChannel) {
+        final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
+        stationToChannel.entrySet().forEach(entry -> {
+            channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
+        });
+        return Multimaps.asMap(channelAssignment);
+    }
 }

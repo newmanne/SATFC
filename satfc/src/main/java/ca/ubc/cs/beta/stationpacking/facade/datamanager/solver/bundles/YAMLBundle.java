@@ -296,6 +296,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 public boolean shouldCache(SolverResult result) {
                     if (result.getResult().equals(SATResult.UNSAT) && doNotCacheUNSAT) {
                         return false;
+                    } else if (result.getResult().equals(SATResult.SAT) && doNotCacheSAT) {
+                        return false;
                     } else if (result.getRuntime() < minTimeToCache) {
                         return false;
                     } else {
@@ -306,7 +308,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         }
 
         private double minTimeToCache = 0;
-        private boolean doNotCacheUNSAT = true;
+        private boolean doNotCacheUNSAT = false;
+        private boolean doNotCacheSAT = false;
 
     }
 

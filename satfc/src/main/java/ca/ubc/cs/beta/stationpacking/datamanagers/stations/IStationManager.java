@@ -59,13 +59,6 @@ public interface IStationManager {
 	}
 	
 	/**
-	 * 
-	 * @param aIDs - a collection of station IDs.
-	 * @return the set of stations with provided IDs.
-	 */
-	Set<Station> getStationsfromID(Collection<Integer> aIDs);
-
-	/**
 	 * @return a hash of the domain
 	 */
     String getDomainHash();
