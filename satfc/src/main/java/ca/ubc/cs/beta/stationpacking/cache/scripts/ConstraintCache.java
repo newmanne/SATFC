@@ -12,6 +12,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -32,17 +33,14 @@ import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisShardInfo;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by newmanne on 2016-02-11.
  */
 @Slf4j
-public class VerifyCache {
+public class ConstraintCache {
 
     @UsageTextField(title = "Verify script", description = "Parameters needed to verify SAT entries in a cache")
     public static class FilterMandatoryStationsOptions extends AbstractOptions {
@@ -53,10 +51,10 @@ public class VerifyCache {
 
         @ParametersDelegate
         @Getter
-        public SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
+        private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
         @Parameter(names = "-MANDATORY-STATIONS", description = "Stations that must be present in each entry")
-        private Set<Integer> stations;
+        private List<Integer> stations;
 
         public Set<Station> getRequiredStations() {
             return stations == null ? Collections.emptySet() : stations.stream().map(Station::new).collect(GuavaCollectors.toImmutableSet());
@@ -67,7 +65,13 @@ public class VerifyCache {
         private String masterConstraintFolder;
 
         @Parameter(names = "-ALL-CONSTRAINTS", description = "Folder with all constraint sets", required=true)
+        @Getter
         private String allConstraints;
+
+        @Getter
+        @Parameter(names = "-ENFORCE-MAX-CHANNEL", description = "Force a resolve (and delete) any cache entry where a station is assigned above the max channel")
+        private boolean enforceMaxChannel = false;
+
     }
 
     public static void main(String[] args) throws Exception {
@@ -85,7 +89,7 @@ public class VerifyCache {
 
         // Load constraint folders
         final DataManager dataManager = new DataManager();
-        dataManager.loadMultipleConstraintSets(options.allConstraints);
+        dataManager.loadMultipleConstraintSets(options.getAllConstraints());
         final ManagerBundle managerBundle = dataManager.getData(options.getMasterConstraintFolder());
         final IStationManager stationManager = managerBundle.getStationManager();
         final IConstraintManager constraintManager = managerBundle.getConstraintManager();
@@ -111,13 +115,13 @@ public class VerifyCache {
 
             // Did you just add any new stations? Then we need to resolve the problem
             if (entryStations.size() < allRequiredStations.size()) {
-                log.info("Entry is missing stations... requires resolve");
+                log.info("Entry {} is missing stations... requires resolve", entry.getKey());
                 needsSolving = true;
             }
 
             // Under this (possibly new) constraint set, is the solution actually valid? Otherwise, it needs resolving
             if (!constraintManager.isSatisfyingAssignment(entry.getAssignmentChannelToStation())) {
-                log.info("Entry violates constraints... needs resolve");
+                log.info("Entry {} violates constraints... needs resolve", entry.getKey());
                 needsSolving = true;
                 if (rightCoordinate) {
                     log.warn("Entry for key {} does not have a satisfying assignment (but it should!). Investigate further", entry.getKey());
@@ -125,26 +129,41 @@ public class VerifyCache {
             }
 
             // Are some of the values that the stations take in this assignment above the clearing target?
-//            final Map<Integer, Integer> prevAssignRaw = entry.getAssignmentStationToChannel();
-//            for (int channel : prevAssignRaw.values()) {
-//                if (channel > options.getMaxChannel()) {
-//                    needsSolving = true;
-//                    break;
-//                }
-//            }
+            if (options.isEnforceMaxChannel()) {
+                final Map<Integer, Integer> prevAssignRaw = entry.getAssignmentStationToChannel();
+                for (int channel : prevAssignRaw.values()) {
+                    if (channel > options.getMaxChannel()) {
+                        log.info("Entry {} has a station assigned to a channel higher than {}... requires resolve", entry.getKey(), options.getMaxChannel());
+                        needsSolving = true;
+                        break;
+                    }
+                }
+            }
+
 
             if (needsSolving) {
                 // Create the domains map
                 final Map<Integer, Set<Integer>> domains = new HashMap<>();
                 for (Station s: allRequiredStations) {
-                    domains.put(s.getID(), stationManager.getRestrictedDomain(s, maxChannel));
+                    Set<Integer> restrictedDomain;
+                    try {
+                        restrictedDomain = stationManager.getRestrictedDomain(s, maxChannel);
+                    } catch (Exception e) {
+                        restrictedDomain = Collections.emptySet();
+                    }
+                    domains.put(s.getID(), restrictedDomain);
                 }
                 // Make the previous assignment compatible with these domains
                 final Map<Integer, Integer> previousAssignment = Maps.filterEntries(entry.getAssignmentStationToChannel(), e -> domains.get(e.getKey()).contains(e.getValue()));
 
                 if (!domains.values().stream().anyMatch(Set::isEmpty)) {
                     // This will cause a re-cache of the newly done solution (unless something already exists in the cache)
-                    facade.solve(domains, previousAssignment, options.facadeParameters.fInstanceParameters.Cutoff, options.facadeParameters.fInstanceParameters.Seed, managerBundle.getInterferenceFolder());
+                    final SATFCResult solve = facade.solve(domains, previousAssignment, options.facadeParameters.fInstanceParameters.Cutoff, options.facadeParameters.fInstanceParameters.Seed, managerBundle.getInterferenceFolder());
+                    if (solve.getResult().equals(SATResult.SAT)) {
+                        log.info("Resolve successful");
+                    } else {
+                        log.info("Resolve failed, {}", solve.getResult());
+                    }
                 } else {
                     log.info("Skipping resolve due to empty domain");
                 }

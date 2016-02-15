@@ -257,7 +257,12 @@ public class RedisCacher {
             protected ContainmentCacheSATEntry computeNext() {
                 while (scan.hasNext()) {
                     final String key = new String(scan.next());
-                    final CacheUtils.ParsedKey parsedKey = CacheUtils.parseKey(key);
+                    final CacheUtils.ParsedKey parsedKey;
+                    try {
+                        parsedKey = CacheUtils.parseKey(key);
+                    } catch (Exception e) {
+                        continue;
+                    }
                     if (parsedKey.getResult().equals(SATResult.SAT)) {
                         return (ContainmentCacheSATEntry) cacheEntryFromKey(key);
                     }

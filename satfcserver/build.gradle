@@ -58,7 +58,7 @@ def createScript(project, mainClass, name, jvmArgs) {
         }
     }
 }
-createScript(project, 'ca.ubc.cs.beta.stationpacking.cache.scripts.VerifyCache', 'CACHE_FILTER', ['-Xmx16g'])
+createScript(project, 'ca.ubc.cs.beta.stationpacking.cache.scripts.ConstraintCache', 'CACHE_CONSTRAINER', ['-Xmx16g'])
 
 //Project properties.
 applicationName = 'SATFCServer'
