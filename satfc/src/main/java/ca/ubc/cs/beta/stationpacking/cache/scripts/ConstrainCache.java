@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  * Created by newmanne on 2016-02-11.
  */
 @Slf4j
-public class ConstraintCache {
+public class ConstrainCache {
 
     @UsageTextField(title = "Verify script", description = "Parameters needed to verify SAT entries in a cache")
     public static class FilterMandatoryStationsOptions extends AbstractOptions {
