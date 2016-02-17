@@ -70,6 +70,9 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
     public String fInterferencesFolder;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-CUTOFF-FILE", description = "file listing each instance and the corresponding cutoff")
+    public String fCutoffFile;
 
     /**
 	 * Clasp library to use (optional - can be automatically detected).

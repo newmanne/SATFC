@@ -22,13 +22,8 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.Properties;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +33,6 @@ import ca.ubc.cs.beta.aeatk.targetalgorithmevaluator.init.TargetAlgorithmEvaluat
 import ca.ubc.cs.beta.stationpacking.execution.metricwriters.IMetricWriter;
 import ca.ubc.cs.beta.stationpacking.execution.metricwriters.MetricWriterFactory;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.IProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.ProblemGeneratorFactory;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
@@ -69,15 +61,17 @@ public class SATFCFacadeExecutor {
             log.info("Initializing facade.");
             try(final SATFCFacade satfc = SATFCFacadeBuilder.buildFromParameters(parameters)) {
                 IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
+                ICutoffChooser cutoffChooser = CutoffChooserFactory.createFromParameters(parameters);
                 IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
                 SATFCFacadeProblem problem;
                 while ((problem = problemReader.getNextProblem()) != null) {
-                    log.info("Beginning problem {}", problem.getInstanceName());
+                    final double cutoff = cutoffChooser.getCutoff(problem);
+                    log.info("Beginning problem {} with cutoff {}", problem.getInstanceName(), cutoff);
                     log.info("Solving ...");
                     SATFCResult result = satfc.solve(
                             problem.getDomains(),
                             problem.getPreviousAssignment(),
-                            parameters.fInstanceParameters.Cutoff,
+                            cutoff,
                             parameters.fInstanceParameters.Seed,
                             problem.getStationConfigFolder(),
                             problem.getInstanceName()
