@@ -38,7 +38,7 @@ public class AuctionCSVParser {
             log.info("Reading files from auction {}", auction);
             final File[] csvFiles = auctionDir.listFiles();
             for (File csvFile : csvFiles) {
-                final List<ProblemAndAnswer> problems = a(auction, csvFile.getAbsolutePath());
+                final List<ProblemAndAnswer> problems = parseAuctionFile(auction, csvFile.getAbsolutePath());
                 for (ProblemAndAnswer problem : problems) {
                     if (problem.getInterference().equals("102015SC44U") && problem.getResult().equals("yes")) {
                         int maxChan = problem.getDomains().values().stream().flatMap(Collection::stream).mapToInt(Integer::valueOf).max().getAsInt();
@@ -52,7 +52,7 @@ public class AuctionCSVParser {
 
     }
 
-    public List<ProblemAndAnswer> a(String auction, String fileName) throws IOException {
+    public static List<ProblemAndAnswer> parseAuctionFile(String auction, String fileName) throws IOException {
         final List<String> lines = Files.readAllLines(Paths.get(fileName));
         String interferenceData = null;
         Double cutoff = null;
