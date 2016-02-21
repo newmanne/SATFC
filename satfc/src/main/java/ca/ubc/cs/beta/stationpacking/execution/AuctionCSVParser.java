@@ -1,4 +1,4 @@
-package ca.ubc.cs.beta.stationpacking.test;
+package ca.ubc.cs.beta.stationpacking.execution;
 
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -9,8 +9,6 @@ import com.google.common.collect.Sets;
 import lombok.Cleanup;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Ignore;
-import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,10 +21,9 @@ import java.util.stream.Collectors;
  * Created by newmanne on 2016-02-18.
  */
 @Slf4j
-public class CSVParserTest {
+public class AuctionCSVParser {
 
-    @Test
-    public void test() throws Exception {
+    public void main(String[] args) throws Exception {
         final String INTERFERENCE_ROOT = "/ubc/cs/research/arrow/satfc/instances/interference-data/";
 
         @Cleanup
@@ -36,7 +33,7 @@ public class CSVParserTest {
 
         final String CSV_FILE_ROOT = "/ubc/cs/research/arrow/satfc/instances/rawdata/csvs";
         final File[] csvFolders = new File(CSV_FILE_ROOT).listFiles(File::isDirectory);
-        for (File auctionDir : Arrays.stream(csvFolders).sorted((a,b) -> -Integer.compare(Integer.parseInt(a.getName()), Integer.parseInt(b.getName()))).collect(Collectors.toList())) {
+        for (File auctionDir : Arrays.stream(csvFolders).filter(d -> Integer.parseInt(d.getName()) >= 3240).collect(Collectors.toList())) {
             final String auction = auctionDir.getName();
             log.info("Reading files from auction {}", auction);
             final File[] csvFiles = auctionDir.listFiles();
