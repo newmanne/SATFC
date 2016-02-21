@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuctionCSVParser {
 
-    public void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         final String INTERFERENCE_ROOT = "/ubc/cs/research/arrow/satfc/instances/interference-data/";
 
         @Cleanup
