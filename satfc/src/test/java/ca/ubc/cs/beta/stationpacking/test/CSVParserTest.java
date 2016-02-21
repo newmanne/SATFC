@@ -8,6 +8,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import lombok.Cleanup;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -21,29 +22,37 @@ import java.util.stream.Collectors;
 /**
  * Created by newmanne on 2016-02-18.
  */
+@Slf4j
 public class CSVParserTest {
 
     @Test
-    @Ignore
     public void test() throws Exception {
-        final String INTERFERENCE_ROOT = "/Users/newmanne/research/interference-data";
+        final String INTERFERENCE_ROOT = "/ubc/cs/research/arrow/satfc/instances/interference-data/";
 
         @Cleanup
         final SATFCFacade facade = new SATFCFacadeBuilder()
                 .setServerURL("http://localhost:8080/satfcserver")
                 .build();
 
-        final String CSV_FILE = "/Users/newmanne/research/badcsv.csv";
-
-        final List<ProblemAndAnswer> problems = a("3077", CSV_FILE);
-        for (ProblemAndAnswer problem : problems) {
-            if (problem.getResult().equals("yes")) {
-                int maxChan = problem.getDomains().values().stream().flatMap(Collection::stream).mapToInt(Integer::valueOf).max().getAsInt();
-                if (StationPackingUtils.UHF_CHANNELS.contains(maxChan)) {
-                    facade.solve(problem.getDomains(), new HashMap<>(), 60.0, 1, INTERFERENCE_ROOT + File.separator + problem.getInterference(), problem.getInstanceName());
+        final String CSV_FILE_ROOT = "/ubc/cs/research/arrow/satfc/instances/rawdata/csvs";
+        final File[] csvFolders = new File(CSV_FILE_ROOT).listFiles(File::isDirectory);
+        for (File auctionDir : Arrays.stream(csvFolders).sorted((a,b) -> -Integer.compare(Integer.parseInt(a.getName()), Integer.parseInt(b.getName()))).collect(Collectors.toList())) {
+            final String auction = auctionDir.getName();
+            log.info("Reading files from auction {}", auction);
+            final File[] csvFiles = auctionDir.listFiles();
+            for (File csvFile : csvFiles) {
+                final List<ProblemAndAnswer> problems = a(auction, csvFile.getAbsolutePath());
+                for (ProblemAndAnswer problem : problems) {
+                    if (problem.getInterference().equals("102015SC44U") && problem.getResult().equals("yes")) {
+                        int maxChan = problem.getDomains().values().stream().flatMap(Collection::stream).mapToInt(Integer::valueOf).max().getAsInt();
+                        if (StationPackingUtils.UHF_CHANNELS.contains(maxChan)) {
+                            facade.solve(problem.getDomains(), new HashMap<>(), 60.0, 1, INTERFERENCE_ROOT + File.separator + problem.getInterference(), problem.getInstanceName());
+                        }
+                    }
                 }
             }
         }
+
     }
 
     public List<ProblemAndAnswer> a(String auction, String fileName) throws IOException {
@@ -125,6 +134,7 @@ public class CSVParserTest {
             final String result = split.get(1);
             final Set<String> results = Sets.newHashSet("yes", "no", "unknown", "error", "interrupted");
             Preconditions.checkState(results.contains(result), "Unrecognized result %s", result);
+            problems.get(p - 1).setResult(result);
             if (result.equals("yes")) {
                 Map<Integer, Integer> stationToChannel = new HashMap<>();
                 for (int j = 2; j < split.size(); j++) {
@@ -134,7 +144,6 @@ public class CSVParserTest {
                     stationToChannel.put(station, chan);
                 }
                 problems.get(p - 1).setAnswer(stationToChannel);
-                problems.get(p - 1).setResult(result);
             }
         }
 
