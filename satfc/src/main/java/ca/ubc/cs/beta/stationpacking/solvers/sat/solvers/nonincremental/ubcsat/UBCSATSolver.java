@@ -146,7 +146,9 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
 
             runTime = watch.getElapsedTime() - preTime;
             log.debug("Came back from UBCSAT after {}s (initial cutoff was {} s).", runTime, cutoff);
-            Preconditions.checkState(runTime < cutoff + 5, "Runtime %s greatly exceeded cutoff %s!", runTime, cutoff);
+            if (runTime < cutoff + 5) {
+                log.warn("Runtime {} greatly exceeded cutoff {}!", runTime, cutoff);
+            }
 
             return getSolverResult(fLibrary, fState, runTime);
         } finally {
