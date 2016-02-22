@@ -1,10 +1,17 @@
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import ca.ubc.cs.beta.aeatk.logging.LogLevel;
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
+import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
@@ -23,17 +30,30 @@ import java.util.stream.Collectors;
 /**
  * Created by newmanne on 2016-02-18.
  */
-@Slf4j
 public class AuctionCSVParser {
+
+    private static org.slf4j.Logger log;
 
     private final static AtomicInteger nProblems = new AtomicInteger();
 
+    @UsageTextField(title = "s", description = "j")
+    public static class AuctionCSVParserParams extends AbstractOptions {
+
+        @Parameter(names = "-SERVER-URL", description = "server url")
+        public String serverURL;
+
+    }
+
     public static void main(String[] args) throws Exception {
+        SATFCFacadeBuilder.initializeLogging(Level.INFO, null);
+        log = org.slf4j.LoggerFactory.getLogger(AuctionCSVParser.class);
+        final AuctionCSVParserParams p = new AuctionCSVParserParams();
+        JCommanderHelper.parseCheckingForHelpAndVersion(args, p);
         final String INTERFERENCE_ROOT = "/ubc/cs/research/arrow/satfc/instances/interference-data/";
 
         @Cleanup
         final SATFCFacade facade = new SATFCFacadeBuilder()
-                .setServerURL("http://localhost:8080/satfcserver")
+                .setServerURL(p.serverURL)
                 .build();
 
         final String CSV_FILE_ROOT = "/ubc/cs/research/arrow/satfc/instances/rawdata/csvs";
@@ -94,7 +114,7 @@ public class AuctionCSVParser {
 
         // Parse assignment
 
-        for (; i < lines.size(); i++ ) {
+        for (; i < lines.size(); i++) {
             final String line = lines.get(i);
             final List<String> split = Splitter.on(',').splitToList(line);
             if (split.get(0).equals("problems")) {
@@ -103,7 +123,7 @@ public class AuctionCSVParser {
             } else {
                 int station = Integer.parseInt(split.get(0));
                 int prevChan = Integer.parseInt(split.get(1));
-                Set<Integer> domains = split.subList(2,split.size()).stream().map(Integer::parseInt).collect(Collectors.toSet());
+                Set<Integer> domains = split.subList(2, split.size()).stream().map(Integer::parseInt).collect(Collectors.toSet());
                 prevAssign.put(station, prevChan);
                 currentProblem.put(station, domains);
             }
@@ -122,7 +142,7 @@ public class AuctionCSVParser {
                 break;
             } else {
                 int station = Integer.parseInt(split.get(0));
-                Set<Integer> domains = split.subList(1,split.size()).stream().map(Integer::parseInt).collect(Collectors.toSet());
+                Set<Integer> domains = split.subList(1, split.size()).stream().map(Integer::parseInt).collect(Collectors.toSet());
                 Map<Integer, Set<Integer>> problem = new HashMap<>(currentProblem);
                 problem.put(station, domains);
 
@@ -166,7 +186,7 @@ public class AuctionCSVParser {
         private final String instanceName;
         private String result;
         private Map<Integer, Integer> answer;
-        
+
     }
 
 }

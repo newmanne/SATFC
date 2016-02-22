@@ -130,7 +130,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
             fClaspLibrary.solveProblem(currentProblemPointer, cutoff);
             double runtimeDouble = runtime.getElapsedTime();
             log.debug("Came back from clasp after {}s. (initial cutoff was {}s)", runtimeDouble, cutoff);
-            if (runtimeDouble < cutoff + 5) {
+            if (!(runtimeDouble < cutoff + 5)) {
                 log.warn("Runtime {} greatly exceeded cutoff {}!", runtimeDouble, cutoff);
             }
 
