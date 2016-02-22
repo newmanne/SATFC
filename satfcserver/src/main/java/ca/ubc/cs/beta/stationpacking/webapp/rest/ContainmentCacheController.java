@@ -202,7 +202,7 @@ public class ContainmentCacheController {
         pendingCacheAdditions.add(request);
     }
 
-    @Scheduled(fixedDelay = 60000, initialDelay = 60000)
+    @Scheduled(fixedDelay = 5000, initialDelay = 5000)
     public void addCacheEntries() {
         log.debug("Waking up to check list of potential cache additions");
         while (!pendingCacheAdditions.isEmpty()) {
@@ -245,7 +245,7 @@ public class ContainmentCacheController {
             log.info("Finding SAT entries to be filtered at cacheCoordinate {} ({})", cacheCoordinate, strong);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
             List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT(dataManager.getData(cacheCoordinate).getStationManager(), strong);
-            log.info("Pruning {} SAT entries from Redis", SATPrunables.size() );
+            log.info("Pruning {} SAT entries from Redis", SATPrunables.size());
             cacher.deleteSATCollection(SATPrunables);
 
             log.info("Finding UNSAT entries to be filtered at cacheCoordinate {}", cacheCoordinate);
@@ -265,6 +265,16 @@ public class ContainmentCacheController {
         log.info("Returning the last cached SAT assignment");
         return lastCachedAssignment;
     }
+
+    /**
+     * Return the number of entries waiting to be filtered into the cache
+     */
+    @RequestMapping(value = "/n_pending_additions", method = RequestMethod.GET)
+    @ResponseBody
+    public int getNumFiltering() {
+        return pendingCacheAdditions.size();
+    }
+
 
 
 }

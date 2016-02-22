@@ -2,6 +2,8 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -43,7 +45,8 @@ public class AuctionCSVParser {
                     if (problem.getInterference().equals("102015SC44U") && problem.getResult().equals("yes")) {
                         int maxChan = problem.getDomains().values().stream().flatMap(Collection::stream).mapToInt(Integer::valueOf).max().getAsInt();
                         if (StationPackingUtils.UHF_CHANNELS.contains(maxChan)) {
-                            facade.solve(problem.getDomains(), new HashMap<>(), 60.0, 1, INTERFERENCE_ROOT + File.separator + problem.getInterference(), problem.getInstanceName());
+                            final SATFCResult satfcResult = facade.solve(problem.getDomains(), new HashMap<>(), 60.0, 1, INTERFERENCE_ROOT + File.separator + problem.getInterference(), problem.getInstanceName());
+                            Preconditions.checkState(satfcResult.getResult().equals(SATResult.SAT), "Result was not SAT!");
                         }
                     }
                 }
