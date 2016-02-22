@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class AuctionCSVParser {
+
+    private final static AtomicInteger nProblems = new AtomicInteger();
 
     public static void main(String[] args) throws Exception {
         final String INTERFERENCE_ROOT = "/ubc/cs/research/arrow/satfc/instances/interference-data/";
@@ -47,6 +50,10 @@ public class AuctionCSVParser {
                         if (StationPackingUtils.UHF_CHANNELS.contains(maxChan)) {
                             final SATFCResult satfcResult = facade.solve(problem.getDomains(), new HashMap<>(), 60.0, 1, INTERFERENCE_ROOT + File.separator + problem.getInterference(), problem.getInstanceName());
                             Preconditions.checkState(satfcResult.getResult().equals(SATResult.SAT), "Result was not SAT!");
+                            int nSolved = nProblems.getAndIncrement();
+                            if (nSolved % 100 == 0) {
+                                log.info("Solved {} problems", nSolved);
+                            }
                         }
                     }
                 }
