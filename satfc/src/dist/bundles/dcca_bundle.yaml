@@ -1,9 +1,0 @@
----
-UHF:
-  - name: SATENSTEIN
-    args:
-      encodingType: DIRECT
-      config: -alg satenstein -cutoff max -promisinglist 1 -decreasingvariable 13 -heuristic 20 -avgweightthreshold 300 -DCCAp 0.3 -DCCAq 0
-  - name: VERIFIER
-VHF:
-  - name: VERIFIER

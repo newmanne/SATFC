@@ -71,8 +71,9 @@ public class SATFCFacadeBuilder {
      * Set the YAML file used to build up the SATFC solver bundle
      * @param configFile path to a config file
      */
-    public void setConfigFile(String configFile) {
+    public SATFCFacadeBuilder setConfigFile(String configFile) {
         this.configFile = new ConfigFile(configFile, false);
+        return this;
     }
 
     /**
