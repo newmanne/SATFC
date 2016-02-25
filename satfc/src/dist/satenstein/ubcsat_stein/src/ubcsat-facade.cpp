@@ -78,16 +78,16 @@ double getElapsedTime(struct timespec *before, struct timespec *after){
   return deltat_s + deltat_ns*1e-9;
 }
 
-
 char** split(char *command, int* size) {
   char** ret = (char**) malloc(sizeof(char*) * MAXTOTALPARMS);
   const char* programName = "ubcsat";
   ret[0] = (char*) programName;
   char* t;
   int i;
-  for (i = 1, t = strtok(command, " "); t != NULL; ++i) {
+  char* saveptr;
+  for (i = 1, t = strtok_r(command, " ", &saveptr); t != NULL; ++i) {
     ret[i] = t;
-    t = strtok(NULL, " ");
+    t = strtok_r(NULL, " ", &saveptr);
   }
   *size = i;
   return ret;
