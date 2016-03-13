@@ -51,5 +51,7 @@ public class InstanceInfo {
     private Map<String, Double> timingInfo = new HashMap<>();
     private String cacheResultUsed;
     private Map<Station, Integer> stationToDegree = new HashMap<>();
+    private Map<Station, Integer> assignment;
+    private String nickname;
 
 }

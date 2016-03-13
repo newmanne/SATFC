@@ -196,13 +196,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final Clasp3LibraryGenerator clasp3LibraryGenerator = context.getClasp3LibraryGenerator();
-            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService());
+            final AbstractCompressedSATSolver claspSATsolver = new Clasp3SATSolver(clasp3LibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService(), nickname);
             return new CompressedSATBasedSolver(claspSATsolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
         private EncodingType encodingType = EncodingType.DIRECT;
         private int seedOffset = 0;
+        private String nickname;
+
     }
 
     @Data
@@ -212,13 +214,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
             final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService());
+            final AbstractCompressedSATSolver ubcsatSolver = new UBCSATSolver(ubcsatLibraryGenerator.createLibrary(), config, seedOffset, context.getPollingService(), nickname);
             return new CompressedSATBasedSolver(ubcsatSolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
         private EncodingType encodingType = EncodingType.DIRECT;
         private int seedOffset = 0;
+        private String nickname;
+
     }
 
     @Data

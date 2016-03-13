@@ -40,10 +40,17 @@ public class SATSolverResult implements Serializable {
 	private final ImmutableSet<Literal> fAssignment;
     @Getter
     private final SolverResult.SolvedBy solvedBy;
+	@Getter
+	private final String nickname;
 
-    public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment, SolverResult.SolvedBy solvedBy)
+	public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment, SolverResult.SolvedBy solvedBy) {
+		this(aResult, aRuntime, aAssignment, solvedBy, null);
+	}
+
+    public SATSolverResult(SATResult aResult, double aRuntime, Set<Literal> aAssignment, SolverResult.SolvedBy solvedBy, String nickname)
 	{
         Preconditions.checkArgument(aRuntime >= 0, "Cannot create a " + getClass().getSimpleName() + " with negative runtime: " + aRuntime);
+		this.nickname = nickname;
 		fResult = aResult;
 		fRuntime = aRuntime;
 		fAssignment = ImmutableSet.copyOf(aAssignment);

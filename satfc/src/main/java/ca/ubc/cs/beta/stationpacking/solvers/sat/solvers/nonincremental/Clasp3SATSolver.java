@@ -57,16 +57,18 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
     private final int fSeedOffset;
     private final ProblemIncrementor problemIncrementor;
+    private String nickname;
 
     public Clasp3SATSolver(String libraryPath, String parameters, IPollingService service) {
         this((Clasp3Library) Native.loadLibrary(libraryPath, Clasp3Library.class, NativeUtils.NATIVE_OPTIONS), parameters, service);
     }
 
     public Clasp3SATSolver(Clasp3Library library, String parameters, IPollingService service) {
-        this(library, parameters, 0, service);
+        this(library, parameters, 0, service, null);
     }
 
-    public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset, IPollingService pollingService) {
+    public Clasp3SATSolver(Clasp3Library library, String parameters, int seedOffset, IPollingService pollingService, String nickname) {
+        this.nickname = nickname;
         log.debug("Initializing clasp with params {}", parameters);
         fSeedOffset = seedOffset;
         fClaspLibrary = library;
@@ -151,7 +153,7 @@ public class Clasp3SATSolver extends AbstractCompressedSATSolver {
                 log.error("Clasp SAT solver post solving time was greater than 1 minute, something wrong must have happened.");
             }
 
-            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment, SolvedBy.CLASP);
+            final SATSolverResult output = new SATSolverResult(claspResult.getSATResult(), watch.getElapsedTime(), assignment, SolvedBy.CLASP, nickname);
             log.debug("Returning result: {}, {}s.", output.getResult(), output.getRuntime());
             log.trace("Full result: {}", output);
             return output;

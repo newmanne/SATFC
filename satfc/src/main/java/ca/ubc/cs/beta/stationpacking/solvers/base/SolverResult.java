@@ -57,6 +57,9 @@ public class SolverResult implements Serializable {
     @JsonIgnore
     @Getter
     private final SolvedBy solvedBy;
+	@JsonIgnore
+	@Getter
+	private final String nickname;
 
     public enum SolvedBy {
         CLASP,
@@ -75,19 +78,23 @@ public class SolverResult implements Serializable {
         UNDERCONSTRAINED,
         PREVIOUS_ASSIGNMENT
     }
+
+	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {
+		this(aResult, aRuntime, aAssignment, aSolvedBy, null);
+	}
 	
 	/**
 	 * @param aResult - solver result satisfiability.
 	 * @param aRuntime - solver result runtime.
 	 * @param aAssignment - solver result witness assignment.
 	 */
-	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy)
+	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy, String nickname)
 	{
 		if(aRuntime<0 && Math.abs(aRuntime)!=0.0)
 		{
 			throw new IllegalArgumentException("Cannot create a solver result with negative runtime (runtime = "+aRuntime+").");
 		}
-		
+		this.nickname = nickname;
 		fResult = aResult;
 		fRuntime = aRuntime;
 		fAssignment = ImmutableMap.copyOf(aAssignment);

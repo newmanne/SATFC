@@ -42,9 +42,10 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
     private final ProblemIncrementor problemIncrementor;
+    private final String nickname;
 
     public UBCSATSolver(String libraryPath, String parameters, IPollingService pollingService) {
-        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0, pollingService);
+        this((UBCSATLibrary) Native.loadLibrary(libraryPath, UBCSATLibrary.class, NativeUtils.NATIVE_OPTIONS), parameters, 0, pollingService, null);
     }
 
     /**
@@ -62,7 +63,8 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
      *                   strings. Alternatively, a simple way to test the legality of a parameter string is to run UBCSAT from
      *                   the command line with that parameter string and specifying a sample .cnf file via the "-inst" flag.
      */
-    public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset, IPollingService pollingService) {
+    public UBCSATSolver(UBCSATLibrary library, String parameters, int seedOffset, IPollingService pollingService, String nickname) {
+        this.nickname = nickname;
         fLibrary = library;
         this.seedOffset = seedOffset;
         log.debug("Using config {} for UBCSAT", parameters);
@@ -192,7 +194,7 @@ public class UBCSATSolver extends AbstractCompressedSATSolver {
         if(assignment == null) {
             assignment = new HashSet<>();
         }
-        return new SATSolverResult(satResult, runtime, assignment, SolvedBy.SATENSTEIN);
+        return new SATSolverResult(satResult, runtime, assignment, SolvedBy.SATENSTEIN, nickname);
     }
 
     private HashSet<Literal> getAssignment(UBCSATLibrary fLibrary, Pointer fState) {

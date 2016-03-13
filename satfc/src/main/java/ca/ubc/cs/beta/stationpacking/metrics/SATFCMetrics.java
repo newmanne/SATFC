@@ -31,6 +31,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -208,8 +210,12 @@ public class SATFCMetrics {
         public void onInstanceSolvedEvent(InstanceSolvedEvent event) {
             safeMetricEdit(event.getName(), info -> {
                 info.setResult(event.getSolverResult().getResult());
+                if (event.getSolverResult().getResult().equals(SATResult.SAT)) {
+                    info.setAssignment(StationPackingUtils.stationToChannelFromChannelToStation(event.getSolverResult().getAssignment()));
+                }
                 info.setRuntime(event.getSolverResult().getRuntime());
                 info.setSolvedBy(event.getSolverResult().getSolvedBy());
+                info.setNickname(event.getSolverResult().getNickname());
             });
         }
 

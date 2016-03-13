@@ -24,7 +24,6 @@ package ca.ubc.cs.beta.stationpacking.execution.parameters;
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ch.qos.logback.classic.Level;
@@ -97,9 +96,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
     public Level getLogLevel() {
         return Level.valueOf(logLevel);
     }
-	
-    @ParametersDelegate
-    public SATFCHydraParams fHydraParams = new SATFCHydraParams();
 
     @Parameter(names = "-CONFIG-FILE")
     public String configFile;

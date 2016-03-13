@@ -81,7 +81,7 @@ public class GenericSATBasedSolver implements ISolver {
             SATSolverResult satSolverResult = fSATSolver.solve(aCNF, aEncoding.getInitialAssignment(), aTerminationCriterion, aSeed);
             // Even if the SAT solver was interrupted, this would be due to the fact that SATFC timed out. So to avoid confusion in output results, we make this change
             if (satSolverResult.getResult().equals(SATResult.INTERRUPTED)) {
-                satSolverResult = new SATSolverResult(SATResult.TIMEOUT, satSolverResult.getRuntime(), satSolverResult.getAssignment(), satSolverResult.getSolvedBy());
+                satSolverResult = new SATSolverResult(SATResult.TIMEOUT, satSolverResult.getRuntime(), satSolverResult.getAssignment(), satSolverResult.getSolvedBy(), satSolverResult.getNickname());
             }
             log.debug("Parsing result.");
             Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
@@ -128,7 +128,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("...done.");
             log.debug("Cleaning up...");
     
-            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, satSolverResult.getSolvedBy());
+            final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, satSolverResult.getSolvedBy(), satSolverResult.getNickname());
     
             log.debug("Result:");
             log.debug(solverResult.toParsableString());

@@ -23,7 +23,6 @@ package ca.ubc.cs.beta.stationpacking.facade;
 
 import lombok.Value;
 import lombok.experimental.Builder;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ConfigFile;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
@@ -49,14 +48,12 @@ public class SATFCFacadeParameter {
 
     // developer options
     private final CNFSaverSolverDecorator.ICNFSaver CNFSaver;
-    private final SATFCHydraParams hydraParams;
     // It's possible to specify a datamanager here so that facade's can be quickly rebuilt without reloading constraints
     private final DataManager dataManager;
     private final SolverChoice solverChoice;
 
 	public enum SolverChoice
 	{
-        HYDRA,
         YAML;
     }
 

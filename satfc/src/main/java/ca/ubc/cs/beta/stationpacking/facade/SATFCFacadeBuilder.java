@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.execution.parameters.smac.SATFCHydraParams;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ConfigFile;
@@ -89,7 +88,6 @@ public class SATFCFacadeBuilder {
     @Data
     public static class DeveloperOptions {
     	private CNFSaverSolverDecorator.ICNFSaver CNFSaver;
-        private SATFCHydraParams hydraParams;
         private DataManager dataManager;
         private SolverChoice solverChoice;
     }
@@ -219,7 +217,6 @@ public class SATFCFacadeBuilder {
                         .noErrorOnServerUnavailable(noErrorOnServerUnavailable)
                         .autoAugmentOptions(autoAugmentOptions)
                         // developer
-                        .hydraParams(developerOptions.getHydraParams())
                         .dataManager(developerOptions.getDataManager())
                         .CNFSaver(developerOptions.getCNFSaver())
                         .solverChoice(developerOptions.getSolverChoice())
@@ -356,7 +353,6 @@ public class SATFCFacadeBuilder {
         builder.setDeveloperOptions(
         		DeveloperOptions
         		.builder()
-        		.hydraParams(parameters.fHydraParams)
         		.CNFSaver(CNFSaver)
         		.solverChoice(parameters.solverChoice)
         		.build()

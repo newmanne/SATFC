@@ -52,7 +52,6 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.sat.UBCSATLibSA
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.SolverManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.ISolverBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.SATFCHydraBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
@@ -121,8 +120,6 @@ public class SATFCFacade implements AutoCloseable {
         fSolverManager = new SolverManager(
                 dataBundle -> {
                     switch (aSATFCParameters.getSolverChoice()) {
-                        case HYDRA:
-                            return new SATFCHydraBundle(dataBundle, aSATFCParameters, pollingService);
                         case YAML:
                             return new YAMLBundle(dataBundle, aSATFCParameters, pollingService, httpClient);
                         default:
