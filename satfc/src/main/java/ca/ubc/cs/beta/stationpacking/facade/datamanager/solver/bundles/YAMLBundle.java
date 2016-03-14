@@ -1,50 +1,25 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import java.io.IOException;
-import java.util.*;
-
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
-import com.google.common.base.Joiner;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.experimental.Builder;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
-
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.CacheSolverConfig;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.EncodingType;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ISolverConfig;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.IStationAddingStrategyConfig;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.IStationPackingConfigurationStrategyConfig;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.SolverType;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.*;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonInterpreterContainer;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.ConstraintGraphNeighborhoodPresolver;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.StationSubsetSATCertifier;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddRandomNeighboursStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationAddingStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IStationPackingConfigurationStrategy;
-import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.IterativeDeepeningConfigurationStrategy;
+import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.*;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ISolverFactory;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelNoWaitSolverComposite;
 import ca.ubc.cs.beta.stationpacking.solvers.composites.ParallelSolverComposite;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.*;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.CacheResultDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
@@ -57,7 +32,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SA
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
@@ -66,8 +40,21 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.Builder;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Created by newmanne on 01/10/15.
@@ -515,15 +502,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class HashSaverDecoratorConfig implements ISolverConfig {
-
-        @Override
-        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new HashSaverDecorator(solverToDecorate, RandomStringUtils.randomAlphabetic(10) + ".txt");
-        }
-    }
-
-    @Data
     public static class PreviousAssignmentConfig implements ISolverConfig {
 
         @Override
@@ -590,7 +568,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.CHANNEL_KILLER, ChannelKillerConfig.class)
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
-                        .put(SolverType.HASH_INDEX, HashSaverDecoratorConfig.class)
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
                         .build();
 

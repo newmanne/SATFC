@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.cache.StationPackingInstanceHasher;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import lombok.Data;
@@ -199,6 +200,7 @@ public class SATFCMetrics {
             activeProblemMetrics.setName(instance.getName());
             activeProblemMetrics.setStations(instance.getStations());
             activeProblemMetrics.setNumStations(instance.getStations().size());
+            activeProblemMetrics.setHash(StationPackingInstanceHasher.hash(instance).toString());
 
             // Calculate degrees. May be a bit expensive...
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(instance.getDomains(), event.getConstraintManager());

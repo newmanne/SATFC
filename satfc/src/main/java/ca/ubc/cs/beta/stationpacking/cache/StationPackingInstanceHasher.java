@@ -34,7 +34,7 @@ import com.google.common.hash.Hashing;
 public class StationPackingInstanceHasher {
 
     // hashing function
-    private static final HashFunction fHashFuction = Hashing.murmur3_32();
+    private static final HashFunction fHashFuction = Hashing.murmur3_128();
 
     public static HashCode hash(StationPackingInstance aInstance) {
         final HashCode hash = fHashFuction.newHasher()

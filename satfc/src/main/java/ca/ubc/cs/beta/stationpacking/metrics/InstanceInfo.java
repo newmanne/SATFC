@@ -53,5 +53,6 @@ public class InstanceInfo {
     private Map<Station, Integer> stationToDegree = new HashMap<>();
     private Map<Station, Integer> assignment;
     private String nickname;
+    private String hash;
 
 }
