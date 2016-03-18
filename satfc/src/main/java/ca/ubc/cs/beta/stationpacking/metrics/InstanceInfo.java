@@ -43,6 +43,7 @@ public class InstanceInfo {
     private int numStations;
     private Set<Station> stations;
     private String name;
+    private String interference;
     private Double runtime;
     private SATResult result;
     private Set<Integer> underconstrainedStations = new HashSet<>();

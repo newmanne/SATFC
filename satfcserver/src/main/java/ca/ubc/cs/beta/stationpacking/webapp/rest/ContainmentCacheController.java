@@ -31,6 +31,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Queues;
 import lombok.extern.slf4j.Slf4j;
 
@@ -144,7 +145,16 @@ public class ContainmentCacheController {
             log.info("Querying the SAT cache with coordinate {} for entry {}", request.getCoordinate(), description);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
             final ContainmentCacheSATResult containmentCacheSATResult;
-            if (parameters.isExcludeSameAuction()) {
+            if (parameters.getBadsets() != null) {
+                final Map<String, Set<String>> badsets = parameters.getBadsets();
+                final String auction = instance.getAuction();
+                containmentCacheSATResult = cache.proveSATBySuperset(instance, c -> {
+                    if (c.getAuction() != null && auction != null) {
+                        return !badsets.get(auction).contains(c.getAuction());
+                    }
+                    return true;
+                });
+            } else if (parameters.isExcludeSameAuction()) {
                 final String auction = instance.getAuction();
                 containmentCacheSATResult = cache.proveSATBySuperset(instance, c -> {
                     if (c.getAuction() != null && auction != null) {

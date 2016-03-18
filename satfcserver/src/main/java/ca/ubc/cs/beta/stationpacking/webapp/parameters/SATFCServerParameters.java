@@ -1,7 +1,15 @@
 package ca.ubc.cs.beta.stationpacking.webapp.parameters;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.HashMultimap;
+import com.google.common.io.Files;
 import lombok.Getter;
 import lombok.ToString;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
@@ -55,6 +63,12 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private boolean excludeSameAuction = false;
 
+    @Parameter(names = "--badSetFile", description = "JSON file listing, for some auctions, which auctions solutions are not allowed to come from", hidden = true)
+    private String badSetFilePath;
+
+    @Getter
+    private Map<String, Set<String>> badsets;
+
     @Parameter(names = "--cache.screener", description = "Determine what goes into the cache", hidden = true)
     @Getter
     private CACHE_SCREENER_CHOICE cacheScreenerChoice = CACHE_SCREENER_CHOICE.NEW_INFO;
@@ -65,6 +79,16 @@ public class SATFCServerParameters extends AbstractOptions {
 
     public void validate() {
         Preconditions.checkArgument(new File(constraintFolder).isDirectory(), "Provided constraint folder is not a directory", constraintFolder);
+        if (badSetFilePath != null) {
+            final File badSetFile = new File(badSetFilePath);
+            Preconditions.checkArgument(badSetFile.exists(), "Could not locate bad set file", badSetFilePath);
+            TypeReference<Map<String, Set<String>>> typeRef = new TypeReference<Map<String,Set<String>>>() {};
+            try {
+                badsets = JSONUtils.getMapper().readValue(Files.toString(badSetFile, Charset.defaultCharset()), typeRef);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 }

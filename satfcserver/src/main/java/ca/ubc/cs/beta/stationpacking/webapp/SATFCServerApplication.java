@@ -71,7 +71,12 @@ public class SATFCServerApplication {
         // Jcommander will throw an exception if it sees parameters it does not know about, but these are possibly spring boot commands
         final List<String> jcommanderArgs = new ArrayList<>();
         final List<String> jcommanderFields = Lists.newArrayList("--help");
-        ReflectionUtils.doWithFields(SATFCServerParameters.class, field -> Collections.addAll(jcommanderFields, field.getAnnotation(Parameter.class).names()));
+        ReflectionUtils.doWithFields(SATFCServerParameters.class, field -> {
+            final Parameter annotation = field.getAnnotation(Parameter.class);
+            if (annotation != null) {
+                Collections.addAll(jcommanderFields, annotation.names());
+            }
+        });
         for (String arg : args) {
             for (String jcommanderField : jcommanderFields) {
                 final String[] split = arg.split("=");

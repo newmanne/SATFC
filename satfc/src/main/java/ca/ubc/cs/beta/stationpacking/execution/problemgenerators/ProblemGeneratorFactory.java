@@ -42,7 +42,7 @@ public class ProblemGeneratorFactory {
         } else if (parameters.fsrpkFile != null) {
             reader = new SingleSrpkProblemReader(parameters.fsrpkFile, parameters.fInterferencesFolder);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
-            reader = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder);
+            reader = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, parameters.fInterferencesFolder, parameters.fRedisParameters.checkForSolution);
         } else if (parameters.fFileOfInstanceFiles != null && parameters.fInterferencesFolder != null) {
             reader = new FileProblemReader(parameters.fFileOfInstanceFiles, parameters.fInterferencesFolder);
         } else {

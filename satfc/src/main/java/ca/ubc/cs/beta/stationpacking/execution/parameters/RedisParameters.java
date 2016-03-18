@@ -50,6 +50,10 @@ public class RedisParameters extends AbstractOptions {
     @Parameter(names = "-REDIS-HOST", description = "Redis host (for problem queue)")
     public String fRedisHost = "localhost";
 
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-CHECK-FOR-SOLUTION", description = "Test for a solution in redis matching instancename, used to parse metrics files into cache")
+    public boolean checkForSolution = false;
+
     private static Jedis jedis;
 
     synchronized public Jedis getJedis() {

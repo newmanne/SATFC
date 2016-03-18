@@ -24,8 +24,12 @@ package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import ca.ubc.cs.beta.stationpacking.execution.AProblemReader;
@@ -44,17 +48,19 @@ public class RedisProblemReader extends AProblemReader {
 
     private final Jedis jedis;
     private final String queueName;
+    private final boolean testForCachedSolution;
     private final String interferencesFolder;
     private String activeProblemFullPath;
 
-    public RedisProblemReader(Jedis jedis, String queueName, String interferencesFolder) {
+    public RedisProblemReader(Jedis jedis, String queueName, String interferencesFolder, boolean testForCachedSolution) {
         this.interferencesFolder = interferencesFolder;
         this.jedis = jedis;
         this.queueName = queueName;
+        this.testForCachedSolution = testForCachedSolution;
         log.info("Reading instances from queue {}", RedisUtils.makeKey(queueName));
     }
 
-    @Override
+        @Override
     public SATFCFacadeProblem getNextProblem() {
         Converter.StationPackingProblemSpecs stationPackingProblemSpecs;
         String fullPathToInstanceFile;
@@ -72,6 +78,22 @@ public class RedisProblemReader extends AProblemReader {
                 log.warn("Error parsing file " + fullPathToInstanceFile + ", skipping it", e);
             }
         }
+
+        // Do a dumb check to see if we have a solution
+        Map<Integer, Integer> solution = null;
+        if (this.testForCachedSolution) {
+            String answer = jedis.get(instanceFileName);
+            if (answer != null) {
+                TypeReference<Map<String, Integer>> typeRef = new TypeReference<Map<String, Integer>>() {};
+                try {
+                    Map<String, Integer> ans = JSONUtils.getMapper().readValue(answer, typeRef);
+                    solution = ans.entrySet().stream().collect(Collectors.toMap(e -> Integer.parseInt(e.getKey()), e -> e.getValue()));
+                } catch (IOException e) {
+                    throw new RuntimeException("Couldn't parse solution!!!", e);
+                }
+            }
+        }
+
         final long remainingJobs = jedis.llen(RedisUtils.makeKey(queueName));
         log.info("There are {} problems remaining in the queue", remainingJobs);
         activeProblemFullPath = fullPathToInstanceFile;
@@ -80,7 +102,7 @@ public class RedisProblemReader extends AProblemReader {
                 stations,
                 stationPackingProblemSpecs.getDomains().values().stream().reduce(new HashSet<>(), Sets::union),
                 stationPackingProblemSpecs.getDomains(),
-                stationPackingProblemSpecs.getPreviousAssignment(),
+                solution != null ? solution : stationPackingProblemSpecs.getPreviousAssignment(),
                 interferencesFolder + File.separator + stationPackingProblemSpecs.getDataFoldername(),
                 instanceFileName
         );
