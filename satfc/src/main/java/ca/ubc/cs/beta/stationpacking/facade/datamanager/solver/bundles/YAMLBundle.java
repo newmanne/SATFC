@@ -463,6 +463,25 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
+    public static class MIPSaverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new MIPSaverSolverDecorator(solverToDecorate, mipDir, context.getManagerBundle().getConstraintManager(), encodingType);
+        }
+
+        @Override
+        public boolean shouldSkip(SATFCContext context) {
+            return mipDir == null;
+        }
+
+        String mipDir;
+        EncodingType encodingType = EncodingType.DIRECT;
+
+    }
+
+
+    @Data
     public static class ChannelKillerConfig implements ISolverConfig {
 
         @Override
@@ -569,6 +588,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
+                        .put(SolverType.MIP_SAVER, MIPSaverConfig.class)
                         .build();
 
         @Override
