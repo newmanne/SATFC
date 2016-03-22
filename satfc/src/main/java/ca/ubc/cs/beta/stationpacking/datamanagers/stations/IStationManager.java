@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 
 /**
@@ -52,9 +53,9 @@ public interface IStationManager {
 	 */
 	Set<Integer> getDomain(Station aStation);
 
-	default Set<Integer> getRestrictedDomain(Station station, int maxChannel) {
+	default Set<Integer> getRestrictedDomain(Station station, int maxChannel, boolean UHFOnly) {
 		final Set<Integer> domain = getDomain(station);
-		domain.removeIf(chan -> chan > maxChannel);
+		domain.removeIf(chan -> chan > maxChannel || (UHFOnly && chan < StationPackingUtils.UHFmin));
 		return domain;
 	}
 	

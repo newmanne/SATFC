@@ -167,7 +167,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         final Map<Station, Set<Integer>> domains = new HashMap<>();
         for (Map.Entry<Integer, Integer> e : cacheEntry.getAssignmentStationToChannel().entrySet()) {
             final Station station = stationManager.getStationfromID(e.getKey());
-            domains.put(station, stationManager.getRestrictedDomain(station, e.getValue()));
+            domains.put(station, stationManager.getRestrictedDomain(station, e.getValue(), false));
         }
         final StationPackingInstance i = new StationPackingInstance(domains);
         return proveSATBySuperset(i, entry -> !entry.getKey().equals(cacheEntry.getKey())).isValid();
