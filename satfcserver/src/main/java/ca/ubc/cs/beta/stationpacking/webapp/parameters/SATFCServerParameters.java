@@ -59,6 +59,11 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private boolean skipUNSAT = false;
 
+    @Parameter(names = "--validateSAT", description = "Validate all SAT entries upon startup (slow)")
+    @Getter
+    private boolean validateSAT = false;
+
+
     @Parameter(names = "--excludeSameAuction", description = "Do not count a solution if it is derived from the same auction as the problem", hidden = true)
     @Getter
     private boolean excludeSameAuction = false;

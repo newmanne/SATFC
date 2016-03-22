@@ -147,7 +147,7 @@ public class RedisCacher {
         return key;
     }
 
-    public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, SATResult entryTypeName, int partitionSize) {
+    public <CONTAINMENT_CACHE_ENTRY extends ISATFCCacheEntry> ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> processResults(Set<String> keys, SATResult entryTypeName, int partitionSize, boolean validateSAT) {
         final ListMultimap<CacheCoordinate, CONTAINMENT_CACHE_ENTRY> results = ArrayListMultimap.create();
         final AtomicInteger numProcessed = new AtomicInteger();
         Lists.partition(new ArrayList<>(keys), partitionSize).stream().forEach(keyChunk -> {
@@ -174,6 +174,13 @@ public class RedisCacher {
                 final Map<byte[], byte[]> answer = responses.get(i).get();
                 try {
                     final ISATFCCacheEntry cacheEntry = cacheEntryFromKeyAndAnswer(key, answer);
+                    if (entryTypeName.equals(SATResult.SAT) && validateSAT) {
+                        final Map<Integer, Set<Station>> assignment = ((ContainmentCacheSATEntry) cacheEntry).getAssignmentChannelToStation();
+                        boolean valid = dataManager.getData(coordinate).getConstraintManager().isSatisfyingAssignment(assignment);
+                        if (!valid) {
+                            throw new IllegalStateException("Cache entry for key " + key + " contains an invalid assignment!");
+                        }
+                    }
                     results.put(coordinate, (CONTAINMENT_CACHE_ENTRY) cacheEntry);
                 } catch (Exception e) {
                     log.error("Error making cache entry for key {}", key, e);
@@ -188,7 +195,7 @@ public class RedisCacher {
         return results;
     }
 
-    public ContainmentCacheInitData getContainmentCacheInitData(long limit, boolean skipSAT, boolean skipUNSAT) {
+    public ContainmentCacheInitData getContainmentCacheInitData(long limit, boolean skipSAT, boolean skipUNSAT, boolean validateSAT) {
         log.info("Pulling precache data from redis");
         final Watch watch = Watch.constructAutoStartWatch();
 
@@ -216,8 +223,8 @@ public class RedisCacher {
         log.info("Found " + SATKeys.size() + " SAT keys");
         log.info("Found " + UNSATKeys.size() + " UNSAT keys");
 
-        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, SATResult.SAT, SAT_PIPELINE_SIZE);
-        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, SATResult.UNSAT, UNSAT_PIPELINE_SIZE);
+        final ListMultimap<CacheCoordinate, ContainmentCacheSATEntry> SATResults = processResults(SATKeys, SATResult.SAT, SAT_PIPELINE_SIZE, validateSAT);
+        final ListMultimap<CacheCoordinate, ContainmentCacheUNSATEntry> UNSATResults = processResults(UNSATKeys, SATResult.UNSAT, UNSAT_PIPELINE_SIZE, false);
 
         log.info("It took {}s to pull precache data from redis", watch.getElapsedTime());
         return new ContainmentCacheInitData(SATResults, UNSATResults);

@@ -90,7 +90,7 @@ public class CacheLocator implements ICacheLocator, ApplicationListener<ContextR
         dataManager.loadMultipleConstraintSets(constraintFolder);
 
         log.info("Beginning to init caches");
-        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), parameters.isSkipSAT(), parameters.isSkipUNSAT());
+        final ContainmentCacheInitData containmentCacheInitData = cacher.getContainmentCacheInitData(parameters.getCacheSizeLimit(), parameters.isSkipSAT(), parameters.isSkipUNSAT(), parameters.isValidateSAT());
         dataManager.getCoordinateToBundle().keySet().forEach(cacheCoordinate -> {
             final ISatisfiabilityCache cache = cacheFactory.create(dataManager.getData(cacheCoordinate).getPermutation());
             log.info("Cache created for coordinate " + cacheCoordinate);

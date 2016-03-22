@@ -9,6 +9,7 @@ import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -36,8 +37,9 @@ import java.util.stream.Collectors;
 /**
  * Created by newmanne on 2016-02-11.
  */
-@Slf4j
 public class ConstrainCache {
+
+    private static org.slf4j.Logger log;
 
     @UsageTextField(title = "Verify script", description = "Parameters needed to verify SAT entries in a cache")
     public static class FilterMandatoryStationsOptions extends AbstractOptions {
@@ -80,6 +82,9 @@ public class ConstrainCache {
         // Parse args
         final FilterMandatoryStationsOptions options = new FilterMandatoryStationsOptions();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, options);
+
+        SATFCFacadeBuilder.initializeLogging(options.facadeParameters.getLogLevel(), options.getFacadeParameters().logFileName);
+        log = org.slf4j.LoggerFactory.getLogger(ConstrainCache.class);
 
         if (options.isDistributed()) {
             Preconditions.checkArgument(options.facadeParameters.cachingParams.serverURL != null, "No server URL specified!");
