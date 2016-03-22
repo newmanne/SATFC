@@ -112,6 +112,12 @@ public abstract class ConstraintManagerTest {
     }
 
     @Test
+    public void testIsSatisfyingAssignmentWithNonExistentStation() throws Exception {
+        IConstraintManager cm = getConstraintManager();
+        final Station fakeStation = new Station(-327);
+    }
+
+    @Test
     public void testGetRelevantConstraints() throws Exception {
         IConstraintManager cm = getConstraintManager();
         IStationManager dm = getDomainManager();

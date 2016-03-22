@@ -119,7 +119,7 @@ public class ContainmentCacheSATEntry implements ICacheEntry<Station>, ISATFCCac
         for (int bit = bitSet.nextSetBit(0); bit >= 0; bit = bitSet.nextSetBit(bit+1)) {
             final Station station = inversePermutation.get(bit);
             if (station == null) {
-                throw new IllegalStateException("Bit " + bit + " is set, but inverse permutation does not contain it!\n" + inversePermutation);
+                throw new IllegalStateException("Bit " + bit + " is set in key " + key + ", but inverse permutation does not contain it!\n" + inversePermutation);
             }
             builder.add(station);
         }

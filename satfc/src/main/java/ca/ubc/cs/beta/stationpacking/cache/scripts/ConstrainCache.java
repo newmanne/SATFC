@@ -88,7 +88,7 @@ public class ConstrainCache {
 
         if (options.isDistributed()) {
             Preconditions.checkArgument(options.facadeParameters.cachingParams.serverURL != null, "No server URL specified!");
-        } else if (options.facadeParameters.cachingParams.serverURL != null) {
+        } else if (options.facadeParameters.cachingParams.serverURL == null) {
             log.warn("No server URL specified. This script likely won't have side effects...");
         }
 
@@ -130,6 +130,9 @@ public class ConstrainCache {
                 try {
                     parsedKey = CacheUtils.parseKey(key);
                 } catch (Exception e) {
+                    if (!key.equals(RedisCacher.HASH_NUM)) {
+                        log.warn("Exception parsing key " + key, e);
+                    }
                     continue;
                 }
                 if (parsedKey.getResult().equals(SATResult.SAT)) {
@@ -143,9 +146,9 @@ public class ConstrainCache {
 
 
     public static void doThing(ContainmentCacheSATEntry entry, CacheCoordinate masterCoordinate, Set<? extends Station> requiredStations, IConstraintManager constraintManager, IStationManager stationManager, FilterMandatoryStationsOptions options, SATFCFacade facade, ManagerBundle managerBundle, Jedis jedis) {
+        log.info("Entry {} stats: Domain size is {}", entry.getKey(), entry.getElements().size());
         final int maxChannel = options.getMaxChannel();
 
-        log.info("Entry {} stats: Domain size is {}", entry.getKey(), entry.getElements().size());
 
         final CacheCoordinate coordinate = CacheCoordinate.fromKey(entry.getKey());
 
@@ -178,7 +181,7 @@ public class ConstrainCache {
             domains = new HashMap<>();
             for (Station s : allRequiredStations) {
                 Integer prevChan = entryAssignment.get(s.getID());
-                if (prevChan != null && prevChan > maxChannel) {
+                if (prevChan != null && prevChan > maxChannel && stationManager.getDomain(s).contains(prevChan)) {
                     log.debug("Station {} above max chan (probably impairing?)", s);
                     domains.put(s.getID(), Collections.singleton(prevChan));
                 } else {

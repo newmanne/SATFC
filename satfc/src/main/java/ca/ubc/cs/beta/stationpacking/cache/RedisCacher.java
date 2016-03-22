@@ -268,6 +268,9 @@ public class RedisCacher {
                     try {
                         parsedKey = CacheUtils.parseKey(key);
                     } catch (Exception e) {
+                        if (!key.equals(HASH_NUM)) {
+                            log.warn("Exception parsing key " + key, e);
+                        }
                         continue;
                     }
                     if (parsedKey.getResult().equals(SATResult.SAT)) {
