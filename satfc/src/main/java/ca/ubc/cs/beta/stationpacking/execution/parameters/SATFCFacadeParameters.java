@@ -21,15 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
+
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ch.qos.logback.classic.Level;
-
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
 
 /**
  * SATFC facade parameters.
@@ -63,6 +63,12 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INSTANCES-FILE", description = "file listing each instance file on a separate line")
     public String fFileOfInstanceFiles;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-CSV-ROOT", description = "Root of CSV auction directory")
+    public String fCsvRoot;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-CHECK-FOR-SOLUTION", description = "Test for a solution in redis matching instancename, used to parse metrics files into cache")
+    public boolean checkForSolution = false;
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = {"-METRICS-FILE", "-OUTPUT-FILE"}, description = "Causes the FileMetricWriter to be used, outputs a file with metrics (may cause performance loss)")
     public String fMetricsFile;

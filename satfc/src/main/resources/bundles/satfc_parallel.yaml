@@ -55,6 +55,7 @@ UHF:
               args:
                 config: *satenstein
                 encodingType: DIRECT
+    - name: PREVIOUS_ASSIGNMENT
     - name: RESULT_SAVER
     - name: PYTHON_VERIFIER
     - name: VERIFIER

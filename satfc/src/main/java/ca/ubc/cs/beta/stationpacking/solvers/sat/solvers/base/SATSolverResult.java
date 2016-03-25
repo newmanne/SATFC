@@ -24,14 +24,14 @@ package ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base;
 import java.io.Serializable;
 import java.util.Set;
 
-import lombok.Getter;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult.SolvedBy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import lombok.Getter;
 
 public class SATSolverResult implements Serializable {
 

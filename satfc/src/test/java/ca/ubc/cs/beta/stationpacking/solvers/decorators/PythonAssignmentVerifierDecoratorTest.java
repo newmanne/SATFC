@@ -9,10 +9,13 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.io.Resources;
 
 import ca.ubc.cs.beta.stationpacking.StationPackingTestUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -22,11 +25,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.io.Resources;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by emily404 on 9/3/15.

@@ -21,7 +21,6 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.stations;
 
-import java.util.Collection;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;

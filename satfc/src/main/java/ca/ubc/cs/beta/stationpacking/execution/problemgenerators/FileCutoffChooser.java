@@ -1,14 +1,14 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
-import au.com.bytecode.opencsv.CSVReader;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import au.com.bytecode.opencsv.CSVReader;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 2016-02-16.

@@ -26,18 +26,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
-import lombok.Data;
-import lombok.NonNull;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.ISATFCCacheEntry;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-
 import containmentcache.ICacheEntry;
+import lombok.Data;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 /**

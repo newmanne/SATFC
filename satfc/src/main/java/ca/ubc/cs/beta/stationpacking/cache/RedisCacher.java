@@ -21,39 +21,39 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import com.google.common.collect.*;
-import lombok.Data;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.StringRedisConnection;
 import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
-import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import com.google.common.base.Preconditions;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
+import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.BinaryJedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
@@ -175,8 +175,10 @@ public class RedisCacher {
                 try {
                     final ISATFCCacheEntry cacheEntry = cacheEntryFromKeyAndAnswer(key, answer);
                     if (entryTypeName.equals(SATResult.SAT) && validateSAT) {
+                        ContainmentCacheSATEntry satEntry = (ContainmentCacheSATEntry) cacheEntry;
                         final Map<Integer, Set<Station>> assignment = ((ContainmentCacheSATEntry) cacheEntry).getAssignmentChannelToStation();
-                        boolean valid = dataManager.getData(coordinate).getConstraintManager().isSatisfyingAssignment(assignment);
+                        final ManagerBundle managerBundle = dataManager.getData(coordinate);
+                        boolean valid = StationPackingUtils.weakVerify(managerBundle.getStationManager(), managerBundle.getConstraintManager(), satEntry.getAssignmentStationToChannel());
                         if (!valid) {
                             throw new IllegalStateException("Cache entry for key " + key + " contains an invalid assignment!");
                         }

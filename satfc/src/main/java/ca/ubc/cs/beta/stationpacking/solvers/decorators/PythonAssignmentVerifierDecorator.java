@@ -2,8 +2,6 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.python.core.PyObject;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -13,6 +11,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by emily404 on 8/31/15.

@@ -13,9 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -23,6 +20,11 @@ import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.util.EntityUtils;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
@@ -34,11 +36,8 @@ import ca.ubc.cs.beta.stationpacking.execution.extendedcache.PopulationVolumeSam
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 15/10/15.

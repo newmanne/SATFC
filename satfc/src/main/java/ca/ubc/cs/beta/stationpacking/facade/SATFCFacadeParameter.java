@@ -21,12 +21,12 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade;
 
-import lombok.Value;
-import lombok.experimental.Builder;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ConfigFile;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
+import lombok.Value;
+import lombok.experimental.Builder;
 
 @Value
 @Builder

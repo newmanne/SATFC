@@ -26,12 +26,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
 
 /**
  * Created by newmanne on 21/01/15.

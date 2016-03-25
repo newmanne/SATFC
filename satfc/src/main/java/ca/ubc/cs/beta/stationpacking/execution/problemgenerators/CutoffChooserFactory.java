@@ -1,8 +1,8 @@
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
-import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-
 import java.io.FileNotFoundException;
+
+import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 
 /**
  * Created by newmanne on 2016-02-16.

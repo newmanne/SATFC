@@ -23,8 +23,6 @@ package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
-
 import com.google.common.collect.ImmutableMap;
 import com.sun.jna.Library;
 import com.sun.jna.Platform;

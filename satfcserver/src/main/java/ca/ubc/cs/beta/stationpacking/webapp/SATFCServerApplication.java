@@ -28,9 +28,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.servlet.Filter;
 
-import ca.ubc.cs.beta.stationpacking.cache.*;
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -43,19 +40,26 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.util.ReflectionUtils;
 
-import redis.clients.jedis.BinaryJedis;
-import redis.clients.jedis.JedisShardInfo;
-import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.webapp.filters.GzipRequestFilter;
-import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
-
 import com.beust.jcommander.Parameter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlets.MetricsServlet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+
+import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheEntryFilter;
+import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
+import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.cache.NewInfoEntryFilter;
+import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
+import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.webapp.filters.GzipRequestFilter;
+import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
+import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.BinaryJedis;
+import redis.clients.jedis.JedisShardInfo;
 
 /**
  * Created by newmanne on 23/03/15.

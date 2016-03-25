@@ -26,16 +26,15 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-
 import org.python.google.common.base.Preconditions;
-
-import ca.ubc.cs.beta.stationpacking.base.Station;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 
 /**

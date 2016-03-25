@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableBiMap;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
@@ -32,8 +34,6 @@ import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATResult
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATEntry;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheUNSATResult;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
-import com.google.common.collect.ImmutableBiMap;
 
 /**
  * Created by newmanne on 19/04/15.

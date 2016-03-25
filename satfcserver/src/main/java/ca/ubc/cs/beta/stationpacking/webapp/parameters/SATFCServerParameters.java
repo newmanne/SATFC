@@ -6,18 +6,17 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.HashMultimap;
-import com.google.common.io.Files;
-import lombok.Getter;
-import lombok.ToString;
-import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
-import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
+import com.google.common.io.Files;
+
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
+import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import lombok.Getter;
+import lombok.ToString;
 
 /**
 * Created by newmanne on 30/06/15.

@@ -21,10 +21,10 @@
  */
 package ca.ubc.cs.beta.stationpacking.cache;
 
+import com.google.common.collect.ImmutableBiMap;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-
-import com.google.common.collect.ImmutableBiMap;
 
 /**
 * Created by newmanne on 22/04/15.

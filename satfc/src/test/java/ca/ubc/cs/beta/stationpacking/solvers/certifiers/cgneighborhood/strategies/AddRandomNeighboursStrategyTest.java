@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 
 /**
  * Created by newmanne on 2015-08-03.

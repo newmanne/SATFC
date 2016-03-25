@@ -7,21 +7,20 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import com.google.common.collect.Iterables;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.cache.SatisfiabilityCacheFactory;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
-
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import containmentcache.util.PermutationUtils;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SatisfiabilityCacheTest {

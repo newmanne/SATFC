@@ -37,15 +37,16 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
-import lombok.Data;
-import lombok.NonNull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.ParametersDelegate;
 
 import ca.ubc.cs.beta.aeatk.logging.ConsoleOnlyLoggingOptions;
 import ca.ubc.cs.beta.aeatk.logging.LoggingOptions;
@@ -63,10 +64,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATEncoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
-
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.ParametersDelegate;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NonNull;
 
 /**
  * In charge of converting different station repacking instance formats to other formats (either .sprk, or SAT/MIP encodings).
@@ -176,18 +176,25 @@ public class Converter {
      * @author afrechet
      */
     @Data
+    @AllArgsConstructor
     public static class StationPackingProblemSpecs {
-        @NonNull
-        private final String source;
+        private String source;
 
         @NonNull
         private final Map<Integer, Set<Integer>> domains;
 
-        private final Map<Integer, Integer> previousAssignment;
+        private Map<Integer, Integer> previousAssignment;
 
+        @NonNull
         private final String dataFoldername;
 
-        private final Double cutoff;
+        private Double cutoff;
+
+        public StationPackingProblemSpecs(Map<Integer, Set<Integer>> domains, Map<Integer, Integer> previousAssignment, String dataFoldername) {
+            this.dataFoldername = dataFoldername;
+            this.domains = domains;
+            this.previousAssignment = previousAssignment;
+        }
 
 
         /**

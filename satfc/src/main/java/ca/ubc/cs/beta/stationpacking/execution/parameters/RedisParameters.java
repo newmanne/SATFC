@@ -25,16 +25,16 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import redis.clients.jedis.BinaryJedis;
-import redis.clients.jedis.Jedis;
+
+import com.beust.jcommander.Parameter;
+
 import ca.ubc.cs.beta.aeatk.misc.options.OptionLevel;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-
-import com.beust.jcommander.Parameter;
+import redis.clients.jedis.BinaryJedis;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisShardInfo;
 
 /**
@@ -49,10 +49,6 @@ public class RedisParameters extends AbstractOptions {
     public Integer fRedisPort = 6379;
     @Parameter(names = "-REDIS-HOST", description = "Redis host (for problem queue)")
     public String fRedisHost = "localhost";
-
-    @UsageTextField(level = OptionLevel.DEVELOPER)
-    @Parameter(names = "-CHECK-FOR-SOLUTION", description = "Test for a solution in redis matching instancename, used to parse metrics files into cache")
-    public boolean checkForSolution = false;
 
     private static Jedis jedis;
 

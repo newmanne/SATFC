@@ -1,13 +1,13 @@
 package ca.ubc.cs.beta.stationpacking.utils;
 
+import com.fasterxml.jackson.databind.module.SimpleModule;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationDeserializer;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.YAMLBundle;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.ISolverConfig;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.IStationAddingStrategyConfig;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml.IStationPackingConfigurationStrategyConfig;
-
-import com.fasterxml.jackson.databind.module.SimpleModule;
 
 /**
 * Created by newmanne on 05/10/15.

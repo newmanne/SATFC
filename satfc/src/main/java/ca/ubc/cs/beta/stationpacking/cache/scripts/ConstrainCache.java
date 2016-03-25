@@ -1,5 +1,20 @@
 package ca.ubc.cs.beta.stationpacking.cache.scripts;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
@@ -9,7 +24,6 @@ import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.containment.ContainmentCacheSATEntry;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -21,18 +35,9 @@ import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParametersDelegate;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import lombok.Cleanup;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-02-11.
@@ -78,6 +83,8 @@ public class ConstrainCache {
 
     }
 
+
+    // TODO: this is probably better written into a ProblemParser and done through the facade
     public static void main(String[] args) throws Exception {
         // Parse args
         final FilterMandatoryStationsOptions options = new FilterMandatoryStationsOptions();
@@ -91,7 +98,6 @@ public class ConstrainCache {
         } else if (options.facadeParameters.cachingParams.serverURL == null) {
             log.warn("No server URL specified. This script likely won't have side effects...");
         }
-
 
         final Jedis jedis = options.getFacadeParameters().fRedisParameters.getJedis();
 
@@ -156,7 +162,7 @@ public class ConstrainCache {
         boolean rightCoordinate = coordinate.equals(masterCoordinate);
         if (rightCoordinate) {
             log.debug("The cache entry is already in the right coordinate. Just verifying.");
-            if (constraintManager.isSatisfyingAssignment(entry.getAssignmentChannelToStation())) {
+            if (StationPackingUtils.weakVerify(stationManager, constraintManager, entry.getAssignmentStationToChannel())) {
                 log.debug("Assignment is valid");
                 return;
             } else {

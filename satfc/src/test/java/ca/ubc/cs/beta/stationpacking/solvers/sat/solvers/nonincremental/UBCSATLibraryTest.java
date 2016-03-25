@@ -11,6 +11,11 @@ import org.apache.commons.math3.util.Pair;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.io.Resources;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
+
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -27,11 +32,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.UBCSATTestHelperLibrary;
 import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-
-import com.google.common.io.Resources;
-import com.sun.jna.Native;
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.IntByReference;
 
 /**
  * In adherence to the principle of RAII (Resource Acquisition Is Initialization), and to allow for flexibility in running

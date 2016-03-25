@@ -8,10 +8,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.ISATFCInterruptible;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 15/10/15.

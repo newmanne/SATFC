@@ -25,14 +25,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import net.jcip.annotations.NotThreadSafe;
-
 import org.apache.commons.io.FileUtils;
 
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import net.jcip.annotations.NotThreadSafe;
 
 /**
  * Solver decorator that saves solve results post-execution.

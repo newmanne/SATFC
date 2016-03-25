@@ -18,9 +18,9 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.http.protocol.HTTP;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 27/10/15.

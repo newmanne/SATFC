@@ -21,14 +21,15 @@
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.data;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.google.common.collect.ImmutableBiMap;
-import containmentcache.util.PermutationUtils;
-import lombok.Getter;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import containmentcache.util.PermutationUtils;
+import lombok.Getter;
 
 /**
  * Bundle object containing a station and a constraint manager.

@@ -6,7 +6,7 @@ HASHNUM_KEY = 'SATFC:HASHNUM'
 """Merge the entries from redis cache A into cache B"""
 
 def merge(r_a, r_b):	
-	r_b_hashnum = int(r_b.get(HASHNUM_KEY))
+	r_b_hashnum = int(r_b.incr(HASHNUM_KEY, amount=0))
 	match = "SATFC:*SAT*"
 	for i, key in enumerate(r_a.scan_iter(match=match)):
 		if i % 10000 == 0:

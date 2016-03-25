@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.math3.util.Pair;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -44,6 +42,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.ISATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.base.SATSolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * SAT based ISolver that uses a SAT solver to solve station packing problems.

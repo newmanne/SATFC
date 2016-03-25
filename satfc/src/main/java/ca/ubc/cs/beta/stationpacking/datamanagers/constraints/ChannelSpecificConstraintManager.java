@@ -26,10 +26,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 
-import lombok.extern.slf4j.Slf4j;
 import au.com.bytecode.opencsv.CSVReader;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Channel specific interference constraint data manager.

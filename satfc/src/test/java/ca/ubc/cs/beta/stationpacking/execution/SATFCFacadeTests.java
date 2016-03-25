@@ -31,9 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import lombok.Cleanup;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Pair;
 import org.junit.Test;
@@ -45,6 +42,8 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import lombok.Cleanup;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SATFCFacadeTests {

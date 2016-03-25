@@ -11,15 +11,15 @@ import java.util.Set;
 
 import org.junit.Test;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
 public abstract class ConstraintManagerTest {
 
@@ -109,12 +109,6 @@ public abstract class ConstraintManagerTest {
                 .put(2, Sets.newHashSet(s(dm, 2)))
                 .build();
         assertTrue(cm.isSatisfyingAssignment(goodAssignment));
-    }
-
-    @Test
-    public void testIsSatisfyingAssignmentWithNonExistentStation() throws Exception {
-        IConstraintManager cm = getConstraintManager();
-        final Station fakeStation = new Station(-327);
     }
 
     @Test

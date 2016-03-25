@@ -27,10 +27,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimaps;
+
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -72,5 +75,9 @@ public class StationPackingUtils {
             channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
         });
         return Multimaps.asMap(channelAssignment);
+    }
+
+    public static boolean weakVerify(IStationManager stationManager, IConstraintManager constraintManager, Map<Integer, Integer> solution) {
+        return solution.keySet().stream().allMatch(s -> stationManager.getStations().contains(s)) && solution.entrySet().stream().allMatch(e -> stationManager.getDomain(stationManager.getStationfromID(e.getKey())).contains(e.getValue())) && constraintManager.isSatisfyingAssignment(channelToStationFromStationToChannel(solution));
     }
 }

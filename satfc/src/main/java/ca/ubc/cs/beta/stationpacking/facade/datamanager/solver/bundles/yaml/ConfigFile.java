@@ -3,11 +3,11 @@ package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles.yaml;
 import java.io.File;
 import java.io.IOException;
 
-import lombok.Data;
-
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import com.google.common.io.Resources;
+
+import lombok.Data;
 
 /**
  * A YAML config file.

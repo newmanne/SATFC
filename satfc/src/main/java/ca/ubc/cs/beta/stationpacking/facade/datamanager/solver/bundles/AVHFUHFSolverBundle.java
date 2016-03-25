@@ -1,10 +1,10 @@
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import lombok.extern.slf4j.Slf4j;
 
 /**
 * Created by newmanne on 01/10/15.

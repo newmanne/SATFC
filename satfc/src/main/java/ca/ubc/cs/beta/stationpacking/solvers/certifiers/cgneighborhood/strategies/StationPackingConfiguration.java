@@ -2,8 +2,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategi
 
 import java.util.Set;
 
-import lombok.Value;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.Value;
 
 /**
 * Created by newmanne on 27/07/15.

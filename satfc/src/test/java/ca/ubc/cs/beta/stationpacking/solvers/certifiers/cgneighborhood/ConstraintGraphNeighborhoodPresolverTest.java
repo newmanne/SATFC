@@ -36,6 +36,8 @@ import org.jgrapht.graph.SimpleGraph;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.GraphBackedConstraintManager;
@@ -49,8 +51,6 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.infinite.NeverEndingTerminationCriterion;
 import ca.ubc.cs.beta.stationpacking.test.GraphLoader;
 import ca.ubc.cs.beta.stationpacking.test.StationWholeSetSATCertifier;
-
-import com.google.common.collect.Sets;
 
 /**
  * @author pcernek

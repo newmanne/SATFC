@@ -27,15 +27,16 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import com.google.common.base.Preconditions;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
+
+import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.UnabridgedFormatConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Manages the data contained in different station config directories to make sure they are only read once.

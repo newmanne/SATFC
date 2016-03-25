@@ -26,15 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 /**
  * Created by newmanne on 19/03/15.

@@ -21,21 +21,16 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
-import net.jcip.annotations.ThreadSafe;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 
-import ca.ubc.cs.beta.stationpacking.base.Station;
+import com.google.common.collect.ImmutableSet;
+
 import ca.ubc.cs.beta.stationpacking.cache.CacheCoordinate;
 import ca.ubc.cs.beta.stationpacking.cache.ICacheLocator;
 import ca.ubc.cs.beta.stationpacking.cache.ISatisfiabilityCacheFactory;
@@ -43,13 +38,9 @@ import ca.ubc.cs.beta.stationpacking.cache.RedisCacher;
 import ca.ubc.cs.beta.stationpacking.cache.RedisCacher.ContainmentCacheInitData;
 import ca.ubc.cs.beta.stationpacking.cache.containment.containmentcache.ISatisfiabilityCache;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
-import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.webapp.parameters.SATFCServerParameters;
-
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableSet;
-
-import containmentcache.util.PermutationUtils;
+import lombok.extern.slf4j.Slf4j;
+import net.jcip.annotations.ThreadSafe;
 
 /**
  * Created by newmanne on 25/03/15.

@@ -26,14 +26,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sun.jna.NativeLibrary;
-import lombok.AccessLevel;
-import lombok.Getter;
-import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
-
 import com.google.common.io.Files;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+
+import ca.ubc.cs.beta.stationpacking.utils.NativeUtils;
+import lombok.AccessLevel;
+import lombok.Getter;
 
 /**
  * This class returns a fresh, independent clasp library to each thread

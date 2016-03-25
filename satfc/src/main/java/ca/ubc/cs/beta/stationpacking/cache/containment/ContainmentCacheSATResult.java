@@ -24,12 +24,8 @@ package ca.ubc.cs.beta.stationpacking.cache.containment;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
 
 /**
 * Created by newmanne on 25/03/15.

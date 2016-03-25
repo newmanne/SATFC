@@ -4,12 +4,11 @@ import java.io.File;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by emily404 on 9/23/15.

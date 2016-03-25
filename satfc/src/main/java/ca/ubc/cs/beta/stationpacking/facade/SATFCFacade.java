@@ -24,24 +24,26 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
-import com.google.common.base.Charsets;
-import com.google.common.base.Splitter;
-import com.google.common.io.Resources;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import com.google.common.io.Resources;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
@@ -59,6 +61,7 @@ import ca.ubc.cs.beta.stationpacking.polling.PollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.ContainmentCacheProxy;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -68,10 +71,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTermin
 import ca.ubc.cs.beta.stationpacking.utils.CacheUtils;
 import ca.ubc.cs.beta.stationpacking.utils.TimeLimitedCodeBlock;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A facade for solving station packing problems with SATFC.

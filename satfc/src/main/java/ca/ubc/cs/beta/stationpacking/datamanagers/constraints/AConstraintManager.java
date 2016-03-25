@@ -28,8 +28,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.extern.slf4j.Slf4j;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 06/03/15.
