@@ -23,6 +23,5 @@ public enum SolverType {
     DELAY,
     TIME_BOUNDED,
     PREVIOUS_ASSIGNMENT,
-    MIP_SAVER,
     NONE
 }
