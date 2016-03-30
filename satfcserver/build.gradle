@@ -62,6 +62,8 @@ createScript(project, 'ca.ubc.cs.beta.stationpacking.cache.scripts.ConstrainCach
 
 //Project properties.
 applicationName = 'SATFCServer'
+mainClassName = 'ca.ubc.cs.beta.stationpacking.webapp.SATFCServerApplicationy' +
+        ''
 version = "$SATFCVersion-"+getGitName()
 
 jar {
