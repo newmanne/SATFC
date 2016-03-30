@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -78,8 +78,9 @@ public class SATFCFacadeBuilder {
      * Set the YAML file used to build up the SATFC solver bundle
      * @param configFile
      */
-    public void setConfigFile(InternalSATFCConfigFile configFile) {
+    public SATFCFacadeBuilder setConfigFile(InternalSATFCConfigFile configFile) {
         this.configFile = new ConfigFile(configFile.getFilename(), true);
+        return this;
     }
 
     // developer params
@@ -321,7 +322,7 @@ public class SATFCFacadeBuilder {
     }
 
 
-    public static SATFCFacade buildFromParameters(@NonNull SATFCFacadeParameters parameters) {
+    public static SATFCFacadeBuilder builderFromParameters(@NonNull SATFCFacadeParameters parameters) {
         final SATFCFacadeBuilder builder = new SATFCFacadeBuilder();
         // regular parameters
         if (parameters.fClaspLibrary != null) {
@@ -356,7 +357,7 @@ public class SATFCFacadeBuilder {
         		.solverChoice(parameters.solverChoice)
         		.build()
         		);
-        return builder.build();
+        return builder;
     }
 
     private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";

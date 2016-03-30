@@ -21,13 +21,16 @@
  */
 package ca.ubc.cs.beta.stationpacking.webapp;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.Filter;
 
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.cache.containment.transformer.ICacheEntryTransformer;
+import ca.ubc.cs.beta.stationpacking.cache.containment.transformer.UHFRestrictionTransformer;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -184,6 +187,12 @@ public class SATFCServerApplication {
                 throw new IllegalStateException("Unrecognized value for " + parameters.getCacheScreenerChoice());
         }
         return screener;
+    }
+
+    @Bean
+    public ICacheEntryTransformer cacheEntryTransformer() {
+        final SATFCServerParameters parameters = satfcServerParameters();
+        return parameters.isCacheUHFOnly() ? new UHFRestrictionTransformer() : x -> x;
     }
 
 }

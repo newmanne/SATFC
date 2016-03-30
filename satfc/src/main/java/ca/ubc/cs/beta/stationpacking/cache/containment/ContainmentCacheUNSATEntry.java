@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -48,7 +48,7 @@ import lombok.NonNull;
 @Data
 public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCCacheEntry {
 
-    public static final int BITS_PER_STATION = 40;
+    public static final int BITS_PER_STATION = StationPackingUtils.UHFmax - StationPackingUtils.LVHFmin + 1;
 
     private final BitSet bitSet;
     private final BitSet domainsBitSet;
@@ -60,9 +60,6 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCC
     public ContainmentCacheUNSATEntry(
     		@NonNull Map<Station, Set<Integer>> domains, 
     		@NonNull BiMap<Station, Integer> permutation) {
-    	Preconditions.checkArgument(domains.values().stream().allMatch(d -> StationPackingUtils.UHF_CHANNELS.containsAll(d)), "Non UHF channels detected! Cache only works for UHF");
-    	
-        // We allow 40 bits = 5 bytes per station (40 channels)
         domainsBitSet = new BitSet(domains.size() * BITS_PER_STATION);
         // Sort stations according to the permutation
         final ImmutableList<Station> stations = domains.keySet().stream()
@@ -107,17 +104,16 @@ public class ContainmentCacheUNSATEntry implements ICacheEntry<Station>, ISATFCC
     public Map<Station, Set<Integer>> getDomains() {
         final HashMultimap<Station, Integer> domains = HashMultimap.create();
         final Map<Integer, Station> inversePermutation = permutation.inverse();
-        int count = 0;
+        int offset = 0;
         // Loop over all stations
         for (int bit = bitSet.nextSetBit(0); bit >= 0; bit = bitSet.nextSetBit(bit+1)) {
             final Station station = inversePermutation.get(bit);
-            int offset = count * BITS_PER_STATION;
             // Reconstruct a station's domain
             for (int chanBit = domainsBitSet.nextSetBit(offset); chanBit < offset + BITS_PER_STATION && chanBit >= 0; chanBit = domainsBitSet.nextSetBit(chanBit+1)) {
                 int chan = (chanBit % BITS_PER_STATION) + StationPackingUtils.UHFmin;
                 domains.put(station, chan);
             }
-            count += 1;
+            offset += BITS_PER_STATION;
         }
         return Multimaps.asMap(domains);
     }

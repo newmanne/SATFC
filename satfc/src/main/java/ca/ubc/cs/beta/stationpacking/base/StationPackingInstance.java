@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -213,6 +214,6 @@ public class StationPackingInstance {
 
     public String getAuction() {
         final String name = (String) metadata.get(NAME_KEY);
-        return Splitter.on('_').splitToList(name).get(0);
+        return StationPackingUtils.parseAuctionFromName(name);
     }
 }

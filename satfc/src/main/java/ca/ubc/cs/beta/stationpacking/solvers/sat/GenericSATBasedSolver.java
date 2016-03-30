@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -128,7 +128,7 @@ public class GenericSATBasedSolver implements ISolver {
             log.debug("Cleaning up...");
     
             final SolverResult solverResult = new SolverResult(satSolverResult.getResult(), watch.getElapsedTime(), aStationAssignment, satSolverResult.getSolvedBy(), satSolverResult.getNickname());
-    
+
             log.debug("Result:");
             log.debug(solverResult.toParsableString());
 

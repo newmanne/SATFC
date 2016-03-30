@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.stations;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -53,7 +54,7 @@ public interface IStationManager {
 	Set<Integer> getDomain(Station aStation);
 
 	default Set<Integer> getRestrictedDomain(Station station, int maxChannel, boolean UHFOnly) {
-		final Set<Integer> domain = getDomain(station);
+		final Set<Integer> domain = new HashSet<>(getDomain(station));
 		domain.removeIf(chan -> chan > maxChannel || (UHFOnly && chan < StationPackingUtils.UHFmin));
 		return domain;
 	}

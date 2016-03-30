@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -243,7 +243,6 @@ public class ContainmentCacheProxy implements ICacher, ISATFCInterruptible {
                 if (ceheader != null && Arrays.stream(ceheader.getElements()).anyMatch(codec -> codec.getName().equalsIgnoreCase("gzip"))) {
                     log.trace("gzip response detected");
                     responseEntity = new GzipDecompressingEntity(responseEntity);
-
                 }
                 final String response = EntityUtils.toString(responseEntity);
                 return JSONUtils.toObject(response, responseClass);

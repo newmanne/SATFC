@@ -19,6 +19,10 @@ Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The m
 
 Rough information about the evolution of **SATFC** through major releases.
 
+### SATFC 2.3 [29/3/2016]
+
+* Switch the default portfolio to a newly configured eight core portfolio 
+
 ### SATFC 2.2 [15/2/2016]
 
 * Improve the memory usage of SATFCServer

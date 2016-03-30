@@ -54,9 +54,9 @@ public class SATFCServerParameters extends AbstractOptions {
     @Getter
     private boolean skipSAT = false;
 
-    @Parameter(names = "--skipUNSAT", description = "Do not load UNSAT entries from redis")
+    @Parameter(names = "--skipUNSAT", description = "Do not load UNSAT entries from redis; Do not cache UNSAT entries")
     @Getter
-    private boolean skipUNSAT = false;
+    private boolean skipUNSAT = true;
 
     @Parameter(names = "--validateSAT", description = "Validate all SAT entries upon startup (slow)")
     @Getter
@@ -76,6 +76,11 @@ public class SATFCServerParameters extends AbstractOptions {
     @Parameter(names = "--cache.screener", description = "Determine what goes into the cache", hidden = true)
     @Getter
     private CACHE_SCREENER_CHOICE cacheScreenerChoice = CACHE_SCREENER_CHOICE.NEW_INFO;
+
+    @Parameter(names = "--cache.UHF.only", description = "Only cache UHF portions of problems")
+    @Getter
+    private boolean cacheUHFOnly = true;
+
 
     public enum CACHE_SCREENER_CHOICE {
         NEW_INFO, ADD_EVERYTHING, ADD_NOTHING

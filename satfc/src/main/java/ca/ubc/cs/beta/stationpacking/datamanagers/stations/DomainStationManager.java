@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
@@ -59,19 +60,19 @@ public class DomainStationManager implements IStationManager{
 		String[] aLine;
 		Integer aID,aChannel;
 		String aString;
-		Set<Integer> aChannelDomain;
 		try
 		{
-			while((aLine = aReader.readNext())!=null){	
-				aChannelDomain = new HashSet<Integer>();
+			while((aLine = aReader.readNext())!=null){
+				final ImmutableSet.Builder<Integer> aChannelDomainBuilder = ImmutableSet.builder();
 				for(int i=2;i<aLine.length;i++){ 	//NA - Ideally would have a more robust check here
 					aString = aLine[i].replaceAll("\\s", "");
 					if(aString.length()>0){
-						aChannel = Integer.valueOf(aString); 
-						aChannelDomain.add(aChannel);
+						aChannel = Integer.valueOf(aString);
+						aChannelDomainBuilder.add(aChannel);
 					}
 				}
 				aID = Integer.valueOf(aLine[1].replaceAll("\\s", ""));
+				final ImmutableSet<Integer> aChannelDomain = aChannelDomainBuilder.build();
 				if(aChannelDomain.isEmpty()){
 					try{
 						throw new IllegalStateException("Station "+aID+" has empty domain.");

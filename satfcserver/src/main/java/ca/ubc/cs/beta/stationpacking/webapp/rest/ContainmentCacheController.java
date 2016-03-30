@@ -29,6 +29,10 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import ca.ubc.cs.beta.stationpacking.cache.containment.transformer.ICacheEntryTransformer;
+import ca.ubc.cs.beta.stationpacking.cache.containment.transformer.InstanceAndResult;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.collect.Maps;
 import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -82,6 +86,9 @@ public class ContainmentCacheController {
 
     @Autowired
     ICacheEntryFilter cacheEntryFilter;
+
+    @Autowired
+    ICacheEntryTransformer cacheEntryTransformer;
 
     @Autowired
     DataManager dataManager;
@@ -223,54 +230,73 @@ public class ContainmentCacheController {
         log.debug("Waking up to check list of potential cache additions");
         while (!pendingCacheAdditions.isEmpty()) {
             final ContainmentCacheRequest request = pendingCacheAdditions.poll();
+            final SolverResult result = request.getResult();
+            if ((result.getResult().equals(SATResult.UNSAT) && parameters.isSkipUNSAT()) || result.getResult().equals(SATResult.SAT) && parameters.isSkipSAT()) {
+                continue;
+            }
             final StationPackingInstance instance = request.getInstance();
             final String description = instance.hasName() ? instance.getName() : instance.getInfo();
-            final SolverResult result = request.getResult();
+
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(request.getCoordinate());
 
-            if (cacheEntryFilter.shouldCache(request.getCoordinate(), instance, result)) {
-                final String key;
-                if (result.getResult().equals(SATResult.SAT)) {
-                    final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(result.getAssignment(), cache.getPermutation());
-                    key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
-                    entry.setKey(key);
-                    cache.add(entry);
-                    lastCachedAssignment = request.getResult().getAssignment();
-                } else if (result.getResult().equals(SATResult.UNSAT)) {
-                    final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(instance.getDomains(), cache.getPermutation());
-                    cache.add(entry);
-                    key = cacher.cacheResult(request.getCoordinate(), entry, instance.hasName() ? instance.getName() : null);
-                    entry.setKey(key);
+            final InstanceAndResult transformedInstanceAndResult = cacheEntryTransformer.transform(instance, result);
+            if (transformedInstanceAndResult != null) {
+                final StationPackingInstance transformedInstance = transformedInstanceAndResult.getInstance();
+                final SolverResult transformedResult = transformedInstanceAndResult.getResult();
+
+                if (cacheEntryFilter.shouldCache(request.getCoordinate(), transformedInstance, transformedResult)) {
+                    final String key;
+                    if (result.getResult().equals(SATResult.SAT)) {
+                        final ContainmentCacheSATEntry entry = new ContainmentCacheSATEntry(transformedResult.getAssignment(), cache.getPermutation());
+                        key = cacher.cacheResult(request.getCoordinate(), entry, transformedInstance.hasName() ? transformedInstance.getName() : null);
+                        entry.setKey(key);
+                        cache.add(entry);
+                        lastCachedAssignment = transformedResult.getAssignment();
+                    } else if (result.getResult().equals(SATResult.UNSAT)) {
+                        final ContainmentCacheUNSATEntry entry = new ContainmentCacheUNSATEntry(transformedInstance.getDomains(), cache.getPermutation());
+                        cache.add(entry);
+                        key = cacher.cacheResult(request.getCoordinate(), entry, transformedInstance.hasName() ? transformedInstance.getName() : null);
+                        entry.setKey(key);
+                    } else {
+                        throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+                    }
+                    log.info("Adding entry to the cache with coordinate {} with key {}. Entry {}", request.getCoordinate(), key, description);
+                    // add to permanent storage
+                    cacheAdditions.mark();
                 } else {
-                    throw new IllegalStateException("Tried adding a result that was neither SAT or UNSAT");
+                    log.info("Not adding entry {} to cache {}. No new info", request.getCoordinate(), description);
                 }
-                log.info("Adding entry to the cache with coordinate {} with key {}. Entry {}", request.getCoordinate(), key, description);
-                // add to permanent storage
-                cacheAdditions.mark();
-            } else {
-                log.info("Not adding entry {} to cache {}. No new info", request.getCoordinate(), description);
             }
         }
         log.debug("Done checking potential cache additions");
     }
 
-    @RequestMapping(value = "/filter", method = RequestMethod.POST)
+    @RequestMapping(value = "/filterSAT", method = RequestMethod.POST)
     @ResponseBody
-    public void filterCache(@RequestParam(value = "strong", required = false, defaultValue = "true") boolean strong) {
+    public void filterSATCache(@RequestParam(value = "strong", required = false, defaultValue = "true") boolean strong) {
     	containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
             log.info("Finding SAT entries to be filtered at cacheCoordinate {} ({})", cacheCoordinate, strong);
             final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
             List<ContainmentCacheSATEntry> SATPrunables = cache.filterSAT(dataManager.getData(cacheCoordinate).getStationManager(), strong);
             log.info("Pruning {} SAT entries from Redis", SATPrunables.size());
             cacher.deleteSATCollection(SATPrunables);
+        });
+        log.info("Filter completed");
+    }
 
+    @RequestMapping(value = "/filterUNSAT", method = RequestMethod.POST)
+    @ResponseBody
+    public void filterUNSATCache() {
+        containmentCacheLocator.getCoordinates().forEach(cacheCoordinate -> {
             log.info("Finding UNSAT entries to be filtered at cacheCoordinate {}", cacheCoordinate);
-            List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
+            final ISatisfiabilityCache cache = containmentCacheLocator.locate(cacheCoordinate);
+            final List<ContainmentCacheUNSATEntry> UNSATPrunables = cache.filterUNSAT();
             log.info("Pruning {} UNSAT entries from Redis", UNSATPrunables.size());
             cacher.deleteUNSATCollection(UNSATPrunables);
         });
         log.info("Filter completed");
     }
+
 
     /**
      * Return the last solved SAT problem you know about
@@ -290,7 +316,5 @@ public class ContainmentCacheController {
     public int getNumFiltering() {
         return pendingCacheAdditions.size();
     }
-
-
 
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -143,15 +144,16 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheSATEntry> prunableEntries = Collections.synchronizedList(new ArrayList<>());
         Iterable<ContainmentCacheSATEntry> satEntries = SATCache.getSets();
 
+        final AtomicLong counter = new AtomicLong();
         SATCache.getReadLock().lock();
         try {
-            StreamSupport.stream(satEntries.spliterator(), false)
+            StreamSupport.stream(satEntries.spliterator(), true)
                     .forEach(cacheEntry -> {
+                        if (counter.getAndIncrement() % 1000 == 0) {
+                            log.info("Scanned {} / {} entries; Found {} prunables", counter.get(), SATCache.size(), prunableEntries.size());
+                        }
                         if ((strong && shouldFilterStrong(cacheEntry, stationManager)) || (!strong && shouldFilterWeak(cacheEntry))) {
                             prunableEntries.add(cacheEntry);
-                            if (prunableEntries.size() % 2000 == 0) {
-                                log.info("Found " + prunableEntries.size() + " prunables");
-                            }
                         }
                     });
         } finally {
@@ -176,7 +178,7 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
             domains.put(station, stationManager.getRestrictedDomain(station, e.getValue(), false));
         }
         final StationPackingInstance i = new StationPackingInstance(domains);
-        return proveSATBySuperset(i, entry -> !entry.getKey().equals(cacheEntry.getKey())).isValid();
+        return proveSATBySuperset(i, entry -> entry != cacheEntry).isValid();
     }
 
     /**
@@ -189,14 +191,19 @@ public class SatisfiabilityCache implements ISatisfiabilityCache {
         List<ContainmentCacheUNSATEntry> prunableEntries = new ArrayList<>();
         Iterable<ContainmentCacheUNSATEntry> unsatEntries = UNSATCache.getSets();
 
+
+        final AtomicLong counter = new AtomicLong();
         UNSATCache.getReadLock().lock();
         try {
             unsatEntries.forEach(cacheEntry -> {
+                if (counter.getAndIncrement() % 1000 == 0) {
+                    log.info("Scanned {} / {} entries; Found {} prunables", counter.get(), UNSATCache.size(), prunableEntries.size());
+                }
                 Iterable<ContainmentCacheUNSATEntry> subsets = UNSATCache.getSubsets(cacheEntry);
                 // For two UNSAT problems P and Q, if Q has less stations to pack,
                 // and each station has more candidate channels, then Q is less restrictive than P
                 Optional<ContainmentCacheUNSATEntry> lessRestrictiveUNSAT =
-                        StreamSupport.stream(subsets.spliterator(), false)
+                        StreamSupport.stream(subsets.spliterator(), true)
                                 .filter(entry -> entry.isLessRestrictive(cacheEntry))
                                 .findAny();
                 if (lessRestrictiveUNSAT.isPresent()) {

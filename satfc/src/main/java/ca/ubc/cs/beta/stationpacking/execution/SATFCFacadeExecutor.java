@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -63,7 +63,7 @@ public class SATFCFacadeExecutor {
         logVersionInfo(log);
         try {
             log.info("Initializing facade.");
-            try(final SATFCFacade satfc = SATFCFacadeBuilder.buildFromParameters(parameters)) {
+            try(final SATFCFacade satfc = SATFCFacadeBuilder.builderFromParameters(parameters).build()) {
                 IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
                 ICutoffChooser cutoffChooser = CutoffChooserFactory.createFromParameters(parameters);
                 IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);

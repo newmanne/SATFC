@@ -1,3 +1,24 @@
+/**
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ *
+ * This file is part of SATFC.
+ *
+ * SATFC is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * SATFC is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * For questions, contact us at:
+ * afrechet@cs.ubc.ca
+ */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -9,6 +30,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.PythonI
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.UBCSATLibraryGenerator;
 import ca.ubc.cs.beta.stationpacking.polling.IPollingService;
 import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
+import ca.ubc.cs.beta.stationpacking.solvers.UNSATLabeller;
 import ca.ubc.cs.beta.stationpacking.solvers.VoidSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
@@ -68,7 +90,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     @Getter
     private final ISolver VHFSolver;
 
-    private PythonInterpreterContainer pythonInterpreterContainer;
     private static boolean skipJython = false;
     private final String checkers;
 
@@ -503,6 +524,17 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
+    public static class UNSATLabellerConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new UNSATLabeller(solverToDecorate);
+        }
+
+    }
+
+
+    @Data
     public static class PreviousAssignmentConfig implements ISolverConfig {
 
         @Override
@@ -570,6 +602,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.DELAY, DelayedSolverConfig.class)
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
+                        .put(SolverType.UNSAT_LABELLER, UNSATLabellerConfig.class)
                         .build();
 
         @Override

@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import containmentcache.ICacheEntry;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -258,25 +259,21 @@ public class RedisCacher {
         redisTemplate.delete(collection.stream().map(ContainmentCacheUNSATEntry::getKey).collect(Collectors.toList()));
     }
 
-    public Iterable<ContainmentCacheSATEntry> iterateSAT() {
+    public Iterable<ISATFCCacheEntry> iterateSAT() {
         final Cursor<byte[]> scan = redisTemplate.getConnectionFactory().getConnection().scan(ScanOptions.scanOptions().build());
-        return () -> new AbstractIterator<ContainmentCacheSATEntry>() {
+        return () -> new AbstractIterator<ISATFCCacheEntry>() {
 
             @Override
-            protected ContainmentCacheSATEntry computeNext() {
+            protected ISATFCCacheEntry computeNext() {
                 while (scan.hasNext()) {
                     final String key = new String(scan.next());
-                    final CacheUtils.ParsedKey parsedKey;
                     try {
-                        parsedKey = CacheUtils.parseKey(key);
+                        return cacheEntryFromKey(key);
                     } catch (Exception e) {
                         if (!key.equals(HASH_NUM)) {
                             log.warn("Exception parsing key " + key, e);
                         }
                         continue;
-                    }
-                    if (parsedKey.getResult().equals(SATResult.SAT)) {
-                        return (ContainmentCacheSATEntry) cacheEntryFromKey(key);
                     }
                 }
                 return endOfData();

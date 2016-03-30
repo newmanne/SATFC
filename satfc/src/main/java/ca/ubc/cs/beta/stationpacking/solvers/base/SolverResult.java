@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
+ * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
  *
  * This file is part of SATFC.
  *
@@ -75,7 +75,7 @@ public class SolverResult implements Serializable {
         DCCA,
         SATENSTEIN,
         UNDERCONSTRAINED,
-        PREVIOUS_ASSIGNMENT
+		UNSAT_LABELLER, PREVIOUS_ASSIGNMENT
     }
 
 	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {
