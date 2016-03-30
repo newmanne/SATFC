@@ -132,8 +132,6 @@ public class ConstrainCache {
         final DataManager dataManager = new DataManager();
         dataManager.loadMultipleConstraintSets(options.getAllConstraints());
         final ManagerBundle managerBundle = dataManager.getData(options.getMasterConstraintFolder());
-        final IStationManager stationManager = managerBundle.getStationManager();
-        final IConstraintManager constraintManager = managerBundle.getConstraintManager();
         final CacheCoordinate masterCoordinate = managerBundle.getCacheCoordinate();
 
         log.info("Migrating all cache entries to match constraints in {} ({})", options.getMasterConstraintFolder(), masterCoordinate);
