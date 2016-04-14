@@ -58,11 +58,11 @@ public class PreviousAssignmentContainsAnswerDecorator extends ASolverDecorator 
         final Watch watch = Watch.constructAutoStartWatch();
         final HashMultimap<Integer, Station> assignment = HashMultimap.create();
         aInstance.getPreviousAssignment().entrySet().stream().forEach(entry -> {
-            if (aInstance.getStations().contains(entry.getKey())) {
+            if (aInstance.getStations().contains(entry.getKey()) && aInstance.getDomains().get(entry.getKey()).contains(entry.getValue())) {
                 assignment.put(entry.getValue(), entry.getKey());
             }
         });
-        if (aInstance.getStations().size() == assignment.size()) {
+        if (assignment.values().size() == aInstance.getStations().size() && assignment.values().containsAll(aInstance.getStations())) {
             final Map<Integer, Set<Station>> integerSetMap = Multimaps.asMap(assignment);
             if (constraintManager.isSatisfyingAssignment(integerSetMap)) {
                 log.debug("Previous solution directly solves this problem");

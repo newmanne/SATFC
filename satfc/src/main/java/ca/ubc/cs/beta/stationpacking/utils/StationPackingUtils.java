@@ -78,6 +78,7 @@ public class StationPackingUtils {
     }
 
     public static boolean weakVerify(IStationManager stationManager, IConstraintManager constraintManager, Map<Integer, Integer> solution) {
-        return solution.keySet().stream().allMatch(s -> stationManager.getStations().contains(s)) && solution.entrySet().stream().allMatch(e -> stationManager.getDomain(stationManager.getStationfromID(e.getKey())).contains(e.getValue())) && constraintManager.isSatisfyingAssignment(channelToStationFromStationToChannel(solution));
+        return solution.keySet().stream().allMatch(s -> stationManager.getStations().contains(new Station(s))) && solution.entrySet().stream().allMatch(e -> stationManager.getDomain(stationManager.getStationfromID(e.getKey())).contains(e.getValue())) && constraintManager.isSatisfyingAssignment(channelToStationFromStationToChannel(solution));
     }
+
 }
