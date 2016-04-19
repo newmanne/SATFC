@@ -48,6 +48,7 @@ public class CSVStationDB implements IStationDB {
         stationToPopulation = new HashMap<>();
         stationToVolume = new HashMap<>();
         try (CSVReader reader = new CSVReader(new FileReader(stationFile))) {
+            reader.readNext(); // Skip header
             String[] line;
             while ((line = reader.readNext()) != null) {
                 final int id = Integer.parseInt(line[0].trim());
@@ -60,6 +61,8 @@ public class CSVStationDB implements IStationDB {
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not read station information file: " + stationFile, e);
         }
+        Preconditions.checkState(stationToPopulation.size() == stationToVolume.size());
+        log.info("Found info for {} stations", stationToPopulation.size());
     }
 
     @Override

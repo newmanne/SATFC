@@ -89,11 +89,6 @@ def createScript(project, mainClass, name, jvmArgs) {
     }
 }
 
-//createScript(project,
-//             'ca.ubc.cs.beta.stationpacking.execution.AuctionCSVParser',
-//             'AuctionCSVParser',
-//             ['-Xmx4048m'])
-
 //Project properties.
 applicationName = 'SATFC'
 jar.baseName = applicationName

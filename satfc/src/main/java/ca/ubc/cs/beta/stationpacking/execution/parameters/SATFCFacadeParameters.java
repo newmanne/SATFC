@@ -79,6 +79,21 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-CUTOFF-FILE", description = "file listing each instance and the corresponding cutoff")
     public String fCutoffFile;
 
+    // Augmentation worker options
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT", description = "Run augmentation")
+    public boolean augment = false;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT-CONSTRAINT-SET", description = "Constraint set for augmentation")
+    public String augmentConstraintSet;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT-CHANNEL", description = "Channel for augmentation")
+    public int augmentChannel;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-MINIMUM-STATIONS", description = "Number of stations to add to the starting assignment before a problem is solved")
+    public int minimumAugmentStations;
+
+
     /**
 	 * Clasp library to use (optional - can be automatically detected).
 	 */
@@ -88,7 +103,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	/**
      * SATenstein library to use (optional - can be automatically detected).
      */
-    @Parameter(names = "-SATENSTEIN-LIBRARY",description = "SATenstein library file")
+    @Parameter(names = "-SATENSTEIN-LIBRARY",description = "wSATenstein library file")
     public String fSATensteinLibrary;
 
 	/**

@@ -1,21 +1,21 @@
 /**
  * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
+ * <p>
  * This file is part of SATFC.
- *
+ * <p>
  * SATFC is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * SATFC is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * <p>
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
@@ -112,7 +112,7 @@ public class SATFCCacheAugmenter {
         });
 
         log.info("Going into main augment method");
-        augment(domains, previousAssignment, csvStationDB, stationConfigFolder, cutoff);
+        augment(domains, previousAssignment, csvStationDB, stationConfigFolder, cutoff, 1);
     }
 
     private Map<Integer, Integer> getPreviousAssignmentFromCache(String serverURL, CloseableHttpAsyncClient httpClient) {
@@ -155,7 +155,8 @@ public class SATFCCacheAugmenter {
         final Map<Integer, Set<Station>> assignment;
         try {
             response = EntityUtils.toString(serverResponse.get().getEntity());
-            assignment = JSONUtils.getMapper().readValue(response, new TypeReference<Map<Integer, Set<Station>>>() {});
+            assignment = JSONUtils.getMapper().readValue(response, new TypeReference<Map<Integer, Set<Station>>>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException("Can't parse server result", e);
         }
@@ -174,7 +175,8 @@ public class SATFCCacheAugmenter {
                         @NonNull Map<Integer, Integer> previousAssignment,
                         @NonNull IStationDB stationDB,
                         @NonNull String stationConfigFolder,
-                        double cutoff
+                        double cutoff,
+                        int minStations
     ) {
         // Note that with auto augment, if the stop method is called in the period of time between the scheduler deciding to augment, and setting this isAugmenting variable, this can get stuck in a loop
         isAugmenting.set(true);
@@ -193,6 +195,19 @@ public class SATFCCacheAugmenter {
 
             // Augment
             while (isAugmenting.get()) {
+                if (packingStations.size() < minStations) {
+                    int delta = minStations - packingStations.size();
+                    final Set<Integer> addedStations = new HashSet<>();
+                    while (delta > 0) {
+                        final Integer sampledStationId = sampler.sample(packingStations);
+                        if (packingStations.add(sampledStationId)) {
+                            addedStations.add(sampledStationId);
+                            delta--;
+                        }
+                    }
+                    log.info("Adding {} to the starting point", addedStations);
+                }
+
                 // Sample a new station
                 final Integer sampledStationId = sampler.sample(packingStations);
                 log.info("Trying to augment station {}", sampledStationId);
@@ -204,12 +219,12 @@ public class SATFCCacheAugmenter {
                     }
                 });
                 // Solve!
-                currentResult = facade.createInterruptibleSATFCResult(reducedDomains, currentAssignment, cutoff, RandomUtils.nextInt(1, Integer.MAX_VALUE), stationConfigFolder, "Augment", true);
+                currentResult = facade.createInterruptibleSATFCResult(reducedDomains, currentAssignment, cutoff, RandomUtils.nextInt(1, Integer.MAX_VALUE), stationConfigFolder, null, true);
                 final SATFCResult result = currentResult.computeResult();
                 log.debug("Result is {}", result);
                 if (result.getResult().equals(SATResult.SAT)) {
                     // Result was SAT. Let's continue down this trajectory
-                    log.info("Result was SAT. Adding station {} to trajectory", sampledStationId);
+                    log.info("Result was SAT. Adding station {} to trajectory. Trajectory size is now {}", sampledStationId, packingStations.size());
                     currentAssignment = result.getWitnessAssignment();
                 } else {
                     log.info("Non-SAT result reached. Restarting from initial state");

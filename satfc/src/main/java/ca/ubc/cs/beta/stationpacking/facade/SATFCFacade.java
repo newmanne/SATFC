@@ -271,9 +271,9 @@ public class SATFCFacade implements AutoCloseable {
      * @param stationDB
      * @param cutoff               how long to spend on each generated problem before giving up
      */
-    public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff) {
+    public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff, int minStations) {
         final SATFCCacheAugmenter satfcCacheAugmenter = new SATFCCacheAugmenter(this);
-        satfcCacheAugmenter.augment(domains, assignment, stationDB, aStationConfigFolder, cutoff);
+        satfcCacheAugmenter.augment(domains, assignment, stationDB, aStationConfigFolder, cutoff, minStations);
     }
 
     @AllArgsConstructor

@@ -1,28 +1,40 @@
 /**
  * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
+ * <p>
  * This file is part of SATFC.
- *
+ * <p>
  * SATFC is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * SATFC is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * <p>
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
 package ca.ubc.cs.beta.stationpacking.execution;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +65,8 @@ import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
  */
 public class SATFCFacadeExecutor {
 
+    public static final int MIN_CANADIAN_ID = 1000001;
+
     /**
      * @param args - parameters satisfying {@link SATFCFacadeParameters}.
      */
@@ -63,38 +77,12 @@ public class SATFCFacadeExecutor {
         logVersionInfo(log);
         try {
             log.info("Initializing facade.");
-            try(final SATFCFacade satfc = SATFCFacadeBuilder.builderFromParameters(parameters).build()) {
-                IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
-                ICutoffChooser cutoffChooser = CutoffChooserFactory.createFromParameters(parameters);
-                IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
-                SATFCFacadeProblem problem;
-                while ((problem = problemReader.getNextProblem()) != null) {
-                    final double cutoff = cutoffChooser.getCutoff(problem);
-                    log.info("Beginning problem {} with cutoff {}", problem.getInstanceName(), cutoff);
-                    log.info("Solving ...");
-                    SATFCResult result = satfc.solve(
-                            problem.getDomains(),
-                            problem.getPreviousAssignment(),
-                            cutoff,
-                            parameters.fInstanceParameters.Seed,
-                            problem.getStationConfigFolder(),
-                            problem.getInstanceName()
-                    );
-                    log.info("..done!");
-                    if (!log.isInfoEnabled()) {
-                        System.out.println(result.getResult());
-                        System.out.println(result.getRuntime());
-                        System.out.println(result.getWitnessAssignment());
-                    } else {
-                        log.info("Result:" + System.lineSeparator() + result.getResult() + System.lineSeparator() + result.getRuntime() + System.lineSeparator() + result.getWitnessAssignment());
-                    }
-                    problemReader.onPostProblem(problem, result);
-                    metricWriter.writeMetrics();
-                    SATFCMetrics.clear();
+            try (final SATFCFacade satfc = SATFCFacadeBuilder.builderFromParameters(parameters).build()) {
+                if (parameters.augment) {
+                    augment(parameters, log, satfc);
+                } else {
+                    solveProblems(parameters, log, satfc);
                 }
-                log.info("Finished all of the problems!");
-                problemReader.onFinishedAllProblems();
-                metricWriter.onFinished();
             }
         } catch (ParameterException e) {
             log.error("Invalid parameter argument detected.", e);
@@ -113,6 +101,61 @@ public class SATFCFacadeExecutor {
             System.exit(AEATKReturnValues.UNCAUGHT_EXCEPTION);
         }
         log.info("Normal termination. Goodbye");
+    }
+
+    private static void augment(SATFCFacadeParameters parameters, Logger log, SATFCFacade satfc) throws FileNotFoundException {
+        Preconditions.checkArgument(parameters.cachingParams.serverURL != null, "No server URL specified!");
+        final DataManager dataManager = new DataManager();
+        final ManagerBundle managerBundle = dataManager.getData(parameters.augmentConstraintSet);
+        final IStationManager stationManager = managerBundle.getStationManager();
+        final Map<Integer, Set<Integer>> domains = new HashMap<>();
+        stationManager.getStations().stream().forEach(s -> {
+            // Canadian stations should be capped 1 channel lower than US channels
+            int maxChan = s.getID() >= MIN_CANADIAN_ID ? parameters.augmentChannel - 1 : parameters.augmentChannel;
+            final Set<Integer> domain = stationManager.getRestrictedDomain(s, maxChan, true);
+            if (!domain.isEmpty()) {
+                domains.put(s.getID(), domain);
+            }
+        });
+        log.info("Found {} stations with UHF domains and channels in the range {}-{}", domains.size(), StationPackingUtils.UHFmin, parameters.augmentChannel);
+        final Map<Integer, Integer> startingAssignment = parameters.fInstanceParameters.getPreviousAssignment();
+        log.info("Starting from assignment {}", startingAssignment);
+        final IStationDB stationDB = new CSVStationDB(parameters.augmentConstraintSet + File.separator + "info.csv");
+        satfc.augment(domains, startingAssignment, stationDB, parameters.augmentConstraintSet, parameters.fInstanceParameters.Cutoff, parameters.minimumAugmentStations);
+    }
+
+    private static void solveProblems(SATFCFacadeParameters parameters, Logger log, SATFCFacade satfc) {
+        IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
+        ICutoffChooser cutoffChooser = CutoffChooserFactory.createFromParameters(parameters);
+        IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
+        SATFCFacadeProblem problem;
+        while ((problem = problemReader.getNextProblem()) != null) {
+            final double cutoff = cutoffChooser.getCutoff(problem);
+            log.info("Beginning problem {} with cutoff {}", problem.getInstanceName(), cutoff);
+            log.info("Solving ...");
+            SATFCResult result = satfc.solve(
+                    problem.getDomains(),
+                    problem.getPreviousAssignment(),
+                    cutoff,
+                    parameters.fInstanceParameters.Seed,
+                    problem.getStationConfigFolder(),
+                    problem.getInstanceName()
+            );
+            log.info("..done!");
+            if (!log.isInfoEnabled()) {
+                System.out.println(result.getResult());
+                System.out.println(result.getRuntime());
+                System.out.println(result.getWitnessAssignment());
+            } else {
+                log.info("Result:" + System.lineSeparator() + result.getResult() + System.lineSeparator() + result.getRuntime() + System.lineSeparator() + result.getWitnessAssignment());
+            }
+            problemReader.onPostProblem(problem, result);
+            metricWriter.writeMetrics();
+            SATFCMetrics.clear();
+        }
+        log.info("Finished all of the problems!");
+        problemReader.onFinishedAllProblems();
+        metricWriter.onFinished();
     }
 
     private static Logger parseParameter(String[] args, SATFCFacadeParameters parameters) {
