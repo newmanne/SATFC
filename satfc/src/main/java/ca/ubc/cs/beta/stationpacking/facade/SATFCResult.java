@@ -24,11 +24,12 @@ package ca.ubc.cs.beta.stationpacking.facade;
 import java.io.Serializable;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 /**
  * Container for the result returned by a SATFC facade.
@@ -36,33 +37,33 @@ import lombok.experimental.Accessors;
  * @author afrechet
  */
 @Data
-@Accessors(prefix = "f")
 public class SATFCResult implements Serializable {
 
-    private final ImmutableMap<Integer, Integer> fWitnessAssignment;
-    private final SATResult fResult;
-    private final double fRuntime;
-    private final String fExtraInfo;
+    private final ImmutableMap<Integer, Integer> witnessAssignment;
+    private final SATResult result;
+    private final double runtime;
+    private final String extraInfo;
 
     /**
      * @param aResult            - the satisfiability result.
      * @param aRuntime           - the time (s) it took to get to such result.
      * @param aWitnessAssignment - the witness assignment
      */
-    public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment) {
-        this(aResult, aRuntime, aWitnessAssignment, "");
+    @JsonCreator
+    public SATFCResult(@JsonProperty("result") SATResult aResult, @JsonProperty("runtime") double aRuntime, @JsonProperty("witnessAssignment") Map<Integer, Integer> aWitnessAssignment) {
+        this(aResult, aRuntime, aWitnessAssignment, null);
     }
 
     public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment, String extraInfo) {
-        fResult = aResult;
-        fRuntime = aRuntime;
-        fWitnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
-        fExtraInfo = extraInfo;
+        result = aResult;
+        runtime = aRuntime;
+        witnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
+        this.extraInfo = extraInfo;
     }
 
     @Override
     public String toString() {
-        return fRuntime + "," + fResult + "," + fWitnessAssignment.toString();
+        return runtime + "," + result + "," + witnessAssignment.toString();
     }
 
 }

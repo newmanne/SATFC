@@ -36,11 +36,23 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SATFCFacadeProblem {
 
+    public SATFCFacadeProblem(
+            Set<Integer> stationsToPack,
+            Set<Integer> channelsToPackOn,
+            Map<Integer, Set<Integer>> domains,
+            Map<Integer, Integer> previousAssignment,
+            String stationConfigFolder,
+            String instanceName
+    ) {
+        this(stationsToPack, channelsToPackOn, domains, previousAssignment, stationConfigFolder, instanceName, -1);
+    }
+
     private Set<Integer> stationsToPack;
     private Set<Integer> channelsToPackOn;
     private Map<Integer, Set<Integer>> domains;
     private Map<Integer, Integer> previousAssignment;
     private String stationConfigFolder;
     private String instanceName;
+    private double cutoff;
 
 }

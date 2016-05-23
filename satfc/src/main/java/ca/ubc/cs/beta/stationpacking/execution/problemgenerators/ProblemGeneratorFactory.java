@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.CsvToProblem;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.IProblemParser;
@@ -43,6 +44,8 @@ public class ProblemGeneratorFactory {
                     parameters.fInstanceParameters.fDataFoldername,
                     null
             ));
+        } else if (parameters.simulatorWorker) {
+            reader = new SimulatorProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
         } else if (parameters.fsrpkFile != null) {
             reader = new SingleSrpkProblemReader(parameters.fsrpkFile, nameToProblem);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {

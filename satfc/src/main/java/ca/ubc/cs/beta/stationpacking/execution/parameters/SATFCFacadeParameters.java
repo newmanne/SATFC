@@ -124,4 +124,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-SOLVER-CHOICE", hidden=true)
     public SolverChoice solverChoice = SolverChoice.YAML;
 
+    @Parameter(names = "-SIMULATOR-WORKER")
+    public boolean simulatorWorker = false;
+
 }
