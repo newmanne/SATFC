@@ -7,9 +7,7 @@ buildscript {
 dependencies {
     compile project(':satfc')
     compile 'org.apache.commons:commons-csv:1.3'
-    compile files('libs/cplex.jar')
     testCompile 'junit:junit:4.12'
-
 }
 
 //Project properties.
@@ -22,17 +20,6 @@ jar {
     baseName = applicationName
 }
 
-// In this section you declare the dependencies for your production and test code
-dependencies {
-    // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.12'
-    compile 'ca.ubc.cs.beta:SATFC:2.3.1-release-a304587'
-    compile 'org.apache.commons:commons-csv:1.3'
-    compile files('libs/cplex.jar')
-
-    testCompile 'junit:junit:4.12'
-}
-
 // Creates scripts for entry points
 // Subproject must apply application plugin to be able to call this method.
 def createScript(project, mainClass, name, jvmArgs) {
@@ -41,7 +28,7 @@ def createScript(project, mainClass, name, jvmArgs) {
         mainClassName = mainClass
         applicationName = name
         classpath = project.tasks[JavaPlugin.JAR_TASK_NAME].outputs.files + project.configurations.runtime
-        applicationDefaultJvmArgs = jvmArgs
+        defaultJvmOpts = jvmArgs
     }
     project.tasks[name].dependsOn(project.jar)
     project.applicationDistribution.with {
@@ -55,4 +42,4 @@ def createScript(project, mainClass, name, jvmArgs) {
 createScript(project,
              'ca.ubc.cs.beta.fcc.vcg.VCGMip',
              'VCG',
-             ['-Xmx12g', '-Djava.library.path=/ubc/cs/research/arrow/software/CPLEX_Studio126/cplex/bin/x86-64_linux'])
+             ['-Djava.library.path=${CPLEX_BIN}', "-Xmx12g"])

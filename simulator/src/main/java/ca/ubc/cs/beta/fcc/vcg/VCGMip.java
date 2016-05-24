@@ -13,6 +13,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import ilog.concert.IloException;
 import ilog.concert.IloIntExpr;
@@ -53,7 +54,12 @@ public class VCGMip {
         final MIPMaker mipMaker = new MIPMaker(stationDB, constraintManager, domains);
 
         mipMaker.makeMip();
-        mipMaker.solve(parameters.getCutoff(), (int) parameters.getSeed());
+        final Map<Integer, Integer> solve = mipMaker.solve(parameters.getCutoff(), (int) parameters.getSeed());
+        if (solve != null) {
+            log.info("Verifying solution");
+            StationPackingUtils.weakVerify(parameters.getStationManager(), parameters.getConstraintManager(), solve);
+            log.info("Verified!");
+        }
     }
 
     @Data
@@ -98,7 +104,7 @@ public class VCGMip {
                     final IloIntVar var = domainVars[i];
                     var.setName(Integer.toString(station) + ":" + Integer.toString(channel));
                     stationVariablesMap.put(channel, var);
-
+                    variablesDecoder.put(var, new StationChannel(station, channel));
                     sum.addTerm(stationDB.getStationById(station).getValue(), var);
                 }
                 // Constraint: Station on 0 or 1 channels
@@ -107,11 +113,14 @@ public class VCGMip {
                 variablesMap.put(station, stationVariablesMap);
             }
             // Interference
+            int nInterference = 0;
             for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains.entrySet().stream().collect(Collectors.toMap(e -> new Station(e.getKey()), Map.Entry::getValue)))) {
                 final IloIntVar var1 = variablesMap.get(constraint.getSource().getID()).get(constraint.getSourceChannel());
                 final IloIntVar var2 = variablesMap.get(constraint.getTarget().getID()).get(constraint.getTargetChannel());
-                cplex.le(cplex.sum(var1, var2), 1);
+                cplex.addLe(cplex.sum(var1, var2), 1);
+                nInterference++;
             }
+            log.info("Added {} interference constraints", nInterference);
             // Objective!
             cplex.addMaximize(sum);
             log.info("Encoding MIP took {} s.", watch.getElapsedTime());
@@ -119,7 +128,7 @@ public class VCGMip {
             log.info("MIP has {} constraints.", cplex.getNrows());
         }
 
-        public void solve(double cutoff, int seed) throws IloException {
+        public Map<Integer, Integer> solve(double cutoff, int seed) throws IloException {
 
             // This turns off CPLEX logging.
             cplex.setOut(new NullOutputStream());
@@ -147,6 +156,7 @@ public class VCGMip {
             //Gather output
             final SATResult satisfiability;
             final double runtime = watch.getElapsedTime();
+            log.info("Runtime was {}", runtime);
             final Map<Integer, Integer> assignment;
 
             final IloCplex.Status status = cplex.getStatus();
@@ -181,10 +191,12 @@ public class VCGMip {
             log.info("Satisfiability is {}", satisfiability);
             if (assignment != null) {
                 log.info("Assignment is {}", assignment);
+                log.info("Assignment contains {} stations on air", assignment.size());
             }
 
             //Wrap up.
             cplex.end();
+            return assignment;
         }
 
         private Map<Integer, Integer> getAssignment() {

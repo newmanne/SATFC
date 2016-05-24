@@ -62,6 +62,9 @@ dependencies {
     compile "org.springframework:spring-web:$springVersion"
     compile 'org.apache.httpcomponents:httpasyncclient:4.1'
 
+    // CPLEX
+    compile files('libs/cplex.jar')
+
     // Containment cache
     compile 'ca.ubc.cs.beta:ContainmentCache:0.9.4'
 

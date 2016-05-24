@@ -48,7 +48,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
-    private String constraintSet;
+    private String constraintSet = "032416SC46U";
 
     public String getStationInfoFolder() {
         return facadeParameters.fInterferencesFolder + File.separator + constraintSet;
