@@ -4,13 +4,15 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.solver.ISolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblem;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import com.google.common.base.Preconditions;
@@ -18,18 +20,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.Builder;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -38,7 +33,7 @@ public class Simulator {
 
     private static Logger log;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         final SimulatorParameters parameters = new SimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         // TODO: probably want to override the default name...
@@ -68,7 +63,7 @@ public class Simulator {
         final IStateSaver stateSaver = parameters.getStateSaver();
 
         log.info("Building solver");
-        final ISolver solver = parameters.createSolver();
+        final IFeasibilitySolver solver = parameters.createSolver();
 
         // Consider stations in reverse order of their values per volume
         final Comparator<StationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
@@ -92,6 +87,7 @@ public class Simulator {
                 log.info("Updating assignment and participation to reflect station exiting");
                 assignment = feasibility.getWitnessAssignment();
                 participation.setParticipation(nextToExit, Participation.EXITED);
+                onAirStations.add(nextToExit);
                 prices.setPrice(nextToExit, nextToExit.getValue());
                 // value = volume * baseClock * gamma^n
                 // so value / volume = baseClock * gamma^n same for everyone
@@ -128,6 +124,7 @@ public class Simulator {
         }
 
         stateSaver.saveState(stationDB, prices, participation);
+        solver.close();
         log.info("Finished simulation");
     }
 
@@ -186,41 +183,21 @@ public class Simulator {
 
         @Override
         public SATFCProblem createProblem(Set<Integer> stations, Map<Integer, Integer> previousAssignment) {
-            return SATFCProblem.builder()
-                    .domains(Maps.filterKeys(domains, stations::contains))
-                    .previousAssignment(previousAssignment)
-                    .build();
+            return new SATFCProblem(
+                    Maps.filterKeys(domains, stations::contains),
+                    previousAssignment
+            );
         }
-
-    }
-
-    @Data
-    @Builder
-    public static class SATFCProblemSpecification {
-
-        private final SATFCProblem problem;
-        private final String stationInfoFolder;
-        private double cutoff;
-        private long seed;
-
-    }
-
-    @Data
-    @Builder
-    public static class SATFCProblem {
-
-        private final Map<Integer, Set<Integer>> domains;
-        private final Map<Integer, Integer> previousAssignment;
 
     }
 
     public interface ISATFCProblemSpecGenerator {
 
-        default SATFCProblemSpecification createProblem(Set<StationInfo> stations) {
+        default SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations) {
             return createProblem(stations, ImmutableMap.of());
         }
 
-        SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
+        SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
 
     }
 
@@ -233,15 +210,14 @@ public class Simulator {
         private final long seed;
 
         @Override
-        public SATFCProblemSpecification createProblem(Set<StationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
+        public SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
             final Set<Integer> stations = SimulatorUtils.toID(stationInfos);
             final SATFCProblem problem = problemGenerator.createProblem(stations, previousAssignment);
-            return SATFCProblemSpecification.builder()
-                    .problem(problem)
-                    .cutoff(cutoff)
-                    .seed(seed)
-                    .stationInfoFolder(stationInfoFolder)
-                    .build();
+            return new SimulatorProblemReader.SATFCProblemSpecification(
+                                problem,
+                                cutoff,
+                    stationInfoFolder,
+                    seed);
         }
 
     }

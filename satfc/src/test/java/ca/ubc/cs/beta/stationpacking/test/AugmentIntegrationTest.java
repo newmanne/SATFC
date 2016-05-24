@@ -67,17 +67,17 @@ public class AugmentIntegrationTest {
     final String interference = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M";
     final String popFile = "/ubc/cs/research/arrow/satfc/public/interference/021814SC3M/Station_Info.csv";
 
-    @Test
-    @Ignore
-    public void driver() throws Exception {
-        final SATFCFacadeBuilder b = new SATFCFacadeBuilder();
-        try (SATFCFacade facade = b.build()) {
-            final IStationManager manager = new DomainStationManager(interference + File.separator + DataManager.DOMAIN_FILE);
-            log.info("Finding starting state with {} stations", numStartingStations);
-            final SATFCAugmentState state = getState(manager, facade);
-            facade.augment(getDomains(manager), state.getAssignment(), new CSVStationDB(popFile), interference, 60.0);
-        }
-    }
+//    @Test
+//    @Ignore
+//    public void driver() throws Exception {
+//        final SATFCFacadeBuilder b = new SATFCFacadeBuilder();
+//        try (SATFCFacade facade = b.build()) {
+//            final IStationManager manager = new DomainStationManager(interference + File.separator + DataManager.DOMAIN_FILE);
+//            log.info("Finding starting state with {} stations", numStartingStations);
+//            final SATFCAugmentState state = getState(manager, facade);
+//            facade.augment(getDomains(manager), state.getAssignment(), new CSVStationDB(popFile), interference, 60.0);
+//        }
+//    }
 
     @Ignore
     @Test

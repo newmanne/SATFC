@@ -2,9 +2,13 @@ package ca.ubc.cs.beta.stationpacking.execution;
 
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,9 +25,7 @@ public class SimulatorProblemReader extends AProblemReader {
 
     private final Jedis jedis;
     private final String queueName;
-    String activeProblemString;
-    String replyQueue;
-    String problemID;
+    private SimulatorMessage activeMessage;
 
     public SimulatorProblemReader(Jedis jedis, String queueName) {
         this.jedis = jedis;
@@ -35,63 +37,33 @@ public class SimulatorProblemReader extends AProblemReader {
     public SATFCFacadeProblem getNextProblem() {
         SATFCFacadeProblem problem = null;
         while (true) {
-            activeProblemString = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE));
-            if (activeProblemString == null) {
+            String id = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE));
+            if (id == null) {
                 // Need to wait for a problem to appear
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
                 continue;
             }
-            final SimulatorMessage simulatorMessage = JSONUtils.toObject(activeProblemString, SimulatorMessage.class);
+            final String problemKey = queueName + ":" + id;
+            final String activeProblemString = jedis.get(problemKey);
+            Preconditions.checkNotNull(activeProblemString, "Could not find a problem where one should be at %s", problemKey);
+            activeMessage = JSONUtils.toObject(activeProblemString, SimulatorMessage.class);
 
-            replyQueue = simulatorMessage.getReplyQueue();
-            problemID = simulatorMessage.getId();
             problem = new SATFCFacadeProblem(
                     null,
                     null,
-                    simulatorMessage.getProblemSpec().getProblem().getDomains(),
-                    simulatorMessage.getProblemSpec().getProblem().getPreviousAssignment(),
-                    simulatorMessage.getProblemSpec().getStationInfoFolder(),
-                    simulatorMessage.getId(),
-                    simulatorMessage.getProblemSpec().getCutoff()
+                    activeMessage.getProblemSpec().getProblem().getDomains(),
+                    activeMessage.getProblemSpec().getProblem().getPreviousAssignment(),
+                    activeMessage.getProblemSpec().getStationInfoFolder(),
+                    Long.toString(activeMessage.getId()),
+                    activeMessage.getProblemSpec().getCutoff()
             );
             break;
         }
         return problem;
-    }
-
-
-    // TODO: hacky copy over
-
-    @Data
-    public static class SimulatorMessage {
-
-        SATFCProblemSpecification problemSpec;
-        String replyQueue;
-        String id;
-
-    }
-
-    @Data
-    public static class SATFCProblemSpecification {
-
-        private SATFCProblem problem;
-        private String stationInfoFolder;
-        private double cutoff;
-        private long seed;
-
-    }
-
-
-    @Data
-    public static class SATFCProblem {
-
-        private Map<Integer, Set<Integer>> domains;
-        private Map<Integer, Integer> previousAssignment;
-
     }
 
     @Override
@@ -99,15 +71,16 @@ public class SimulatorProblemReader extends AProblemReader {
         super.onPostProblem(problem, result);
 
         // I can see why this might be a bad idea, but probably it will just work...
-        final long numDeleted = jedis.lrem(RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE), 1, activeProblemString);
+        final long numDeleted = jedis.lrem(RedisUtils.makeKey(queueName, RedisUtils.PROCESSING_QUEUE), 1, Long.toString(activeMessage.getId()));
         if (numDeleted != 1) {
-            log.error("Couldn't delete problem %s from the processing queue!", problemID);
+            log.error("Couldn't delete problem {} from the processing queue!", activeMessage.getId());
         }
 
         // Put the reply back!
-        jedis.lpush(replyQueue, JSONUtils.toString(new SATFCSimulatorReply(result, problemID)));
-
+        jedis.lpush(activeMessage.getReplyQueue(), JSONUtils.toString(new SATFCSimulatorReply(result, activeMessage.getId())));
     }
+
+    // TODO: actually write proper json constructors for immutability
 
     @AllArgsConstructor
     @NoArgsConstructor
@@ -115,10 +88,43 @@ public class SimulatorProblemReader extends AProblemReader {
     public static class SATFCSimulatorReply {
 
         private SATFCResult result;
-        private String id;
+        private long id;
 
     }
 
+
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Data
+    public static class SimulatorMessage {
+
+        SATFCProblemSpecification problemSpec;
+        String replyQueue;
+        long id;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SATFCProblemSpecification {
+
+        private SATFCProblem problem;
+        private double cutoff;
+        private String stationInfoFolder;
+        private long seed;
+
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Data
+    public static class SATFCProblem {
+
+        private Map<Integer, Set<Integer>> domains;
+        private Map<Integer, Integer> previousAssignment;
+
+    }
 
 }
 

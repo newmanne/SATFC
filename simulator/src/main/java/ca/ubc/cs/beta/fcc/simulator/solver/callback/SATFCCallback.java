@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.callback;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 
 /**
@@ -8,9 +9,9 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
  */
 public interface SATFCCallback {
 
-    void onSuccess(Simulator.SATFCProblemSpecification problem, SATFCResult result);
+    void onSuccess(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCResult result);
 
-    default void onFailure(Simulator.SATFCProblemSpecification problem, RuntimeException exception) {
+    default void onFailure(SimulatorProblemReader.SATFCProblemSpecification problem, RuntimeException exception) {
     }
 
 }

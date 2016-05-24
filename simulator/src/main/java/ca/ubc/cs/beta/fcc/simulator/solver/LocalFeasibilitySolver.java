@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
@@ -9,11 +10,11 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 /**
  * Created by newmanne on 2016-05-20.
  */
-public class LocalSolver extends ASolver {
+public class LocalFeasibilitySolver extends AFeasibilitySolver {
 
     private final SATFCFacade facade;
 
-    public LocalSolver(Simulator.ISATFCProblemSpecGenerator problemGenerator) {
+    public LocalFeasibilitySolver(Simulator.ISATFCProblemSpecGenerator problemGenerator) {
         super(problemGenerator);
         // Set up the facade
         facade = new SATFCFacadeBuilder()
@@ -21,7 +22,7 @@ public class LocalSolver extends ASolver {
     }
 
     @Override
-    protected void solve(Simulator.SATFCProblemSpecification problem, SATFCCallback callback) {
+    protected void solve(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
         final SATFCResult solve = facade.solve(
                 problem.getProblem().getDomains(),
                 problem.getProblem().getPreviousAssignment(),
@@ -32,4 +33,8 @@ public class LocalSolver extends ASolver {
         callback.onSuccess(problem, solve);
     }
 
+    @Override
+    public void close() throws Exception {
+        facade.close();
+    }
 }

@@ -6,18 +6,15 @@ import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.participation.OneHundredPerCentParticipation;
 import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
-import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.solver.DistributedSolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.ISolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.LocalSolver;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
-import com.google.common.base.Preconditions;
 import lombok.Getter;
 
 import java.io.File;
@@ -128,14 +125,14 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private Simulator.IProblemGenerator problemGenerator;
 
-    public ISolver createSolver() {
+    public IFeasibilitySolver createSolver() {
         final Simulator.IProblemGenerator problemGenerator = new Simulator.ProblemGeneratorImpl(getMaxChannel(), getStationManager());
         final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new Simulator.ISATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
         switch (solverType) {
             case LOCAL:
-                return new LocalSolver(problemSpecGenerator);
+                return new LocalFeasibilitySolver(problemSpecGenerator);
             case DISTRIBUTED:
-                return new DistributedSolver(problemSpecGenerator, facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+                return new DistributedFeasibilitySolver(problemSpecGenerator, facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
             default:
                 throw new IllegalStateException();
         }
