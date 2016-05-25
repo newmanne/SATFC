@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import lombok.NonNull;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +18,7 @@ public interface IFeasibilitySolver extends AutoCloseable {
 
     void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback);
 
-    default SATFCResult getFeasibilityBlocking(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment) {
+    default SATFCResult getFeasibilityBlocking(@NonNull Set<StationInfo> stations, @NonNull Map<Integer, Integer> previousAssignment) {
         final AtomicReference<SATFCResult> resultReference = new AtomicReference<>();
         getFeasibility(stations, previousAssignment, new SATFCCallback() {
             @Override

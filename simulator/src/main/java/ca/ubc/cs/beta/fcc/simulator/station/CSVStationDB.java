@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +21,9 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, StationInfo> data;
 
-    public CSVStationDB(String infoFile) throws IOException {
+    public CSVStationDB(String infoFile) {
         final ImmutableMap.Builder<Integer, StationInfo> builder = ImmutableMap.builder();
-        final Reader in = new FileReader(infoFile);
-        final Iterable<CSVRecord> records = CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(in);
+        final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
             final int id = Integer.parseInt(record.get("FacID"));
             final int volume = Integer.parseInt(record.get("Volume"));

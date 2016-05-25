@@ -9,12 +9,18 @@ import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateV
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.ISATFCProblemSpecGeneratorImpl;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
+import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
+import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
+import com.google.common.base.Preconditions;
 import lombok.Getter;
 
 import java.io.File;
@@ -45,10 +51,13 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
     private int maxChannel = 29;
 
-
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
     private String constraintSet = "032416SC46U";
+
+    @Getter
+    @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
+    private boolean restore = false;
 
     public String getStationInfoFolder() {
         return facadeParameters.fInterferencesFolder + File.separator + constraintSet;
@@ -60,11 +69,15 @@ public class SimulatorParameters extends AbstractOptions {
 
     public void setUp() {
         final File outputFolder = new File(getOutputFolder());
-        if (outputFolder.exists()) {
-            outputFolder.delete();
+        if (isRestore()) {
+            Preconditions.checkState(outputFolder.exists() && outputFolder.isDirectory(), "Expected to restore state but no state directory found!");
+        } else {
+            if (outputFolder.exists()) {
+                outputFolder.delete();
+            }
+            outputFolder.mkdirs();
+            new File(getStateFolder()).mkdir();
         }
-        outputFolder.mkdirs();
-        new File(getStateFolder()).mkdir();
 
         dataManager = new DataManager();
         try {
@@ -72,8 +85,7 @@ public class SimulatorParameters extends AbstractOptions {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-
-        problemGenerator = new Simulator.ProblemGeneratorImpl(getMaxChannel(), getStationManager());
+        problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
     }
 
     private String getStateFolder() {
@@ -100,8 +112,8 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-PARTICIPATION-MODEL", description = "Type of solver")
     private ParticipationModel participationModel = ParticipationModel.PRICE_HIGHER_THAN_VALUE;
 
-    public Simulator.IStateSaver getStateSaver() {
-        return new Simulator.SaveStateToFile(getStateFolder());
+    public IStateSaver getStateSaver() {
+        return new SaveStateToFile(getStateFolder());
     }
 
     private DataManager dataManager;
@@ -123,11 +135,11 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     @Getter
-    private Simulator.IProblemGenerator problemGenerator;
+    private IProblemGenerator problemGenerator;
 
     public IFeasibilitySolver createSolver() {
-        final Simulator.IProblemGenerator problemGenerator = new Simulator.ProblemGeneratorImpl(getMaxChannel(), getStationManager());
-        final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new Simulator.ISATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
+        final IProblemGenerator problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
+        final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new ISATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
         switch (solverType) {
             case LOCAL:
                 return new LocalFeasibilitySolver(problemSpecGenerator);
@@ -154,4 +166,5 @@ public class SimulatorParameters extends AbstractOptions {
                 throw new IllegalStateException();
         }
     }
+
 }

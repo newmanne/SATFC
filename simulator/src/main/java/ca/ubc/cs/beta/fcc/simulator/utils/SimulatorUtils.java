@@ -6,10 +6,9 @@ import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVRecord;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,6 +47,31 @@ public class SimulatorUtils {
             } catch (IOException e) {
                 log.error("Error in csv", e);
             }
+        }
+    }
+
+    public static Iterable<CSVRecord> readCSV(FileReader in) {
+        try {
+            return CSVFormat.DEFAULT.withFirstRecordAsHeader().parse(in);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static Iterable<CSVRecord> readCSV(File file) {
+        try {
+            return readCSV(new FileReader(file));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Iterable<CSVRecord> readCSV(String filename) {
+        try {
+            return readCSV(new FileReader(filename));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 

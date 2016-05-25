@@ -17,7 +17,6 @@ public class StationInfo {
     private final Double value;
     private final Nationality nationality;
     private final int homeChannel;
-    private Set<Integer> domain;
 
     public double getValue() {
         Preconditions.checkState(nationality.equals(Nationality.US), "Only US stations have values");

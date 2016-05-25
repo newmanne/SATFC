@@ -5,6 +5,8 @@ import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
+import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
@@ -24,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -36,47 +37,55 @@ public class Simulator {
     public static void main(String[] args) throws Exception {
         final SimulatorParameters parameters = new SimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
-        // TODO: probably want to override the default name...
+        // TODO: probably want to override the default log file name...
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
         JCommanderHelper.logCallString(args, Simulator.class);
         log = LoggerFactory.getLogger(Simulator.class);
 
         parameters.setUp();
 
-        log.info("Reading info from file");
-
-        // Read info
-        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile());
-
-        log.info("Setting opening prices");
-
-        // Initialize opening prices
-        final Prices prices = new OpeningPrices(stationDB, parameters.getBaseClockPrice());
-
-        log.info("Figuring out participation");
-
-        // Figure out participation
-        final ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(prices));
-
-        log.info("There are {} / {} stations participating", participation.getActiveStations().size(), stationDB.getStations().size());
-
-        final IStateSaver stateSaver = parameters.getStateSaver();
-
         log.info("Building solver");
         final IFeasibilitySolver solver = parameters.createSolver();
 
+        log.info("Reading station info from file");
+        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile());
+
+        final IStateSaver stateSaver = parameters.getStateSaver();
+
+        final Prices prices;
+        final ParticipationRecord participation;
+        int round;
+        Map<Integer, Integer> assignment;
+        if (parameters.isRestore()) {
+            log.info("Restoring from state");
+            final IStateSaver.AuctionState auctionState = stateSaver.restoreState(stationDB);
+            prices = auctionState.getPrices();
+            participation = auctionState.getParticipation();
+            round = auctionState.getRound() + 1;
+            assignment = auctionState.getAssignment();
+        } else {
+            // Initialize opening prices
+            log.info("Setting opening prices");
+            prices = new OpeningPrices(stationDB, parameters.getBaseClockPrice());
+            log.info("Figuring out participation");
+            // Figure out participation
+            participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(prices));
+            round = 1;
+            log.info("Finding an initial assignment for the non-participating stations");
+            final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(participation.getOnAirStations(), ImmutableMap.of());
+            Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
+            log.info("Found an initial assignment for the non-participating stations");
+            assignment = initialFeasibility.getWitnessAssignment();
+        }
+
+        log.info("There are {} / {} stations participating", participation.getActiveStations().size(), stationDB.getStations().size());
         // Consider stations in reverse order of their values per volume
         final Comparator<StationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
         final List<StationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations().stream().sorted(valuePerVolumeComparator.reversed()).collect(Collectors.toList()));
         final Set<StationInfo> onAirStations = participation.getOnAirStations();
 
-        log.info("Finding an initial assignment for the non-participating stations");
-        final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(onAirStations, ImmutableMap.of());
-        Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
-        log.info("Found an initial assignment for the non-participating stations");
-        Map<Integer, Integer> assignment = initialFeasibility.getWitnessAssignment();
         while (!participation.getActiveStations().isEmpty()) {
-            stateSaver.saveState(stationDB, prices, participation);
+            log.info("It is round {}", round);
 
             final StationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
@@ -106,7 +115,7 @@ public class Simulator {
                             double newPrice = q.getVolume() * clockGammaN;
                             Preconditions.checkState(newPrice <= prevPrice, "Price must be decreasing! %s %s -> %s", q, prevPrice, newPrice);
                             prices.setPrice(q, newPrice);
-                            log.info("Updating price for Station {} from {} to {}", q, prevPrice, newPrice);
+                            log.trace("Updating price for Station {} from {} to {}", q, prevPrice, newPrice);
                         } else {
                             newlyFrozen.add(q);
                             participation.setParticipation(q, Participation.FROZEN);
@@ -121,74 +130,13 @@ public class Simulator {
             } else {
                 participation.setParticipation(nextToExit, Participation.FROZEN);
             }
-        }
-
-        stateSaver.saveState(stationDB, prices, participation);
-        solver.close();
-        log.info("Finished simulation");
-    }
-
-    public interface IStateSaver {
-
-        void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation);
-
-    }
-
-    public static class SaveStateToFile implements IStateSaver {
-
-        String folder;
-        int round = 0;
-
-        public SaveStateToFile(String folder) {
-            Preconditions.checkNotNull(folder);
-            this.folder = folder;
-        }
-
-        @Override
-        public void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation) {
-            final String fileName = folder + File.separator + "state_" + round + ".csv";
-            List<List<Object>> records = new ArrayList<>();
-            for (StationInfo s : stationDB.getStations()) {
-                List<Object> record = new ArrayList<>();
-                record.add(s.getId());
-                record.add(prices.getPrice(s));
-                record.add(participation.getParticipation(s));
-                records.add(record);
-            }
-            SimulatorUtils.toCSV(fileName, Arrays.asList("ID", "Price", "Status"), records);
+            log.info("Saving state for round {}", round);
+            stateSaver.saveState(stationDB, prices, participation, assignment, round);
             round++;
         }
-    }
 
-    public interface IProblemGenerator {
-
-        default SATFCProblem createProblem(Set<Integer> stations) {
-            return createProblem(stations, ImmutableMap.of());
-        }
-
-        SATFCProblem createProblem(Set<Integer> stations, Map<Integer, Integer> previousAssignment);
-
-    }
-
-    public static class ProblemGeneratorImpl implements IProblemGenerator {
-
-        private final Map<Integer, Set<Integer>> domains;
-
-        public ProblemGeneratorImpl(int maxChannel, IStationManager stationManager) {
-            domains = new HashMap<>();
-            for (Station s : stationManager.getStations()) {
-                domains.put(s.getID(), stationManager.getRestrictedDomain(s, maxChannel, true));
-            }
-        }
-
-        @Override
-        public SATFCProblem createProblem(Set<Integer> stations, Map<Integer, Integer> previousAssignment) {
-            return new SATFCProblem(
-                    Maps.filterKeys(domains, stations::contains),
-                    previousAssignment
-            );
-        }
-
+        solver.close();
+        log.info("Finished simulation");
     }
 
     public interface ISATFCProblemSpecGenerator {
@@ -198,27 +146,6 @@ public class Simulator {
         }
 
         SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
-
-    }
-
-    @RequiredArgsConstructor
-    public static class ISATFCProblemSpecGeneratorImpl implements ISATFCProblemSpecGenerator {
-
-        private final IProblemGenerator problemGenerator;
-        private final String stationInfoFolder;
-        private final double cutoff;
-        private final long seed;
-
-        @Override
-        public SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
-            final Set<Integer> stations = SimulatorUtils.toID(stationInfos);
-            final SATFCProblem problem = problemGenerator.createProblem(stations, previousAssignment);
-            return new SimulatorProblemReader.SATFCProblemSpecification(
-                                problem,
-                                cutoff,
-                    stationInfoFolder,
-                    seed);
-        }
 
     }
 

@@ -57,6 +57,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
     public void waitForAllSubmitted() {
         while (!callbacks.isEmpty()) {
             while (true) {
+                log.info("Waiting for {} callbacks to complete", callbacks.size());
                 // Poll the reply queue
                 final String answerString = jedis.lpop(replyQueue);
                 if (answerString == null) {

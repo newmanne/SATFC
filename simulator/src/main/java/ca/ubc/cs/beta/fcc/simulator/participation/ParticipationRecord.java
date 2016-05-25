@@ -14,8 +14,12 @@ import java.util.stream.Collectors;
  */
 public class ParticipationRecord {
 
-    public ParticipationRecord(StationDB stationDB, IParticipationDecider participationDecider) {
+    public ParticipationRecord() {
         participationMap = new ConcurrentHashMap<>();
+    }
+
+    public ParticipationRecord(StationDB stationDB, IParticipationDecider participationDecider) {
+        this();
         for (StationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CANADA)) {
                 setParticipation(s, Participation.NOT_PARTICIPATING);
@@ -23,7 +27,6 @@ public class ParticipationRecord {
                 setParticipation(s, participationDecider.isParticipating(s) ? Participation.ACTIVE : Participation.NOT_PARTICIPATING);
             }
         }
-
     }
 
     final Map<StationInfo, Participation> participationMap;
