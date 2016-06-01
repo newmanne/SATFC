@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
+import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
@@ -15,6 +16,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.LoggingOutputStream;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.beust.jcommander.Parameter;
@@ -33,9 +35,12 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -191,7 +196,7 @@ public class VCGMip {
             log.info("MIP has {} constraints.", cplex.getNrows());
 
             // This turns off CPLEX logging.
-            //cplex.setOut(new NullOutputStream());
+            cplex.setOut(new LoggingOutputStream(LoggerFactory.getLogger("CPLEX"), LoggingOutputStream.LogLevel.INFO));
 
             //Set CPLEX's parameters.
             try {
