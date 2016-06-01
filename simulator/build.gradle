@@ -7,7 +7,9 @@ buildscript {
 dependencies {
     compile project(':satfc')
     compile 'org.apache.commons:commons-csv:1.3'
+    compile files('libs/cplex.jar')
     testCompile 'junit:junit:4.12'
+
 }
 
 //Project properties.
@@ -37,9 +39,15 @@ def createScript(project, mainClass, name, jvmArgs) {
             fileMode = 0755
         }
     }
+    // This is a dumb hack to get rid of the backslash that inevitably appears before the dollar sign...
+    project.tasks[name].doLast {
+        def f = new File(project.buildDir, "scripts/${name}")
+        def replace = f.text.replace("-Djava.library.path=\\", "-Djava.library.path=")
+        f.setText(replace)
+    }
 }
 
 createScript(project,
              'ca.ubc.cs.beta.fcc.vcg.VCGMip',
              'VCG',
-             ['-Djava.library.path=${CPLEX_BIN}', "-Xmx12g"])
+             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx12g"])

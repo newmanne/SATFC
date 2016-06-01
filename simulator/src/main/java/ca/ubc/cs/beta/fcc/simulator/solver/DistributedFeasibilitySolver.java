@@ -6,6 +6,8 @@ import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SimulatorMessage;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
         // Empty out the queues
         jedis.del(sendQueue);
         jedis.del(replyQueue);
+        jedis.del(RedisUtils.processing(sendQueue));
     }
 
     private String makeProblemKey(long id) {
@@ -55,28 +58,34 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
 
     @Override
     public void waitForAllSubmitted() {
+        log.info("Waiting for {} callbacks to complete", callbacks.size());
+        Watch loggingWatch = Watch.constructAutoStartWatch();
         while (!callbacks.isEmpty()) {
-            while (true) {
+            if (loggingWatch.getElapsedTime() > 60) {
                 log.info("Waiting for {} callbacks to complete", callbacks.size());
-                // Poll the reply queue
-                final String answerString = jedis.lpop(replyQueue);
-                if (answerString == null) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                    continue;
-                }
-                final SimulatorProblemReader.SATFCSimulatorReply reply = JSONUtils.toObject(answerString, SimulatorProblemReader.SATFCSimulatorReply.class);
-                final ProblemCallback problemCallback = callbacks.remove(reply.getId());
-                Preconditions.checkState(problemCallback != null, "Problem callback did not exist for reply %s", reply.getId());
-                final String problemKey = makeProblemKey(reply.getId());
-                log.trace("Deleting problem at key {}", problemKey);
-                jedis.del(problemKey);
-                problemCallback.getCallback().onSuccess(problemCallback.getProblem(), reply.getResult());
-                break;
+                loggingWatch.reset();
+                loggingWatch.start();
             }
+            // Poll the reply queue
+            final String answerString = jedis.lpop(replyQueue);
+            if (answerString == null) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                continue;
+            }
+            final SimulatorProblemReader.SATFCSimulatorReply reply = JSONUtils.toObject(answerString, SimulatorProblemReader.SATFCSimulatorReply.class);
+            final String problemKey = makeProblemKey(reply.getId());
+            log.trace("Deleting problem at key {}", problemKey);
+            jedis.del(problemKey);
+            final ProblemCallback problemCallback = callbacks.remove(reply.getId());
+            if (problemCallback == null) {
+                log.warn("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
+                continue;
+            }
+            problemCallback.getCallback().onSuccess(problemCallback.getProblem(), reply.getResult());
         }
     }
 

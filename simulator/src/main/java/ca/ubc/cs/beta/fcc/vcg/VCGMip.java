@@ -1,31 +1,39 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
+import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.google.common.collect.ImmutableSet;
 import ilog.concert.IloException;
-import ilog.concert.IloIntExpr;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearNumExpr;
 import ilog.cplex.IloCplex;
 import lombok.Data;
+import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.output.NullOutputStream;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,10 +45,28 @@ public class VCGMip {
 
     private static Logger log;
 
+    @UsageTextField(title = "VCG Parameters", description = "VCG Parameters")
+    public static class VCGParameters extends AbstractOptions {
+
+        @ParametersDelegate
+        private SimulatorParameters simulatorParameters = new SimulatorParameters();
+
+        @Parameter(names = "-VCG-PACKING")
+        List<Integer> ids = new ArrayList<>();
+
+        @Parameter(names = "-NOT-PARTICIPATING")
+        List<Integer> notParticipating = new ArrayList<>();
+
+        @Parameter(names = "-O", required = true)
+        String outputFile;
+
+    }
+
     public static void main(String[] args) throws IloException, IOException {
-        final SimulatorParameters parameters = new SimulatorParameters();
-        JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
+        final VCGParameters q = new VCGParameters();
+        JCommanderHelper.parseCheckingForHelpAndVersion(args, q);
         // TODO: probably want to override the default name...
+        final SimulatorParameters parameters = q.simulatorParameters;
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
         JCommanderHelper.logCallString(args, VCGMip.class);
         log = LoggerFactory.getLogger(VCGMip.class);
@@ -48,18 +74,44 @@ public class VCGMip {
         parameters.setUp();
 
         final StationDB stationDB = new CSVStationDB(parameters.getInfoFile());
-        final Map<Integer, Set<Integer>> domains = parameters.getProblemGenerator().createProblem(SimulatorUtils.toID(stationDB.getStations())).getDomains();
-
+        final Set<Integer> use = new HashSet<>(q.ids);
+        final Map<Integer, Set<Integer>> domains = parameters.getProblemGenerator().createProblem(use).getDomains();
+        log.info("Looking at {} stations", domains.size());
+        log.info("Using max channel {}", parameters.getMaxChannel());
         final IConstraintManager constraintManager = parameters.getConstraintManager();
-        final MIPMaker mipMaker = new MIPMaker(stationDB, constraintManager, domains);
 
-        mipMaker.makeMip();
-        final Map<Integer, Integer> solve = mipMaker.solve(parameters.getCutoff(), (int) parameters.getSeed());
-        if (solve != null) {
-            log.info("Verifying solution");
-            StationPackingUtils.weakVerify(parameters.getStationManager(), parameters.getConstraintManager(), solve);
-            log.info("Verified!");
-        }
+        final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager);
+        final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
+        final String result = JSONUtils.toString(mipResult);
+        FileUtils.writeStringToFile(new File(q.outputFile), result);
+
+//        final List<List<Object>> records = new ArrayList<>();
+//        if (mipResult.getStatus().equals(IloCplex.Status.Optimal)) {
+//            for (Integer s : domains.keySet()) {
+//                final StationInfo station = stationDB.getStationById(s);
+//                final MIPResult stationResult = mipMaker.solve(domains, ImmutableSet.of(s), parameters.getCutoff(), parameters.getSeed());
+//                double price = stationResult.getObjectiveValue() - (mipResult.getObjectiveValue() - (mipResult.getAssignment().containsKey(s) ? stationDB.getStationById(s).getValue() : 0));
+//                boolean assigned = mipResult.getAssignment().containsKey(s);
+//                if (assigned) {
+//                    final String logString = String.format("Station %d was assigned to a channel. It will pay %f and values it's station at %f, for a surplus of %f", s, price, station.getValue(), station.getValue() - price);
+//                    log.info(logString);
+//                } else {
+//                    final String logString = String.format("Station %d was not assigned a channel. It will be bought out for %f and values it's station at %f for a surplus of %f", s, -price, station.getValue(), -price - station.getValue());
+//                    log.info(logString);
+//                }
+//                records.add(Arrays.asList(s, mipResult.getAssignment().containsKey(s) ? mipResult.getAssignment().get(s) : -1 ,price, station.getValue()));
+//            }
+//        }
+//        SimulatorUtils.toCSV("output.csv", Arrays.asList("FacID", "Channel", "Price", "Value"), records);
+    }
+
+    @Data
+    @Builder
+    public static class MIPResult {
+        private double objectiveValue;
+        private Map<Integer, Integer> assignment;
+        @JsonSerialize(using = ToStringSerializer.class)
+        private IloCplex.Status status;
     }
 
     @Data
@@ -72,22 +124,26 @@ public class VCGMip {
     public static class MIPMaker {
 
         private final StationDB stationDB;
+        private final IStationManager stationManager;
         private final IConstraintManager constraintManager;
-        private final Map<Integer, Set<Integer>> domains;
         private IloCplex cplex;
 
         Map<Integer, Map<Integer, IloIntVar>> variablesMap;
         Map<IloIntVar, StationChannel> variablesDecoder;
 
-        public MIPMaker(StationDB stationDB, IConstraintManager constraintManager, Map<Integer, Set<Integer>> domains) throws IloException {
+        public MIPMaker(StationDB stationDB, IStationManager stationManager, IConstraintManager constraintManager) throws IloException {
             this.stationDB = stationDB;
+            this.stationManager = stationManager;
             this.constraintManager = constraintManager;
-            this.domains = domains;
-            cplex = new IloCplex();
         }
 
-        public void makeMip() throws IloException {
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed) throws IloException {
+            return solve(domains, ImmutableSet.of(), cutoff, seed);
+        }
+
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed) throws IloException {
             Watch watch = Watch.constructAutoStartWatch();
+            cplex = new IloCplex();
             // 1) Create the variables
             // TODO: this creation is really inefficient, but might not be slow in practice
             variablesMap = new HashMap<>();
@@ -96,20 +152,27 @@ public class VCGMip {
 
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
                 final int station = domainsEntry.getKey();
-                final Map<Integer, IloIntVar> stationVariablesMap = new HashMap<>();
                 final List<Integer> domainList = new ArrayList<>(domainsEntry.getValue());
+                final Map<Integer, IloIntVar> stationVariablesMap = new HashMap<>();
                 final IloIntVar[] domainVars = cplex.boolVarArray(domainList.size());
+                final double value = stationDB.getStationById(station).getValue();
                 for (int i = 0; i < domainList.size(); i++) {
                     final int channel = domainList.get(i);
                     final IloIntVar var = domainVars[i];
                     var.setName(Integer.toString(station) + ":" + Integer.toString(channel));
                     stationVariablesMap.put(channel, var);
                     variablesDecoder.put(var, new StationChannel(station, channel));
-                    sum.addTerm(stationDB.getStationById(station).getValue(), var);
+                    // You can't contribute to value function if you aren't participating
+                    if (!nonParticipating.contains(station)) {
+                        sum.addTerm(value, var);
+                    }
                 }
-                // Constraint: Station on 0 or 1 channels
-                final IloIntExpr channelSum = cplex.sum(domainVars);
-                cplex.addLe(channelSum, 1);
+                // Constraint: Station on 0 or 1 channels (binding 1 if not participating)
+                if (nonParticipating.contains(station)) {
+                    cplex.addEq(cplex.sum(domainVars), 1);
+                } else {
+                    cplex.addLe(cplex.sum(domainVars), 1);
+                }
                 variablesMap.put(station, stationVariablesMap);
             }
             // Interference
@@ -126,23 +189,22 @@ public class VCGMip {
             log.info("Encoding MIP took {} s.", watch.getElapsedTime());
             log.info("MIP has {} variables.", cplex.getNcols());
             log.info("MIP has {} constraints.", cplex.getNrows());
-        }
-
-        public Map<Integer, Integer> solve(double cutoff, int seed) throws IloException {
 
             // This turns off CPLEX logging.
-            cplex.setOut(new NullOutputStream());
+            //cplex.setOut(new NullOutputStream());
 
             //Set CPLEX's parameters.
             try {
                 cplex.setParam(IloCplex.DoubleParam.TimeLimit, cutoff);
-                cplex.setParam(IloCplex.LongParam.RandomSeed, seed);
+                cplex.setParam(IloCplex.LongParam.RandomSeed, (int) seed);
+                cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Optimality);
             } catch (IloException e) {
                 log.error("Could not set CPLEX's parameters to the desired values", e);
                 throw new IllegalStateException("Could not set CPLEX's parameters to the desired values (" + e.getMessage() + ").");
             }
 
-            Watch watch = Watch.constructAutoStartWatch();
+            watch.reset();
+            watch.start();
             //Solve the MIP.
             final boolean feasible;
             try {
@@ -190,14 +252,22 @@ public class VCGMip {
 
             log.info("Satisfiability is {}", satisfiability);
             if (assignment != null) {
+                log.info("Verifying solution");
+                StationPackingUtils.weakVerify(stationManager, constraintManager, assignment);
+                log.info("Verified!");
                 log.info("Assignment is {}", assignment);
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
             //Wrap up.
             cplex.end();
-            return assignment;
+            return MIPResult.builder()
+                    .assignment(assignment)
+                    .objectiveValue(objValue)
+                    .status(status)
+                    .build();
         }
+
 
         private Map<Integer, Integer> getAssignment() {
             final Map<Integer, Integer> assignment = new HashMap<>();
@@ -219,6 +289,6 @@ public class VCGMip {
             return assignment;
         }
 
-}
+    }
 
 }

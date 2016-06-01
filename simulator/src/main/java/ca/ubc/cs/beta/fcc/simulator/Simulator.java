@@ -86,7 +86,7 @@ public class Simulator {
 
         while (!participation.getActiveStations().isEmpty()) {
             log.info("It is round {}", round);
-
+            log.info("There are {} active stations", activeStationsOrdered.size());
             final StationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
             Set<StationInfo> toPack = Sets.union(onAirStations, ImmutableSet.of(nextToExit));
