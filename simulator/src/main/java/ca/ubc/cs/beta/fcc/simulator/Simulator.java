@@ -1,26 +1,26 @@
 package ca.ubc.cs.beta.fcc.simulator;
 
+import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
+import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
+import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
-import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblem;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -35,6 +35,7 @@ public class Simulator {
     private static Logger log;
 
     public static void main(String[] args) throws Exception {
+        final Watch simulatorWatch = Watch.constructAutoStartWatch();
         final SimulatorParameters parameters = new SimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         // TODO: probably want to override the default log file name...
@@ -48,7 +49,7 @@ public class Simulator {
         final IFeasibilitySolver solver = parameters.createSolver();
 
         log.info("Reading station info from file");
-        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile());
+        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile(), parameters.getStationManager());
 
         final IStateSaver stateSaver = parameters.getStateSaver();
 
@@ -66,7 +67,7 @@ public class Simulator {
         } else {
             // Initialize opening prices
             log.info("Setting opening prices");
-            prices = new OpeningPrices(stationDB, parameters.getBaseClockPrice());
+            prices = new PricesImpl(stationDB, parameters.getScoringRule());
             log.info("Figuring out participation");
             // Figure out participation
             participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(prices));
@@ -89,8 +90,7 @@ public class Simulator {
             log.info("There are {} active stations", activeStationsOrdered.size());
             final StationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
-            Set<StationInfo> toPack = Sets.union(onAirStations, ImmutableSet.of(nextToExit));
-            final SATFCResult feasibility = solver.getFeasibilityBlocking(toPack, assignment);
+            final SATFCResult feasibility = solver.getFeasibilityBlocking(Sets.union(onAirStations, ImmutableSet.of(nextToExit)), assignment);
             log.info("Result of considering station {} was {}", nextToExit, feasibility.getResult());
             if (SimulatorUtils.isFeasible(feasibility)) {
                 log.info("Updating assignment and participation to reflect station exiting");
@@ -107,9 +107,8 @@ public class Simulator {
                 int nProblemsToSubmit = 0;
                 final Set<StationInfo> newlyFrozen = new HashSet<>();
                 for (final StationInfo q : activeStationsOrdered) {
-                    final Set<StationInfo> toPack2 = new HashSet<>(toPack);
-                    toPack2.add(q);
-                    solver.getFeasibility(toPack2, assignment, (problem, result) -> {
+                    final int r = round; // lambdas and final...
+                    solver.getFeasibility(Sets.union(onAirStations, ImmutableSet.of(q)), assignment, (problem, result) -> {
                         if (SimulatorUtils.isFeasible(result)) {
                             double prevPrice = prices.getPrice(q);
                             double newPrice = q.getVolume() * clockGammaN;
@@ -120,6 +119,9 @@ public class Simulator {
                             newlyFrozen.add(q);
                             participation.setParticipation(q, Participation.FROZEN);
                             log.info("Station {} is now frozen", q);
+                            if (result.getResult().equals(SATResult.TIMEOUT)) {
+                                log.info("Station {} was frozen due to a TIMEOUT in round {}", q, r);
+                            }
                         }
                     });
                     nProblemsToSubmit += 1;
@@ -137,6 +139,8 @@ public class Simulator {
 
         solver.close();
         log.info("Finished simulation");
+        log.info("CPU: {} s", CPUTime.getCPUTimeSinceJVMStart());
+        log.info("Wall: {} s", simulatorWatch.getElapsedTime());
     }
 
     public interface ISATFCProblemSpecGenerator {
@@ -146,18 +150,6 @@ public class Simulator {
         }
 
         SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
-
-    }
-
-    public static class OpeningPrices extends PricesImpl {
-
-        public OpeningPrices(StationDB stationDB, double baseClockPrice) {
-            super();
-            for (final StationInfo s : stationDB.getStations()) {
-                final double openPrice = baseClockPrice * s.getVolume();
-                setPrice(s, openPrice);
-            }
-        }
 
     }
 
@@ -172,6 +164,17 @@ public class Simulator {
 
         public PricesImpl() {
             prices = new ConcurrentHashMap<>();
+        }
+
+        public PricesImpl(StationDB stationDB, IScoringRule scoringRule) {
+                this();
+                for (final StationInfo s : stationDB.getStations()) {
+                    if (s.getNationality().equals(Nationality.CA)) {
+                        continue;
+                    }
+                    setPrice(s, scoringRule.score(s));
+                }
+
         }
 
         private final Map<StationInfo, Double> prices;

@@ -78,7 +78,7 @@ public class VCGMip {
 
         parameters.setUp();
 
-        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile());
+        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile(), parameters.getStationManager());
         final Set<Integer> use = new HashSet<>(q.ids);
         final Map<Integer, Set<Integer>> domains = parameters.getProblemGenerator().createProblem(use).getDomains();
         log.info("Looking at {} stations", domains.size());
@@ -87,6 +87,16 @@ public class VCGMip {
 
         final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager);
         final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
+
+        final double computedValue = mipResult.getAssignment().keySet().stream().mapToDouble(s -> stationDB.getStationById(s).getValue()).sum();
+        final double obj = mipResult.getObjectiveValue();
+        if (computedValue != obj) {
+            log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
+        } else {
+            log.info("Assignment matches up with objective value as expected");
+        }
+
+
         final String result = JSONUtils.toString(mipResult);
         FileUtils.writeStringToFile(new File(q.outputFile), result);
 
@@ -203,6 +213,8 @@ public class VCGMip {
                 cplex.setParam(IloCplex.DoubleParam.TimeLimit, cutoff);
                 cplex.setParam(IloCplex.LongParam.RandomSeed, (int) seed);
                 cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Optimality);
+                cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, 0);
+                cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time
             } catch (IloException e) {
                 log.error("Could not set CPLEX's parameters to the desired values", e);
                 throw new IllegalStateException("Could not set CPLEX's parameters to the desired values (" + e.getMessage() + ").");
@@ -264,6 +276,9 @@ public class VCGMip {
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
+            cplex.exportModel("model.lp");
+            cplex.writeSolution("solution.lp");
+
             //Wrap up.
             cplex.end();
             return MIPResult.builder()
@@ -279,6 +294,7 @@ public class VCGMip {
             for (Map.Entry<IloIntVar, StationChannel> entryDecoder : variablesDecoder.entrySet()) {
                 final IloIntVar variable = entryDecoder.getKey();
                 try {
+                    log.info("{} = {}", variable.getName(), cplex.getValue(variable));
                     if (cplex.getValue(variable) == 1) {
                         final StationChannel stationChannelPair = entryDecoder.getValue();
                         final Integer station = stationChannelPair.getStation();

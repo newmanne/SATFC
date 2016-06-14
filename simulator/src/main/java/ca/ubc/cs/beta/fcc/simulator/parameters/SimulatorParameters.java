@@ -4,9 +4,12 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
-import ca.ubc.cs.beta.fcc.simulator.participation.OneHundredPerCentParticipation;
 import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
+import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
+import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
+import ca.ubc.cs.beta.fcc.simulator.scoring.IdenticalScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.GreedyFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
@@ -34,7 +37,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-INFO-FILE", description = "csv file")
-    private String infoFile;
+    private String infoFile = "/ubc/cs/research/arrow/satfc/simulator/data/simulator.csv";
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -46,6 +49,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-BASE-CLOCK")
     private double baseClockPrice = 900;
+
+    @Getter
+    @Parameter(names = "-SCORING-RULE")
+    private ScoringRule scoringRule = ScoringRule.FCC;
 
     @Getter
     @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
@@ -145,23 +152,37 @@ public class SimulatorParameters extends AbstractOptions {
                 return new LocalFeasibilitySolver(problemSpecGenerator);
             case DISTRIBUTED:
                 return new DistributedFeasibilitySolver(problemSpecGenerator, facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+            case GREEDY:
+                return new GreedyFeasibilitySolver(problemSpecGenerator, getConstraintManager(), getStationManager());
             default:
                 throw new IllegalStateException();
         }
-
     }
 
     public enum ParticipationModel {
-        ALL,
         PRICE_HIGHER_THAN_VALUE
     }
 
     public IParticipationDecider getParticipationDecider(Simulator.Prices prices) {
         switch (participationModel) {
-            case ALL:
-                return new OneHundredPerCentParticipation();
             case PRICE_HIGHER_THAN_VALUE:
                 return new OpeningPriceHigherThanPrivateValue(prices);
+            default:
+                throw new IllegalStateException();
+        }
+    }
+
+    public enum ScoringRule {
+        FCC,
+        IDENTICAL
+    }
+
+    public IScoringRule getScoringRule() {
+        switch (scoringRule) {
+            case FCC:
+                return new FCCScoringRule(getBaseClockPrice());
+            case IDENTICAL:
+                return new IdenticalScoringRule(getBaseClockPrice());
             default:
                 throw new IllegalStateException();
         }

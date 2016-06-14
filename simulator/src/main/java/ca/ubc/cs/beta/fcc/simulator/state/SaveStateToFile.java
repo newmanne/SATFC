@@ -6,6 +6,7 @@ import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
@@ -46,6 +47,7 @@ public class SaveStateToFile implements IStateSaver {
     @Data
     @NoArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class StationState {
         double price;
         Participation participation;

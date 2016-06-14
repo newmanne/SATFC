@@ -6,6 +6,7 @@ package ca.ubc.cs.beta.fcc.simulator.parameters;
 public enum SolverType {
 
     LOCAL,
-    DISTRIBUTED
+    DISTRIBUTED,
+    GREEDY
 
 }

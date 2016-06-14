@@ -21,7 +21,7 @@ public class ParticipationRecord {
     public ParticipationRecord(StationDB stationDB, IParticipationDecider participationDecider) {
         this();
         for (StationInfo s : stationDB.getStations()) {
-            if (s.getNationality().equals(Nationality.CANADA)) {
+            if (s.getNationality().equals(Nationality.CA)) {
                 setParticipation(s, Participation.NOT_PARTICIPATING);
             } else {
                 setParticipation(s, participationDecider.isParticipating(s) ? Participation.ACTIVE : Participation.NOT_PARTICIPATING);

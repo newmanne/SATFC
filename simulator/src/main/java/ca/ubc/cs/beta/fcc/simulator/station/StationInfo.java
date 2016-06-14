@@ -1,9 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
-import com.google.common.base.Preconditions;
 import lombok.Data;
-
-import java.util.Set;
 
 /**
  * Created by newmanne on 2016-05-20.
@@ -13,14 +10,12 @@ import java.util.Set;
 public class StationInfo {
 
     private final int id;
-    private final int volume;
+    private final Integer volume;
     private final Double value;
     private final Nationality nationality;
-    private final int homeChannel;
 
-    public double getValue() {
-        Preconditions.checkState(nationality.equals(Nationality.US), "Only US stations have values");
-        return value;
+    public static StationInfo canadianStation(int id) {
+        return new StationInfo(id, null, null, Nationality.CA);
     }
 
 }

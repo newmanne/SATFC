@@ -1,15 +1,14 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
 import java.util.Collection;
 import java.util.Map;
 
@@ -21,23 +20,26 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, StationInfo> data;
 
-    public CSVStationDB(String infoFile) {
+    public CSVStationDB(String infoFile, IStationManager stationManager) {
         final ImmutableMap.Builder<Integer, StationInfo> builder = ImmutableMap.builder();
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
+            final StationInfo stationInfo;
             final int id = Integer.parseInt(record.get("FacID"));
-            final int volume = Integer.parseInt(record.get("Volume"));
-            final String valueString = record.get("Value");
-            Double value = null;
-            if (!valueString.isEmpty()) {
-                value = Double.parseDouble(valueString) * 10e6;
+            if (!stationManager.getDomain(new Station(id)).stream().anyMatch(c -> c >= StationPackingUtils.UHFmin)) {
+                log.warn("Skipping station {} because it is not UHF", id);
+                continue;
             }
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
             final int channel = Integer.parseInt(record.get("Channel"));
-            final StationInfo stationInfo = new StationInfo(id, volume, value, nationality, channel);
-            if (!StationPackingUtils.UHF_CHANNELS.contains(channel)) {
-                log.warn("Skipping station {} because it is not UHF", stationInfo);
-                continue;
+            if (nationality.equals(Nationality.CA)) {
+                stationInfo = StationInfo.canadianStation(id);
+            } else {
+                final String valueString = record.get("Value");
+                Preconditions.checkState(!valueString.isEmpty());
+                double value = Double.parseDouble(valueString) * 1e6;
+                int volume = Integer.parseInt(record.get("Volume"));
+                stationInfo = new StationInfo(id, volume, value, nationality);
             }
             builder.put(id, stationInfo);
         }
