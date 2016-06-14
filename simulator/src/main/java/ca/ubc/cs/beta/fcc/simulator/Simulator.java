@@ -49,7 +49,7 @@ public class Simulator {
         final IFeasibilitySolver solver = parameters.createSolver();
 
         log.info("Reading station info from file");
-        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile(), parameters.getStationManager());
+        final StationDB stationDB = parameters.getStationDB();
 
         final IStateSaver stateSaver = parameters.getStateSaver();
 

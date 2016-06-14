@@ -17,6 +17,8 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.ISATFCProblemSpecGeneratorImp
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
+import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
+import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -49,6 +51,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-BASE-CLOCK")
     private double baseClockPrice = 900;
+
+    @Getter
+    @Parameter(names = "-IGNORE-CANADA")
+    private boolean ignoreCanada = false;
 
     @Getter
     @Parameter(names = "-SCORING-RULE")
@@ -157,6 +163,10 @@ public class SimulatorParameters extends AbstractOptions {
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    public StationDB getStationDB() {
+        return new CSVStationDB(getInfoFile(), getStationManager(), isIgnoreCanada());
     }
 
     public enum ParticipationModel {

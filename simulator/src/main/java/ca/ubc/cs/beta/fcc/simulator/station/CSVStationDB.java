@@ -20,7 +20,7 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, StationInfo> data;
 
-    public CSVStationDB(String infoFile, IStationManager stationManager) {
+    public CSVStationDB(String infoFile, IStationManager stationManager, boolean ignoreCanada) {
         final ImmutableMap.Builder<Integer, StationInfo> builder = ImmutableMap.builder();
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
@@ -31,8 +31,7 @@ public class CSVStationDB implements StationDB {
                 continue;
             }
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
-            final int channel = Integer.parseInt(record.get("Channel"));
-            if (nationality.equals(Nationality.CA)) {
+            if (!ignoreCanada && nationality.equals(Nationality.CA)) {
                 stationInfo = StationInfo.canadianStation(id);
             } else {
                 final String valueString = record.get("Value");
