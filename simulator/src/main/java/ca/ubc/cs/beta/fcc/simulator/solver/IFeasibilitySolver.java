@@ -39,4 +39,23 @@ public interface IFeasibilitySolver extends AutoCloseable {
     default void waitForAllSubmitted() {
     }
 
+    public static abstract class AFeasibilitySolverDecorator implements IFeasibilitySolver {
+
+        private final IFeasibilitySolver decorated;
+
+        public AFeasibilitySolverDecorator(IFeasibilitySolver decorated) {
+            this.decorated = decorated;
+        }
+
+        @Override
+        public void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
+            decorated.getFeasibility(stations, previousAssignment, callback);
+        }
+
+        @Override
+        public void close() throws Exception {
+            decorated.close();
+        }
+    }
+
 }

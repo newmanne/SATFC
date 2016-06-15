@@ -78,7 +78,7 @@ public class VCGMip {
 
         parameters.setUp();
 
-        final StationDB stationDB = new CSVStationDB(parameters.getInfoFile(), parameters.getStationManager());
+        final StationDB stationDB = parameters.getStationDB();
         final Set<Integer> use = new HashSet<>(q.ids);
         final Map<Integer, Set<Integer>> domains = parameters.getProblemGenerator().createProblem(use).getDomains();
         log.info("Looking at {} stations", domains.size());

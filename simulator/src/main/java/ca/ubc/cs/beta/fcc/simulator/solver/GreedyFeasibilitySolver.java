@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.solver;
 
+import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -34,6 +35,7 @@ public class GreedyFeasibilitySolver extends AFeasibilitySolver {
     @Override
     protected void solve(SimulatorProblemReader.SATFCProblemSpecification problemSpecification, SATFCCallback callback) {
         Watch watch = Watch.constructAutoStartWatch();
+        final CPUTime cpuTime = new CPUTime();
         final Map<Integer, Set<Integer>> domains = problemSpecification.getProblem().getDomains();
         final Map<Integer, Integer> previousAssignment = problemSpecification.getProblem().getPreviousAssignment();
         Preconditions.checkArgument(StationPackingUtils.weakVerify(stationManager, constraintManager, previousAssignment), "Greedy solver requires previous assignment to be valid!");
@@ -56,9 +58,9 @@ public class GreedyFeasibilitySolver extends AFeasibilitySolver {
         }
         final SATFCResult result;
         if (assignment.size() == domains.size()) {
-            result = new SATFCResult(SATResult.SAT, watch.getElapsedTime(), assignment);
+            result = new SATFCResult(SATResult.SAT, watch.getElapsedTime(), cpuTime.getCPUTime(), assignment);
         } else {
-            result = new SATFCResult(SATResult.TIMEOUT, watch.getElapsedTime(), ImmutableMap.of());
+            result = new SATFCResult(SATResult.TIMEOUT, watch.getElapsedTime(), cpuTime.getCPUTime(), ImmutableMap.of());
         }
         callback.onSuccess(problemSpecification, result);
     }

@@ -31,7 +31,10 @@ public class CSVStationDB implements StationDB {
                 continue;
             }
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
-            if (!ignoreCanada && nationality.equals(Nationality.CA)) {
+            if (nationality.equals(Nationality.CA)) {
+                if (ignoreCanada) {
+                    continue;
+                }
                 stationInfo = StationInfo.canadianStation(id);
             } else {
                 final String valueString = record.get("Value");

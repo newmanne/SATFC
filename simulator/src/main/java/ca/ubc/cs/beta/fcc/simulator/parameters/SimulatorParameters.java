@@ -56,7 +56,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-IGNORE-CANADA")
     private boolean ignoreCanada = false;
 
-    @Getter
     @Parameter(names = "-SCORING-RULE")
     private ScoringRule scoringRule = ScoringRule.FCC;
 

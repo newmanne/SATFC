@@ -42,6 +42,7 @@ public class SATFCResult implements Serializable {
     private final ImmutableMap<Integer, Integer> witnessAssignment;
     private final SATResult result;
     private final double runtime;
+    private final double cputime;
     private final String extraInfo;
 
     /**
@@ -50,20 +51,21 @@ public class SATFCResult implements Serializable {
      * @param aWitnessAssignment - the witness assignment
      */
     @JsonCreator
-    public SATFCResult(@JsonProperty("result") SATResult aResult, @JsonProperty("runtime") double aRuntime, @JsonProperty("witnessAssignment") Map<Integer, Integer> aWitnessAssignment) {
-        this(aResult, aRuntime, aWitnessAssignment, null);
+    public SATFCResult(@JsonProperty("result") SATResult aResult, @JsonProperty("runtime") double aRuntime, @JsonProperty("cputime") double cputime, @JsonProperty("witnessAssignment") Map<Integer, Integer> aWitnessAssignment) {
+        this(aResult, aRuntime, aWitnessAssignment, cputime, null);
     }
 
-    public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment, String extraInfo) {
+    public SATFCResult(SATResult aResult, double aRuntime, Map<Integer, Integer> aWitnessAssignment, double cputime, String extraInfo) {
         result = aResult;
         runtime = aRuntime;
+        this.cputime = cputime;
         witnessAssignment = ImmutableMap.copyOf(aWitnessAssignment);
         this.extraInfo = extraInfo;
     }
 
     @Override
     public String toString() {
-        return runtime + "," + result + "," + witnessAssignment.toString();
+        return "Wall:" + runtime + ",CPU:" + cputime + "," + result + "," + witnessAssignment.toString();
     }
 
 }
