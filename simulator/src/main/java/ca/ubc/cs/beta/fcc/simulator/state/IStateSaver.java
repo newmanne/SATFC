@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
+import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public interface IStateSaver {
 
-    void saveState(StationDB stationDB, Simulator.Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round);
+    void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round);
 
     AuctionState restoreState(StationDB stationDB);
 
@@ -25,7 +25,7 @@ public interface IStateSaver {
     @NoArgsConstructor
     public static class AuctionState {
 
-        private Simulator.Prices prices;
+        private Prices prices;
         private ParticipationRecord participation;
         private int round;
         private Map<Integer, Integer> assignment;

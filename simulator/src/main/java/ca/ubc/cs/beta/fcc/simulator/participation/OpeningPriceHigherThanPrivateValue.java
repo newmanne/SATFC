@@ -1,6 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.participation;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
+import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 /**
@@ -8,9 +8,9 @@ import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
  */
 public class OpeningPriceHigherThanPrivateValue implements IParticipationDecider {
 
-    private final Simulator.Prices prices;
+    private final Prices prices;
 
-    public OpeningPriceHigherThanPrivateValue(Simulator.Prices prices) {
+    public OpeningPriceHigherThanPrivateValue(Prices prices) {
         this.prices = prices;
     }
 

@@ -1,17 +1,18 @@
 package ca.ubc.cs.beta.fcc.simulator;
 
-import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
+import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
+import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
-import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -22,12 +23,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class Simulator {
@@ -46,7 +45,11 @@ public class Simulator {
         parameters.setUp();
 
         log.info("Building solver");
-        final IFeasibilitySolver solver = parameters.createSolver();
+
+        final TimeTracker timeTracker = new TimeTracker();
+        IFeasibilitySolver tmp = parameters.createSolver();
+        tmp = new TimeTrackerFeasibilitySolverDecorator(tmp, timeTracker);
+        final IFeasibilitySolver solver = tmp;
 
         log.info("Reading station info from file");
         final StationDB stationDB = parameters.getStationDB();
@@ -68,12 +71,21 @@ public class Simulator {
             // Initialize opening prices
             log.info("Setting opening prices");
             prices = new PricesImpl(stationDB, parameters.getScoringRule());
+
             log.info("Figuring out participation");
             // Figure out participation
             participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(prices));
             round = 1;
-            log.info("Finding an initial assignment for the non-participating stations");
-            final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(participation.getOnAirStations(), ImmutableMap.of());
+            final long notParticipatingUS = stationDB.getStations().stream()
+                    .filter(s -> s.getNationality().equals(Nationality.US))
+                    .map(participation::getParticipation)
+                    .filter(p -> p.equals(Participation.NOT_PARTICIPATING))
+                    .count();
+            final long totalUS = stationDB.getStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
+            log.info("There are {} non-participating US stations out of {} US stations", notParticipatingUS, totalUS);
+            final Set<StationInfo> onAirStations = participation.getOnAirStations();
+            log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
+            final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(onAirStations, ImmutableMap.of());
             Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
             log.info("Found an initial assignment for the non-participating stations");
             assignment = initialFeasibility.getWitnessAssignment();
@@ -133,14 +145,14 @@ public class Simulator {
                 participation.setParticipation(nextToExit, Participation.FROZEN);
             }
             log.info("Saving state for round {}", round);
-            stateSaver.saveState(stationDB, prices, participation, assignment, round);
+            log.info("Reporting timing info for round {}", round);
+            timeTracker.report();
             round++;
         }
 
         solver.close();
+        timeTracker.report();
         log.info("Finished simulation");
-        log.info("CPU: {} s", CPUTime.getCPUTimeSinceJVMStart());
-        log.info("Wall: {} s", simulatorWatch.getElapsedTime());
     }
 
     public interface ISATFCProblemSpecGenerator {
@@ -150,42 +162,6 @@ public class Simulator {
         }
 
         SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
-
-    }
-
-    public interface Prices {
-
-        void setPrice(StationInfo station, Double price);
-        double getPrice(StationInfo station);
-
-    }
-
-    public static class PricesImpl implements Prices {
-
-        public PricesImpl() {
-            prices = new ConcurrentHashMap<>();
-        }
-
-        public PricesImpl(StationDB stationDB, IScoringRule scoringRule) {
-                this();
-                for (final StationInfo s : stationDB.getStations()) {
-                    if (s.getNationality().equals(Nationality.CA)) {
-                        continue;
-                    }
-                    setPrice(s, scoringRule.score(s));
-                }
-
-        }
-
-        private final Map<StationInfo, Double> prices;
-
-        public void setPrice(StationInfo station, Double price) {
-            prices.put(station, price);
-        }
-
-        public double getPrice(StationInfo stationID) {
-            return prices.get(stationID);
-        }
 
     }
 

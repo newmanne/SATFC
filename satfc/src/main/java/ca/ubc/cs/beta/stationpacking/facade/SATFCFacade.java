@@ -401,7 +401,7 @@ public class SATFCFacade implements AutoCloseable {
             final String extraInfo = getExtraInfo(bundle);
 
             final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness, cputime, extraInfo);
-            log.warn("Result: {}.", outputResult);
+            log.debug("Result: {}.", outputResult);
 
             if (!internal && parameter.getAutoAugmentOptions().isAugment()) {
                 log.debug("Starting up timer again from 0 for augmentation");

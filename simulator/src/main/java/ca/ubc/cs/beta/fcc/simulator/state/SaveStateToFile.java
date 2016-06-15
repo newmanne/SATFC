@@ -1,8 +1,9 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
+import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
+import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
@@ -61,7 +62,7 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public void saveState(StationDB stationDB, Simulator.Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round) {
+    public void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round) {
         final String fileName = folder + File.separator + "state_" + round + ".json";
         final Map<Integer, StationState> state = new HashMap<>();
         for (StationInfo s : stationDB.getStations()) {
@@ -97,7 +98,7 @@ public class SaveStateToFile implements IStateSaver {
             Preconditions.checkState(mostRecentState.isPresent(), "No state present to restore from!");
             final File stateFile = mostRecentState.get().toFile();
             log.info("Restoring state from {}", stateFile.getAbsolutePath());
-            final Simulator.Prices prices = new Simulator.PricesImpl();
+            final Prices prices = new PricesImpl();
             final ParticipationRecord participationRecord = new ParticipationRecord();
             final String json = FileUtils.readFileToString(stateFile);
             final StateFile stateFile1 = JSONUtils.toObject(json, StateFile.class);

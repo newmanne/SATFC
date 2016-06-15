@@ -1,11 +1,12 @@
 package ca.ubc.cs.beta.fcc.simulator.solver;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,42 +21,12 @@ public interface IFeasibilitySolver extends AutoCloseable {
 
     default SATFCResult getFeasibilityBlocking(@NonNull Set<StationInfo> stations, @NonNull Map<Integer, Integer> previousAssignment) {
         final AtomicReference<SATFCResult> resultReference = new AtomicReference<>();
-        getFeasibility(stations, previousAssignment, new SATFCCallback() {
-            @Override
-            public void onSuccess(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCResult result) {
-                resultReference.set(result);
-            }
-
-            @Override
-            public void onFailure(SimulatorProblemReader.SATFCProblemSpecification problem, RuntimeException exception) {
-
-            }
-        });
-        // TODO: This isn't exactly what is meant by a blocking call...
+        getFeasibility(stations, previousAssignment, (problem, result) -> resultReference.set(result));
         waitForAllSubmitted();
         return resultReference.get();
     }
 
     default void waitForAllSubmitted() {
-    }
-
-    public static abstract class AFeasibilitySolverDecorator implements IFeasibilitySolver {
-
-        private final IFeasibilitySolver decorated;
-
-        public AFeasibilitySolverDecorator(IFeasibilitySolver decorated) {
-            this.decorated = decorated;
-        }
-
-        @Override
-        public void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
-            decorated.getFeasibility(stations, previousAssignment, callback);
-        }
-
-        @Override
-        public void close() throws Exception {
-            decorated.close();
-        }
     }
 
 }

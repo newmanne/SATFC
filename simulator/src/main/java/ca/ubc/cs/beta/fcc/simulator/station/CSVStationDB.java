@@ -40,7 +40,8 @@ public class CSVStationDB implements StationDB {
                 final String valueString = record.get("Value");
                 Preconditions.checkState(!valueString.isEmpty());
                 double value = Double.parseDouble(valueString) * 1e6;
-                int volume = Integer.parseInt(record.get("Volume"));
+                // pandas stores as float64 if you have NA values...
+                int volume = (int) Double.parseDouble(record.get("Volume"));
                 stationInfo = new StationInfo(id, volume, value, nationality);
             }
             builder.put(id, stationInfo);

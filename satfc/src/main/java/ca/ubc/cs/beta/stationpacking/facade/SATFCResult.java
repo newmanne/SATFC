@@ -65,7 +65,7 @@ public class SATFCResult implements Serializable {
 
     @Override
     public String toString() {
-        return "Wall:" + runtime + ",CPU:" + cputime + "," + result + "," + witnessAssignment.toString();
+        return String.format("Wall:%.2f, CPU:%.2f, %s, %s", runtime, cputime, result, witnessAssignment);
     }
 
 }

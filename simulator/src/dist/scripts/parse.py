@@ -82,7 +82,7 @@ def main():
 
 	combined_df = combined_df.rename(columns={'volume':'Volume','Ch':'Channel', 'value':'Value'})
 	combined_df['Channel'] = combined_df['Channel'].astype(np.int32)
-	combined_df['Volume'] = combined_df['Channel'].astype(np.int32)
+	combined_df['Volume'] = combined_df['Volume'].astype(np.float64)
 	combined_df.to_csv(output_file, index=False)
 
 	print combined_df['Country'].value_counts().to_dict()

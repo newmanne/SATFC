@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
+import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IdenticalScoringRule;
@@ -43,10 +44,10 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
-    private String sendQueue;
+    private String sendQueue = "send";
     @Getter
     @Parameter(names = "-LISTEN-QUEUE", description = "queue name to listen for work on")
-    private String listenQueue;
+    private String listenQueue = "listen";
 
     @Getter
     @Parameter(names = "-BASE-CLOCK")
@@ -54,7 +55,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-IGNORE-CANADA")
-    private boolean ignoreCanada = false;
+    private boolean ignoreCanada = true;
 
     @Parameter(names = "-SCORING-RULE")
     private ScoringRule scoringRule = ScoringRule.FCC;
@@ -98,13 +99,12 @@ public class SimulatorParameters extends AbstractOptions {
             throw new RuntimeException(e);
         }
         problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
+        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), isIgnoreCanada());
     }
 
     private String getStateFolder() {
         return getOutputFolder() + File.separator + "state";
     }
-
-
 
     @Getter
     @ParametersDelegate
@@ -128,7 +128,6 @@ public class SimulatorParameters extends AbstractOptions {
         return new SaveStateToFile(getStateFolder());
     }
 
-    private DataManager dataManager;
 
     public IStationManager getStationManager() {
         try {
@@ -146,8 +145,11 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
+    private DataManager dataManager;
     @Getter
     private IProblemGenerator problemGenerator;
+    @Getter
+    private StationDB stationDB;
 
     public IFeasibilitySolver createSolver() {
         final IProblemGenerator problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
@@ -164,15 +166,11 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
-    public StationDB getStationDB() {
-        return new CSVStationDB(getInfoFile(), getStationManager(), isIgnoreCanada());
-    }
-
     public enum ParticipationModel {
         PRICE_HIGHER_THAN_VALUE
     }
 
-    public IParticipationDecider getParticipationDecider(Simulator.Prices prices) {
+    public IParticipationDecider getParticipationDecider(Prices prices) {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
                 return new OpeningPriceHigherThanPrivateValue(prices);
