@@ -129,6 +129,8 @@ public class VCGMip {
         private IloCplex.Status status;
         private Set<Integer> stations;
         private Set<Integer> notParticipating;
+        private double walltime;
+        private double cputime;
     }
 
     @Data
@@ -289,6 +291,8 @@ public class VCGMip {
                     .status(status)
                     .stations(domains.keySet())
                     .notParticipating(nonParticipating)
+                    .cputime(cplex.getCplexTime())
+                    .walltime(watch.getElapsedTime())
                     .build();
         }
 
