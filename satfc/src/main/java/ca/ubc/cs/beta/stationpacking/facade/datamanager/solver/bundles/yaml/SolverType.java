@@ -44,5 +44,7 @@ public enum SolverType {
     DELAY,
     TIME_BOUNDED,
     PREVIOUS_ASSIGNMENT,
-    UNSAT_LABELLER, NONE
+    UNSAT_LABELLER,
+    GREEDY,
+    NONE
 }

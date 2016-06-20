@@ -127,6 +127,8 @@ public class VCGMip {
         private Map<Integer, Integer> assignment;
         @JsonSerialize(using = ToStringSerializer.class)
         private IloCplex.Status status;
+        private Set<Integer> stations;
+        private Set<Integer> notParticipating;
     }
 
     @Data
@@ -285,6 +287,8 @@ public class VCGMip {
                     .assignment(assignment)
                     .objectiveValue(objValue)
                     .status(status)
+                    .stations(domains.keySet())
+                    .notParticipating(nonParticipating)
                     .build();
         }
 

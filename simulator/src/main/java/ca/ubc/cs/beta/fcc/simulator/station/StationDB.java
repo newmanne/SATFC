@@ -7,8 +7,8 @@ import java.util.Collection;
  */
 public interface StationDB {
 
-    StationInfo getStationById(int stationID);
+    IStationInfo getStationById(int stationID);
 
-    Collection<StationInfo> getStations();
+    Collection<IStationInfo> getStations();
 
 }

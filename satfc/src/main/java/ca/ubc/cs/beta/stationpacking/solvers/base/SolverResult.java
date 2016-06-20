@@ -75,7 +75,9 @@ public class SolverResult implements Serializable {
         DCCA,
         SATENSTEIN,
         UNDERCONSTRAINED,
-		UNSAT_LABELLER, PREVIOUS_ASSIGNMENT
+		UNSAT_LABELLER,
+		PREVIOUS_ASSIGNMENT,
+		GREEDY
     }
 
 	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {

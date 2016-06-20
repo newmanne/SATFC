@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.participation;
 
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 /**
@@ -7,6 +8,6 @@ import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
  */
 public interface IParticipationDecider {
 
-    boolean isParticipating(StationInfo s);
+    boolean isParticipating(IStationInfo s);
 
 }

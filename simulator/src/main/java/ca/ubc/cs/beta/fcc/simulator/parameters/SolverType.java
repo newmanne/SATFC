@@ -7,6 +7,5 @@ public enum SolverType {
 
     LOCAL,
     DISTRIBUTED,
-    GREEDY
 
 }

@@ -10,7 +10,6 @@ import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IdenticalScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.GreedyFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
@@ -18,8 +17,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.ISATFCProblemSpecGeneratorImp
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
-import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import ca.ubc.cs.beta.fcc.simulator.station.*;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -31,6 +29,8 @@ import lombok.Getter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Created by newmanne on 2016-05-20.
@@ -48,6 +48,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-LISTEN-QUEUE", description = "queue name to listen for work on")
     private String listenQueue = "listen";
+
+    @Getter
+    @Parameter(names = "-UNIT-VOLUME", description = "Sets all stations to have unit volume")
+    private boolean unitVolume = false;
 
     @Getter
     @Parameter(names = "-BASE-CLOCK")
@@ -99,7 +103,15 @@ public class SimulatorParameters extends AbstractOptions {
             throw new RuntimeException(e);
         }
         problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
-        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), isIgnoreCanada());
+        final Predicate<IStationInfo> ignore = x -> isIgnoreCanada() && x.getNationality().equals(Nationality.CA);
+        final Function<IStationInfo, IStationInfo> decorators = x -> {
+            IStationInfo decorated = x;
+            if (isUnitVolume()) {
+                decorated = new UnitVolumeDecorator(decorated);
+            }
+            return decorated;
+        };
+        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), ignore, decorators);
     }
 
     private String getStateFolder() {
@@ -159,8 +171,6 @@ public class SimulatorParameters extends AbstractOptions {
                 return new LocalFeasibilitySolver(problemSpecGenerator);
             case DISTRIBUTED:
                 return new DistributedFeasibilitySolver(problemSpecGenerator, facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
-            case GREEDY:
-                return new GreedyFeasibilitySolver(problemSpecGenerator, getConstraintManager(), getStationManager());
             default:
                 throw new IllegalStateException();
         }

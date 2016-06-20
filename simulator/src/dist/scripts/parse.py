@@ -24,7 +24,7 @@ def main():
 	BASEDIR = '/ubc/cs/research/arrow/satfc/simulator/data'
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--values', type=str, help="values csv file columns FacID,Value (in mils)", default='values.csv')
-	parser.add_argument('--output', type=str, help='name of output file', default='simulator.csv')
+	parser.add_argument('--output', type=str, help='name of output file', required=True)
 	parser.add_argument('--UHF', type=bool, help='UHF Only', default=True)
 	args = parser.parse_args()
 

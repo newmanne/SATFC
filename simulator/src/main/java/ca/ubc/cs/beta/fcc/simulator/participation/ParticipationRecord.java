@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.participation;
 
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
@@ -20,7 +21,7 @@ public class ParticipationRecord {
 
     public ParticipationRecord(StationDB stationDB, IParticipationDecider participationDecider) {
         this();
-        for (StationInfo s : stationDB.getStations()) {
+        for (IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {
                 setParticipation(s, Participation.NOT_PARTICIPATING);
             } else {
@@ -29,21 +30,21 @@ public class ParticipationRecord {
         }
     }
 
-    final Map<StationInfo, Participation> participationMap;
+    final Map<IStationInfo, Participation> participationMap;
 
-    public void setParticipation(StationInfo s, Participation participation) {
+    public void setParticipation(IStationInfo s, Participation participation) {
         participationMap.put(s, participation);
     }
 
-    public Set<StationInfo> getActiveStations() {
+    public Set<IStationInfo> getActiveStations() {
         return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.ACTIVE)).map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
-    public Set<StationInfo> getOnAirStations() {
+    public Set<IStationInfo> getOnAirStations() {
         return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.EXITED) || e.getValue().equals(Participation.NOT_PARTICIPATING)).map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
-    public Participation getParticipation(StationInfo s) {
+    public Participation getParticipation(IStationInfo s) {
         return participationMap.get(s);
     }
 

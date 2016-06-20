@@ -82,7 +82,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
             jedis.del(problemKey);
             final ProblemCallback problemCallback = callbacks.remove(reply.getId());
             if (problemCallback == null) {
-                log.warn("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
+                log.debug("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
                 continue;
             }
             problemCallback.getCallback().onSuccess(problemCallback.getProblem(), reply.getResult());

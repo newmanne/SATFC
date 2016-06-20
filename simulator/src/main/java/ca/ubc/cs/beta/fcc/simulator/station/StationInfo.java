@@ -7,7 +7,7 @@ import lombok.Data;
  */ // Class to store attributes of a station that do not change during the course of the simulation
 // TODO: hash / equals by id onlys
 @Data
-public class StationInfo {
+public class StationInfo implements IStationInfo {
 
     private final int id;
     private final Integer volume;

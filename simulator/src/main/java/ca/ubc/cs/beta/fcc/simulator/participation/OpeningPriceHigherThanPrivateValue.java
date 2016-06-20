@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.participation;
 
 import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 /**
@@ -15,7 +16,7 @@ public class OpeningPriceHigherThanPrivateValue implements IParticipationDecider
     }
 
     @Override
-    public boolean isParticipating(StationInfo s) {
+    public boolean isParticipating(IStationInfo s) {
         return prices.getPrice(s) >= s.getValue();
     }
 

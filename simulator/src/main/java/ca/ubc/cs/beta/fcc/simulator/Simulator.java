@@ -9,6 +9,7 @@ import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
@@ -17,7 +18,6 @@ import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -83,7 +83,7 @@ public class Simulator {
                     .count();
             final long totalUS = stationDB.getStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
             log.info("There are {} non-participating US stations out of {} US stations", notParticipatingUS, totalUS);
-            final Set<StationInfo> onAirStations = participation.getOnAirStations();
+            final Set<IStationInfo> onAirStations = participation.getOnAirStations();
             log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
             final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(onAirStations, ImmutableMap.of());
             Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
@@ -93,14 +93,16 @@ public class Simulator {
 
         log.info("There are {} / {} stations participating", participation.getActiveStations().size(), stationDB.getStations().size());
         // Consider stations in reverse order of their values per volume
-        final Comparator<StationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
-        final List<StationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations().stream().sorted(valuePerVolumeComparator.reversed()).collect(Collectors.toList()));
-        final Set<StationInfo> onAirStations = participation.getOnAirStations();
+        final Comparator<IStationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
+        final List<IStationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations().stream().sorted(valuePerVolumeComparator.reversed()).collect(Collectors.toList()));
+        final Set<IStationInfo> onAirStations = participation.getOnAirStations();
 
         while (!participation.getActiveStations().isEmpty()) {
-            log.info("It is round {}", round);
-            log.info("There are {} active stations", activeStationsOrdered.size());
-            final StationInfo nextToExit = activeStationsOrdered.remove(0);
+            log.info("Round {}", round);
+            final Map<Participation, Integer> participationCounts = stationDB.getStations().stream().collect(Collectors.groupingBy(participation::getParticipation)).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
+            log.info("Participation stats: {}", participationCounts);
+
+            final IStationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
             final SATFCResult feasibility = solver.getFeasibilityBlocking(Sets.union(onAirStations, ImmutableSet.of(nextToExit)), assignment);
             log.info("Result of considering station {} was {}", nextToExit, feasibility.getResult());
@@ -113,13 +115,11 @@ public class Simulator {
                 // value = volume * baseClock * gamma^n
                 // so value / volume = baseClock * gamma^n same for everyone
                 final double clockGammaN = nextToExit.getValue() / nextToExit.getVolume();
-                log.info("Clock Gamma N is {}", clockGammaN);
+                log.debug("Clock Gamma N is {}", clockGammaN);
                 // Update prices for remaining stations - can do this in parallel
                 log.info("Considering other stations to see if they froze / update their prices");
-                int nProblemsToSubmit = 0;
-                final Set<StationInfo> newlyFrozen = new HashSet<>();
-                for (final StationInfo q : activeStationsOrdered) {
-                    final int r = round; // lambdas and final...
+                final Set<IStationInfo> newlyFrozen = new HashSet<>();
+                for (final IStationInfo q : activeStationsOrdered) {
                     solver.getFeasibility(Sets.union(onAirStations, ImmutableSet.of(q)), assignment, (problem, result) -> {
                         if (SimulatorUtils.isFeasible(result)) {
                             double prevPrice = prices.getPrice(q);
@@ -130,21 +130,18 @@ public class Simulator {
                         } else {
                             newlyFrozen.add(q);
                             participation.setParticipation(q, Participation.FROZEN);
-                            log.info("Station {} is now frozen", q);
-                            if (result.getResult().equals(SATResult.TIMEOUT)) {
-                                log.info("Station {} was frozen due to a TIMEOUT in round {}", q, r);
-                            }
+                            log.info("Station {} is now frozen due to result of {}", q, result.getResult());
                         }
                     });
-                    nProblemsToSubmit += 1;
                 }
-                log.info("Waiting for the {} submitted problems to finish", nProblemsToSubmit);
+                log.info("Waiting for the {} submitted problems to finish", activeStationsOrdered.size());
                 solver.waitForAllSubmitted();
                 activeStationsOrdered.removeAll(newlyFrozen);
             } else {
                 participation.setParticipation(nextToExit, Participation.FROZEN);
             }
             log.info("Saving state for round {}", round);
+            stateSaver.saveState(stationDB, prices, participation, assignment, round);
             log.info("Reporting timing info for round {}", round);
             timeTracker.report();
             round++;

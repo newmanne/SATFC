@@ -47,6 +47,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.greedy.GreedySolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
@@ -533,6 +534,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class GreedyConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new GreedySolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getManagerBundle().getStationManager());
+        }
+
+    }
+
 
     @Data
     public static class PreviousAssignmentConfig implements ISolverConfig {
@@ -603,6 +614,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
                         .put(SolverType.UNSAT_LABELLER, UNSATLabellerConfig.class)
+                        .put(SolverType.GREEDY, GreedyConfig.class)
                         .build();
 
         @Override

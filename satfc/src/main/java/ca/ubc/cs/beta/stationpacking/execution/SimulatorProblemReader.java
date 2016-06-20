@@ -74,13 +74,14 @@ public class SimulatorProblemReader extends AProblemReader {
     public void onPostProblem(SATFCFacadeProblem problem, SATFCResult result) {
         super.onPostProblem(problem, result);
 
+        // Put the reply back!
+        jedis.lpush(activeMessage.getReplyQueue(), JSONUtils.toString(new SATFCSimulatorReply(result, activeMessage.getId())));
+
         final long numDeleted = jedis.lrem(RedisUtils.processing(queueName), 1, Long.toString(activeMessage.getId()));
         if (numDeleted != 1) {
             log.error("Couldn't delete problem {} from the processing queue!", activeMessage.getId());
         }
 
-        // Put the reply back!
-        jedis.lpush(activeMessage.getReplyQueue(), JSONUtils.toString(new SATFCSimulatorReply(result, activeMessage.getId())));
     }
 
     // TODO: actually write proper json constructors for immutability
