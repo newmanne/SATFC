@@ -9,8 +9,7 @@ Questions, bug reports and feature suggestions should be directed to Neil Newman
 
 ## Authors & Collaborators 
 SATFC is the product of the ideas and hard work of [Auctionomics](http://www.auctionomics.com/), notably Alexandre Fréchette, Neil Newman, Paul Cernek, Emily Chenn, Guillaume Saulnier-Comte, Nick Arnosti, and Kevin Leyton-Brown.
-![Auctionomics Logo](manual/images/auctionomics_logo.jpg)
-
+<img src="https://github.com/FCC/SATFC/blob/release/manual/images/auctionomics_logo.jpg?raw=true" width="280" height="72">
 
 ## Installation
 
