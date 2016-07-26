@@ -37,13 +37,13 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
         callbacks = new ConcurrentHashMap<>();
         id = new AtomicLong();
         // Empty out the queues
-        jedis.del(sendQueue);
         jedis.del(replyQueue);
+        jedis.del(sendQueue);
         jedis.del(RedisUtils.processing(sendQueue));
     }
 
     private String makeProblemKey(long id) {
-        return sendQueue + ":" + id;
+        return RedisUtils.makeKey(replyQueue, Long.toString(id));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
         final String json = JSONUtils.toString(new SimulatorMessage(problemSpecification, replyQueue, problemID));
         log.trace("Sending problem {} to queue {}", json, sendQueue);
         jedis.set(makeProblemKey(problemID), json);
-        jedis.lpush(sendQueue, Long.toString(problemID));
+        jedis.lpush(sendQueue, makeProblemKey(problemID));
         callbacks.put(problemID, new ProblemCallback(problemSpecification, callback));
     }
 
@@ -91,7 +91,8 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
 
     @Override
     public void close() throws Exception {
-
+        jedis.lpush(sendQueue, "DIE");
+        jedis.close();
     }
 
     @Data

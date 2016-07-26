@@ -4,8 +4,10 @@ import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
+import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.CharMatcher;
@@ -42,6 +44,9 @@ public class SaveStateToFile implements IStateSaver {
         int round;
         Map<Integer, Integer> assignment;
         Map<Integer, StationState> state;
+        Map<SATResult, Integer> feasibilityDistribution;
+        double cputime;
+        double walltime;
     }
 
     @AllArgsConstructor
@@ -62,10 +67,10 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round) {
+    public void saveState(StationDB stationDB, Prices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker) {
         final String fileName = folder + File.separator + "state_" + round + ".json";
         final Map<Integer, StationState> state = new HashMap<>();
-        for (StationInfo s : stationDB.getStations()) {
+        for (IStationInfo s : stationDB.getStations()) {
             final StationState stationState = StationState.builder()
                     .price(prices.getPrice(s))
                     .participation(participation.getParticipation(s))
@@ -76,6 +81,9 @@ public class SaveStateToFile implements IStateSaver {
                 .assignment(assignment)
                 .state(state)
                 .round(round)
+                .feasibilityDistribution(feasibilityResultDistribution)
+                .cputime(timeTracker.getCputime().get())
+                .walltime(timeTracker.getWalltime().get())
                 .build();
         final String json = JSONUtils.toString(stateFile);
         try {
@@ -105,7 +113,7 @@ public class SaveStateToFile implements IStateSaver {
             for (Map.Entry<Integer, StationState> entry : stateFile1.getState().entrySet()) {
                 final int id = entry.getKey();
                 final StationState record = entry.getValue();
-                final StationInfo station = stationDB.getStationById(id);
+                final IStationInfo station = stationDB.getStationById(id);
                 prices.setPrice(station, record.getPrice());
                 participationRecord.setParticipation(station, record.getParticipation());
             }

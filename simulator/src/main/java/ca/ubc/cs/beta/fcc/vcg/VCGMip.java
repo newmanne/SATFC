@@ -32,6 +32,7 @@ import lombok.Data;
 import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.math.util.MathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +89,10 @@ public class VCGMip {
         final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager);
         final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
 
-        final double computedValue = mipResult.getAssignment().keySet().stream().mapToDouble(s -> stationDB.getStationById(s).getValue()).sum();
+        final double computedValue = mipResult.getAssignment().keySet().stream()
+                .filter(s -> !q.notParticipating.contains(s))
+                .mapToDouble(s -> stationDB.getStationById(s).getValue())
+                .sum();
         final double obj = mipResult.getObjectiveValue();
         if (computedValue != obj) {
             log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
@@ -174,6 +178,7 @@ public class VCGMip {
                 final List<Integer> domainList = new ArrayList<>(domainsEntry.getValue());
                 final Map<Integer, IloIntVar> stationVariablesMap = new HashMap<>();
                 final IloIntVar[] domainVars = cplex.boolVarArray(domainList.size());
+                log.info("{}", station);
                 final double value = stationDB.getStationById(station).getValue();
                 for (int i = 0; i < domainList.size(); i++) {
                     final int channel = domainList.get(i);
@@ -280,8 +285,10 @@ public class VCGMip {
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
-            cplex.exportModel("model.lp");
-            cplex.writeSolution("solution.lp");
+//            cplex.exportModel("model.lp");
+//            cplex.writeSolution("solution.lp");
+
+            final double cpuTime = cplex.getCplexTime();
 
             //Wrap up.
             cplex.end();
@@ -291,19 +298,20 @@ public class VCGMip {
                     .status(status)
                     .stations(domains.keySet())
                     .notParticipating(nonParticipating)
-                    .cputime(cplex.getCplexTime())
+                    .cputime(cpuTime)
                     .walltime(watch.getElapsedTime())
                     .build();
         }
 
 
-        private Map<Integer, Integer> getAssignment() {
+        private Map<Integer, Integer> getAssignment() throws IloException {
+            double eps = cplex.getParam(IloCplex.DoubleParam.EpInt);
             final Map<Integer, Integer> assignment = new HashMap<>();
             for (Map.Entry<IloIntVar, StationChannel> entryDecoder : variablesDecoder.entrySet()) {
                 final IloIntVar variable = entryDecoder.getKey();
                 try {
                     log.info("{} = {}", variable.getName(), cplex.getValue(variable));
-                    if (cplex.getValue(variable) == 1) {
+                    if (MathUtils.equals(cplex.getValue(variable), 1, eps)) {
                         final StationChannel stationChannelPair = entryDecoder.getValue();
                         final Integer station = stationChannelPair.getStation();
                         final Integer channel = stationChannelPair.getChannel();

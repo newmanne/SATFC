@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 
@@ -20,7 +21,7 @@ public abstract class AFeasibilitySolver implements IFeasibilitySolver {
     }
 
     @Override
-    public void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
+    public void getFeasibility(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
         final SimulatorProblemReader.SATFCProblemSpecification problem = problemSpecGenerator.createProblem(stations, previousAssignment);
         solve(problem, callback);
     }

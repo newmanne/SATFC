@@ -544,6 +544,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class MIPSaverSolverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new MIPSaverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+        }
+
+    }
+
 
     @Data
     public static class PreviousAssignmentConfig implements ISolverConfig {
@@ -615,6 +625,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
                         .put(SolverType.UNSAT_LABELLER, UNSATLabellerConfig.class)
                         .put(SolverType.GREEDY, GreedyConfig.class)
+                        .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
                         .build();
 
         @Override

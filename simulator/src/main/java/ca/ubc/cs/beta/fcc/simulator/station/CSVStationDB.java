@@ -22,7 +22,18 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, IStationInfo> data;
 
-    public CSVStationDB(String infoFile, IStationManager stationManager, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
+        log.info("Reading volumes from {}", volumeFile);
+        // Parse volumes
+        final ImmutableMap.Builder<Integer, Double> volumeBuilder = ImmutableMap.builder();
+        final Iterable<CSVRecord> volumeRecords = SimulatorUtils.readCSV(volumeFile);
+        for (CSVRecord record : volumeRecords) {
+            int id = Integer.parseInt(record.get("FacID"));
+            double volume = Double.parseDouble(record.get("Volume"));
+            volumeBuilder.put(id, volume);
+        }
+        final ImmutableMap<Integer, Double> volumes = volumeBuilder.build();
+
         final ImmutableMap.Builder<Integer, IStationInfo> builder = ImmutableMap.builder();
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
@@ -39,8 +50,8 @@ public class CSVStationDB implements StationDB {
                 final String valueString = record.get("Value");
                 Preconditions.checkState(!valueString.isEmpty());
                 double value = Double.parseDouble(valueString) * 1e6;
-                // pandas stores as double if you
-                int volume = (int) Double.parseDouble(record.get("Volume"));
+                Double volume = volumes.get(id);
+                Preconditions.checkState(volume != null, "No volume for station %s", id);
                 stationInfo = new StationInfo(id, volume, value, nationality);
             }
             stationInfo = decorate.apply(stationInfo);
@@ -51,8 +62,8 @@ public class CSVStationDB implements StationDB {
         data = builder.build();
     }
 
-    public CSVStationDB(String infoFile, IStationManager stationManager) {
-        this(infoFile, stationManager, x -> false, x -> x);
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager) {
+        this(infoFile, volumeFile, stationManager, x -> false, x -> x);
     }
 
     @Override

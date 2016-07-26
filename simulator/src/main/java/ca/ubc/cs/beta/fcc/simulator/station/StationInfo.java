@@ -10,7 +10,7 @@ import lombok.Data;
 public class StationInfo implements IStationInfo {
 
     private final int id;
-    private final Integer volume;
+    private final Double volume;
     private final Double value;
     private final Nationality nationality;
 

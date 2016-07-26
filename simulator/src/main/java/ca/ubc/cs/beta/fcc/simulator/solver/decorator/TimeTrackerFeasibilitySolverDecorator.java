@@ -2,7 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 
 import java.util.Map;
@@ -21,7 +21,7 @@ public class TimeTrackerFeasibilitySolverDecorator extends AFeasibilitySolverDec
     }
 
     @Override
-    public void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
+    public void getFeasibility(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
         super.getFeasibility(stations, previousAssignment, (problem, result) -> {
             timeTracker.update(result);
             callback.onSuccess(problem, result);

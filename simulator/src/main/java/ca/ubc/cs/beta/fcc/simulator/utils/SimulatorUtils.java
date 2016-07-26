@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.utils;
 
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -22,8 +23,8 @@ public class SimulatorUtils {
         return result.getResult().equals(SATResult.SAT);
     }
 
-    public static Set<Integer> toID(Collection<StationInfo> stationInfos) {
-        return stationInfos.stream().map(StationInfo::getId).collect(Collectors.toSet());
+    public static Set<Integer> toID(Collection<IStationInfo> stationInfos) {
+        return stationInfos.stream().map(IStationInfo::getId).collect(Collectors.toSet());
     }
 
     public static void toCSV(String filename, List<String> header, List<List<Object>> records) {

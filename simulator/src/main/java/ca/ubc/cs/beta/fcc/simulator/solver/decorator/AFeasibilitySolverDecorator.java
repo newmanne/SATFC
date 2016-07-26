@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 import java.util.Map;
@@ -19,7 +20,7 @@ public abstract class AFeasibilitySolverDecorator implements IFeasibilitySolver 
     }
 
     @Override
-    public void getFeasibility(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
+    public void getFeasibility(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
         decorated.getFeasibility(stations, previousAssignment, callback);
     }
 

@@ -7,18 +7,17 @@ import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,7 +33,6 @@ public class Simulator {
     private static Logger log;
 
     public static void main(String[] args) throws Exception {
-        final Watch simulatorWatch = Watch.constructAutoStartWatch();
         final SimulatorParameters parameters = new SimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         // TODO: probably want to override the default log file name...
@@ -47,8 +45,10 @@ public class Simulator {
         log.info("Building solver");
 
         final TimeTracker timeTracker = new TimeTracker();
+        final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
         IFeasibilitySolver tmp = parameters.createSolver();
         tmp = new TimeTrackerFeasibilitySolverDecorator(tmp, timeTracker);
+        tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
         final IFeasibilitySolver solver = tmp;
 
         log.info("Reading station info from file");
@@ -94,40 +94,52 @@ public class Simulator {
         log.info("There are {} / {} stations participating", participation.getActiveStations().size(), stationDB.getStations().size());
         // Consider stations in reverse order of their values per volume
         final Comparator<IStationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
-        final List<IStationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations().stream().sorted(valuePerVolumeComparator.reversed()).collect(Collectors.toList()));
+        final List<IStationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations()
+                .stream()
+                .sorted(valuePerVolumeComparator.reversed())
+                .collect(Collectors.toList()));
         final Set<IStationInfo> onAirStations = participation.getOnAirStations();
 
         while (!participation.getActiveStations().isEmpty()) {
             log.info("Round {}", round);
-            final Map<Participation, Integer> participationCounts = stationDB.getStations().stream().collect(Collectors.groupingBy(participation::getParticipation)).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
+            final Map<Participation, Integer> participationCounts = stationDB.getStations()
+                    .stream()
+                    .collect(Collectors.groupingBy(participation::getParticipation))
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
             log.info("Participation stats: {}", participationCounts);
 
             final IStationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
             final SATFCResult feasibility = solver.getFeasibilityBlocking(Sets.union(onAirStations, ImmutableSet.of(nextToExit)), assignment);
-            log.info("Result of considering station {} was {}", nextToExit, feasibility.getResult());
             if (SimulatorUtils.isFeasible(feasibility)) {
+                // Update assignment and participation
                 log.info("Updating assignment and participation to reflect station exiting");
                 assignment = feasibility.getWitnessAssignment();
                 participation.setParticipation(nextToExit, Participation.EXITED);
                 onAirStations.add(nextToExit);
+
+                // Update prices
                 prices.setPrice(nextToExit, nextToExit.getValue());
                 // value = volume * baseClock * gamma^n
                 // so value / volume = baseClock * gamma^n same for everyone
                 final double clockGammaN = nextToExit.getValue() / nextToExit.getVolume();
                 log.debug("Clock Gamma N is {}", clockGammaN);
-                // Update prices for remaining stations - can do this in parallel
-                log.info("Considering other stations to see if they froze / update their prices");
+                for (final IStationInfo q: activeStationsOrdered) {
+                    double prevPrice = prices.getPrice(q);
+                    double newPrice = q.getVolume() * clockGammaN;
+                    Preconditions.checkState(newPrice <= prevPrice, "Price must be decreasing! %s %s -> %s", q, prevPrice, newPrice);
+                    prices.setPrice(q, newPrice);
+                    log.trace("Updating price for Station {} from {} to {}", q, prevPrice, newPrice);
+                }
+
+                // Feasibilty checks for remaining stations - can do this in parallel
+                log.info("Considering other stations to see if they froze as a result of the exit");
                 final Set<IStationInfo> newlyFrozen = new HashSet<>();
                 for (final IStationInfo q : activeStationsOrdered) {
                     solver.getFeasibility(Sets.union(onAirStations, ImmutableSet.of(q)), assignment, (problem, result) -> {
-                        if (SimulatorUtils.isFeasible(result)) {
-                            double prevPrice = prices.getPrice(q);
-                            double newPrice = q.getVolume() * clockGammaN;
-                            Preconditions.checkState(newPrice <= prevPrice, "Price must be decreasing! %s %s -> %s", q, prevPrice, newPrice);
-                            prices.setPrice(q, newPrice);
-                            log.trace("Updating price for Station {} from {} to {}", q, prevPrice, newPrice);
-                        } else {
+                        if (!SimulatorUtils.isFeasible(result)) {
                             newlyFrozen.add(q);
                             participation.setParticipation(q, Participation.FROZEN);
                             log.info("Station {} is now frozen due to result of {}", q, result.getResult());
@@ -138,12 +150,16 @@ public class Simulator {
                 solver.waitForAllSubmitted();
                 activeStationsOrdered.removeAll(newlyFrozen);
             } else {
+                Preconditions.checkState(round == 1, "This should only happen in the very first round, otherwise the inner loop frozen checks should catch this!");
+                log.info("Station {} is now frozen due to result of {}", nextToExit, feasibility.getResult());
                 participation.setParticipation(nextToExit, Participation.FROZEN);
             }
+
             log.info("Saving state for round {}", round);
-            stateSaver.saveState(stationDB, prices, participation, assignment, round);
+            stateSaver.saveState(stationDB, prices, participation, assignment, round, feasibilityResultDistribution.histogram(), timeTracker);
             log.info("Reporting timing info for round {}", round);
             timeTracker.report();
+            feasibilityResultDistribution.report();
             round++;
         }
 
@@ -154,11 +170,11 @@ public class Simulator {
 
     public interface ISATFCProblemSpecGenerator {
 
-        default SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations) {
+        default SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stations) {
             return createProblem(stations, ImmutableMap.of());
         }
 
-        SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stations, Map<Integer, Integer> previousAssignment);
+        SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment);
 
     }
 

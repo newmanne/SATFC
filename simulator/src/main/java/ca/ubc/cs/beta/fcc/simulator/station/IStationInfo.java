@@ -6,7 +6,7 @@ package ca.ubc.cs.beta.fcc.simulator.station;
 public interface IStationInfo {
 
     int getId();
-    Integer getVolume();
+    Double getVolume();
     Double getValue();
     Nationality getNationality();
 

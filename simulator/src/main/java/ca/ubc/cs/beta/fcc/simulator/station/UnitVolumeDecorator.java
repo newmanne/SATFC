@@ -10,8 +10,8 @@ public class UnitVolumeDecorator extends AStationInfoDecorator {
     }
 
     @Override
-    public Integer getVolume() {
-        return 1;
+    public Double getVolume() {
+        return 1.;
     }
 
 }

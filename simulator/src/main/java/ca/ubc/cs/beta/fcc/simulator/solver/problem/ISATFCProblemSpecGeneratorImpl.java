@@ -1,7 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.problem;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class ISATFCProblemSpecGeneratorImpl implements Simulator.ISATFCProblemSp
     private final long seed;
 
     @Override
-    public SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<StationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
+    public SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
         final Set<Integer> stations = SimulatorUtils.toID(stationInfos);
         final SimulatorProblemReader.SATFCProblem problem = problemGenerator.createProblem(stations, previousAssignment);
         return new SimulatorProblemReader.SATFCProblemSpecification(

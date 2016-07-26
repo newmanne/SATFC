@@ -20,7 +20,7 @@ public class PricesImpl implements Prices {
 
     public PricesImpl(StationDB stationDB, IScoringRule scoringRule) {
         this();
-        for (final StationInfo s : stationDB.getStations()) {
+        for (final IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {
                 continue;
             }
@@ -29,7 +29,7 @@ public class PricesImpl implements Prices {
 
     }
 
-    private final Map<StationInfo, Double> prices;
+    private final Map<IStationInfo, Double> prices;
 
     public void setPrice(IStationInfo station, Double price) {
         prices.put(station, price);

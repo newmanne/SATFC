@@ -1,6 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.scoring;
 
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -12,7 +12,7 @@ public class FCCScoringRule implements IScoringRule {
     private final double baseClock;
 
     @Override
-    public double score(StationInfo s) {
+    public double score(IStationInfo s) {
         return baseClock * s.getVolume();
     }
 

@@ -8,7 +8,6 @@ import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateV
 import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
-import ca.ubc.cs.beta.fcc.simulator.scoring.IdenticalScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
@@ -18,6 +17,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.*;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -25,7 +25,9 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
+import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -41,6 +43,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-INFO-FILE", description = "csv file")
     private String infoFile = "/ubc/cs/research/arrow/satfc/simulator/data/simulator.csv";
+
+    @Getter
+    @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
+    private String volumeFile = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -111,7 +117,8 @@ public class SimulatorParameters extends AbstractOptions {
             }
             return decorated;
         };
-        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), ignore, decorators);
+
+        stationDB = new CSVStationDB(getInfoFile(), getVolumeFile(), getStationManager(), ignore, decorators);
     }
 
     private String getStateFolder() {
@@ -191,15 +198,12 @@ public class SimulatorParameters extends AbstractOptions {
 
     public enum ScoringRule {
         FCC,
-        IDENTICAL
     }
 
     public IScoringRule getScoringRule() {
         switch (scoringRule) {
             case FCC:
                 return new FCCScoringRule(getBaseClockPrice());
-            case IDENTICAL:
-                return new IdenticalScoringRule(getBaseClockPrice());
             default:
                 throw new IllegalStateException();
         }

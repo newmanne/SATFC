@@ -25,6 +25,7 @@ public class SimulatorProblemReader extends AProblemReader {
 
     private final Jedis jedis;
     private final String queueName;
+    private String activeProblemKey;
     private SimulatorMessage activeMessage;
 
     public SimulatorProblemReader(Jedis jedis, String queueName) {
@@ -37,11 +38,11 @@ public class SimulatorProblemReader extends AProblemReader {
     public SATFCFacadeProblem getNextProblem() {
         SATFCFacadeProblem problem = null;
         while (true) {
-            String id = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.processing(queueName));
-            if (id == null) {
+            activeProblemKey = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.processing(queueName));
+            if (activeProblemKey == null) {
                 // Look at the first job in the processing queue. Could result in multiple workers doing the job, but that's OK. It's for errors anyways.
-                id = jedis.lindex(RedisUtils.processing(queueName), 0);
-                if (id == null) {
+                activeProblemKey = jedis.lindex(RedisUtils.processing(queueName), 0);
+                if (activeProblemKey == null) {
                     // Need to wait for a problem to appear
                     try {
                         Thread.sleep(1000);
@@ -49,11 +50,17 @@ public class SimulatorProblemReader extends AProblemReader {
                         throw new RuntimeException(e);
                     }
                     continue;
+                } else if (activeProblemKey.equals("DIE")) {
+                    log.info("Received a death signal, quitting!");
+                    return null; // All done
                 }
             }
-            final String problemKey = RedisUtils.makeKey(queueName, id);
-            final String activeProblemString = jedis.get(problemKey);
-            Preconditions.checkNotNull(activeProblemString, "Could not find a problem where one should be at %s", problemKey);
+
+            final String activeProblemString = jedis.get(activeProblemKey);
+            // Race condition...
+            if (activeProblemString == null) {
+                continue;
+            }
             activeMessage = JSONUtils.toObject(activeProblemString, SimulatorMessage.class);
 
             problem = new SATFCFacadeProblem(
@@ -77,9 +84,9 @@ public class SimulatorProblemReader extends AProblemReader {
         // Put the reply back!
         jedis.lpush(activeMessage.getReplyQueue(), JSONUtils.toString(new SATFCSimulatorReply(result, activeMessage.getId())));
 
-        final long numDeleted = jedis.lrem(RedisUtils.processing(queueName), 1, Long.toString(activeMessage.getId()));
+        final long numDeleted = jedis.lrem(RedisUtils.processing(queueName), 1, activeProblemKey);
         if (numDeleted != 1) {
-            log.error("Couldn't delete problem {} from the processing queue!", activeMessage.getId());
+            log.error("Couldn't delete problem {} from the processing queue!", activeProblemKey);
         }
 
     }
