@@ -1,4 +1,7 @@
-package ca.ubc.cs.beta.fcc.simulator.station;
+package ca.ubc.cs.beta.fcc.simulator.station.decorators;
+
+import ca.ubc.cs.beta.fcc.simulator.station.AStationInfoDecorator;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 
 /**
  * Created by newmanne on 2016-06-20.

@@ -21,6 +21,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -148,17 +149,15 @@ public class VCGMip {
             final IloLinearIntExpr objectiveSum = cplex.linearIntExpr();
             for (final Integer station : participating) {
                 final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
-                if (!nonParticipating.contains(station)) {
-                    final int[] values = new int[domainVars.length];
-                    Arrays.fill(values, 1);
-                    objectiveSum.addTerms(values, domainVars);
-                }
+                final int[] values = new int[domainVars.length];
+                Arrays.fill(values, 1);
+                objectiveSum.addTerms(values, domainVars);
             }
             cplex.addMinimize(objectiveSum);
 
             // Greedy clauses
             final Map<Station, Set<Integer>> stationDomains = domains.entrySet().stream().collect(Collectors.toMap(e -> new Station(e.getKey()), Map.Entry::getValue));
-            for (final Integer station : participating) {
+            for (final int station : participating) {
                 // Create the sum
                 final IloLinearIntExpr domainSum = cplex.linearIntExpr();
                 final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
@@ -166,14 +165,14 @@ public class VCGMip {
                 Arrays.fill(values, 1);
                 domainSum.addTerms(values, domainVars);
 
-                for (int channel : stationDB.getStationById(station).getDomain()) {
+                for (int channel : domains.get(station)) {
                     final IloLinearIntExpr channelSpecificSum = cplex.linearIntExpr();
                     channelSpecificSum.add(domainSum);
                     for (StationChannel sc : MaxSatEncoder.getConstraintsForChannel(constraintManager, new Station(station), channel, stationDomains)) {
                         final IloIntVar interferingVar = varLookup.get(sc.getStation(), sc.getChannel());
                         channelSpecificSum.addTerm(1, interferingVar);
                     }
-                    cplex.addGe(channelSpecificSum, 1e-6);
+                    cplex.addGe(channelSpecificSum, 1);
                 }
             }
         }
@@ -242,7 +241,7 @@ public class VCGMip {
                 final int station = domainsEntry.getKey();
                 final List<Integer> domainList = domainsEntry.getValue().stream().sorted().collect(toImmutableList());
                 final IloIntVar[] domainVars = cplex.boolVarArray(domainList.size());
-                log.info("{}", station);
+//                log.debug("{}", station);
                 for (int i = 0; i < domainList.size(); i++) {
                     final int channel = domainList.get(i);
                     final IloIntVar var = domainVars[i];
@@ -308,6 +307,8 @@ public class VCGMip {
                 throw new IllegalStateException("CPLEX could not solve the MIP (" + e.getMessage() + ").");
             }
 
+            //            cplex.exportModel("model.lp");
+
             //Gather output
             final SATResult satisfiability;
             final double runtime = watch.getElapsedTime();
@@ -352,7 +353,6 @@ public class VCGMip {
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
-//            cplex.exportModel("model.lp");
 //            cplex.writeSolution("solution.lp");
 
             final double cpuTime = cplex.getCplexTime();
@@ -381,7 +381,8 @@ public class VCGMip {
                         final StationChannel stationChannelPair = entryDecoder.getValue();
                         final Integer station = stationChannelPair.getStation();
                         final Integer channel = stationChannelPair.getChannel();
-                        assignment.put(station, channel);
+                        final Integer prevValue = assignment.put(station, channel);
+                        Preconditions.checkState(prevValue == null, "%s was already assigned to %s and tried to assign again to %s!!!", station, prevValue, channel);
                     }
                 } catch (IloException e) {
                     e.printStackTrace();

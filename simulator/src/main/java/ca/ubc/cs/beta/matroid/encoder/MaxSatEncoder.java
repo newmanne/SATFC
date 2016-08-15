@@ -16,6 +16,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoderUtils;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.CompressionBijection;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.base.IBijection;
 import com.google.common.collect.ImmutableSet;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
@@ -25,6 +26,7 @@ import static ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATEncoderUti
 /**
  * Created by newmanne on 2016-08-11.
  */
+@Slf4j
 public class MaxSatEncoder extends SATEncoder {
 
     public MaxSatEncoder(IConstraintManager constraintManager) {
@@ -71,17 +73,22 @@ public class MaxSatEncoder extends SATEncoder {
     }
 
     public static Set<VCGMip.StationChannel> getConstraintsForChannel(IConstraintManager constraintManager, Station s, int channel, Map<Station, Set<Integer>> domains) {
-        final Map<Station, Set<Integer>> domainsCopy = new HashMap<>(domains);
-        domainsCopy.put(s, ImmutableSet.of(channel));
         final Set<VCGMip.StationChannel> interfering = new HashSet<>();
-        for (Constraint constraint : constraintManager.getAllRelevantConstraints(domainsCopy)) {
+        for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains)) {
             final boolean sIsSource = constraint.getSource().equals(s);
-            if (sIsSource) {
-                interfering.add(new VCGMip.StationChannel(constraint.getTarget().getID(), constraint.getTargetChannel()));
-            } else {
-                interfering.add(new VCGMip.StationChannel(constraint.getSource().getID(), constraint.getSourceChannel()));
+            final boolean sIsTarget = constraint.getTarget().equals(s);
+            if (sIsSource || sIsTarget) {
+                int chan = sIsSource ? constraint.getSourceChannel() : constraint.getTargetChannel();
+                if (chan == channel) {
+                    if (sIsSource) {
+                        interfering.add(new VCGMip.StationChannel(constraint.getTarget().getID(), constraint.getTargetChannel()));
+                    } else {
+                        interfering.add(new VCGMip.StationChannel(constraint.getSource().getID(), constraint.getSourceChannel()));
+                    }
+                }
             }
         }
+//        log.debug("Found {} constraints matching station {} on channel {}", interfering.size(), s, channel);
         return interfering;
     }
 

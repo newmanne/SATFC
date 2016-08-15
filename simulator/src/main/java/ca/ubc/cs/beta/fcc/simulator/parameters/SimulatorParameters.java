@@ -17,6 +17,9 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.*;
+import ca.ubc.cs.beta.fcc.simulator.station.decorators.UnitValueDecorator;
+import ca.ubc.cs.beta.fcc.simulator.station.decorators.UnitVolumeDecorator;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -57,6 +60,10 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean unitVolume = false;
 
     @Getter
+    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
+    private boolean unitValue = false;
+
+    @Getter
     @Parameter(names = "-BASE-CLOCK")
     private double baseClockPrice = 900;
 
@@ -88,6 +95,7 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public void setUp() {
+        BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
             Preconditions.checkState(outputFolder.exists() && outputFolder.isDirectory(), "Expected to restore state but no state directory found!");
@@ -111,6 +119,9 @@ public class SimulatorParameters extends AbstractOptions {
             IStationInfo decorated = x;
             if (isUnitVolume()) {
                 decorated = new UnitVolumeDecorator(decorated);
+            }
+            if (isUnitValue()) {
+                decorated = new UnitValueDecorator(decorated);
             }
             return decorated;
         };
