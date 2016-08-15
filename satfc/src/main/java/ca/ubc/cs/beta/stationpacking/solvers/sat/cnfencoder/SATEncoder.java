@@ -51,8 +51,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SATEncoder implements ISATEncoder {
 
-    private final IConstraintManager constraintManager;
-    private final IBijection<Long, Long> bijection;
+    protected final IConstraintManager constraintManager;
+    protected final IBijection<Long, Long> bijection;
     private final EncodingType encodingType;
 
     public SATEncoder(IConstraintManager constraintManager, IBijection<Long, Long> bijection, EncodingType encodingType) {

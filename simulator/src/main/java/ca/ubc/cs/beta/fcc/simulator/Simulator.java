@@ -9,11 +9,13 @@ import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
+import ca.ubc.cs.beta.fcc.simulator.state.AuctionState;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
@@ -62,15 +64,15 @@ public class Simulator {
         Map<Integer, Integer> assignment;
         if (parameters.isRestore()) {
             log.info("Restoring from state");
-            final IStateSaver.AuctionState auctionState = stateSaver.restoreState(stationDB);
-            prices = auctionState.getPrices();
+            final AuctionState auctionState = stateSaver.restoreState(stationDB);
+            prices = auctionState.getBenchmarkPrices();
             participation = auctionState.getParticipation();
             round = auctionState.getRound() + 1;
             assignment = auctionState.getAssignment();
         } else {
-            // Initialize opening prices
+            // Initialize opening benchmarkPrices
             log.info("Setting opening prices");
-            prices = new PricesImpl(stationDB, parameters.getScoringRule());
+            prices = new PricesImpl();
 
             log.info("Figuring out participation");
             // Figure out participation
@@ -79,7 +81,7 @@ public class Simulator {
             final long notParticipatingUS = stationDB.getStations().stream()
                     .filter(s -> s.getNationality().equals(Nationality.US))
                     .map(participation::getParticipation)
-                    .filter(p -> p.equals(Participation.NOT_PARTICIPATING))
+                    .filter(p -> p.equals(Participation.EXITED_NOT_PARTICIPATING))
                     .count();
             final long totalUS = stationDB.getStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
             log.info("There are {} non-participating US stations out of {} US stations", notParticipatingUS, totalUS);
@@ -117,20 +119,20 @@ public class Simulator {
                 // Update assignment and participation
                 log.info("Updating assignment and participation to reflect station exiting");
                 assignment = feasibility.getWitnessAssignment();
-                participation.setParticipation(nextToExit, Participation.EXITED);
+                participation.setParticipation(nextToExit, Participation.EXITED_NOT_NEEDED);
                 onAirStations.add(nextToExit);
 
-                // Update prices
-                prices.setPrice(nextToExit, nextToExit.getValue());
+                // Update benchmarkPrices
+                prices.setPrice(nextToExit, Band.UHF, nextToExit.getValue());
                 // value = volume * baseClock * gamma^n
                 // so value / volume = baseClock * gamma^n same for everyone
                 final double clockGammaN = nextToExit.getValue() / nextToExit.getVolume();
                 log.debug("Clock Gamma N is {}", clockGammaN);
                 for (final IStationInfo q: activeStationsOrdered) {
-                    double prevPrice = prices.getPrice(q);
+                    double prevPrice = prices.getPrice(q, Band.UHF);
                     double newPrice = q.getVolume() * clockGammaN;
                     Preconditions.checkState(newPrice <= prevPrice, "Price must be decreasing! %s %s -> %s", q, prevPrice, newPrice);
-                    prices.setPrice(q, newPrice);
+                    prices.setPrice(q, Band.UHF, newPrice);
                     log.trace("Updating price for Station {} from {} to {}", q, prevPrice, newPrice);
                 }
 
@@ -141,7 +143,7 @@ public class Simulator {
                     solver.getFeasibility(Sets.union(onAirStations, ImmutableSet.of(q)), assignment, (problem, result) -> {
                         if (!SimulatorUtils.isFeasible(result)) {
                             newlyFrozen.add(q);
-                            participation.setParticipation(q, Participation.FROZEN);
+                            participation.setParticipation(q, Participation.FROZEN_CURRENTLY_INFEASIBLE);
                             log.info("Station {} is now frozen due to result of {}", q, result.getResult());
                         }
                     });
@@ -152,7 +154,7 @@ public class Simulator {
             } else {
                 Preconditions.checkState(round == 1, "This should only happen in the very first round, otherwise the inner loop frozen checks should catch this!");
                 log.info("Station {} is now frozen due to result of {}", nextToExit, feasibility.getResult());
-                participation.setParticipation(nextToExit, Participation.FROZEN);
+                participation.setParticipation(nextToExit, Participation.FROZEN_CURRENTLY_INFEASIBLE);
             }
 
             log.info("Saving state for round {}", round);

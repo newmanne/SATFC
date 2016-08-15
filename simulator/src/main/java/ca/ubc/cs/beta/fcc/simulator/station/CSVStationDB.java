@@ -1,16 +1,20 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -22,7 +26,7 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, IStationInfo> data;
 
-    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
         log.info("Reading volumes from {}", volumeFile);
         // Parse volumes
         final ImmutableMap.Builder<Integer, Double> volumeBuilder = ImmutableMap.builder();
@@ -43,16 +47,19 @@ public class CSVStationDB implements StationDB {
                 log.warn("Skipping station {} because it is not UHF", id);
                 continue;
             }
+            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), highest, false));
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
+            final int channel = Integer.parseInt(record.get("Channel"));
+            final Band band = BandHelper.toBand(channel);
             if (nationality.equals(Nationality.CA)) {
-                stationInfo = StationInfo.canadianStation(id);
+                stationInfo = StationInfo.canadianStation(id, band, domain);
             } else {
                 final String valueString = record.get("Value");
                 Preconditions.checkState(!valueString.isEmpty());
                 double value = Double.parseDouble(valueString) * 1e6;
                 Double volume = volumes.get(id);
                 Preconditions.checkState(volume != null, "No volume for station %s", id);
-                stationInfo = new StationInfo(id, volume, value, nationality);
+                stationInfo = new StationInfo(id, volume, value, nationality, band, domain);
             }
             stationInfo = decorate.apply(stationInfo);
             if (!ignoreFunction.test(stationInfo)) {
@@ -62,8 +69,8 @@ public class CSVStationDB implements StationDB {
         data = builder.build();
     }
 
-    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager) {
-        this(infoFile, volumeFile, stationManager, x -> false, x -> x);
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest) {
+        this(infoFile, volumeFile, stationManager, highest, x -> false, x -> x);
     }
 
     @Override

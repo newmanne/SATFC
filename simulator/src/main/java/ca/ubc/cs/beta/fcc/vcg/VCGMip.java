@@ -1,18 +1,16 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
-import ca.ubc.cs.beta.aeatk.logging.LogLevel;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
-import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
-import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import ca.ubc.cs.beta.matroid.encoder.MaxSatEncoder;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
@@ -23,10 +21,11 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
-import ilog.concert.IloException;
-import ilog.concert.IloIntVar;
-import ilog.concert.IloLinearNumExpr;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
+import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.Data;
 import lombok.experimental.Builder;
@@ -36,13 +35,12 @@ import org.apache.commons.math.util.MathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
+
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
 
 /**
  * Created by newmanne on 2016-05-19.
@@ -66,6 +64,14 @@ public class VCGMip {
         @Parameter(names = "-O", required = true)
         String outputFile;
 
+        @Parameter(names = "-MIP-TYPE")
+        MIPType mipType = MIPType.VCG;
+
+    }
+
+    enum MIPType {
+        VCG,
+        SMALLEST_MAXIMAL
     }
 
     public static void main(String[] args) throws IloException, IOException {
@@ -85,43 +91,32 @@ public class VCGMip {
         log.info("Looking at {} stations", domains.size());
         log.info("Using max channel {}", parameters.getMaxChannel());
         final IConstraintManager constraintManager = parameters.getConstraintManager();
-
-        final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager);
+        final IMIPEncoder encoder;
+        if (q.mipType.equals(MIPType.VCG)) {
+            encoder = new VCGMIPMaker();
+        } else if (q.mipType.equals(MIPType.SMALLEST_MAXIMAL)) {
+            encoder = new SmallestMaximalCardinalityMIPMaker();
+        } else {
+            throw new IllegalStateException();
+        }
+        final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager, encoder);
         final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
 
-        final double computedValue = mipResult.getAssignment().keySet().stream()
-                .filter(s -> !q.notParticipating.contains(s))
-                .mapToDouble(s -> stationDB.getStationById(s).getValue())
-                .sum();
-        final double obj = mipResult.getObjectiveValue();
-        if (computedValue != obj) {
-            log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
-        } else {
-            log.info("Assignment matches up with objective value as expected");
+        if (q.mipType.equals(MIPType.VCG)) {
+            final double computedValue = mipResult.getAssignment().keySet().stream()
+                    .filter(s -> !q.notParticipating.contains(s))
+                    .mapToDouble(s -> stationDB.getStationById(s).getValue())
+                    .sum();
+            final double obj = mipResult.getObjectiveValue();
+            if (computedValue != obj) {
+                log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
+            } else {
+                log.info("Assignment matches up with objective value as expected");
+            }
         }
-
 
         final String result = JSONUtils.toString(mipResult);
         FileUtils.writeStringToFile(new File(q.outputFile), result);
-
-//        final List<List<Object>> records = new ArrayList<>();
-//        if (mipResult.getStatus().equals(IloCplex.Status.Optimal)) {
-//            for (Integer s : domains.keySet()) {
-//                final StationInfo station = stationDB.getStationById(s);
-//                final MIPResult stationResult = mipMaker.solve(domains, ImmutableSet.of(s), parameters.getCutoff(), parameters.getSeed());
-//                double price = stationResult.getObjectiveValue() - (mipResult.getObjectiveValue() - (mipResult.getAssignment().containsKey(s) ? stationDB.getStationById(s).getValue() : 0));
-//                boolean assigned = mipResult.getAssignment().containsKey(s);
-//                if (assigned) {
-//                    final String logString = String.format("Station %d was assigned to a channel. It will pay %f and values it's station at %f, for a surplus of %f", s, price, station.getValue(), station.getValue() - price);
-//                    log.info(logString);
-//                } else {
-//                    final String logString = String.format("Station %d was not assigned a channel. It will be bought out for %f and values it's station at %f for a surplus of %f", s, -price, station.getValue(), -price - station.getValue());
-//                    log.info(logString);
-//                }
-//                records.add(Arrays.asList(s, mipResult.getAssignment().containsKey(s) ? mipResult.getAssignment().get(s) : -1 ,price, station.getValue()));
-//            }
-//        }
-//        SimulatorUtils.toCSV("output.csv", Arrays.asList("FacID", "Channel", "Price", "Value"), records);
     }
 
     @Data
@@ -143,21 +138,90 @@ public class VCGMip {
         private final int channel;
     }
 
+    // TODO: check pairwise, might speed things up
     @Slf4j
+    public static class SmallestMaximalCardinalityMIPMaker implements IMIPEncoder {
+
+        @Override
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+            // Objective
+            final IloLinearIntExpr objectiveSum = cplex.linearIntExpr();
+            for (final Integer station : participating) {
+                final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
+                if (!nonParticipating.contains(station)) {
+                    final int[] values = new int[domainVars.length];
+                    Arrays.fill(values, 1);
+                    objectiveSum.addTerms(values, domainVars);
+                }
+            }
+            cplex.addMinimize(objectiveSum);
+
+            // Greedy clauses
+            final Map<Station, Set<Integer>> stationDomains = domains.entrySet().stream().collect(Collectors.toMap(e -> new Station(e.getKey()), Map.Entry::getValue));
+            for (final Integer station : participating) {
+                // Create the sum
+                final IloLinearIntExpr domainSum = cplex.linearIntExpr();
+                final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
+                final int[] values = new int[domainVars.length];
+                Arrays.fill(values, 1);
+                domainSum.addTerms(values, domainVars);
+
+                for (int channel : stationDB.getStationById(station).getDomain()) {
+                    final IloLinearIntExpr channelSpecificSum = cplex.linearIntExpr();
+                    channelSpecificSum.add(domainSum);
+                    for (StationChannel sc : MaxSatEncoder.getConstraintsForChannel(constraintManager, new Station(station), channel, stationDomains)) {
+                        final IloIntVar interferingVar = varLookup.get(sc.getStation(), sc.getChannel());
+                        channelSpecificSum.addTerm(1, interferingVar);
+                    }
+                    cplex.addGe(channelSpecificSum, 1e-6);
+                }
+            }
+        }
+    }
+
+    @Slf4j
+    public static class VCGMIPMaker implements IMIPEncoder {
+
+        @Override
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+            // Objective function
+            final IloLinearNumExpr objectiveSum = cplex.linearNumExpr();
+            for (final Integer station : participating) {
+                final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
+                final double value = stationDB.getStationById(station).getValue();
+                final double[] values = new double[domainVars.length];
+                Arrays.fill(values, value);
+                objectiveSum.addTerms(values, domainVars);
+            }
+            cplex.addMaximize(objectiveSum);
+        }
+    }
+
+    public interface IMIPEncoder {
+
+        void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
+
+    }
+
+    @Slf4j
+    // Not thread safe. Should be reusuable.
     public static class MIPMaker {
 
-        private final StationDB stationDB;
-        private final IStationManager stationManager;
-        private final IConstraintManager constraintManager;
-        private IloCplex cplex;
+        protected final StationDB stationDB;
+        protected final IStationManager stationManager;
+        protected final IConstraintManager constraintManager;
+        private final IMIPEncoder encoder;
+        protected IloCplex cplex;
 
-        Map<Integer, Map<Integer, IloIntVar>> variablesMap;
-        Map<IloIntVar, StationChannel> variablesDecoder;
+        // Station, Channel -> Var
+        protected Table<Integer, Integer, IloIntVar> varLookup;
+        protected Map<IloIntVar, StationChannel> variablesDecoder;
 
-        public MIPMaker(StationDB stationDB, IStationManager stationManager, IConstraintManager constraintManager) throws IloException {
+        public MIPMaker(StationDB stationDB, IStationManager stationManager, IConstraintManager constraintManager, IMIPEncoder encoder) throws IloException {
             this.stationDB = stationDB;
             this.stationManager = stationManager;
             this.constraintManager = constraintManager;
+            this.encoder = encoder;
         }
 
         public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed) throws IloException {
@@ -165,51 +229,54 @@ public class VCGMip {
         }
 
         public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed) throws IloException {
-            Watch watch = Watch.constructAutoStartWatch();
-            cplex = new IloCplex();
-            // 1) Create the variables
-            // TODO: this creation is really inefficient, but might not be slow in practice
-            variablesMap = new HashMap<>();
-            variablesDecoder = new HashMap<>();
-            final IloLinearNumExpr sum = cplex.linearNumExpr();
+            this.varLookup = HashBasedTable.create();
+            this.variablesDecoder = new HashMap<>();
+            this.cplex = new IloCplex();
 
+            Watch watch = Watch.constructAutoStartWatch();
+
+            final Set<Integer> participating = Sets.difference(domains.keySet(), nonParticipating);
+
+            // Set up the x_{s,c} variables
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
                 final int station = domainsEntry.getKey();
-                final List<Integer> domainList = new ArrayList<>(domainsEntry.getValue());
-                final Map<Integer, IloIntVar> stationVariablesMap = new HashMap<>();
+                final List<Integer> domainList = domainsEntry.getValue().stream().sorted().collect(toImmutableList());
                 final IloIntVar[] domainVars = cplex.boolVarArray(domainList.size());
                 log.info("{}", station);
-                final double value = stationDB.getStationById(station).getValue();
                 for (int i = 0; i < domainList.size(); i++) {
                     final int channel = domainList.get(i);
                     final IloIntVar var = domainVars[i];
                     var.setName(Integer.toString(station) + ":" + Integer.toString(channel));
-                    stationVariablesMap.put(channel, var);
+                    varLookup.put(station, channel, var);
                     variablesDecoder.put(var, new StationChannel(station, channel));
-                    // You can't contribute to value function if you aren't participating
-                    if (!nonParticipating.contains(station)) {
-                        sum.addTerm(value, var);
-                    }
                 }
-                // Constraint: Station on 0 or 1 channels (binding 1 if not participating)
+            }
+
+            // Non participating stations get exactly 1 channel, participating get 0 or 1
+            for (final Integer station : domains.keySet()) {
+                final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
                 if (nonParticipating.contains(station)) {
+                    // Must be placed on air
                     cplex.addEq(cplex.sum(domainVars), 1);
                 } else {
+                    // Optionally go on at most 1 channel
                     cplex.addLe(cplex.sum(domainVars), 1);
                 }
-                variablesMap.put(station, stationVariablesMap);
             }
-            // Interference
+
+            // Add the interference constraints
             int nInterference = 0;
             for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains.entrySet().stream().collect(Collectors.toMap(e -> new Station(e.getKey()), Map.Entry::getValue)))) {
-                final IloIntVar var1 = variablesMap.get(constraint.getSource().getID()).get(constraint.getSourceChannel());
-                final IloIntVar var2 = variablesMap.get(constraint.getTarget().getID()).get(constraint.getTargetChannel());
+                final IloIntVar var1 = varLookup.get(constraint.getSource().getID(), constraint.getSourceChannel());
+                final IloIntVar var2 = varLookup.get(constraint.getTarget().getID(), constraint.getTargetChannel());
                 cplex.addLe(cplex.sum(var1, var2), 1);
                 nInterference++;
             }
             log.info("Added {} interference constraints", nInterference);
-            // Objective!
-            cplex.addMaximize(sum);
+
+            // Do the rest of the encoding!
+            encoder.encode(domains, participating, nonParticipating, stationDB, varLookup, constraintManager, cplex);
+
             log.info("Encoding MIP took {} s.", watch.getElapsedTime());
             log.info("MIP has {} variables.", cplex.getNcols());
             log.info("MIP has {} constraints.", cplex.getNrows());
@@ -302,7 +369,6 @@ public class VCGMip {
                     .walltime(watch.getElapsedTime())
                     .build();
         }
-
 
         private Map<Integer, Integer> getAssignment() throws IloException {
             double eps = cplex.getParam(IloCplex.DoubleParam.EpInt);

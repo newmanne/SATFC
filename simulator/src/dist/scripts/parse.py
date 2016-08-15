@@ -4,7 +4,7 @@ import os
 import argparse
 
 # TODO: cross reference constraints 46U
-# TODO: upload open prices
+# TODO: upload open benchmarkPrices
 
 def stations_from_constraint_set(UHF=True):
 	stations = []
@@ -63,7 +63,7 @@ def main():
 	open_prices_df = open_prices_df[open_prices_df['FacID'].isin(stations)]
 	open_prices_df = open_prices_df[open_prices_df['Go Off-Air'] != 'Not Needed']
 	open_prices_df = open_prices_df[~open_prices_df['DMA'].isin(['Virgin Islands', 'Puerto Rico'])]
-	print "Found %d stations with opening prices" % len(open_prices_df)
+	print "Found %d stations with opening benchmarkPrices" % len(open_prices_df)
 
 	values_df = values_df[values_df['FacID'].isin(open_prices_df['FacID'])]
 	combined_df = pd.merge(parameters_df, values_df, on='FacID', how='left')

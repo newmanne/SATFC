@@ -12,12 +12,11 @@ import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.ISATFCProblemSpecGeneratorImpl;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SATFCProblemSpecGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.*;
-import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
@@ -25,9 +24,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
-import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -118,7 +115,7 @@ public class SimulatorParameters extends AbstractOptions {
             return decorated;
         };
 
-        stationDB = new CSVStationDB(getInfoFile(), getVolumeFile(), getStationManager(), ignore, decorators);
+        stationDB = new CSVStationDB(getInfoFile(), getVolumeFile(), getStationManager(), maxChannel, ignore, decorators);
     }
 
     private String getStateFolder() {
@@ -172,7 +169,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     public IFeasibilitySolver createSolver() {
         final IProblemGenerator problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
-        final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new ISATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
+        final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new SATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
         switch (solverType) {
             case LOCAL:
                 return new LocalFeasibilitySolver(problemSpecGenerator);

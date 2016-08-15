@@ -7,6 +7,7 @@ import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -72,7 +73,7 @@ public class SaveStateToFile implements IStateSaver {
         final Map<Integer, StationState> state = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
             final StationState stationState = StationState.builder()
-                    .price(prices.getPrice(s))
+                    .price(prices.getPrice(s, Band.UHF))
                     .participation(participation.getParticipation(s))
                     .build();
             state.put(s.getId(), stationState);
@@ -114,11 +115,11 @@ public class SaveStateToFile implements IStateSaver {
                 final int id = entry.getKey();
                 final StationState record = entry.getValue();
                 final IStationInfo station = stationDB.getStationById(id);
-                prices.setPrice(station, record.getPrice());
+                prices.setPrice(station, Band.UHF, record.getPrice());
                 participationRecord.setParticipation(station, record.getParticipation());
             }
             return AuctionState.builder()
-                    .prices(prices)
+                    .benchmarkPrices(prices)
                     .participation(participationRecord)
                     .round(stateFile1.getRound())
                     .assignment(stateFile1.getAssignment())

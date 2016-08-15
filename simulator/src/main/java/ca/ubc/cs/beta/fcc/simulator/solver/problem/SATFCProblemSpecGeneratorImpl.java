@@ -13,7 +13,7 @@ import java.util.Set;
  * Created by newmanne on 2016-05-25.
  */
 @RequiredArgsConstructor
-public class ISATFCProblemSpecGeneratorImpl implements Simulator.ISATFCProblemSpecGenerator {
+public class SATFCProblemSpecGeneratorImpl implements Simulator.ISATFCProblemSpecGenerator {
 
     private final IProblemGenerator problemGenerator;
     private final String stationInfoFolder;

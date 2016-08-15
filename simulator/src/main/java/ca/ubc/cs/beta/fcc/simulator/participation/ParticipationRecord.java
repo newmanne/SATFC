@@ -3,7 +3,6 @@ package ca.ubc.cs.beta.fcc.simulator.participation;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,9 +22,9 @@ public class ParticipationRecord {
         this();
         for (IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {
-                setParticipation(s, Participation.NOT_PARTICIPATING);
+                setParticipation(s, Participation.EXITED_NOT_PARTICIPATING);
             } else {
-                setParticipation(s, participationDecider.isParticipating(s) ? Participation.ACTIVE : Participation.NOT_PARTICIPATING);
+                setParticipation(s, participationDecider.isParticipating(s) ? Participation.BIDDING : Participation.EXITED_NOT_PARTICIPATING);
             }
         }
     }
@@ -37,15 +36,23 @@ public class ParticipationRecord {
     }
 
     public Set<IStationInfo> getActiveStations() {
-        return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.ACTIVE)).map(Map.Entry::getKey).collect(Collectors.toSet());
+        return participationMap.entrySet().stream()
+                .filter(e -> Participation.ACTIVE.contains(e.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
+    // These are stations that will participate in every problem
     public Set<IStationInfo> getOnAirStations() {
-        return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.EXITED) || e.getValue().equals(Participation.NOT_PARTICIPATING)).map(Map.Entry::getKey).collect(Collectors.toSet());
+        return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.EXITED_NOT_NEEDED) || e.getValue().equals(Participation.EXITED_NOT_PARTICIPATING)).map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
     public Participation getParticipation(IStationInfo s) {
         return participationMap.get(s);
+    }
+
+    public boolean isActive(IStationInfo station) {
+        return getActiveStations().contains(station);
     }
 
 }

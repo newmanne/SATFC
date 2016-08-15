@@ -1,30 +1,24 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.AMapBasedConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.ChannelSpecificConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.datamanagers.stations.DomainStationManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.*;
-import com.google.common.collect.MapDifference.ValueDifference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,7 +26,6 @@ import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -63,13 +56,13 @@ public class VCGMipTest {
     @Test
     public void neighbourHoods() {
         log.info("There are {} stations in the manager", stationManager.getStations().size());
-
-        StationDB stationDB = new CSVStationDB(INFO_FILE, VOLUMES_FILE, stationManager);
+        int highest = 29;
+        StationDB stationDB = new CSVStationDB(INFO_FILE, VOLUMES_FILE, stationManager, highest);
         final Map<Station, Set<Integer>> domains = stationManager.getStations()
                 .stream()
                 .filter(s -> stationDB.getStationById(s.getID()) != null)
                 .filter(s -> stationDB.getStationById(s.getID()).getNationality().equals(Nationality.US))
-                .collect(Collectors.toMap(s -> s, s -> stationManager.getRestrictedDomain(s, 29, true)));
+                .collect(Collectors.toMap(s -> s, s -> stationManager.getRestrictedDomain(s, highest, true)));
         final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
         // NY
         final List<Integer> input = Arrays.asList(1328,73881,6048,47535,73356,9610,22206,73207,14322);
@@ -151,13 +144,6 @@ public class VCGMipTest {
 
 
 
-    }
-
-    @Test
-    public void prices() throws Exception {
-        StationDB stationDB = new CSVStationDB(INFO_FILE, VOLUMES_FILE, stationManager);
-        Prices prices = new PricesImpl(stationDB, new FCCScoringRule(900.));
-        log.info("{}", prices.getPrice(stationDB.getStationById(9610)));
     }
 
     public static Map<Station, Integer> icCounts(Map<Station, Set<Integer>> domains) {

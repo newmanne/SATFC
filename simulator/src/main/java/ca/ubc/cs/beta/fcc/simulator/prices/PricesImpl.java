@@ -4,8 +4,11 @@ import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,29 +17,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class PricesImpl implements Prices {
 
+    private final Table<IStationInfo, Band, Double> prices;
+
     public PricesImpl() {
-        prices = new ConcurrentHashMap<>();
+        prices = HashBasedTable.create();
     }
 
-    public PricesImpl(StationDB stationDB, IScoringRule scoringRule) {
-        this();
-        for (final IStationInfo s : stationDB.getStations()) {
-            if (s.getNationality().equals(Nationality.CA)) {
-                continue;
-            }
-            setPrice(s, scoringRule.score(s));
-        }
-
+    public void setPrice(IStationInfo station, Band band, double price) {
+        prices.put(station, band, price);
     }
 
-    private final Map<IStationInfo, Double> prices;
-
-    public void setPrice(IStationInfo station, Double price) {
-        prices.put(station, price);
-    }
-
-    public double getPrice(IStationInfo stationID) {
-        return prices.get(stationID);
+    public double getPrice(IStationInfo station, Band band) {
+        return prices.get(station, band);
     }
 
 }

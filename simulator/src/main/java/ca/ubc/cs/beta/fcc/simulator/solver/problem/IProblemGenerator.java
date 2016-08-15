@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.problem;
 
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import com.google.common.collect.ImmutableMap;
 
