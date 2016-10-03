@@ -46,5 +46,5 @@ public enum SolverType {
     PREVIOUS_ASSIGNMENT,
     UNSAT_LABELLER,
     GREEDY,
-    MIP_SAVER, NONE
+    MIP_SAVER, ASP_SAVER, NONE
 }

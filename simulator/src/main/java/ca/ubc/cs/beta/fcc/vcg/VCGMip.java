@@ -5,6 +5,8 @@ import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.matroid.encoder.MaxSatEncoder;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
@@ -104,9 +106,9 @@ public class VCGMip {
         final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
 
         if (q.mipType.equals(MIPType.VCG)) {
-            final double computedValue = mipResult.getAssignment().keySet().stream()
-                    .filter(s -> !q.notParticipating.contains(s))
-                    .mapToDouble(s -> stationDB.getStationById(s).getValue())
+            final double computedValue = mipResult.getAssignment().entrySet().stream()
+                    .filter(e -> !q.notParticipating.contains(e.getKey()))
+                    .mapToDouble(e -> stationDB.getStationById(e.getKey()).getValues().get(BandHelper.toBand(e.getValue())))
                     .sum();
             final double obj = mipResult.getObjectiveValue();
             if (computedValue != obj) {
@@ -144,7 +146,7 @@ public class VCGMip {
     public static class SmallestMaximalCardinalityMIPMaker implements IMIPEncoder {
 
         @Override
-        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
             // Objective
             final IloLinearIntExpr objectiveSum = cplex.linearIntExpr();
             for (final Integer station : participating) {
@@ -182,14 +184,19 @@ public class VCGMip {
     public static class VCGMIPMaker implements IMIPEncoder {
 
         @Override
-        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
             // Objective function
             final IloLinearNumExpr objectiveSum = cplex.linearNumExpr();
             for (final Integer station : participating) {
                 final IloIntVar[] domainVars = varLookup.row(station).values().stream().toArray(IloIntVar[]::new);
-                final double value = stationDB.getStationById(station).getValue();
                 final double[] values = new double[domainVars.length];
-                Arrays.fill(values, value);
+                for (int i = 0; i < domainVars.length; i++) {
+                    IloIntVar var = domainVars[i];
+                    int chan = variablesDecoder.get(var).getChannel();
+                    final Band band = BandHelper.toBand(chan);
+                    final double value = stationDB.getStationById(station).getValues().get(band);
+                    values[i] = value;
+                }
                 objectiveSum.addTerms(values, domainVars);
             }
             cplex.addMaximize(objectiveSum);
@@ -198,7 +205,7 @@ public class VCGMip {
 
     public interface IMIPEncoder {
 
-        void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
+        void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
 
     }
 
@@ -235,6 +242,7 @@ public class VCGMip {
             Watch watch = Watch.constructAutoStartWatch();
 
             final Set<Integer> participating = Sets.difference(domains.keySet(), nonParticipating);
+            log.info("{} / {} participating stations", participating.size(), domains.size());
 
             // Set up the x_{s,c} variables
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
@@ -274,7 +282,7 @@ public class VCGMip {
             log.info("Added {} interference constraints", nInterference);
 
             // Do the rest of the encoding!
-            encoder.encode(domains, participating, nonParticipating, stationDB, varLookup, constraintManager, cplex);
+            encoder.encode(domains, participating, nonParticipating, stationDB, varLookup, variablesDecoder, constraintManager, cplex);
 
             log.info("Encoding MIP took {} s.", watch.getElapsedTime());
             log.info("MIP has {} variables.", cplex.getNcols());
@@ -307,7 +315,7 @@ public class VCGMip {
                 throw new IllegalStateException("CPLEX could not solve the MIP (" + e.getMessage() + ").");
             }
 
-            //            cplex.exportModel("model.lp");
+            cplex.exportModel("model.lp");
 
             //Gather output
             final SATResult satisfiability;
@@ -353,7 +361,7 @@ public class VCGMip {
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
-//            cplex.writeSolution("solution.lp");
+            cplex.writeSolution("solution.lp");
 
             final double cpuTime = cplex.getCplexTime();
 

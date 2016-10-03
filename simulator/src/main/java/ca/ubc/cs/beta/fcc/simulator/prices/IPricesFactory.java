@@ -5,6 +5,6 @@ package ca.ubc.cs.beta.fcc.simulator.prices;
  */
 public interface IPricesFactory {
 
-    Prices create();
+    IPrices create();
 
 }

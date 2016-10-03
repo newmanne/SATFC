@@ -50,3 +50,7 @@ createScript(project,
              'ca.ubc.cs.beta.fcc.vcg.VCGMip',
              'VCG',
              ['-Djava.library.path=${CPLEX_DIR}', "-Xmx12g"])
+createScript(project,
+        'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
+        'MutliBandSimulator',
+        ['-Xmx16g'])

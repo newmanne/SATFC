@@ -5,7 +5,7 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
-import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
+import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
@@ -28,6 +28,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -39,6 +41,8 @@ import java.util.function.Predicate;
  */
 @UsageTextField(title = "Simulator Parameters", description = "Simulator Parameters")
 public class SimulatorParameters extends AbstractOptions {
+
+    private static Logger log;
 
     @Getter
     @Parameter(names = "-INFO-FILE", description = "csv file")
@@ -62,6 +66,11 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
     private boolean unitValue = false;
+
+    @Getter
+    @Parameter(names = "-UHF-ONLY", description = "Ignore non-UHF stations")
+    private boolean uhfOnly = false;
+
 
     @Getter
     @Parameter(names = "-BASE-CLOCK")
@@ -95,6 +104,7 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public void setUp() {
+        log = LoggerFactory.getLogger(Simulator.class);
         BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
@@ -126,7 +136,7 @@ public class SimulatorParameters extends AbstractOptions {
             return decorated;
         };
 
-        stationDB = new CSVStationDB(getInfoFile(), getVolumeFile(), getStationManager(), maxChannel, ignore, decorators);
+        stationDB = new CSVStationDB(getInfoFile(), getVolumeFile(), getStationManager(), maxChannel, uhfOnly, ignore, decorators);
     }
 
     private String getStateFolder() {
@@ -179,23 +189,26 @@ public class SimulatorParameters extends AbstractOptions {
     private StationDB stationDB;
 
     public IFeasibilitySolver createSolver() {
-        final IProblemGenerator problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
-        final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator = new SATFCProblemSpecGeneratorImpl(problemGenerator, getStationInfoFolder(), getCutoff(), getSeed());
         switch (solverType) {
             case LOCAL:
-                return new LocalFeasibilitySolver(problemSpecGenerator);
+                log.info("Using a local based solver");
+                return new LocalFeasibilitySolver(facadeParameters);
             case DISTRIBUTED:
-                return new DistributedFeasibilitySolver(problemSpecGenerator, facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+                return new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    public Simulator.ISATFCProblemSpecGenerator createProblemSpecGenerator() {
+        return new SATFCProblemSpecGeneratorImpl(getStationInfoFolder(), getCutoff(), getSeed());
     }
 
     public enum ParticipationModel {
         PRICE_HIGHER_THAN_VALUE
     }
 
-    public IParticipationDecider getParticipationDecider(Prices prices) {
+    public IParticipationDecider getParticipationDecider(IPrices prices) {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
                 return new OpeningPriceHigherThanPrivateValue(prices);
@@ -211,7 +224,7 @@ public class SimulatorParameters extends AbstractOptions {
     public IScoringRule getScoringRule() {
         switch (scoringRule) {
             case FCC:
-                return new FCCScoringRule(getBaseClockPrice());
+                return new FCCScoringRule();
             default:
                 throw new IllegalStateException();
         }

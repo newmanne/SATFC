@@ -565,6 +565,18 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class ASPSaverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new ASPSaverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), aspdir);
+        }
+
+        private String aspdir;
+
+    }
+
 
     public enum PresolverExpansion {
         NEIGHBOURHOOD, UNIFORM_RANDOM
@@ -626,6 +638,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.UNSAT_LABELLER, UNSATLabellerConfig.class)
                         .put(SolverType.GREEDY, GreedyConfig.class)
                         .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
+                        .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
                         .build();
 
         @Override

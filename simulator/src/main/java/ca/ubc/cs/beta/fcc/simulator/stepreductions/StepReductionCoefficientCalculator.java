@@ -49,8 +49,11 @@ public class StepReductionCoefficientCalculator {
             double vacH = vacancies.get(station, Band.HVHF);
             double vacL = vacancies.get(station, Band.LVHF);
 
-            // You always get the full decrement in UHF
-            builder.put(station, Band.UHF, 1.0);
+            // You always get the full decrement to go off air
+            builder.put(station, Band.OFF, 1.0);
+
+            // You don't decrement if you are going to UHF (because it's already 0 payment)
+            builder.put(station, Band.UHF, 0.0);
 
             final double rHVHF = (initialHVHF * (Math.pow(vacU, vacancyResistance))) / (((initialOff - initialHVHF) * Math.pow(vacH, vacancyResistance)) + (initialHVHF * (Math.pow(vacU, vacancyResistance))));
             builder.put(station, Band.HVHF, rHVHF);

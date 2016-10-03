@@ -29,8 +29,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
 
     private final AtomicLong id;
 
-    public DistributedFeasibilitySolver(Simulator.ISATFCProblemSpecGenerator problemSpecGenerator, Jedis jedis, String sendQueue, String replyQueue) {
-        super(problemSpecGenerator);
+    public DistributedFeasibilitySolver(Jedis jedis, String sendQueue, String replyQueue) {
         this.jedis = jedis;
         this.sendQueue = sendQueue;
         this.replyQueue = replyQueue;

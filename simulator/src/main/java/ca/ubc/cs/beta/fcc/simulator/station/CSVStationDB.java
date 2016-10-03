@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -26,7 +27,7 @@ public class CSVStationDB implements StationDB {
 
     private final Map<Integer, IStationInfo> data;
 
-    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest, boolean uhfOnly, Predicate<IStationInfo> ignoreFunction, Function<IStationInfo, IStationInfo> decorate) {
         log.info("Reading volumes from {}", volumeFile);
         // Parse volumes
         final ImmutableMap.Builder<Integer, Double> volumeBuilder = ImmutableMap.builder();
@@ -37,29 +38,47 @@ public class CSVStationDB implements StationDB {
             volumeBuilder.put(id, volume);
         }
         final ImmutableMap<Integer, Double> volumes = volumeBuilder.build();
+        log.info("Finished reading volumes");
 
         final ImmutableMap.Builder<Integer, IStationInfo> builder = ImmutableMap.builder();
+        log.info("Reading station info from {}", infoFile);
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
             IStationInfo stationInfo;
             final int id = Integer.parseInt(record.get("FacID"));
-            if (!stationManager.getDomain(new Station(id)).stream().anyMatch(c -> c >= StationPackingUtils.UHFmin)) {
+            if (uhfOnly && !stationManager.getDomain(new Station(id)).stream().anyMatch(c -> c >= StationPackingUtils.UHFmin)) {
                 log.warn("Skipping station {} because it is not UHF", id);
                 continue;
             }
-            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), highest, false));
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
+            // Account for Canadian stations having a highest of 1 lower than the clearing target
+            int stationHighest = nationality.equals(Nationality.US) ? highest : highest - 1;
+            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), stationHighest, uhfOnly));
             final int channel = Integer.parseInt(record.get("Channel"));
-            final Band band = BandHelper.toBand(channel);
             if (nationality.equals(Nationality.CA)) {
-                stationInfo = StationInfo.canadianStation(id, band, domain);
+                // Canadian stations have some channel 52 stations... messes everything up...
+                stationInfo = StationInfo.canadianStation(id, channel >= 14 ? Band.UHF : BandHelper.toBand(channel), domain);
             } else {
-                final String valueString = record.get("Value");
-                Preconditions.checkState(!valueString.isEmpty());
-                double value = Double.parseDouble(valueString) * 1e6;
+                final Band band = BandHelper.toBand(channel);
+                final Map<Band, Double> values = new HashMap<>();
+                final Map<String, String> recordAsMap = record.toMap();
+                for (Band b : Band.values()) {
+                    if (recordAsMap.containsKey(b.toString() + "Value")) {
+                        values.put(b, Double.parseDouble(recordAsMap.get(b.toString() + "Value")) * 1e6);
+                    }
+                }
+                if (values.isEmpty()) {
+                    // Backwards compatibility
+                    final String valueString = record.get("Value");
+                    Preconditions.checkState(!valueString.isEmpty());
+                    double value = Double.parseDouble(valueString) * 1e6;
+                    values.put(band, value);
+                }
+                Preconditions.checkState(values.size() > 0);
+                values.put(Band.OFF, 0.);
                 Double volume = volumes.get(id);
                 Preconditions.checkState(volume != null, "No volume for station %s", id);
-                stationInfo = new StationInfo(id, volume, value, nationality, band, domain);
+                stationInfo = new StationInfo(id, volume, values, nationality, band, domain);
             }
             stationInfo = decorate.apply(stationInfo);
             if (!ignoreFunction.test(stationInfo)) {
@@ -69,8 +88,8 @@ public class CSVStationDB implements StationDB {
         data = builder.build();
     }
 
-    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest) {
-        this(infoFile, volumeFile, stationManager, highest, x -> false, x -> x);
+    public CSVStationDB(String infoFile, String volumeFile, IStationManager stationManager, int highest, boolean uhfOnly) {
+        this(infoFile, volumeFile, stationManager, highest, uhfOnly, x -> false, x -> x);
     }
 
     @Override

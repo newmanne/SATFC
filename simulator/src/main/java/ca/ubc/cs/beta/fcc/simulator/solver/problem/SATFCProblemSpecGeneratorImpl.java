@@ -15,20 +15,18 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SATFCProblemSpecGeneratorImpl implements Simulator.ISATFCProblemSpecGenerator {
 
-    private final IProblemGenerator problemGenerator;
     private final String stationInfoFolder;
     private final double cutoff;
     private final long seed;
 
     @Override
-    public SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stationInfos, Map<Integer, Integer> previousAssignment) {
-        final Set<Integer> stations = SimulatorUtils.toID(stationInfos);
-        final SimulatorProblemReader.SATFCProblem problem = problemGenerator.createProblem(stations, previousAssignment);
+    public SimulatorProblemReader.SATFCProblemSpecification createProblem(SimulatorProblemReader.SATFCProblem problem, String name) {
         return new SimulatorProblemReader.SATFCProblemSpecification(
                 problem,
                 cutoff,
                 stationInfoFolder,
-                seed);
+                seed,
+                name);
     }
 
 }

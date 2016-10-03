@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.participation;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import com.google.common.collect.ImmutableSet;
 
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
  * Created by newmanne on 2016-05-20.
  */
 public class ParticipationRecord {
+
+    final Map<IStationInfo, Participation> participationMap;
 
     public ParticipationRecord() {
         participationMap = new ConcurrentHashMap<>();
@@ -29,22 +32,32 @@ public class ParticipationRecord {
         }
     }
 
-    final Map<IStationInfo, Participation> participationMap;
+    public ImmutableSet<IStationInfo> getStations() {
+        return ImmutableSet.copyOf(participationMap.keySet());
+    }
 
     public void setParticipation(IStationInfo s, Participation participation) {
         participationMap.put(s, participation);
     }
 
-    public Set<IStationInfo> getActiveStations() {
+    public Set<IStationInfo> getMatching(Participation participation) {
+        return getMatching(ImmutableSet.of(participation));
+    }
+
+    public Set<IStationInfo> getMatching(Set<Participation> participation) {
         return participationMap.entrySet().stream()
-                .filter(e -> Participation.ACTIVE.contains(e.getValue()))
+                .filter(e -> participation.contains(e.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
+    public Set<IStationInfo> getActiveStations() {
+        return getMatching(Participation.ACTIVE);
+    }
+
     // These are stations that will participate in every problem
     public Set<IStationInfo> getOnAirStations() {
-        return participationMap.entrySet().stream().filter(e -> e.getValue().equals(Participation.EXITED_NOT_NEEDED) || e.getValue().equals(Participation.EXITED_NOT_PARTICIPATING)).map(Map.Entry::getKey).collect(Collectors.toSet());
+        return getMatching(Participation.INACTIVE);
     }
 
     public Participation getParticipation(IStationInfo s) {

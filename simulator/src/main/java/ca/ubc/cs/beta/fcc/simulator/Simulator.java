@@ -4,7 +4,7 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
+import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
@@ -28,7 +28,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
 public class Simulator {
 
@@ -44,6 +47,7 @@ public class Simulator {
 
         parameters.setUp();
 
+
         log.info("Building solver");
 
         final TimeTracker timeTracker = new TimeTracker();
@@ -53,31 +57,39 @@ public class Simulator {
         tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
         final IFeasibilitySolver solver = tmp;
 
+        final AtomicInteger round = new AtomicInteger();
+        final SimpleSimulatorProblemMaker problemMaker = new SimpleSimulatorProblemMaker(parameters.createProblemSpecGenerator(), round);
+
         log.info("Reading station info from file");
         final StationDB stationDB = parameters.getStationDB();
 
         final IStateSaver stateSaver = parameters.getStateSaver();
 
-        final Prices prices;
+        final IPrices prices;
         final ParticipationRecord participation;
-        int round;
         Map<Integer, Integer> assignment;
         if (parameters.isRestore()) {
             log.info("Restoring from state");
             final AuctionState auctionState = stateSaver.restoreState(stationDB);
             prices = auctionState.getBenchmarkPrices();
             participation = auctionState.getParticipation();
-            round = auctionState.getRound() + 1;
+            round.set(auctionState.getRound() + 1);
             assignment = auctionState.getAssignment();
         } else {
             // Initialize opening benchmarkPrices
             log.info("Setting opening prices");
             prices = new PricesImpl();
+            for (final IStationInfo s : stationDB.getStations()) {
+                if (s.getNationality().equals(Nationality.CA)) {
+                    continue;
+                }
+                prices.setPrice(s, Band.UHF, parameters.getScoringRule().score(s, parameters.getBaseClockPrice()));
+            }
 
             log.info("Figuring out participation");
             // Figure out participation
             participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(prices));
-            round = 1;
+            round.set(1);
             final long notParticipatingUS = stationDB.getStations().stream()
                     .filter(s -> s.getNationality().equals(Nationality.US))
                     .map(participation::getParticipation)
@@ -87,7 +99,7 @@ public class Simulator {
             log.info("There are {} non-participating US stations out of {} US stations", notParticipatingUS, totalUS);
             final Set<IStationInfo> onAirStations = participation.getOnAirStations();
             log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
-            final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(onAirStations, ImmutableMap.of());
+            final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(onAirStations, ImmutableMap.of()));
             Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
             log.info("Found an initial assignment for the non-participating stations");
             assignment = initialFeasibility.getWitnessAssignment();
@@ -95,7 +107,7 @@ public class Simulator {
 
         log.info("There are {} / {} stations participating", participation.getActiveStations().size(), stationDB.getStations().size());
         // Consider stations in reverse order of their values per volume
-        final Comparator<IStationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValue() / a.getVolume());
+        final Comparator<IStationInfo> valuePerVolumeComparator = Comparator.comparingDouble(a -> a.getValues().get(Band.UHF) / a.getVolume());
         final List<IStationInfo> activeStationsOrdered = Collections.synchronizedList(participation.getActiveStations()
                 .stream()
                 .sorted(valuePerVolumeComparator.reversed())
@@ -114,7 +126,7 @@ public class Simulator {
 
             final IStationInfo nextToExit = activeStationsOrdered.remove(0);
             log.info("Considering station {}", nextToExit);
-            final SATFCResult feasibility = solver.getFeasibilityBlocking(Sets.union(onAirStations, ImmutableSet.of(nextToExit)), assignment);
+            final SATFCResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(Sets.union(onAirStations, ImmutableSet.of(nextToExit)), assignment));
             if (SimulatorUtils.isFeasible(feasibility)) {
                 // Update assignment and participation
                 log.info("Updating assignment and participation to reflect station exiting");
@@ -123,10 +135,10 @@ public class Simulator {
                 onAirStations.add(nextToExit);
 
                 // Update benchmarkPrices
-                prices.setPrice(nextToExit, Band.UHF, nextToExit.getValue());
+                prices.setPrice(nextToExit, Band.UHF, nextToExit.getValues().get(Band.UHF));
                 // value = volume * baseClock * gamma^n
                 // so value / volume = baseClock * gamma^n same for everyone
-                final double clockGammaN = nextToExit.getValue() / nextToExit.getVolume();
+                final double clockGammaN = nextToExit.getValues().get(Band.UHF) / nextToExit.getVolume();
                 log.debug("Clock Gamma N is {}", clockGammaN);
                 for (final IStationInfo q: activeStationsOrdered) {
                     double prevPrice = prices.getPrice(q, Band.UHF);
@@ -140,7 +152,7 @@ public class Simulator {
                 log.info("Considering other stations to see if they froze as a result of the exit");
                 final Set<IStationInfo> newlyFrozen = new HashSet<>();
                 for (final IStationInfo q : activeStationsOrdered) {
-                    solver.getFeasibility(Sets.union(onAirStations, ImmutableSet.of(q)), assignment, (problem, result) -> {
+                    solver.getFeasibility(problemMaker.makeProblem(Sets.union(onAirStations, ImmutableSet.of(q)), assignment), (problem, result) -> {
                         if (!SimulatorUtils.isFeasible(result)) {
                             newlyFrozen.add(q);
                             participation.setParticipation(q, Participation.FROZEN_CURRENTLY_INFEASIBLE);
@@ -152,17 +164,17 @@ public class Simulator {
                 solver.waitForAllSubmitted();
                 activeStationsOrdered.removeAll(newlyFrozen);
             } else {
-                Preconditions.checkState(round == 1, "This should only happen in the very first round, otherwise the inner loop frozen checks should catch this!");
+                Preconditions.checkState(round.get() == 1, "This should only happen in the very first round, otherwise the inner loop frozen checks should catch this!");
                 log.info("Station {} is now frozen due to result of {}", nextToExit, feasibility.getResult());
                 participation.setParticipation(nextToExit, Participation.FROZEN_CURRENTLY_INFEASIBLE);
             }
 
             log.info("Saving state for round {}", round);
-            stateSaver.saveState(stationDB, prices, participation, assignment, round, feasibilityResultDistribution.histogram(), timeTracker);
+            stateSaver.saveState(stationDB, prices, participation, assignment, round.get(), feasibilityResultDistribution.histogram(), timeTracker);
             log.info("Reporting timing info for round {}", round);
             timeTracker.report();
             feasibilityResultDistribution.report();
-            round++;
+            round.incrementAndGet();
         }
 
         solver.close();
@@ -170,13 +182,34 @@ public class Simulator {
         log.info("Finished simulation");
     }
 
-    public interface ISATFCProblemSpecGenerator {
+    public static class SimpleSimulatorProblemMaker {
 
-        default SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stations) {
-            return createProblem(stations, ImmutableMap.of());
+        private final ISATFCProblemSpecGenerator generator;
+        private final AtomicInteger counter = new AtomicInteger();
+        private final AtomicInteger round;
+
+        public SimpleSimulatorProblemMaker(ISATFCProblemSpecGenerator generator, AtomicInteger round) {
+            this.generator = generator;
+            this.round = round;
         }
 
-        SimulatorProblemReader.SATFCProblemSpecification createProblem(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment);
+        public SimulatorProblemReader.SATFCProblemSpecification makeProblem(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment) {
+            final Map<Integer, Set<Integer>> domains = stations.stream().collect(toImmutableMap(
+                    IStationInfo::getId,
+                    IStationInfo::getDomain
+            ));
+            final SimulatorProblemReader.SATFCProblem satfcProblem = new SimulatorProblemReader.SATFCProblem(
+                    domains,
+                    previousAssignment
+            );
+            return generator.createProblem(satfcProblem, "Round_"+round.get()+"_Problem_"+counter.incrementAndGet());
+        }
+
+    }
+
+    public interface ISATFCProblemSpecGenerator {
+
+        SimulatorProblemReader.SATFCProblemSpecification createProblem(SimulatorProblemReader.SATFCProblem problem, String name);
 
     }
 

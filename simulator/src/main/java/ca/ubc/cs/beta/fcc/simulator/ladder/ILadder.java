@@ -44,7 +44,7 @@ public interface ILadder {
     ImmutableSet<IStationInfo> getBandStations(Band aBand);
 
     /**
-     * Get the bands to which the given station could move.
+     * Get the bands to which the given station could move (i.e. at or above the currently held option)
      * @param aStation - a station.
      * @return set of bands to which the station could move.
      */

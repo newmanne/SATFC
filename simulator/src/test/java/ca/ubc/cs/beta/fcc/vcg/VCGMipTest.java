@@ -1,12 +1,8 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
-import ca.ubc.cs.beta.fcc.simulator.prices.Prices;
-import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
-import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;

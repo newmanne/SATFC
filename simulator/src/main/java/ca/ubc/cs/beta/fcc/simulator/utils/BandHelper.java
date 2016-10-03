@@ -34,7 +34,7 @@ public class BandHelper {
      */
     public static final ImmutableSet<Band> AIR_BANDS = ImmutableSet.of(Band.LVHF, Band.HVHF, Band.UHF);
 
-    // TODO: this is very hacky...
+    // TODO: this is very hacky, and means you can't do two clearing targets in the same JVM...
     private static ImmutableSet<Integer> UHF_CHANNELS = null;
 
     public static final int OFF_BAND_CHANNEL = 0;
@@ -69,7 +69,7 @@ public class BandHelper {
         if (aChannel == 0) {
             return Band.OFF;
         } else if (aChannel >= 14) {
-            Preconditions.checkState(UHF_CHANNELS.contains(aChannel), "Channel %s not in UHF", aChannel);
+            Preconditions.checkState(StationPackingUtils.UHF_CHANNELS.contains(aChannel), "Channel %s not in UHF", aChannel);
             return Band.UHF;
         } else if (StationPackingUtils.HVHF_CHANNELS.contains(aChannel)) {
             return Band.HVHF;

@@ -9,11 +9,11 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.GraphUtils;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.fcc.simulator.utils.BigDecimalUtils.SUM;
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
@@ -37,14 +38,14 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet
 @Slf4j
 public class ParallelVacancyCalculator implements IVacancyCalculator {
 
-    public ParallelVacancyCalculator(Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods,
-                                     ParticipationRecord participation,
+    public ParallelVacancyCalculator(ParticipationRecord participation,
                                      IFeasibilityVerifier feasibilityVerifier,
+                                     IConstraintManager constraintManager,
                                      double feasibilityVacancyContributionFloor,
                                      int nCores
     ) {
         this.nCores = nCores;
-        sequentialVacancyCalculator = new SequentialVacancyCalculator(bandNeighbourhoods, feasibilityVerifier, participation, feasibilityVacancyContributionFloor);
+        sequentialVacancyCalculator = new SequentialVacancyCalculator(feasibilityVerifier, participation, constraintManager, feasibilityVacancyContributionFloor);
     }
 
     private final SequentialVacancyCalculator sequentialVacancyCalculator;
@@ -61,6 +62,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             @NonNull final ILadder ladder,
             @NonNull final Map<Integer, Integer> assignment
     ) {
+        final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighborIndexMap = sequentialVacancyCalculator.getBandNeighborIndexMap(ladder);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
         final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
         try {
@@ -68,7 +70,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                         stations.parallelStream().forEach(station -> {
                             Map<Band, Double> stationVacancies = new EnumMap<>(Band.class);
                             for (Band band : ladder.getAirBands()) {
-                                stationVacancies.put(band, sequentialVacancyCalculator.computeVacancy(station, band, ladder, assignment));
+                                stationVacancies.put(band, sequentialVacancyCalculator.computeVacancy(station, band, ladder, assignment, bandNeighborIndexMap));
                             }
                             vacancies.put(station, stationVacancies);
                         });
@@ -93,31 +95,49 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
     public static class SequentialVacancyCalculator implements IVacancyCalculator {
 
         @NonNull
-        private final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods;
-        @NonNull
         private final IFeasibilityVerifier feasibilityVerifier;
         @NonNull
         private final ParticipationRecord participationRecord;
+        @NonNull
+        private final IConstraintManager constraintManager;
 
         private final double VAC_FLOOR;
 
         @Override
         public ImmutableTable<IStationInfo, Band, Double> computeVacancies(@NonNull Collection<IStationInfo> stations, @NonNull ILadder ladder, @NonNull Map<Integer, Integer> assignment) {
+            final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods = getBandNeighborIndexMap(ladder);
             final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
             for (IStationInfo station : stations) {
                 for (Band band : ladder.getAirBands()) {
-                    final double vacancy = computeVacancy(station, band, ladder, assignment);
+                    final double vacancy = computeVacancy(station, band, ladder, assignment, bandNeighbourhoods);
                     builder.put(station, band, vacancy);
                 }
             }
             return builder.build();
         }
 
+        private Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> getBandNeighborIndexMap(@NonNull ILadder ladder) {
+            // Calculate band neighbourhooods
+            final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods = new HashMap<>();
+            for (Band band : ladder.getAirBands()) {
+                final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
+                        .filter(s -> s.getDomain(band).size() > 0)
+                        .collect(Collectors.toMap(s -> new Station(s.getId()), s -> s.getDomain(band)));
+
+                final Map<Station, IStationInfo> stationToInfo = HashBiMap.create(ladder.getStations().stream().collect(Collectors.toMap(s -> s, s -> new Station(s.getId())))).inverse();
+                final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
+                final NeighborIndex<IStationInfo, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
+                bandNeighbourhoods.put(band, neighborIndex);
+            }
+            return bandNeighbourhoods;
+        }
+
         public double computeVacancy(
                 @NonNull final IStationInfo station,
                 @NonNull final Band band,
                 @NonNull final ILadder ladder,
-                @NonNull final Map<Integer, Integer> assignment) {
+                @NonNull final Map<Integer, Integer> assignment,
+                @NonNull Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
 
             log.trace("Calculating vacancy for station {} on band {}.", station, band);
@@ -125,7 +145,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             // Get active stations which could possibly interfere with station
             Set<IStationInfo> neighbours = bandNeighbourhoods.get(band).neighborsOf(station)
                     .stream()
-                    .filter(neighbour -> participationRecord.isActive(neighbour))
+                    .filter(participationRecord::isActive)
                     .filter(neighbour -> ladder.getPossibleMoves(neighbour).contains(band))
                     .filter(neighbour -> ladder.getStationBand(neighbour).isBelow(band))
                     .collect(toImmutableSet());
@@ -137,10 +157,10 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 double vacancy = 0.;
 
                 for (IStationInfo neighbour : neighbours) {
-                    double availableChannels = Sets.intersection(neighbour.getDomain(), BandHelper.toChannels(band))
+                    double availableChannels = neighbour.getDomain(band)
                             .stream()
                             .filter(channel -> {
-                                // TODO: if you restrict the assignment (e.g. to neighbours of neighbours), this could be a less expensive check
+                                // TODO: if you restrict the assignment (I think neighbours of neighbours works?), this could be a less expensive check
                                 final Map<Integer, Integer> candidateAssignment = new HashMap<>(assignment);
                                 candidateAssignment.put(neighbour.getId(), channel);
                                 return feasibilityVerifier.isFeasibleAssignment(candidateAssignment);

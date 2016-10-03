@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
+import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import com.google.common.collect.ImmutableSet;
 
@@ -27,8 +28,8 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     }
 
     @Override
-    public Double getValue() {
-        return decorated.getValue();
+    public Map<Band, Double> getValues() {
+        return decorated.getValues();
     }
 
     @Override
@@ -42,8 +43,8 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     }
 
     @Override
-    public Band queryPreferredBand(Map<Band, Double> offers) {
-        return decorated.queryPreferredBand(offers);
+    public Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand) {
+        return decorated.queryPreferredBand(offers, currentBand);
     }
 
     @Override

@@ -12,17 +12,24 @@ import lombok.experimental.Builder;
 import java.util.Map;
 
 /**
- * Created by newmanne on 2016-08-02.
+ * Created by newmanne on 2016-09-27.
  */
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuctionState {
+public class LadderAuctionState {
 
     private IPrices benchmarkPrices;
     private ParticipationRecord participation;
     private int round;
     private Map<Integer, Integer> assignment;
+    private IModifiableLadder ladder;
+
+    // The current compensation of every station
+    private Map<IStationInfo, Double> prices;
+    // UHF to off benchmark
+    private double baseClockPrice;
+
 
 }

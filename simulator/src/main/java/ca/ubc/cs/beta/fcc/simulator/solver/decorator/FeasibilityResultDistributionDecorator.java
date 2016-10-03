@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import com.google.common.collect.HashMultiset;
 import lombok.Getter;
@@ -48,10 +49,10 @@ public class FeasibilityResultDistributionDecorator extends AFeasibilitySolverDe
     }
 
     @Override
-    public void getFeasibility(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback) {
-        super.getFeasibility(stations, previousAssignment, (problem, result) -> {
+    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
+        super.getFeasibility(problem, (p, result) -> {
             distribution.update(result.getResult());
-            callback.onSuccess(problem, result);
+            callback.onSuccess(p, result);
         });
     }
 

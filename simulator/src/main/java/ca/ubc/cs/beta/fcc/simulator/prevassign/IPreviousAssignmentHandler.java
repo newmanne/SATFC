@@ -8,6 +8,7 @@ import java.util.Set;
  */
 public interface IPreviousAssignmentHandler {
 
+    Map<Integer, Integer> getPreviousAssignment();
     Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains);
     void updatePreviousAssignment(Map<Integer, Integer> previousAssignment);
 

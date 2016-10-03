@@ -124,6 +124,7 @@ public class SimulatorProblemReader extends AProblemReader {
         private double cutoff;
         private String stationInfoFolder;
         private long seed;
+        private String name;
 
     }
 

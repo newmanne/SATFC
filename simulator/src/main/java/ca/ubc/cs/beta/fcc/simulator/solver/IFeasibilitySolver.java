@@ -1,16 +1,13 @@
 package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
-import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -18,11 +15,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public interface IFeasibilitySolver extends AutoCloseable {
 
-    void getFeasibility(Set<IStationInfo> stations, Map<Integer, Integer> previousAssignment, SATFCCallback callback);
+    void getFeasibility(SATFCProblemSpecification problem, SATFCCallback callback);
 
-    default SATFCResult getFeasibilityBlocking(@NonNull Set<IStationInfo> stations, @NonNull Map<Integer, Integer> previousAssignment) {
+    default SATFCResult getFeasibilityBlocking(SATFCProblemSpecification problem) {
         final AtomicReference<SATFCResult> resultReference = new AtomicReference<>();
-        getFeasibility(stations, previousAssignment, (problem, result) -> resultReference.set(result));
+        getFeasibility(problem, (p, result) -> resultReference.set(result));
         waitForAllSubmitted();
         return resultReference.get();
     }

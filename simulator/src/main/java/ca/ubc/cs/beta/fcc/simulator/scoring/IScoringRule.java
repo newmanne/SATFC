@@ -7,6 +7,6 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
  */
 public interface IScoringRule {
 
-    double score(IStationInfo s);
+    double score(IStationInfo s, double base);
 
 }

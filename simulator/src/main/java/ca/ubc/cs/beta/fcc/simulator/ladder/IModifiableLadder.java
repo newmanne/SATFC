@@ -18,15 +18,5 @@ public interface IModifiableLadder extends ILadder {
      */
     void addStations(Map<IStationInfo, Band> aStationBands);
 
-    /**
-     * move key stations to their respective value band in the given move map.
-     *
-     * @param aMoves - a map taking stations to their band they want to move to.
-     */
-    void moveStations(Map<IStationInfo, Band> aMoves);
-
-    default void moveStation(IStationInfo station, Band band) {
-        moveStations(ImmutableMap.of(station, band));
-    }
-
+    void moveStation(IStationInfo station, Band band);
 }

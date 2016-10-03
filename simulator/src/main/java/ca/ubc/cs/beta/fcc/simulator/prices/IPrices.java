@@ -14,7 +14,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 /**
  * Created by newmanne on 2016-06-15.
  */
-public interface Prices {
+public interface IPrices {
 
     void setPrice(IStationInfo station, Band band, double price);
 
