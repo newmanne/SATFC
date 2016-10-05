@@ -52,7 +52,7 @@ public class MultiBandAuctioneer {
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
         JCommanderHelper.logCallString(args, Simulator.class);
-        log = LoggerFactory.getLogger(Simulator.class);
+        log = LoggerFactory.getLogger(MultiBandAuctioneer.class);
         parameters.setUp();
 
         log.info("Building solver");
@@ -68,7 +68,6 @@ public class MultiBandAuctioneer {
         final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler();
 
         final IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()));
-        // TODO: init ladder with opening moves
         final IFeasibilityStateHolder problemMaker = new FeasibilityStateHolder(previousAssignmentHandler, ladder, parameters.createProblemSpecGenerator());
 
         log.info("Reading station info from file");
@@ -109,6 +108,11 @@ public class MultiBandAuctioneer {
         log.info("Figuring out participation");
         // Figure out participation
         ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
+
+        for (IStationInfo s: stationDB.getStations()) {
+            ladder.addStation(s, Participation.EXITED.contains(participation.getParticipation(s)) ? s.getHomeBand() : Band.OFF);
+        }
+
         final long notParticipatingUS = stationDB.getStations().stream()
                 .filter(s -> s.getNationality().equals(Nationality.US))
                 .map(participation::getParticipation)
@@ -122,6 +126,7 @@ public class MultiBandAuctioneer {
         Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
         log.info("Found an initial assignment for the non-participating stations");
         previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getWitnessAssignment());
+
 
         final Map<IStationInfo, Double> initialCompensations = new HashMap<>();
         for (IStationInfo s : ladder.getStations()) {
@@ -143,12 +148,18 @@ public class MultiBandAuctioneer {
         );
 
         final IFeasibilityVerifier feasibilityVerifier = new FeasibilityVerifier(parameters.getConstraintManager(), parameters.getStationManager());
-        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
-                participation,
+//        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
+//                participation,
+//                feasibilityVerifier,
+//                parameters.getConstraintManager(),
+//                parameters.getVacFloor(),
+//                Runtime.getRuntime().availableProcessors()
+//        );
+        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator.SequentialVacancyCalculator(
                 feasibilityVerifier,
+                participation,
                 parameters.getConstraintManager(),
-                parameters.getVacFloor(),
-                Runtime.getRuntime().availableProcessors()
+                parameters.getVacFloor()
         );
 
         final MultiBandSimulator simulator = new MultiBandSimulator(
@@ -163,16 +174,24 @@ public class MultiBandAuctioneer {
                         .pricesFactory(PricesImpl::new)
                         .build()
         );
+
+        log.info("Starting simulation!");
         while (true) {
             final LadderAuctionState nextState = simulator.executeRound(state);
             // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
             if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
-                log.info("All stations have exited or are provisional winners. Ending round");
+                log.info("All stations have exited or are provisional winners. Ending simulation");
                 break;
             }
             // TODO: write out state to file here
             state = nextState;
         }
+
+//        log.info("Final state:" + System.lineSeparator() + "{}", state);
+
+        solver.close();
+        timeTracker.report();
+        log.info("Finished. Goodbye :)");
     }
 
 }

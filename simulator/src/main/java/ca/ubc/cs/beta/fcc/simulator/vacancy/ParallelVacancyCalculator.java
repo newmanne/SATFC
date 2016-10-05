@@ -62,6 +62,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             @NonNull final ILadder ladder,
             @NonNull final Map<Integer, Integer> assignment
     ) {
+        // TODO: neighborindex isn't threadsafe...
         final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighborIndexMap = sequentialVacancyCalculator.getBandNeighborIndexMap(ladder);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
         final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
@@ -121,10 +122,9 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods = new HashMap<>();
             for (Band band : ladder.getAirBands()) {
                 final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
-                        .filter(s -> s.getDomain(band).size() > 0)
-                        .collect(Collectors.toMap(s -> new Station(s.getId()), s -> s.getDomain(band)));
+                        .collect(Collectors.toMap(IStationInfo::toSATFCStation, s -> s.getDomain(band)));
 
-                final Map<Station, IStationInfo> stationToInfo = HashBiMap.create(ladder.getStations().stream().collect(Collectors.toMap(s -> s, s -> new Station(s.getId())))).inverse();
+                final Map<Station, IStationInfo> stationToInfo = HashBiMap.create(ladder.getStations().stream().collect(Collectors.toMap(s -> s, IStationInfo::toSATFCStation))).inverse();
                 final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
                 final NeighborIndex<IStationInfo, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
                 bandNeighbourhoods.put(band, neighborIndex);
@@ -139,7 +139,6 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 @NonNull final Map<Integer, Integer> assignment,
                 @NonNull Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
-
             log.trace("Calculating vacancy for station {} on band {}.", station, band);
 
             // Get active stations which could possibly interfere with station

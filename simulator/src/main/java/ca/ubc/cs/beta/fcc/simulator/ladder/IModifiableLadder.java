@@ -16,7 +16,7 @@ public interface IModifiableLadder extends ILadder {
      *
      * @param aStationBands - a map taking stations to add to the band in which to put them.
      */
-    void addStations(Map<IStationInfo, Band> aStationBands);
+    void addStation(IStationInfo s, Band b);
 
     void moveStation(IStationInfo station, Band band);
 }

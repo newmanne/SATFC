@@ -51,4 +51,14 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     public Band getHomeBand() {
         return decorated.getHomeBand();
     }
+
+    @Override
+    public String getCity() {
+        return decorated.getCity();
+    }
+
+    @Override
+    public String getCall() {
+        return decorated.getCall();
+    }
 }

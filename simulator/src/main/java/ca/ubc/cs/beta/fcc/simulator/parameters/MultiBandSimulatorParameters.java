@@ -27,10 +27,6 @@ public class MultiBandSimulatorParameters extends SimulatorParameters {
     private double vacFloor = 0.5;
 
     @Getter
-    @Parameter(names = "-UHF-TO-OFF", description = "Price per unit volume if a UHF station moves to OFF")
-    private double UHFToOff = 900;
-
-    @Getter
     @Parameter(names = "-UHF-TO-LVHF-FRAC", description = "Fraction of the UHF->OFF price per unit volume if a UHF station moves to LVHF")
     private double UHFToLVHFFrac = 0.75;
 

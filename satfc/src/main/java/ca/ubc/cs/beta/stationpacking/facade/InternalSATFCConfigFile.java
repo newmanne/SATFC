@@ -32,7 +32,8 @@ import lombok.RequiredArgsConstructor;
 public enum InternalSATFCConfigFile {
     SATFC_SEQUENTIAL("satfc_sequential"),
     SATFC_PARALLEL("satfc_parallel"),
-    UNSAT_LABELLER("unsat_labeller")
+    UNSAT_LABELLER("unsat_labeller"),
+    SATFC_GREEDY("satfc_greedy")
     ;
 
     @Getter

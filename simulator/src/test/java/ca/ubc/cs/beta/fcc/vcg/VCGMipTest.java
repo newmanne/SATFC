@@ -1,5 +1,7 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
+import ca.ubc.cs.beta.fcc.simulator.parameters.UnitValueCalculator;
+import ca.ubc.cs.beta.fcc.simulator.parameters.UnitVolumeCalculator;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
@@ -53,7 +55,7 @@ public class VCGMipTest {
     public void neighbourHoods() {
         log.info("There are {} stations in the manager", stationManager.getStations().size());
         int highest = 29;
-        StationDB stationDB = new CSVStationDB(INFO_FILE, VOLUMES_FILE, stationManager, highest);
+        StationDB stationDB = new CSVStationDB(INFO_FILE, new UnitVolumeCalculator(), new UnitValueCalculator(), stationManager, highest, false);
         final Map<Station, Set<Integer>> domains = stationManager.getStations()
                 .stream()
                 .filter(s -> stationDB.getStationById(s.getID()) != null)

@@ -26,8 +26,12 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         metricWriter = MetricWriterFactory.createFromParameters(facadeParameters);
     }
 
-    @Override
-    protected void solve(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
+    public LocalFeasibilitySolver(SATFCFacade facade) {
+        this.facade = facade;
+        metricWriter = new MetricWriterFactory.VoidMetricWriter();
+    }
+
+    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
         final SATFCResult solve = facade.solve(
                 problem.getProblem().getDomains(),
                 problem.getProblem().getPreviousAssignment(),

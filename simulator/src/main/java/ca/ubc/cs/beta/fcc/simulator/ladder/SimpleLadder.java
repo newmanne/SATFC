@@ -59,18 +59,13 @@ public class SimpleLadder implements IModifiableLadder {
     @Override
     public ImmutableList<Band> getPossibleMoves(@NonNull IStationInfo station) {
         final Band band = getStationBand(station);
-        return bands.stream().filter(b -> b.isAboveOrEqualTo(band)).collect(toImmutableList());
+        return bands.stream().filter(b -> b.isAboveOrEqualTo(band) && b.isBelowOrEqualTo(station.getHomeBand())).collect(toImmutableList());
     }
 
     @Override
-    public final void addStations(Map<IStationInfo, Band> aStationBands) {
-        //Add the station on the band.
-        for (final Entry<IStationInfo, Band> entry : aStationBands.entrySet()) {
-            final IStationInfo station = entry.getKey();
-            final Band band = entry.getValue();
-            Preconditions.checkState(!ladder.containsKey(station), "Station %s is already in the ladder!", station);
-            ladder.put(station, band);
-        }
+    public void addStation(IStationInfo station, Band band) {
+        Preconditions.checkState(!ladder.containsKey(station), "Station %s is already in the ladder!", station);
+        ladder.put(station, band);
     }
 
     @Override

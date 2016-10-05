@@ -46,7 +46,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
     }
 
     @Override
-    protected void solve(SATFCProblemSpecification problemSpecification, SATFCCallback callback) {
+    public void getFeasibility(SATFCProblemSpecification problemSpecification, SATFCCallback callback) {
         final long problemID = id.getAndIncrement();
         final String json = JSONUtils.toString(new SimulatorMessage(problemSpecification, replyQueue, problemID));
         log.trace("Sending problem {} to queue {}", json, sendQueue);

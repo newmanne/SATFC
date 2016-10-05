@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
+import ca.ubc.cs.beta.fcc.simulator.solver.AFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
@@ -7,6 +8,7 @@ import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,12 +16,18 @@ import java.util.Set;
 /**
  * Created by newmanne on 2016-06-15.
  */
-public abstract class AFeasibilitySolverDecorator implements IFeasibilitySolver {
+public class AFeasibilitySolverDecorator extends AFeasibilitySolver {
 
     private final IFeasibilitySolver decorated;
 
     public AFeasibilitySolverDecorator(IFeasibilitySolver decorated) {
         this.decorated = decorated;
+    }
+
+
+    @Override
+    public void close() throws Exception {
+        decorated.close();
     }
 
     @Override
@@ -28,12 +36,12 @@ public abstract class AFeasibilitySolverDecorator implements IFeasibilitySolver 
     }
 
     @Override
-    public void waitForAllSubmitted() {
-        decorated.waitForAllSubmitted();
+    public SATFCResult getFeasibilityBlocking(SATFCProblemSpecification problem) {
+        return decorated.getFeasibilityBlocking(problem);
     }
 
     @Override
-    public void close() throws Exception {
-        decorated.close();
+    public void waitForAllSubmitted() {
+        decorated.waitForAllSubmitted();
     }
 }

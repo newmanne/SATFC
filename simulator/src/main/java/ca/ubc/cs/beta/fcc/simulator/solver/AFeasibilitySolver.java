@@ -11,11 +11,4 @@ public abstract class AFeasibilitySolver implements IFeasibilitySolver {
     public AFeasibilitySolver() {
     }
 
-    @Override
-    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
-        solve(problem, callback);
-    }
-
-    protected abstract void solve(SimulatorProblemReader.SATFCProblemSpecification problemSpecification, SATFCCallback callback);
-
 }

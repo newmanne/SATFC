@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.prices;
 
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
@@ -21,7 +22,9 @@ public class PricesImpl implements IPrices {
     }
 
     public double getPrice(IStationInfo station, Band band) {
-        return prices.get(station, band);
+        Double price = prices.get(station, band);
+        Preconditions.checkNotNull(price, "No price for %s on %s", station, band);
+        return price;
     }
 
 }
