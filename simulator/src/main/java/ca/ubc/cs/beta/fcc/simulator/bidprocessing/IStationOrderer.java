@@ -6,12 +6,13 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by newmanne on 2016-07-27.
  */
 public interface IStationOrderer {
 
-    List<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder);
+    List<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder, Map<IStationInfo, Double> previousPrices);
 
 }

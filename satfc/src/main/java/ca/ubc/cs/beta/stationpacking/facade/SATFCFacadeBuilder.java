@@ -363,6 +363,10 @@ public class SATFCFacadeBuilder {
     private static final String LOGBACK_CONFIGURATION_FILE_PROPERTY = "logback.configurationFile";
 
     public static void initializeLogging(Level logLevel, String logFileName) {
+        initializeLogging(logLevel, logFileName, "logback_satfc.groovy");
+    }
+
+    public static void initializeLogging(Level logLevel, String logFileName, String logbackFileName) {
         if (logInitialized) {
             return;
         }
@@ -370,7 +374,7 @@ public class SATFCFacadeBuilder {
             Logger log = LoggerFactory.getLogger(SATFCFacade.class);
             log.debug("System property for logback.configurationFile has been found already set as {} , logging will follow this file.", System.getProperty(LOGBACK_CONFIGURATION_FILE_PROPERTY));
         } else {
-            String logback = Resources.getResource("logback_satfc.groovy").toString();
+            String logback = Resources.getResource(logbackFileName).toString();
             System.setProperty("SATFC.root.log.level", logLevel.toString());
             if (logFileName != null) {
                 System.setProperty("SATFC.log.filename", logFileName);

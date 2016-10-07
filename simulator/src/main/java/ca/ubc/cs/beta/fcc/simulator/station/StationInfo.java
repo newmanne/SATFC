@@ -25,7 +25,6 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 /**
  * Created by newmanne on 2016-05-20.
  */ // Class to store attributes of a station that do not change during the course of the simulation
-@ToString
 @Slf4j
 public class StationInfo implements IStationInfo {
 
@@ -72,7 +71,6 @@ public class StationInfo implements IStationInfo {
     public Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand) {
         Preconditions.checkState(offers.get(homeBand) == 0, "Station being offered compensation for exiting!");
         final Map<Band, Double> utilityOffers = offers.entrySet().stream().collect(toImmutableMap(Map.Entry::getKey, s -> getUtility(s.getKey(), s.getValue())));
-        log.info("Offers in utility {}", utilityOffers);
         final Ordering<Band> primaryOrder = Ordering.natural().onResultOf(Functions.forMap(utilityOffers));
         final Ordering<Band> compound = primaryOrder.compound(Comparator.comparingInt(Band::ordinal));
         final ArrayList<Band> bestOffers = Lists.newArrayList(ImmutableSortedMap.copyOf(offers, compound).descendingKeySet());
@@ -93,6 +91,11 @@ public class StationInfo implements IStationInfo {
     // An option we can guarentee works
     private boolean safeOption(Band band, Band currentBand) {
         return band.equals(getHomeBand()) || band.equals(currentBand);
+    }
+
+    @Override
+    public String toString() {
+        return call + " (" + Integer.toString(id) + ", " + homeBand + ")";
     }
 
     @Override

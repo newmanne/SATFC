@@ -11,6 +11,7 @@ import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.decorator.GreedyFirstSolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SATFCProblemSpecGeneratorImpl;
@@ -19,11 +20,15 @@ import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.*;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
+import ca.ubc.cs.beta.stationpacking.facade.InternalSATFCConfigFile;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -131,6 +136,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     public void setUp() {
         log = LoggerFactory.getLogger(Simulator.class);
+        RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
@@ -239,7 +245,7 @@ public class SimulatorParameters extends AbstractOptions {
     private StationDB stationDB;
 
     public IFeasibilitySolver createSolver() {
-        final IFeasibilitySolver solver;
+        IFeasibilitySolver solver;
         switch (solverType) {
             case LOCAL:
                 log.info("Using a local based solver");

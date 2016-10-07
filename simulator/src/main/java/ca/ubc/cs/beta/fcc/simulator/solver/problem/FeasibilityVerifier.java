@@ -52,6 +52,7 @@ public class FeasibilityVerifier implements IFeasibilityVerifier {
      * @return true if and only if the input mapping is feasible
      */
     public boolean isFeasibleAssignment (Map<Integer, Integer> stationToChannel) {
+        // TODO: if this is only being used for vacancies, this is a <really> expensive check!
         return StationPackingUtils.weakVerify(stationManager, constraintManager, stationToChannel);
     }
 

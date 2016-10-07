@@ -18,6 +18,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilityVerifier;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.FeasibilityVerifier;
+import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
@@ -50,10 +51,11 @@ public class MultiBandAuctioneer {
     public static void main(String[] args) throws Exception {
         final MultiBandSimulatorParameters parameters = new MultiBandSimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
-        SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
+        SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName, "simulator_logback.groovy");
         JCommanderHelper.logCallString(args, Simulator.class);
         log = LoggerFactory.getLogger(MultiBandAuctioneer.class);
         parameters.setUp();
+        final IStateSaver stateSaver = parameters.getStateSaver();
 
         log.info("Building solver");
 
@@ -148,19 +150,14 @@ public class MultiBandAuctioneer {
         );
 
         final IFeasibilityVerifier feasibilityVerifier = new FeasibilityVerifier(parameters.getConstraintManager(), parameters.getStationManager());
-//        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
-//                participation,
-//                feasibilityVerifier,
-//                parameters.getConstraintManager(),
-//                parameters.getVacFloor(),
-//                Runtime.getRuntime().availableProcessors()
-//        );
-        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator.SequentialVacancyCalculator(
-                feasibilityVerifier,
+        final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
                 participation,
+                feasibilityVerifier,
                 parameters.getConstraintManager(),
-                parameters.getVacFloor()
+                parameters.getVacFloor(),
+                Runtime.getRuntime().availableProcessors()
         );
+
 
         final MultiBandSimulator simulator = new MultiBandSimulator(
                 MultiBandSimulatorParameter
@@ -177,14 +174,14 @@ public class MultiBandAuctioneer {
 
         log.info("Starting simulation!");
         while (true) {
-            final LadderAuctionState nextState = simulator.executeRound(state);
+            state = simulator.executeRound(state);
+            stateSaver.saveState(stationDB, state.getPrices(), participation, state.getAssignment(), state.getRound(), feasibilityResultDistribution.histogram(), timeTracker, ladder);
             // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
             if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
                 log.info("All stations have exited or are provisional winners. Ending simulation");
                 break;
             }
             // TODO: write out state to file here
-            state = nextState;
         }
 
 //        log.info("Final state:" + System.lineSeparator() + "{}", state);

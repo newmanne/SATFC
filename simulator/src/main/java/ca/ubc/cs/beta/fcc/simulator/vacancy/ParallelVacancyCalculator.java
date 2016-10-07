@@ -62,8 +62,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             @NonNull final ILadder ladder,
             @NonNull final Map<Integer, Integer> assignment
     ) {
-        // TODO: neighborindex isn't threadsafe...
-        final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighborIndexMap = sequentialVacancyCalculator.getBandNeighborIndexMap(ladder);
+        final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = sequentialVacancyCalculator.getBandNeighborIndexMap(ladder);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
         final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
         try {
@@ -106,7 +105,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
 
         @Override
         public ImmutableTable<IStationInfo, Band, Double> computeVacancies(@NonNull Collection<IStationInfo> stations, @NonNull ILadder ladder, @NonNull Map<Integer, Integer> assignment) {
-            final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods = getBandNeighborIndexMap(ladder);
+            final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods = getBandNeighborIndexMap(ladder);
             final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
             for (IStationInfo station : stations) {
                 for (Band band : ladder.getAirBands()) {
@@ -117,9 +116,9 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             return builder.build();
         }
 
-        private Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> getBandNeighborIndexMap(@NonNull ILadder ladder) {
+        private ImmutableTable<IStationInfo, Band, Set<IStationInfo>> getBandNeighborIndexMap(@NonNull ILadder ladder) {
             // Calculate band neighbourhooods
-            final Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods = new HashMap<>();
+            final ImmutableTable.Builder<IStationInfo, Band, Set<IStationInfo>> builder = ImmutableTable.builder();
             for (Band band : ladder.getAirBands()) {
                 final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
                         .collect(Collectors.toMap(IStationInfo::toSATFCStation, s -> s.getDomain(band)));
@@ -127,9 +126,11 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 final Map<Station, IStationInfo> stationToInfo = HashBiMap.create(ladder.getStations().stream().collect(Collectors.toMap(s -> s, IStationInfo::toSATFCStation))).inverse();
                 final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
                 final NeighborIndex<IStationInfo, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-                bandNeighbourhoods.put(band, neighborIndex);
+                for (IStationInfo s: stationToInfo.values()) {
+                    builder.put(s, band, neighborIndex.neighborsOf(s));
+                }
             }
-            return bandNeighbourhoods;
+            return builder.build();
         }
 
         public double computeVacancy(
@@ -137,12 +138,12 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 @NonNull final Band band,
                 @NonNull final ILadder ladder,
                 @NonNull final Map<Integer, Integer> assignment,
-                @NonNull Map<Band, NeighborIndex<IStationInfo, DefaultEdge>> bandNeighbourhoods) {
+                @NonNull final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
             log.trace("Calculating vacancy for station {} on band {}.", station, band);
 
             // Get active stations which could possibly interfere with station
-            Set<IStationInfo> neighbours = bandNeighbourhoods.get(band).neighborsOf(station)
+            Set<IStationInfo> neighbours = bandNeighbourhoods.get(station, band)
                     .stream()
                     .filter(participationRecord::isActive)
                     .filter(neighbour -> ladder.getPossibleMoves(neighbour).contains(band))

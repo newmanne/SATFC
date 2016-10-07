@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
+import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
@@ -58,6 +59,7 @@ public class SaveStateToFile implements IStateSaver {
     public static class StationState {
         double price;
         Participation participation;
+        Band option;
     }
 
     String folder;
@@ -68,12 +70,15 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public void saveState(StationDB stationDB, IPrices prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker) {
+    public void saveState(StationDB stationDB, Map<IStationInfo, Double> prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker, ILadder ladder) {
         final String fileName = folder + File.separator + "state_" + round + ".json";
         final Map<Integer, StationState> state = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
             final StationState stationState = StationState.builder()
-                    .price(prices.getPrice(s, Band.UHF))
+                    .price(prices.get(s))
+                    // backwards compatibilty...
+                    .option(ladder != null ? ladder.getStationBand(s) : prices.get(s) > 0 ? Band.OFF : Band.UHF)
+                    // TODO: offers
                     .participation(participation.getParticipation(s))
                     .build();
             state.put(s.getId(), stationState);

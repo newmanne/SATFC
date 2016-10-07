@@ -170,7 +170,11 @@ public class Simulator {
             }
 
             log.info("Saving state for round {}", round);
-            stateSaver.saveState(stationDB, prices, participation, assignment, round.get(), feasibilityResultDistribution.histogram(), timeTracker);
+            final Map<IStationInfo, Double> pricesMap = new HashMap<>();
+            for (IStationInfo s: stationDB.getStations()) {
+                pricesMap.put(s, prices.getPrice(s, Band.UHF));
+            }
+            stateSaver.saveState(stationDB, pricesMap, participation, assignment, round.get(), feasibilityResultDistribution.histogram(), timeTracker, null);
             log.info("Reporting timing info for round {}", round);
             timeTracker.report();
             feasibilityResultDistribution.report();

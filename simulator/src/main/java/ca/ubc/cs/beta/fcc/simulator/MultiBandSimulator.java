@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator;
 
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.IStationOrderer;
+import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IFeasibilityStateHolder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
@@ -70,15 +71,7 @@ public class MultiBandSimulator {
         this.unconstrainedChecker = parameters.getUnconstrainedChecker();
         stepReductionCoefficientCalculator = new StepReductionCoefficientCalculator(this.parameters.getOpeningBenchmarkPrices());
         this.previousAssignmentHandler = parameters.getPreviousAssignmentHandler();
-        // TODO: fixme
-        this.stationOrderer = new IStationOrderer() {
-            @Override
-            public List<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder) {
-                final ArrayList<IStationInfo> s = new ArrayList<>(stations);
-                Collections.shuffle(s);
-                return s;
-            }
-        };
+        this.stationOrderer = new StationOrdererImpl();
         // TODO: calculate the interference compononent manually? (i.e. manual volume calculation)
     }
 
@@ -89,21 +82,21 @@ public class MultiBandSimulator {
         return Math.floor(station.getVolume() * nonVolumeWeightedActual);
     }
 
-    public LadderAuctionState executeRound(LadderAuctionState state) {
-        final int round = state.getRound() + 1;
+    public LadderAuctionState executeRound(LadderAuctionState previousState) {
+        final int round = previousState.getRound() + 1;
         log.info("Starting round {}", round);
-        final Map<IStationInfo, Double> stationPrices = new HashMap<>(state.getPrices());
+        final Map<IStationInfo, Double> stationPrices = new HashMap<>(previousState.getPrices());
 
-        final IModifiableLadder ladder = state.getLadder();
+        final IModifiableLadder ladder = previousState.getLadder();
 
-        final double oldBaseClockPrice = state.getBaseClockPrice();
+        final double oldBaseClockPrice = previousState.getBaseClockPrice();
 
-        final IPrices oldBenchmarkPrices = state.getBenchmarkPrices();
+        final IPrices oldBenchmarkPrices = previousState.getBenchmarkPrices();
         final IPrices newBechmarkPrices = pricesFactory.create();
-        final ParticipationRecord participation = state.getParticipation();
+        final ParticipationRecord participation = previousState.getParticipation();
         final IPrices actualPrices = pricesFactory.create();
 
-        previousAssignmentHandler.updatePreviousAssignment(state.getAssignment());
+        previousAssignmentHandler.updatePreviousAssignment(previousState.getAssignment());
 
         log.info("Computing vacancies...");
         final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousAssignmentHandler.getPreviousAssignment());
@@ -149,7 +142,7 @@ public class MultiBandSimulator {
         log.info("Processing bids");
         // BID PROCESSING
         // TODO: very confused about sort order
-        final List<IStationInfo> stationsToQuery = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder);
+        final List<IStationInfo> stationsToQuery = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder, previousState.getPrices());
         boolean finished = false;
         while (!finished) {
             finished = true;
