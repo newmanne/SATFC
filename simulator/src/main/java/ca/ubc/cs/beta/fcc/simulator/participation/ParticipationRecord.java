@@ -67,7 +67,7 @@ public class ParticipationRecord {
     }
 
     public boolean isActive(IStationInfo station) {
-        return getActiveStations().contains(station);
+        return Participation.ACTIVE.contains(getParticipation(station));
     }
 
 }

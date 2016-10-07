@@ -14,10 +14,8 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.SimplePreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilityVerifier;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.FeasibilityVerifier;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
@@ -45,6 +43,8 @@ import java.util.Set;
  * Created by newmanne on 2016-09-27.
  */
 public class MultiBandAuctioneer {
+
+    // TODO: load from failed state
 
     private static Logger log;
 
@@ -149,10 +149,8 @@ public class MultiBandAuctioneer {
             openingPricesPerUnitVolume.get(Band.OFF)
         );
 
-        final IFeasibilityVerifier feasibilityVerifier = new FeasibilityVerifier(parameters.getConstraintManager(), parameters.getStationManager());
         final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
                 participation,
-                feasibilityVerifier,
                 parameters.getConstraintManager(),
                 parameters.getVacFloor(),
                 Runtime.getRuntime().availableProcessors()

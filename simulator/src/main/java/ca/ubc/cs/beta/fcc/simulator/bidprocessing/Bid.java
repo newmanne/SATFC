@@ -10,4 +10,9 @@ import lombok.Value;
 public class Bid {
     private final Band preferredOption;
     private final Band fallbackOption;
+
+    public static boolean isSafe(Band bidBand, Band current, Band home) {
+        return bidBand.equals(home) || bidBand.equals(current);
+    }
+
 }

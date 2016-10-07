@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.vacancy;
 
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
+import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import com.google.common.collect.ImmutableTable;
@@ -18,6 +19,6 @@ import java.util.Map;
 
 public interface IVacancyCalculator {
 
-    ImmutableTable<IStationInfo, Band, Double> computeVacancies(Collection<IStationInfo> stations, ILadder aLadder, Map<Integer, Integer> aCurrentChannelAssignment);
+    ImmutableTable<IStationInfo, Band, Double> computeVacancies(Collection<IStationInfo> stations, ILadder aLadder, Map<Integer, Integer> aCurrentChannelAssignment, IPrices previousBenchmarkPrices);
 
 }

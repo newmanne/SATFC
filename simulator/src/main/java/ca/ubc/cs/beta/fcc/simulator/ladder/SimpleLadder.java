@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.NonNull;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class SimpleLadder implements IModifiableLadder {
     @Override
     public ImmutableList<Band> getPossibleMoves(@NonNull IStationInfo station) {
         final Band band = getStationBand(station);
-        return bands.stream().filter(b -> b.isAboveOrEqualTo(band) && b.isBelowOrEqualTo(station.getHomeBand())).collect(toImmutableList());
+        return ImmutableList.copyOf(Band.values()).subList(band.ordinal(), station.getHomeBand().ordinal() + 1);
     }
 
     @Override

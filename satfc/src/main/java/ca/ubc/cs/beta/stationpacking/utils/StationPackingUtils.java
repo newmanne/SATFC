@@ -70,11 +70,15 @@ public class StationPackingUtils {
     }
 
     public static Map<Integer, Set<Station>> channelToStationFromStationToChannel(Map<Integer, Integer> stationToChannel) {
+        return Multimaps.asMap(channelToStationFromStationToChannelAsMultimap(stationToChannel));
+    }
+
+    public static HashMultimap<Integer, Station> channelToStationFromStationToChannelAsMultimap(Map<Integer, Integer> stationToChannel) {
         final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
         stationToChannel.entrySet().forEach(entry -> {
             channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
         });
-        return Multimaps.asMap(channelAssignment);
+        return channelAssignment;
     }
 
     public static boolean weakVerify(IStationManager stationManager, IConstraintManager constraintManager, Map<Integer, Integer> solution) {

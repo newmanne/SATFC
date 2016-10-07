@@ -76,21 +76,16 @@ public class StationInfo implements IStationInfo {
         final ArrayList<Band> bestOffers = Lists.newArrayList(ImmutableSortedMap.copyOf(offers, compound).descendingKeySet());
         final Band primary = bestOffers.get(0);
         Band fallback = null;
-        if (!safeOption(primary, currentBand)) {
+        if (!Bid.isSafe(primary, currentBand, getHomeBand())) {
             int i = 1;
             fallback = bestOffers.get(i);
-            while (!safeOption(fallback, currentBand)) {
+            while (!Bid.isSafe(fallback, currentBand, getHomeBand())) {
                 i++;
                 fallback = bestOffers.get(i);
             }
         }
-        Preconditions.checkState((fallback == null && safeOption(primary, currentBand)) || safeOption(fallback, currentBand));
+        Preconditions.checkState((fallback == null && Bid.isSafe(primary, currentBand, getHomeBand())) || Bid.isSafe(fallback, currentBand, getHomeBand()));
         return new Bid(primary, fallback);
-    }
-
-    // An option we can guarentee works
-    private boolean safeOption(Band band, Band currentBand) {
-        return band.equals(getHomeBand()) || band.equals(currentBand);
     }
 
     @Override
