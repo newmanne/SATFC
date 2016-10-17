@@ -22,6 +22,7 @@ public enum Participation {
     public static final Set<Participation> NON_ZERO_PRICES = ImmutableSet.copyOf(Sets.union(ACTIVE, ImmutableSet.of(FROZEN_PROVISIONALLY_WINNING)));
 
     public static final Set<Participation> EXITED = ImmutableSet.of(EXITED_NOT_NEEDED, EXITED_NOT_PARTICIPATING, EXITED_VOLUNTARILY);
+    // note this is a slight miuse from the way it's defined in 5.4 of Appendix D
     public static final Set<Participation> INACTIVE = ImmutableSet.copyOf(Sets.union(EXITED, ImmutableSet.of(FROZEN_PROVISIONALLY_WINNING)));
 
 }

@@ -18,7 +18,7 @@ import java.util.Set;
  */
 public class AFeasibilitySolverDecorator extends AFeasibilitySolver {
 
-    private final IFeasibilitySolver decorated;
+    protected final IFeasibilitySolver decorated;
 
     public AFeasibilitySolverDecorator(IFeasibilitySolver decorated) {
         this.decorated = decorated;

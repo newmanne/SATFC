@@ -4,7 +4,6 @@ import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.IStationOrderer;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IFeasibilityStateHolder;
-import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.LadderAuctionParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameter;
@@ -22,10 +21,15 @@ import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
@@ -44,7 +48,6 @@ import static java.lang.Math.min;
 @Slf4j
 public class MultiBandSimulator {
 
-    // TODO: how to leverage parallellism / caching
     private final IVacancyCalculator vacancyCalculator;
     private final IFeasibilityStateHolder problemMaker;
     private final IFeasibilitySolver solver;
@@ -59,6 +62,8 @@ public class MultiBandSimulator {
     private final ISimulatorUnconstrainedChecker unconstrainedChecker;
 
     private final LadderAuctionParameters parameters;
+    private final IStationManager stationManager;
+    private final IConstraintManager constraintManager;
 
     public MultiBandSimulator(MultiBandSimulatorParameter parameters) {
         this.parameters = parameters.getParameters();
@@ -70,6 +75,8 @@ public class MultiBandSimulator {
         stepReductionCoefficientCalculator = new StepReductionCoefficientCalculator(this.parameters.getOpeningBenchmarkPrices());
         this.previousAssignmentHandler = parameters.getPreviousAssignmentHandler();
         this.stationOrderer = new StationOrdererImpl();
+        this.stationManager = parameters.getStationManager();
+        this.constraintManager = parameters.getConstraintManager();
         // TODO: calculate the interference compononent manually? (i.e. manual volume calculation)
     }
 
@@ -86,9 +93,11 @@ public class MultiBandSimulator {
         final IPrices newBenchmarkPrices = pricesFactory.create();
         final IPrices actualPrices = pricesFactory.create();
 
-        // TODO: Why not make these fields? Seems like you just reuse them anyways
+        // TODO: Why not make these fields? Seems like you just reuse them anyways and could make method calls cleaner
         final IModifiableLadder ladder = previousState.getLadder();
         final ParticipationRecord participation = previousState.getParticipation();
+
+        Preconditions.checkState(StationPackingUtils.weakVerify(stationManager, constraintManager, previousState.getAssignment()), "Round started on an invalid assignment!", previousState.getAssignment());
         previousAssignmentHandler.updatePreviousAssignment(previousState.getAssignment());
 
         log.info("Computing vacancies...");
@@ -121,7 +130,7 @@ public class MultiBandSimulator {
         final Map<IStationInfo, Bid> stationToBid = new HashMap<>();
         for (IStationInfo station : biddingStations) {
             log.debug("Asking station {} to submit a bid", station);
-            final ImmutableMap<Band, Double> offers = actualPrices.getPrices(station, ladder.getPossibleMoves(station));
+            final Map<Band, Double> offers = actualPrices.getOffers(station);
             log.debug("Prices are {}:", offers);
             Preconditions.checkState(offers.get(station.getHomeBand()) == 0, "Station %s is being offered money %s to go to its home band!", station, offers.get(station.getHomeBand()));
             final Bid bid = station.queryPreferredBand(offers, ladder.getStationBand(station));
@@ -131,7 +140,8 @@ public class MultiBandSimulator {
         }
 
         log.info("Processing bids");
-        final List<IStationInfo> stationsToQuery = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder, previousState.getPrices());
+        final ImmutableList<IStationInfo> stationsToQueryOrdering = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder, previousState.getPrices());
+        final List<IStationInfo>  stationsToQuery = new ArrayList<>(stationsToQueryOrdering);
         boolean finished = false;
         while (!finished) {
             finished = true;
@@ -140,7 +150,8 @@ public class MultiBandSimulator {
                 final IStationInfo station = stationsToQuery.get(i);
                 final Band homeBand = station.getHomeBand();
                 log.debug("Checking if {} is feasible on its home band of {}", station, homeBand);
-                final SATFCResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand()));
+                final String problemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_PROCESSING_HOME_BAND_FEASIBILITY, station.getId(), station.getHomeBand());
+                final SATFCResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), problemName));
                 final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(homeBandFeasibility);
                 log.debug("{}", homeBandFeasibility.getResult());
                 if (isFeasibleInHomeBand) {
@@ -152,7 +163,8 @@ public class MultiBandSimulator {
                     SATFCResult moveFeasibility = null;
                     if (!Bid.isSafe(bid.getPreferredOption(), ladder.getStationBand(station), station.getHomeBand())) {
                         log.debug("Bid to move bands (without dropping out) - Need to test move feasibility");
-                        moveFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, bid.getPreferredOption()));
+                        final String moveProblemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_PROCESSING_MOVE_FEASIBILITY, station.getId(), bid.getPreferredOption());
+                        moveFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, bid.getPreferredOption(), moveProblemName));
                         resortToFallbackBid = !SimulatorUtils.isFeasible(moveFeasibility);
                     }
                     if (resortToFallbackBid) {
@@ -185,7 +197,8 @@ public class MultiBandSimulator {
         }
         for (final IStationInfo stationInfo : participation.getActiveStations()) {
             if (!stationToFeasibleInHomeBand.containsKey(stationInfo)) {
-                solver.getFeasibility(problemMaker.makeProblem(stationInfo, stationInfo.getHomeBand()), new SATFCCallback() {
+                final String problemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_STATUS_UPDATING_HOME_BAND_FEASIBILITY, stationInfo.getId(), stationInfo.getHomeBand());
+                solver.getFeasibility(problemMaker.makeProblem(stationInfo, stationInfo.getHomeBand(), problemName), new SATFCCallback() {
                     @Override
                     public void onSuccess(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCResult result) {
                         stationToFeasibleInHomeBand.put(stationInfo, result);
@@ -195,56 +208,77 @@ public class MultiBandSimulator {
         }
         solver.waitForAllSubmitted();
 
-        // Need to check in descending band order (UHF -> OFF)
-        final Comparator<IStationInfo> bandOrder = Comparator.comparingInt(s -> s.getHomeBand().ordinal());
-        final List<IStationInfo> stationsToCheck = stationToFeasibleInHomeBand.keySet().stream()
-                .sorted(bandOrder.reversed())
-                .collect(Collectors.toList());
-        for (final IStationInfo station : stationsToCheck) {
-            boolean feasibleInHomeBand = SimulatorUtils.isFeasible(stationToFeasibleInHomeBand.get(station));
-            final Participation bidStatus = participation.getParticipation(station);
-
-            // Not feasible in pre-auction band and was not provisionally winning
-            if (!feasibleInHomeBand && !bidStatus.equals(Participation.FROZEN_PROVISIONALLY_WINNING)) {
-                // Is it provisionally winning?
-                if (station.getHomeBand().equals(Band.UHF)) {
-                    makeProvisionalWinner(participation, station, stationPrices.get(station));
-                } else {
-                    // Provisionally winning if cannot assign s, all exited in s's home band, and all provisionally winning with home bands above currently assigned to s's home band
-                    final Set<IStationInfo> provisionalWinnerProblemStationSet = Sets.newHashSet(station);
-                    provisionalWinnerProblemStationSet.addAll(
-                            participation.getMatching(Participation.INACTIVE).stream()
-                                    .filter(s -> ladder.getStationBand(s).equals(station.getHomeBand()))
-                                    .collect(Collectors.toSet())
-                    );
-                    final SATFCResult provisionalWinnerCheck = solver.getFeasibilityBlocking(problemMaker.makeProblem(provisionalWinnerProblemStationSet, station.getHomeBand()));
-                    if (!SimulatorUtils.isFeasible(provisionalWinnerCheck)) {
+        log.info("Checking for provisional winners");
+        final Map<Band, List<Map.Entry<IStationInfo, SATFCResult>>> bandListMap = stationToFeasibleInHomeBand.entrySet().stream().collect(Collectors.groupingBy(entry -> entry.getKey().getHomeBand()));
+        // Do this in descending band order because this will catch the most provisional winners the earliest. E.g. flagging a UHF station as PW means it participates in VHF problems.
+        // We can solve each "home band" in parallel
+        for (final Band band : bandListMap.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
+            final List<Map.Entry<IStationInfo, SATFCResult>> bandList = bandListMap.get(band);
+            for (Map.Entry<IStationInfo, SATFCResult> entry : bandList) {
+                final IStationInfo station = entry.getKey();
+                boolean feasibleInHomeBand = SimulatorUtils.isFeasible(entry.getValue());
+                final Participation bidStatus = participation.getParticipation(station);
+                if (!feasibleInHomeBand && !bidStatus.equals(Participation.FROZEN_PROVISIONALLY_WINNING)) {
+                    if (station.getHomeBand().equals(Band.UHF)) {
                         makeProvisionalWinner(participation, station, stationPrices.get(station));
+                    } else {
+                        // Need to do a provisional winner check
+                        // Provisionally winning if cannot assign s, all exited in s's home band, and all provisionally winning with home bands above currently assigned to s's home band
+                        final Set<IStationInfo> provisionalWinnerProblemStationSet = Sets.newHashSet(station);
+                        provisionalWinnerProblemStationSet.addAll(
+                                participation.getMatching(Participation.INACTIVE).stream()
+                                        .filter(s -> ladder.getStationBand(s).equals(station.getHomeBand()))
+                                        .collect(Collectors.toSet())
+                        );
+                        final String problemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.PROVISIONAL_WINNER_CHECK, station.getId(), station.getHomeBand());
+                        solver.getFeasibility(problemMaker.makeProblem(provisionalWinnerProblemStationSet, station.getHomeBand(), problemName), new SATFCCallback() {
+                            @Override
+                            public void onSuccess(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCResult result) {
+                                if (!SimulatorUtils.isFeasible(result)) {
+                                    makeProvisionalWinner(participation, station, stationPrices.get(station));
+                                }
+                            }
+                        });
                     }
                 }
-            } else if (feasibleInHomeBand) {
-                // for every active station feasible in home band check if is not needed
-                if (unconstrainedChecker.isUnconstrained(station, ladder)) {
-                    exitStation(station, Participation.EXITED_NOT_NEEDED, stationToFeasibleInHomeBand.get(station).getWitnessAssignment(), participation, ladder, stationPrices);
-                }
             }
+            solver.waitForAllSubmitted();
+        }
 
-            if (participation.isActive(station)) {
-                participation.setParticipation(station, feasibleInHomeBand ? Participation.BIDDING : Participation.FROZEN_CURRENTLY_INFEASIBLE);
+        // TODO: Does the order in which I perform these exited station checks matter? Ask!
+        log.info("Checking for unconstrained stations");
+        for (final Band band : bandListMap.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
+            final List<Map.Entry<IStationInfo, SATFCResult>> bandList = bandListMap.get(band);
+            for (Map.Entry<IStationInfo, SATFCResult> entry : bandList) {
+                final IStationInfo station = entry.getKey();
+                boolean feasibleInHomeBand = SimulatorUtils.isFeasible(entry.getValue());
+                if (feasibleInHomeBand) {
+                    // for every active station feasible in home band check if is not needed
+                    if (unconstrainedChecker.isUnconstrained(station, ladder)) {
+                        exitStation(station, Participation.EXITED_NOT_NEEDED, stationToFeasibleInHomeBand.get(station).getWitnessAssignment(), participation, ladder, stationPrices);
+                    }
+                }
+                if (participation.isActive(station)) {
+                    participation.setParticipation(station, feasibleInHomeBand ? Participation.BIDDING : Participation.FROZEN_CURRENTLY_INFEASIBLE);
+                }
             }
         }
 
         log.info("Round {} complete", round);
 
-        return new LadderAuctionState(
-                newBenchmarkPrices,
-                participation,
-                round,
-                previousAssignmentHandler.getPreviousAssignment(),
-                ladder,
-                stationPrices,
-                newBaseClockPrice
-        );
+        return LadderAuctionState.builder()
+                .benchmarkPrices(newBenchmarkPrices)
+                .participation(participation)
+                .round(round)
+                .assignment(previousAssignmentHandler.getPreviousAssignment())
+                .ladder(ladder)
+                .prices(stationPrices)
+                .baseClockPrice(newBaseClockPrice)
+                .vacancies(vacancies)
+                .reductionCoefficients(reductionCoefficients)
+                .offers(actualPrices)
+                .bidProcessingOrder(stationsToQueryOrdering)
+                .build();
     }
 
     private double benchmarkToActualPrice(IStationInfo station, Band band, Map<Band, Double> benchmarkPrices) {

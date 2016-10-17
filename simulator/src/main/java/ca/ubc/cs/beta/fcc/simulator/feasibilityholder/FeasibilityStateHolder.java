@@ -34,15 +34,15 @@ public class FeasibilityStateHolder implements IFeasibilityStateHolder {
     private final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator;
 
     @Override
-    public SimulatorProblemReader.SATFCProblemSpecification makeProblem(IStationInfo station, Band band) {
+    public SimulatorProblemReader.SATFCProblemSpecification makeProblem(IStationInfo station, Band band, String name) {
         final ImmutableSet<IStationInfo> bandStations = ladder.getBandStations(band);
         // Add s
         final ImmutableSet<IStationInfo> sSet = ImmutableSet.of(station);
         final ImmutableSet<IStationInfo> plusS = ImmutableSet.copyOf(Sets.union(bandStations, sSet));
-        return makeProblem(plusS, band);
+        return makeProblem(plusS, band, name);
     }
 
-    public SimulatorProblemReader.SATFCProblemSpecification makeProblem(Set<IStationInfo> stations, Set<Band> bands) {
+    public SimulatorProblemReader.SATFCProblemSpecification makeProblem(Set<IStationInfo> stations, Set<Band> bands, String name) {
         final Map<Integer, Set<Integer>> domains = stations.stream().collect(toImmutableMap(
                 IStationInfo::getId,
                 s -> s.getDomain(bands)
@@ -51,8 +51,7 @@ public class FeasibilityStateHolder implements IFeasibilityStateHolder {
                 domains,
                 previousAssignmentHandler.getPreviousAssignment(domains)
         );
-        // TODO: add name. This is a relatively convenient spot in terms of knowing info, except for round
-        return problemSpecGenerator.createProblem(satfcProblem,  "TODO :)");
+        return problemSpecGenerator.createProblem(satfcProblem,  name);
     }
 
 }

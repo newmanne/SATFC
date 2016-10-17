@@ -6,6 +6,8 @@ import ca.ubc.cs.beta.fcc.simulator.prices.IPricesFactory;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.Data;
 import lombok.experimental.Builder;
 
@@ -23,5 +25,7 @@ public class MultiBandSimulatorParameter {
     private IPricesFactory pricesFactory;
     private IVacancyCalculator vacancyCalculator;
     private ISimulatorUnconstrainedChecker unconstrainedChecker;
+    private IStationManager stationManager;
+    private IConstraintManager constraintManager;
 
 }

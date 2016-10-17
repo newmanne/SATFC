@@ -9,6 +9,7 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -27,10 +28,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-05-25.
@@ -47,6 +46,7 @@ public class SaveStateToFile implements IStateSaver {
         Map<Integer, Integer> assignment;
         Map<Integer, StationState> state;
         Map<SATResult, Integer> feasibilityDistribution;
+        List<Integer> bidProcessingOrder;
         double cputime;
         double walltime;
     }
@@ -60,6 +60,9 @@ public class SaveStateToFile implements IStateSaver {
         double price;
         Participation participation;
         Band option;
+        Map<Band, Double> vacancies;
+        Map<Band, Double> reductionCoefficients;
+        Map<Band, Double> offers;
     }
 
     String folder;
@@ -70,28 +73,32 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public void saveState(StationDB stationDB, Map<IStationInfo, Double> prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker, ILadder ladder) {
-        final String fileName = folder + File.separator + "state_" + round + ".json";
-        final Map<Integer, StationState> state = new HashMap<>();
+    public void saveState(StationDB stationDB, LadderAuctionState state, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker) {
+        final String fileName = folder + File.separator + "state_" + state.getRound() + ".json";
+        final Map<Integer, StationState> stateByStation = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
-            final StationState stationState = StationState.builder()
-                    .price(prices.get(s))
-                    // backwards compatibilty...
-                    .option(ladder != null ? ladder.getStationBand(s) : prices.get(s) > 0 ? Band.OFF : Band.UHF)
-                    // TODO: offers
-                    .participation(participation.getParticipation(s))
-                    .build();
-            state.put(s.getId(), stationState);
+            final StationState.StationStateBuilder stationState = StationState.builder()
+                    .price(state.getPrices().get(s))
+                    .option(BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
+                    .offers(state.getOffers().getOffers(s))
+                    .participation(state.getParticipation().getParticipation(s));
+            if (state.getRound() > 0) {
+                stationState.vacancies(state.getVacancies().row(s))
+                            .reductionCoefficients(state.getReductionCoefficients().row(s));
+            }
+            stateByStation.put(s.getId(), stationState.build());
         }
-        final StateFile stateFile = StateFile.builder()
-                .assignment(assignment)
-                .state(state)
-                .round(round)
+        final StateFile.StateFileBuilder stateFile = StateFile.builder()
+                .assignment(state.getAssignment())
+                .state(stateByStation)
+                .round(state.getRound())
                 .feasibilityDistribution(feasibilityResultDistribution)
                 .cputime(timeTracker.getCputime().get())
-                .walltime(timeTracker.getWalltime().get())
-                .build();
-        final String json = JSONUtils.toString(stateFile);
+                .walltime(timeTracker.getWalltime().get());
+        if (state.getRound() > 0) {
+            stateFile.bidProcessingOrder(state.getBidProcessingOrder().stream().map(IStationInfo::getId).collect(Collectors.toList()));
+        }
+        final String json = JSONUtils.toString(stateFile.build());
         try {
             FileUtils.writeStringToFile(new File(fileName), json);
         } catch (IOException e) {

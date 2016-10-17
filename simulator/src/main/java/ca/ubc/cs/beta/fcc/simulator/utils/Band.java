@@ -3,6 +3,9 @@ package ca.ubc.cs.beta.fcc.simulator.utils;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
 
@@ -16,8 +19,19 @@ public enum Band implements Comparable<Band> {
     HVHF,
     UHF;
 
-    public ImmutableList<Band> getBandsBelowInclusive() {
-        return Arrays.stream(Band.values()).filter(b -> b.isBelowOrEqualTo(this)).collect(toImmutableList());
+    public List<Band> getBandsBelowInclusive(boolean ascendingOrder) {
+        final List<Band> bands = Arrays.stream(Band.values())
+                .filter(b -> b.isBelowOrEqualTo(this))
+                .sorted()
+                .collect(Collectors.toList());
+        if (!ascendingOrder) {
+            bands.sort(Comparator.<Band>naturalOrder().reversed());
+        }
+        return bands;
+    }
+
+    public List<Band> getBandsBelowInclusive() {
+        return getBandsBelowInclusive(true);
     }
 
     public boolean isVHF() {

@@ -11,7 +11,6 @@ import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.GreedyFirstSolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SATFCProblemSpecGeneratorImpl;
@@ -26,9 +25,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
-import ca.ubc.cs.beta.stationpacking.facade.InternalSATFCConfigFile;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -36,12 +32,10 @@ import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.csv.CSVRecord;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -172,7 +166,7 @@ public class SimulatorParameters extends AbstractOptions {
                 @Override
                 public void setValues(Set<StationInfo> stationInfos) {
                     for (StationInfo s : stationInfos) {
-                        final Map<Band, Double> values = new HashMap();
+                        final Map<Band, Double> values = new HashMap<>();
                         values.put(Band.OFF, 0.);
                         s.getHomeBand().getBandsBelowInclusive().stream().filter(b -> b.isAbove(Band.OFF)).sorted(Comparator.comparingInt(b -> b.ordinal())).forEach(b -> {
 //                            values.put()

@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public interface IStateSaver {
 
-    void saveState(StationDB stationDB, Map<IStationInfo, Double> prices, ParticipationRecord participation, Map<Integer, Integer> assignment, int round, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker, ILadder ladder);
+    void saveState(StationDB stationDB, LadderAuctionState state, Map<SATResult, Integer> feasibilityResultDistribution, TimeTracker timeTracker);
 
     AuctionState restoreState(StationDB stationDB);
 

@@ -20,6 +20,8 @@ public interface IPrices {
 
     double getPrice(IStationInfo station, Band band);
 
+    Map<Band, Double> getOffers(IStationInfo station);
+
     default ImmutableMap<Band, Double> getPrices(IStationInfo station, Collection<Band> bands) {
         return bands.stream().collect(toImmutableMap(band -> band, band -> getPrice(station, band)));
     }

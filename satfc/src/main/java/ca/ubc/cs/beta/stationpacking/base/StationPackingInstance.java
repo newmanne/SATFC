@@ -105,10 +105,7 @@ public class StationPackingInstance {
 	public Set<Integer> getAllChannels()
     {
 		Set<Integer> allChannels = new HashSet<>();
-		for(Set<Integer> channels : domains.values())
-		{
-			allChannels.addAll(channels);
-		}
+		domains.values().forEach(allChannels::addAll);
 		return allChannels;
 	}
 

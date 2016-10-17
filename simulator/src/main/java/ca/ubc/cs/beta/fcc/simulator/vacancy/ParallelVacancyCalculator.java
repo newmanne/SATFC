@@ -1,15 +1,11 @@
 package ca.ubc.cs.beta.fcc.simulator.vacancy;
 
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
-import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
-import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilityVerifier;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
-import ca.ubc.cs.beta.fcc.simulator.utils.GraphUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -24,14 +20,16 @@ import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static ca.ubc.cs.beta.fcc.simulator.utils.BigDecimalUtils.SUM;
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
 
 /**
