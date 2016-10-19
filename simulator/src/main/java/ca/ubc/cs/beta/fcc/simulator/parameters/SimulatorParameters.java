@@ -34,8 +34,10 @@ import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import humanize.Humanize;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -64,6 +66,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
     private String volumeFile = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
+
+    @Getter
+    @Parameter(names = "-VALUES-FILE", description = "values file")
+    private String valuesFile = "/ubc/cs/research/arrow/satfc/simulator/data/values_v2.csv";
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -106,7 +112,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
-    private String constraintSet = "032416SC46U";
+    private String constraintSet = "nov2015";
 
     @Getter
     @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
@@ -151,30 +157,19 @@ public class SimulatorParameters extends AbstractOptions {
         }
         problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
 
-        final IVolumeCalculator volumeCalculator;
+        IVolumeCalculator volumeCalculator;
         if (isUnitVolume()) {
             volumeCalculator = new UnitVolumeCalculator();
         } else {
             volumeCalculator = new CSVVolumeCalculator(volumeFile);
         }
+        volumeCalculator = new NormalizingVolumeDecorator(volumeCalculator);
 
         final IValueCalculator valueCalculator;
         if (isUnitValue()) {
             valueCalculator = new UnitValueCalculator();
         } else {
-            valueCalculator = new IValueCalculator() {
-                @Override
-                public void setValues(Set<StationInfo> stationInfos) {
-                    for (StationInfo s : stationInfos) {
-                        final Map<Band, Double> values = new HashMap<>();
-                        values.put(Band.OFF, 0.);
-                        s.getHomeBand().getBandsBelowInclusive().stream().filter(b -> b.isAbove(Band.OFF)).sorted(Comparator.comparingInt(b -> b.ordinal())).forEach(b -> {
-//                            values.put()
-                        });
-                        s.setValues(values);
-                    }
-                }
-            };
+            valueCalculator = new CSVValueReader(valuesFile);
         }
 
         final List<IPredicateFactory> ignorePredicateFactories = new ArrayList<>();
@@ -182,6 +177,16 @@ public class SimulatorParameters extends AbstractOptions {
         ignorePredicateFactories.add(y -> x -> isUhfOnly() && !getStationManager().getDomain(new Station(x.getId())).stream().anyMatch(c -> c >= StationPackingUtils.UHFmin));
         if (city != null && nLinks >= 0) {
             ignorePredicateFactories.add(new CityAndLinksPrediateFactory(city, nLinks, getStationManager(), getConstraintManager()));
+        }
+        if (valueCalculator instanceof CSVValueReader) {
+            // Kill off anything we don't have values for in the CSV
+            ignorePredicateFactories.add(y -> x -> {
+                        boolean ignore = x.getNationality().equals(Nationality.US) && !((CSVValueReader) valueCalculator).hasValue(x.getId());
+                        if (ignore) {
+                            log.info("Ignoring station {} because we have no associated value in our values csv", x);
+                        }
+                        return ignore;
+                    });
         }
 
         final Function<IStationInfo, IStationInfo> decorators = Function.identity();
@@ -246,7 +251,7 @@ public class SimulatorParameters extends AbstractOptions {
                 solver = new LocalFeasibilitySolver(facadeParameters);
                 break;
             case DISTRIBUTED:
-                solver =  new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+                solver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
                 break;
             default:
                 throw new IllegalStateException();
@@ -331,7 +336,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     public interface IVolumeCalculator {
 
-        void setVolumes(Set<StationInfo> stationInfo);
+        Map<Integer, Double> getVolumes(Set<StationInfo> stations);
 
     }
 
@@ -354,10 +359,28 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
         @Override
-        public void setVolumes(Set<StationInfo> stationInfo) {
-            for (StationInfo s: stationInfo) {
-                s.setVolume(volumes.get(s.getId()));
+        public Map<Integer, Double> getVolumes(Set<StationInfo> stations) {
+            return volumes;
+        }
+    }
+
+    @RequiredArgsConstructor
+    public static class NormalizingVolumeDecorator implements IVolumeCalculator {
+
+        private final IVolumeCalculator decorated;
+
+        @Override
+        public Map<Integer, Double> getVolumes(Set<StationInfo> stations) {
+            final Map<Integer, Double> volumes = decorated.getVolumes(stations);
+            final Map<Integer, Double> normalized = new HashMap<>();
+
+
+            double max = volumes.values().stream().mapToDouble(x->x).max().getAsDouble();
+            for (Map.Entry<Integer, Double> entry : volumes.entrySet()) {
+                // TODO: volumes should be rounded to nearest integer
+                normalized.put(entry.getKey(), (entry.getValue() / max) * 1e6);
             }
+            return normalized;
         }
     }
 
@@ -408,34 +431,50 @@ public class SimulatorParameters extends AbstractOptions {
 
     }
 
-//    public static class CSVValueReader implements IValueCalculator {
-//
-//        public CSVValueReader() {
-////            new HashMap<>();
-////            final Map<String, String> recordAsMap = record.toMap();
-////            for (Band b : Band.values()) {
-////                if (recordAsMap.containsKey(b.toString() + "Value")) {
-////                    values.put(b, Double.parseDouble(recordAsMap.get(b.toString() + "Value")) * 1e6);
-////                }
-////            }
-////            if (values.isEmpty()) {
-////                // Backwards compatibility
-////                final String valueString = record.get("Value");
-////                Preconditions.checkState(!valueString.isEmpty());
-////                double value = Double.parseDouble(valueString) * 1e6;
-////                values.put(band, value);
-////            }
-////            Preconditions.checkState(values.size() > 0);
-////            values.put(Band.OFF, 0.);
-//        }
-//
-//        @Override
-//        public Map<Band, Double> get(int id) {
-//            return null;
-//        }
-//
-//    }
+    @Slf4j
+    public static class CSVValueReader implements IValueCalculator {
 
+        private final Map<Integer, Double> values;
+
+        public CSVValueReader(final String infoFile) {
+            log.info("Reading station values from {}", infoFile);
+            values = new HashMap<>();
+            final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
+            for (CSVRecord record : records) {
+                final int id = Integer.parseInt(record.get("FacID"));
+                final String valueString = record.get("Value");
+                Preconditions.checkState(!valueString.isEmpty());
+                double value = Double.parseDouble(valueString) * 1e6;
+                log.info("Value of {} for {}", Humanize.spellBigNumber(value), id);
+                values.put(id, value);
+            }
+        }
+
+        @Override
+        public void setValues(Set<StationInfo> stationInfos) {
+            for (StationInfo station : stationInfos) {
+                Double value = values.get(station.getId());
+                Preconditions.checkNotNull(value, "No value for station %s", station);
+                final Map<Band, Double> valueMap = new HashMap<>();
+                double frac = 1.0;
+                for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
+                    if (band.equals(Band.OFF)) {
+                        continue;
+                    }
+                    // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
+                    valueMap.put(band, value * frac);
+                    frac -= 1./3;
+                }
+                valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+                station.setValues(valueMap);
+            }
+        }
+
+        public boolean hasValue(int id) {
+            return values.containsKey(id);
+        }
+
+    }
 
 
 }

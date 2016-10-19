@@ -39,9 +39,9 @@ public class CSVStationDB implements StationDB {
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
             // Account for Canadian stations having a highest of 1 lower than the clearing target
             int stationHighest = nationality.equals(Nationality.US) ? highest : highest - 1;
-            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), stationHighest, uhfOnly));
+            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), stationHighest, false));
             if (domain.size() == 0) {
-                log.info("Station {} has no domain, skipping", id);
+                log.info("Station {} has no domain in channels 1-{}, skipping", id, highest);
                 continue;
             }
             final int channel = Integer.parseInt(record.get("Channel"));
@@ -55,16 +55,24 @@ public class CSVStationDB implements StationDB {
                 final Band band = BandHelper.toBand(channel);
                 stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop);
             }
+            if (!stationInfo.getHomeBand().equals(Band.UHF) && uhfOnly) {
+                log.info("Station {} is not a UHF station and the UHF only flag is set to true", stationInfo);
+                continue;
+            }
             stationInfo = decorate.apply(stationInfo);
             dataTmp.put(id, stationInfo);
         }
+        // TODO: should maybe do this sequentially so e.g. carries onwards
         final Predicate<IStationInfo> ignore = ignores.stream()
                 .map(p -> p.create(dataTmp))
                 .reduce(Predicate::or).get();
         data = ImmutableMap.copyOf(Maps.filterValues(dataTmp, x -> !ignore.test(x)));
         // ugly...
         final Set<StationInfo> americanStations = data.values().stream().filter(s -> s.getNationality().equals(Nationality.US)).map(s -> (StationInfo) s).collect(Collectors.toSet());
-        volumeCalculator.setVolumes(americanStations);
+        final Map<Integer, Double> volumes = volumeCalculator.getVolumes(americanStations);
+        for (StationInfo station : americanStations) {
+            station.setVolume(volumes.get(station.getId()));
+        }
         valueCalculator.setValues(americanStations);
         log.info("Finished reading stations");
         final Map<Band, List<IStationInfo>> collect = getStations().stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));

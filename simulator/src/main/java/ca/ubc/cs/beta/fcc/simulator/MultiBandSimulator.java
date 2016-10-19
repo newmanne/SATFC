@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
+import humanize.Humanize;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -151,7 +152,7 @@ public class MultiBandSimulator {
                 final Band homeBand = station.getHomeBand();
                 log.debug("Checking if {} is feasible on its home band of {}", station, homeBand);
                 final String problemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_PROCESSING_HOME_BAND_FEASIBILITY, station.getId(), station.getHomeBand());
-                final SATFCResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), problemName));
+                final SATFCResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, homeBand, problemName));
                 final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(homeBandFeasibility);
                 log.debug("{}", homeBandFeasibility.getResult());
                 if (isFeasibleInHomeBand) {
@@ -172,6 +173,7 @@ public class MultiBandSimulator {
                     }
                     final Band moveBand = resortToFallbackBid ? bid.getFallbackOption() : bid.getPreferredOption();
                     if (moveBand.equals(station.getHomeBand())) {
+                        log.info("Station {} rejecting offer of {} and moving to exit (value in HB {})", station, Humanize.spellBigNumber(actualPrices.getPrice(station, ladder.getStationBand(station))), Humanize.spellBigNumber(station.getValue(station.getHomeBand())));
                         exitStation(station, Participation.EXITED_VOLUNTARILY, homeBandFeasibility.getWitnessAssignment(), participation, ladder, stationPrices);
                     } else {
                         // If an actual move is taking place
@@ -291,7 +293,7 @@ public class MultiBandSimulator {
 
     private void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Double> stationPrices) {
         Preconditions.checkState(Participation.EXITED.contains(exitStatus), "Must be an exit Participation");
-        log.info("Station {} is exiting, {}", station, exitStatus);
+        log.info("Station {} (currently on band {}) is exiting, {}", station, ladder.getStationBand(station), exitStatus);
         participation.setParticipation(station, exitStatus);
         ladder.moveStation(station, station.getHomeBand());
         stationPrices.put(station, 0.0);
@@ -300,7 +302,7 @@ public class MultiBandSimulator {
 
     private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, double price) {
         participation.setParticipation(station, Participation.FROZEN_PROVISIONALLY_WINNING);
-        log.info("Station {} is now a provisional winner with a price of {}", station, price);
+        log.info("Station {} is now a provisional winner with a price of {}", station, Humanize.spellBigNumber(price));
     }
 
     // Just some sanity checks on bids

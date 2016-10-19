@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet
 /**
  * Created by newmanne on 2016-07-26.
  */
+@Slf4j
 public class SimpleLadder implements IModifiableLadder {
 
     private final Map<IStationInfo, Band> ladder;
@@ -75,6 +77,7 @@ public class SimpleLadder implements IModifiableLadder {
         Preconditions.checkNotNull(currentBand);
         Preconditions.checkState(band.isAboveOrEqualTo(currentBand));
         ladder.put(station, band);
+        log.info("Moved {} from {} to {}", station, currentBand, band);
     }
 
 }

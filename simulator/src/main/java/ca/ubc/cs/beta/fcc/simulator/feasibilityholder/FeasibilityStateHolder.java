@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
  * Created by newmanne on 2016-08-04.
  */
 @RequiredArgsConstructor
+@Slf4j
 public class FeasibilityStateHolder implements IFeasibilityStateHolder {
 
     @NonNull
@@ -47,6 +49,7 @@ public class FeasibilityStateHolder implements IFeasibilityStateHolder {
                 IStationInfo::getId,
                 s -> s.getDomain(bands)
         ));
+
         final SimulatorProblemReader.SATFCProblem satfcProblem = new SimulatorProblemReader.SATFCProblem(
                 domains,
                 previousAssignmentHandler.getPreviousAssignment(domains)

@@ -33,6 +33,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import humanize.Humanize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,7 @@ public class MultiBandAuctioneer {
     private static Logger log;
 
     public static void main(String[] args) throws Exception {
+        // TODO: should really try finally to close solver
         final MultiBandSimulatorParameters parameters = new MultiBandSimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName, "simulator_logback.groovy");
@@ -59,7 +61,7 @@ public class MultiBandAuctioneer {
         parameters.setUp();
         final IStateSaver stateSaver = parameters.getStateSaver();
 
-        final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler();
+        final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler(parameters.getConstraintManager());
 
         IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()));
         LadderEventOnMoveDecorator moveListener = new LadderEventOnMoveDecorator(ladder);
@@ -97,6 +99,9 @@ public class MultiBandAuctioneer {
                     throw new IllegalStateException();
                 }
                 benchmarkPrices.setPrice(s, band, price);
+                if (band.equals(Band.OFF)) {
+                    log.info("Station: {}, Price: {}, Volume: {}, Actual price: {}", s, Humanize.spellBigNumber(price), Humanize.spellBigNumber(s.getVolume()), Humanize.spellBigNumber(price * s.getVolume()));
+                }
                 actualPrices.setPrice(s, band, price * s.getVolume());
             });
         }
@@ -127,12 +132,23 @@ public class MultiBandAuctioneer {
                 .count();
         final long totalUS = stationDB.getStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
         log.info("There are {} non-participating US stations out of {} US stations", notParticipatingUS, totalUS);
+
+        if (notParticipatingUS == totalUS) {
+            log.warn("No one is participating in the auction! Ending");
+            return;
+        }
+
         final Set<IStationInfo> onAirStations = participation.getOnAirStations();
         log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
-        final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(onAirStations, ImmutableSet.copyOf(ladder.getAirBands()), IFeasibilityStateHolder.INITIAL_PLACEMENT));
-        Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations do not have a feasible assignment! (Result was %s)", initialFeasibility.getResult());
-        log.info("Found an initial assignment for the non-participating stations");
-        previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getWitnessAssignment());
+        for (Band band : ladder.getAirBands()) {
+            final Set<IStationInfo> bandStations = ladder.getBandStations(band);
+            if (bandStations.size() > 0) {
+                final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, IFeasibilityStateHolder.INITIAL_PLACEMENT));
+                Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations in %s do not have a feasible assignment! (Result was %s)", band, initialFeasibility.getResult());
+                log.info("Found an initial assignment for the {} non-participating stations in band {}, {}", bandStations.size(), band, initialFeasibility.getWitnessAssignment());
+                previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getWitnessAssignment());
+            }
+        }
 
         final Map<IStationInfo, Double> initialCompensations = new HashMap<>();
         for (IStationInfo s : ladder.getStations()) {

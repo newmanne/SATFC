@@ -1,5 +1,8 @@
 package ca.ubc.cs.beta.fcc.simulator.prevassign;
 
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -12,14 +15,15 @@ import java.util.Set;
  */
 public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandler {
 
-
     private Map<Integer, Integer> assignment;
+    private final IConstraintManager constraintManager;
 
     /**
      * Construct a previous assignment handler.
      */
-    public SimplePreviousAssignmentHandler() {
+    public SimplePreviousAssignmentHandler(IConstraintManager constraintManager) {
         this.assignment = new HashMap<>();
+        this.constraintManager = constraintManager;
     }
 
     @Override
@@ -30,9 +34,9 @@ public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandl
     @Override
     public Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains) {
         Map<Integer, Integer> returnedAssignment = new HashMap<>();
-        Set<Integer> commonDomain = Sets.intersection(assignment.keySet(), domains.keySet());
-        for (Integer stationID : commonDomain) {
-            Integer assignedChannel = assignment.get(stationID);
+        Set<Integer> commonStations = Sets.intersection(assignment.keySet(), domains.keySet());
+        for (int stationID : commonStations) {
+            int assignedChannel = assignment.get(stationID);
             if (domains.get(stationID).contains(assignedChannel)) {
                 returnedAssignment.put(stationID, assignedChannel);
             }
@@ -40,9 +44,16 @@ public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandl
         return returnedAssignment;
     }
 
+    /**
+     * Note that this merges the two assignments, does NOT overwrite!
+     */
     @Override
     public void updatePreviousAssignment(Map<Integer, Integer> newAssignment) {
-        this.assignment = new HashMap<>(newAssignment);
+        for (Map.Entry<Integer, Integer> entry : newAssignment.entrySet()) {
+            // Either change a station's previous value, or else add a new station
+            assignment.put(entry.getKey(), entry.getValue());
+        }
+        Preconditions.checkState(constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(assignment)), "Updated previous assignment is not SAT!!! (Added %s)", newAssignment);
     }
 
 }

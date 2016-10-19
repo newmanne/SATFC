@@ -68,6 +68,8 @@ dependencies {
     // Containment cache
     compile 'ca.ubc.cs.beta:ContainmentCache:0.9.4'
 
+    compile 'com.github.mfornos:humanize-icu:1.2.2'
+
     // Test dependencies.
     testCompile 'junit:junit:4.11'
     testCompile 'org.mockito:mockito-all:1.10.8'

@@ -16,6 +16,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.math.util.MathUtils;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -52,7 +53,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
     private final int nCores;
 
     /**
-     * @param ladder                   - the auction's ladder structure.
+     * @param ladder     - the auction's ladder structure.
      * @param assignment - the current feasible channel assignment.
      * @return a map taking each station and band in the ladder to the station's vacancy on the band.
      */
@@ -125,7 +126,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 final Map<Station, IStationInfo> stationToInfo = ladder.getStations().stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, Function.identity()));
                 final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
                 final NeighborIndex<IStationInfo, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-                for (IStationInfo s: stationToInfo.values()) {
+                for (IStationInfo s : stationToInfo.values()) {
                     builder.put(s, band, neighborIndex.neighborsOf(s));
                 }
             }
@@ -151,7 +152,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             Set<IStationInfo> neighbours = Sets.union(bandNeighbourhoods.get(station, band), ImmutableSet.of(station))
                     .stream()
                     .filter(participationRecord::isActive)
-                    // G(t,s,b) is all stations in neighbourhood of s in band b whose currently held option is below band b and for which b is a permissible band (permissible means <= pre-auction band)
+                            // G(t,s,b) is all stations in neighbourhood of s in band b whose currently held option is below band b and for which b is a permissible band (permissible means <= pre-auction band)
                     .filter(neighbour -> ladder.getStationBand(neighbour).isBelow(band) && band.isBelowOrEqualTo(neighbour.getHomeBand()))
                     .collect(toImmutableSet());
 
@@ -182,8 +183,12 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
 
                 final double normalizer = neighbours.stream().mapToDouble(IStationInfo::getVolume).sum();
                 vacancy /= normalizer;
-
-                Preconditions.checkState(vacancy > 0 && vacancy <= 1, "Calculated vacancy %s for station %s on band %s is out of domain.", vacancy, station, band);
+                Preconditions.checkState(vacancy > 0, "Calculated vacancy %s for station %s on band %s less than 0", vacancy, station, band);
+                if (vacancy > 1) {
+                    // stupid double rounding can sometimes make 1.00000002 or something
+                    Preconditions.checkState(vacancy < 1.001, "Calculated vacancy %s for station %s on band %s greater than 1", vacancy, station, band);
+                    vacancy = 1.0;
+                }
                 return vacancy;
             }
         }

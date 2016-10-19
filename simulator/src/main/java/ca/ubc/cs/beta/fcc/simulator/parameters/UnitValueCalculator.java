@@ -11,6 +11,7 @@ import java.util.Set;
  * Created by newmanne on 2016-10-04.
  */
 public class UnitValueCalculator implements SimulatorParameters.IValueCalculator {
+
     @Override
     public void setValues(Set<StationInfo> stationInfos) {
         stationInfos.forEach(s -> {
@@ -26,20 +27,4 @@ public class UnitValueCalculator implements SimulatorParameters.IValueCalculator
         });
     }
 
-    //    @Override
-//    public void setValues(Set<StationInfo> stationInfos) {
-//        stationInfos.forEach(s -> {
-//            ImmutableMap.Builder<Band, Double> builder = ImmutableMap.builder();
-//            builder.put(Band.OFF, 0.);
-//            double baseValue = org.apache.commons.lang3.RandomUtils.nextDouble(1, 1 * 10e6);
-//            for (Band b : s.getHomeBand().getBandsBelowInclusive(false)) {
-//                if (b.equals(Band.OFF)) {
-//                    continue;
-//                }
-//                builder.put(b, baseValue);
-//                baseValue = org.apache.commons.lang3.RandomUtils.nextDouble(1, baseValue);
-//            }
-//            s.setValues(builder.build());
-//        });
-//    }
 }

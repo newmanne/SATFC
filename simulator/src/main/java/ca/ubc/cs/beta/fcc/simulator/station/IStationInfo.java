@@ -26,6 +26,9 @@ public interface IStationInfo {
         Preconditions.checkState(getValues().containsKey(band), "Station %s has no value for band %s", getId(), band);
         return getValues().get(band);
     }
+    default double getValue() {
+        return getValue(getHomeBand());
+    }
     Nationality getNationality();
     Band getHomeBand();
     ImmutableSet<Integer> getDomain();

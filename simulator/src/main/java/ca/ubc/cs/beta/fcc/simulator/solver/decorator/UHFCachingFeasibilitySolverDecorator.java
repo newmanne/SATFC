@@ -50,12 +50,14 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     // This is sort of at the wrong level of abstraction (Because I no longer know the "type" of problem...) oh well...
     @Override
     public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
+        // TODO: I strongly suspect this isn't working based on log messages
         final Watch watch = Watch.constructAutoStartWatch();
         // Step 0: Is this a non-PW, UFH problem?
 
         // Step 1: Is this a UHF problem?
         boolean UHFProblem = problem.getProblem().getDomains().values().stream().flatMap(Collection::stream).anyMatch(c -> BandHelper.toBand(c).equals(Band.UHF));
         if (!UHFProblem) {
+            log.debug("Not a UHF problem, skipping cache");
             super.getFeasibility(problem,callback);
             return;
         }
@@ -65,7 +67,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
 
         // Step 2: Identify the "added" station
         final Sets.SetView<Integer> stationsNewToBand = Sets.difference(problem.getProblem().getDomains().keySet(), problem.getProblem().getPreviousAssignment().keySet());
-        Preconditions.checkState(stationsNewToBand.size() == 1, "More than 1 station lacking a previous assignment!");
+        Preconditions.checkState(stationsNewToBand.size() == 1, "More than 1 station lacking a previous assignment! (%s). Problem: %s Previous Assignment: %s", stationsNewToBand, problem.getProblem().getDomains(), problem.getProblem().getPreviousAssignment());
         final int idOfAddedStation = stationsNewToBand.iterator().next();
         final IStationInfo addedStation = stationDB.getStationById(idOfAddedStation);
 
