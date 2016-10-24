@@ -20,11 +20,11 @@ public interface IFeasibilitySolver extends AutoCloseable {
     default SATFCResult getFeasibilityBlocking(SATFCProblemSpecification problem) {
         final AtomicReference<SATFCResult> resultReference = new AtomicReference<>();
         getFeasibility(problem, (p, result) -> resultReference.set(result));
+        // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
         waitForAllSubmitted();
         return resultReference.get();
     }
 
-    default void waitForAllSubmitted() {
-    }
+    void waitForAllSubmitted();
 
 }

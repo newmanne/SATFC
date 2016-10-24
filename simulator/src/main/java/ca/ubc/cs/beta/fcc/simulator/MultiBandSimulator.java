@@ -150,7 +150,8 @@ public class MultiBandSimulator {
                 // Find the first station proved to be feasible in its pre-auction band
                 final IStationInfo station = stationsToQuery.get(i);
                 final Band homeBand = station.getHomeBand();
-                log.debug("Checking if {} is feasible on its home band of {}", station, homeBand);
+                final Band currentBand = ladder.getStationBand(station);
+                log.debug("Checking if {}, currently on {}, is feasible on its home band of {}", station, currentBand, homeBand);
                 final String problemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_PROCESSING_HOME_BAND_FEASIBILITY, station.getId(), station.getHomeBand());
                 final SATFCResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, homeBand, problemName));
                 final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(homeBandFeasibility);
@@ -162,7 +163,7 @@ public class MultiBandSimulator {
                     log.debug("Processing {} bid of {}", station, bid);
                     boolean resortToFallbackBid = false;
                     SATFCResult moveFeasibility = null;
-                    if (!Bid.isSafe(bid.getPreferredOption(), ladder.getStationBand(station), station.getHomeBand())) {
+                    if (!Bid.isSafe(bid.getPreferredOption(), currentBand, station.getHomeBand())) {
                         log.debug("Bid to move bands (without dropping out) - Need to test move feasibility");
                         final String moveProblemName = Joiner.on('_').join("R" + round, IFeasibilityStateHolder.BID_PROCESSING_MOVE_FEASIBILITY, station.getId(), bid.getPreferredOption());
                         moveFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, bid.getPreferredOption(), moveProblemName));
@@ -173,7 +174,7 @@ public class MultiBandSimulator {
                     }
                     final Band moveBand = resortToFallbackBid ? bid.getFallbackOption() : bid.getPreferredOption();
                     if (moveBand.equals(station.getHomeBand())) {
-                        log.info("Station {} rejecting offer of {} and moving to exit (value in HB {})", station, Humanize.spellBigNumber(actualPrices.getPrice(station, ladder.getStationBand(station))), Humanize.spellBigNumber(station.getValue(station.getHomeBand())));
+                        log.info("Station {} rejecting offer of {} and moving to exit (value in HB {})", station, Humanize.spellBigNumber(actualPrices.getPrice(station, currentBand)), Humanize.spellBigNumber(station.getValue(station.getHomeBand())));
                         exitStation(station, Participation.EXITED_VOLUNTARILY, homeBandFeasibility.getWitnessAssignment(), participation, ladder, stationPrices);
                     } else {
                         // If an actual move is taking place

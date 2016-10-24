@@ -15,10 +15,13 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,14 +53,14 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     // This is sort of at the wrong level of abstraction (Because I no longer know the "type" of problem...) oh well...
     @Override
     public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
-        // TODO: I strongly suspect this isn't working based on log messages
         final Watch watch = Watch.constructAutoStartWatch();
-        // Step 0: Is this a non-PW, UFH problem?
-
-        // Step 1: Is this a UHF problem?
-        boolean UHFProblem = problem.getProblem().getDomains().values().stream().flatMap(Collection::stream).anyMatch(c -> BandHelper.toBand(c).equals(Band.UHF));
-        if (!UHFProblem) {
-            log.debug("Not a UHF problem, skipping cache");
+        final List<String> splits = Splitter.on('_').splitToList(problem.getName());
+        // Pretty hacky...
+        boolean appropriateProblem = splits.size() == 4 &&
+                (splits.get(1).equals(IFeasibilityStateHolder.BID_PROCESSING_HOME_BAND_FEASIBILITY) || splits.get(1).equals(IFeasibilityStateHolder.BID_STATUS_UPDATING_HOME_BAND_FEASIBILITY) ||  splits.get(1).equals(IFeasibilityStateHolder.BID_PROCESSING_MOVE_FEASIBILITY))
+                && splits.get(3).equals(Band.UHF.toString());
+        if (!appropriateProblem) {
+            log.trace("Not a UHF home band or move feasibility problem, skipping cache");
             super.getFeasibility(problem,callback);
             return;
         }
@@ -75,6 +78,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         final SATFCResult result = feasibility.get(addedStation);
         Preconditions.checkNotNull(result, "Could not find a result in the UHF station cache for station %s", addedStation);
         final SATFCResult resultTimeAdjusted = new SATFCResult(result.getResult(), watch.getElapsedTime(), watch.getElapsedTime(), result.getWitnessAssignment());
+        log.trace("Successful cache hit for {}", problem.getName());
         callback.onSuccess(problem, resultTimeAdjusted);
     }
 
@@ -96,6 +100,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
             });
         }
         decorated.waitForAllSubmitted();
+        log.info("Cache recomputed");
         isDirty = false;
     }
 

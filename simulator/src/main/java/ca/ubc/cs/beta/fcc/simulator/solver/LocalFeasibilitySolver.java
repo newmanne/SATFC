@@ -10,10 +10,12 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacade;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 2016-05-20.
  */
+@Slf4j
 public class LocalFeasibilitySolver extends AFeasibilitySolver {
 
     private final SATFCFacade facade;
@@ -43,6 +45,11 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
         callback.onSuccess(problem, solve);
+    }
+
+    @Override
+    public void waitForAllSubmitted() {
+        // Do nothing - everything blocks!
     }
 
     @Override

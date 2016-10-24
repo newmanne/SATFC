@@ -57,8 +57,10 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
 
     @Override
     public void waitForAllSubmitted() {
-        log.info("Waiting for {} callbacks to complete", callbacks.size());
-        Watch loggingWatch = Watch.constructAutoStartWatch();
+        if (!callbacks.isEmpty()) {
+            log.info("Waiting for {} callbacks to complete", callbacks.size());
+        }
+        final Watch loggingWatch = Watch.constructAutoStartWatch();
         while (!callbacks.isEmpty()) {
             if (loggingWatch.getElapsedTime() > 60) {
                 log.info("Waiting for {} callbacks to complete", callbacks.size());

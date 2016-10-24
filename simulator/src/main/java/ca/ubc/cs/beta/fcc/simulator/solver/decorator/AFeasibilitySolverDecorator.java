@@ -36,11 +36,6 @@ public class AFeasibilitySolverDecorator extends AFeasibilitySolver {
     }
 
     @Override
-    public SATFCResult getFeasibilityBlocking(SATFCProblemSpecification problem) {
-        return decorated.getFeasibilityBlocking(problem);
-    }
-
-    @Override
     public void waitForAllSubmitted() {
         decorated.waitForAllSubmitted();
     }
