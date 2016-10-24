@@ -34,6 +34,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import humanize.Humanize;
+import lombok.Cleanup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,6 @@ public class MultiBandAuctioneer {
     private static Logger log;
 
     public static void main(String[] args) throws Exception {
-        // TODO: should really try finally to close solver
         final MultiBandSimulatorParameters parameters = new MultiBandSimulatorParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, parameters);
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName, "simulator_logback.groovy");
@@ -118,6 +118,7 @@ public class MultiBandAuctioneer {
         log.info("Building solver");
         final TimeTracker timeTracker = new TimeTracker();
         final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
+        @Cleanup
         IFeasibilitySolver solver = parameters.createSolver();
         UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, ladder, participation, stationDB, problemMaker);
         solver = uhfCache;
