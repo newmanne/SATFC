@@ -2,9 +2,8 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 
 /**
  * The idea here is that you want to try solvers in sequence
@@ -20,9 +19,9 @@ public class SequentialSolverDecorator extends AFeasibilitySolverDecorator {
     }
 
     @Override
-    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
-        final SATFCResult result = firstSolver.getFeasibilityBlocking(problem);
-        if (result.getResult().isConclusive()) {
+    public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
+        final SimulatorResult result = firstSolver.getFeasibilityBlocking(problem);
+        if (result.getSATFCResult().getResult().isConclusive()) {
             callback.onSuccess(problem, result);
         } else {
             super.getFeasibility(problem, callback);

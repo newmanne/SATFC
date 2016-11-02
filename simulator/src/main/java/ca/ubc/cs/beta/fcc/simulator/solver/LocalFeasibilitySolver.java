@@ -2,6 +2,8 @@ package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.metricwriters.IMetricWriter;
 import ca.ubc.cs.beta.stationpacking.execution.metricwriters.MetricWriterFactory;
@@ -33,7 +35,8 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         metricWriter = new MetricWriterFactory.VoidMetricWriter();
     }
 
-    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
+    public void getFeasibility(SimulatorProblem simulatorProblem, SATFCCallback callback) {
+        final SimulatorProblemReader.SATFCProblemSpecification problem = simulatorProblem.getSATFCProblem();
         final SATFCResult solve = facade.solve(
                 problem.getProblem().getDomains(),
                 problem.getProblem().getPreviousAssignment(),
@@ -44,7 +47,7 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         );
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
-        callback.onSuccess(problem, solve);
+        callback.onSuccess(simulatorProblem, SimulatorResult.fromSATFCResult(solve));
     }
 
     @Override

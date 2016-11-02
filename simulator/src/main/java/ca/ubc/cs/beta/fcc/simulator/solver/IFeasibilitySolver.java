@@ -1,13 +1,9 @@
 package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -15,10 +11,10 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public interface IFeasibilitySolver extends AutoCloseable {
 
-    void getFeasibility(SATFCProblemSpecification problem, SATFCCallback callback);
+    void getFeasibility(SimulatorProblem problem, SATFCCallback callback);
 
-    default SATFCResult getFeasibilityBlocking(SATFCProblemSpecification problem) {
-        final AtomicReference<SATFCResult> resultReference = new AtomicReference<>();
+    default SimulatorResult getFeasibilityBlocking(SimulatorProblem problem) {
+        final AtomicReference<SimulatorResult> resultReference = new AtomicReference<>();
         getFeasibility(problem, (p, result) -> resultReference.set(result));
         // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
         waitForAllSubmitted();

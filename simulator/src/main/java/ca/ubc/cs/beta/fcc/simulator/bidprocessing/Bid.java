@@ -15,4 +15,15 @@ public class Bid {
         return bidBand.equals(home) || bidBand.equals(current);
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(preferredOption);
+        if (fallbackOption != null) {
+            sb.append(", fallback to ").append(fallbackOption);
+        }
+        return sb.toString();
+    }
+
+
 }

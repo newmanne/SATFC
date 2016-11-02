@@ -9,6 +9,9 @@ import java.util.Set;
 public interface IPreviousAssignmentHandler {
 
     Map<Integer, Integer> getPreviousAssignment();
+    /*
+     * Return previous assignment restricted to stations which appear in the domains
+     */
     Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains);
     void updatePreviousAssignment(Map<Integer, Integer> previousAssignment);
 

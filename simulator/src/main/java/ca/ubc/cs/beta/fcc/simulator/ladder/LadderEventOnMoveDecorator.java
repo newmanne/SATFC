@@ -2,6 +2,10 @@ package ca.ubc.cs.beta.fcc.simulator.ladder;
 
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import com.google.common.eventbus.EventBus;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Value;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,28 +15,26 @@ import java.util.Collection;
  */
 public class LadderEventOnMoveDecorator extends ALadderDecorator {
 
-    Collection<ILadderEventOnMoveListener> listeners;
+    private final EventBus eventBus;
 
-    public LadderEventOnMoveDecorator(IModifiableLadder aLadder) {
+    public LadderEventOnMoveDecorator(IModifiableLadder aLadder, EventBus eventBus) {
         super(aLadder);
-        listeners = new ArrayList<>();
-    }
-
-    public void addListener(ILadderEventOnMoveListener aLadderEventListener) {
-        listeners.add(aLadderEventListener);
-    }
-
-    public void removeListener(ILadderEventOnMoveListener aLadderEventListener) {
-        listeners.remove(aLadderEventListener);
+        this.eventBus = eventBus;
     }
 
     @Override
     public void moveStation(IStationInfo station, Band band) {
         final Band prevBand = decorated.getStationBand(station);
         super.moveStation(station, band);
-        for (ILadderEventOnMoveListener listener : listeners) {
-            listener.onMove(station, prevBand, band, this);
-        }
-
+        eventBus.post(new LadderMoveEvent(station, prevBand, band, this));
     }
+
+    @Value
+    public static class LadderMoveEvent {
+        private IStationInfo station;
+        private Band prevBand;
+        private Band newBand;
+        private ILadder ladder;
+    }
+
 }

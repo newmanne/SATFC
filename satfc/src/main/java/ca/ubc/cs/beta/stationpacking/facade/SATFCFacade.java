@@ -400,6 +400,7 @@ public class SATFCFacade implements AutoCloseable {
 
             final String extraInfo = getExtraInfo(bundle);
 
+
             final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness, cputime, extraInfo);
             log.debug("Result: {}.", outputResult);
 

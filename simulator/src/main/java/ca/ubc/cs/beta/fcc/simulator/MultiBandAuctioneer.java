@@ -1,8 +1,9 @@
 package ca.ubc.cs.beta.fcc.simulator;
 
+import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.FeasibilityStateHolder;
-import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IFeasibilityStateHolder;
+import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
+import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.ladder.SimpleLadder;
@@ -15,24 +16,27 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.SimplePreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
+import ca.ubc.cs.beta.fcc.simulator.solver.decorator.GreedyFlaggingDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.UHFCachingFeasibilitySolverDecorator;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
+import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
-import ca.ubc.cs.beta.fcc.simulator.unconstrained.SimulatorUnconstrainedCheckerImpl;
+import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import humanize.Humanize;
 import lombok.Cleanup;
 import org.slf4j.Logger;
@@ -48,8 +52,6 @@ import java.util.Set;
  */
 public class MultiBandAuctioneer {
 
-    // TODO: load from failed state
-
     private static Logger log;
 
     public static void main(String[] args) throws Exception {
@@ -58,16 +60,21 @@ public class MultiBandAuctioneer {
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName, "simulator_logback.groovy");
         JCommanderHelper.logCallString(args, Simulator.class);
         log = LoggerFactory.getLogger(MultiBandAuctioneer.class);
+
+        final Watch simulatorWatch = Watch.constructAutoStartWatch();
+        final CPUTime simulatorCPU = new CPUTime();
+
         parameters.setUp();
         final IStateSaver stateSaver = parameters.getStateSaver();
 
         final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler(parameters.getConstraintManager());
 
         IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()));
-        LadderEventOnMoveDecorator moveListener = new LadderEventOnMoveDecorator(ladder);
-        ladder = moveListener;
+        ladder = new LadderEventOnMoveDecorator(ladder, parameters.getEventBus());
 
-        final IFeasibilityStateHolder problemMaker = new FeasibilityStateHolder(previousAssignmentHandler, ladder, parameters.createProblemSpecGenerator());
+        final RoundTracker roundTracker = new RoundTracker();
+
+        final IProblemMaker problemMaker = new ProblemMakerImpl(previousAssignmentHandler, ladder, parameters.createProblemSpecGenerator(), roundTracker);
 
         log.info("Reading station info from file");
         final StationDB stationDB = parameters.getStationDB();
@@ -116,15 +123,20 @@ public class MultiBandAuctioneer {
         }
 
         log.info("Building solver");
-        final TimeTracker timeTracker = new TimeTracker();
-        final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
         @Cleanup
         IFeasibilitySolver solver = parameters.createSolver();
-        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, ladder, participation, stationDB, problemMaker);
+        if (parameters.isGreedyFirst()) {
+            solver = new GreedyFlaggingDecorator(solver, ladder, parameters.getConstraintManager());
+        }
+        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, participation, stationDB, problemMaker, parameters.isLazyUHF());
+        parameters.getEventBus().register(uhfCache);
         solver = uhfCache;
-        moveListener.addListener(uhfCache);
-        solver = new TimeTrackerFeasibilitySolverDecorator(solver, timeTracker);
+        final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
         solver = new FeasibilityResultDistributionDecorator(solver, feasibilityResultDistribution);
+        parameters.getEventBus().register(solver);
+        TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(solver, simulatorWatch, simulatorCPU);
+        solver = timeTrackingDecorator;
+        parameters.getEventBus().register(solver);
 
         final long notParticipatingUS = stationDB.getStations().stream()
                 .filter(s -> s.getNationality().equals(Nationality.US))
@@ -144,10 +156,10 @@ public class MultiBandAuctioneer {
         for (Band band : ladder.getAirBands()) {
             final Set<IStationInfo> bandStations = ladder.getBandStations(band);
             if (bandStations.size() > 0) {
-                final SATFCResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, IFeasibilityStateHolder.INITIAL_PLACEMENT));
-                Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations in %s do not have a feasible assignment! (Result was %s)", band, initialFeasibility.getResult());
-                log.info("Found an initial assignment for the {} non-participating stations in band {}, {}", bandStations.size(), band, initialFeasibility.getWitnessAssignment());
-                previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getWitnessAssignment());
+                final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null));
+                Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations in %s do not have a feasible assignment! (Result was %s)", band, initialFeasibility.getSATFCResult().getResult());
+                log.info("Found an initial assignment for the {} non-participating stations in band {}, {}", bandStations.size(), band, initialFeasibility.getSATFCResult().getWitnessAssignment());
+                previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getSATFCResult().getWitnessAssignment());
             }
         }
 
@@ -163,7 +175,7 @@ public class MultiBandAuctioneer {
         LadderAuctionState state = LadderAuctionState.builder()
                 .benchmarkPrices(benchmarkPrices)
                 .participation(participation)
-                .round(0)
+                .round(roundTracker.getRound())
                 .assignment(previousAssignmentHandler.getPreviousAssignment())
                 .ladder(ladder)
                 .prices(initialCompensations)
@@ -178,6 +190,8 @@ public class MultiBandAuctioneer {
                 Runtime.getRuntime().availableProcessors()
         );
 
+        final ISimulatorUnconstrainedChecker unconstrainedChecker = parameters.getUnconstrainedChecker(participation);
+
         final MultiBandSimulator simulator = new MultiBandSimulator(
                 MultiBandSimulatorParameter
                         .builder()
@@ -186,29 +200,31 @@ public class MultiBandAuctioneer {
                         .problemMaker(problemMaker)
                         .vacancyCalculator(vacancyCalculator)
                         .solver(solver)
-                        .unconstrainedChecker(new SimulatorUnconstrainedCheckerImpl(parameters.getConstraintManager(), participation))
+                        .unconstrainedChecker(unconstrainedChecker)
                         .pricesFactory(PricesImpl::new)
                         .constraintManager(parameters.getConstraintManager())
                         .stationManager(parameters.getStationManager())
+                        .roundTracker(roundTracker)
                         .build()
         );
 
         log.info("Starting simulation!");
 
-        stateSaver.saveState(stationDB, state, feasibilityResultDistribution.histogram(), timeTracker);
+        stateSaver.saveState(stationDB, state);
+        timeTrackingDecorator.report();
 
         while (true) {
             state = simulator.executeRound(state);
-            stateSaver.saveState(stationDB, state, feasibilityResultDistribution.histogram(), timeTracker);
+            timeTrackingDecorator.report();
+            stateSaver.saveState(stationDB, state);
             // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
             if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
-                log.info("All stations have exited or are provisional winners. Ending simulation");
+                log.info("All stations are inactive. Ending simulation");
                 break;
             }
         }
 
-        solver.close();
-        timeTracker.report();
+        timeTrackingDecorator.report();
         log.info("Finished. Goodbye :)");
     }
 

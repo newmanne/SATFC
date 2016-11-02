@@ -3,15 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.AFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.SATFCFacadeProblem;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-
-import java.util.Map;
-import java.util.Set;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 
 /**
  * Created by newmanne on 2016-06-15.
@@ -31,7 +23,7 @@ public class AFeasibilitySolverDecorator extends AFeasibilitySolver {
     }
 
     @Override
-    public void getFeasibility(SATFCProblemSpecification problem, SATFCCallback callback) {
+    public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
         decorated.getFeasibility(problem, callback);
     }
 

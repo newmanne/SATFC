@@ -2,6 +2,8 @@ package ca.ubc.cs.beta.fcc.simulator.solver;
 
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SimulatorMessage;
@@ -46,13 +48,13 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
     }
 
     @Override
-    public void getFeasibility(SATFCProblemSpecification problemSpecification, SATFCCallback callback) {
+    public void getFeasibility(SimulatorProblem simulatorProblem, SATFCCallback callback) {
         final long problemID = id.getAndIncrement();
-        final String json = JSONUtils.toString(new SimulatorMessage(problemSpecification, replyQueue, problemID));
+        final String json = JSONUtils.toString(new SimulatorMessage(simulatorProblem.getSATFCProblem(), replyQueue, problemID));
         log.trace("Sending problem {} to queue {}", json, sendQueue);
         jedis.set(makeProblemKey(problemID), json);
         jedis.lpush(sendQueue, makeProblemKey(problemID));
-        callbacks.put(problemID, new ProblemCallback(problemSpecification, callback));
+        callbacks.put(problemID, new ProblemCallback(simulatorProblem, callback));
     }
 
     @Override
@@ -86,7 +88,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
                 log.debug("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
                 continue;
             }
-            problemCallback.getCallback().onSuccess(problemCallback.getProblem(), reply.getResult());
+            problemCallback.getCallback().onSuccess(problemCallback.getProblem(), SimulatorResult.fromSATFCResult(reply.getResult()));
         }
     }
 
@@ -99,7 +101,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
     @Data
     public static class ProblemCallback {
 
-        private final SATFCProblemSpecification problem;
+        private final SimulatorProblem problem;
         private final SATFCCallback callback;
 
     }

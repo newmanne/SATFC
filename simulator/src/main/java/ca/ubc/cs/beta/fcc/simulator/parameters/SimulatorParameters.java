@@ -5,6 +5,8 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
+import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
+import ca.ubc.cs.beta.fcc.simulator.participation.UniformParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
@@ -17,6 +19,9 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.SATFCProblemSpecGeneratorImpl
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.*;
+import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
+import ca.ubc.cs.beta.fcc.simulator.unconstrained.NeverUnconstrainedStationChecker;
+import ca.ubc.cs.beta.fcc.simulator.unconstrained.SimulatorUnconstrainedCheckerImpl;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
@@ -34,6 +39,7 @@ import com.beust.jcommander.ParametersDelegate;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import com.google.common.eventbus.EventBus;
 import humanize.Humanize;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -126,6 +132,52 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
     private int nLinks = -1;
 
+
+    @Getter
+    @Parameter(names = "-UNIFORM-PROBABILITY-PARTICIPATION", description = "A station participates uniformly with p")
+    private Double uniformProbability;
+
+    @Getter
+    @Parameter(names = "-SIMULATOR-OUTPUT-FOLDER", description = "output file name")
+    private String outputFolder = "output";
+
+    @Parameter(names = "-SOLVER-TYPE", description = "Type of solver")
+    private SolverType solverType = SolverType.LOCAL;
+
+    @Parameter(names = "-PARTICIPATION-MODEL", description = "Type of solver")
+    private ParticipationModel participationModel = ParticipationModel.PRICE_HIGHER_THAN_VALUE;
+
+    @Parameter(names = "-UNCONSTRAINED-CHECKER", description = "Type of unconstrained checker")
+    private UnconstrainedChecker unconstrainedChecker = UnconstrainedChecker.FCC;
+
+    @Parameter(names = "-LAZY-UHF-CACHE", description = "If true, do not precompute problems")
+    @Getter
+    private boolean lazyUHF = false;
+
+    @Parameter(names = "-GREEDY-SOLVER-FIRST", description = "If true, always try solving a problem with the greedy solver first")
+    @Getter
+    private boolean greedyFirst = true;
+
+
+    @Getter
+    @ParametersDelegate
+    private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
+
+    public ISimulatorUnconstrainedChecker getUnconstrainedChecker(ParticipationRecord participation) {
+        switch(unconstrainedChecker) {
+            case FCC:
+                return new SimulatorUnconstrainedCheckerImpl(getConstraintManager(), participation);
+            case BAD:
+                return new NeverUnconstrainedStationChecker();
+            default:
+                throw new IllegalStateException();
+        }
+    }
+
+    public enum UnconstrainedChecker {
+        FCC, BAD
+    }
+
     public String getStationInfoFolder() {
         return facadeParameters.fInterferencesFolder + File.separator + constraintSet;
     }
@@ -137,6 +189,7 @@ public class SimulatorParameters extends AbstractOptions {
     public void setUp() {
         log = LoggerFactory.getLogger(Simulator.class);
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
+        eventBus = new EventBus();
         BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
@@ -198,26 +251,13 @@ public class SimulatorParameters extends AbstractOptions {
         return getOutputFolder() + File.separator + "state";
     }
 
-    @Getter
-    @ParametersDelegate
-    private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
     public long getSeed() {
         return facadeParameters.fInstanceParameters.Seed;
     }
 
-    @Getter
-    @Parameter(names = "-SIMULATOR-OUTPUT-FOLDER", description = "output file name")
-    private String outputFolder = "output";
-
-    @Parameter(names = "-SOLVER-TYPE", description = "Type of solver")
-    private SolverType solverType = SolverType.LOCAL;
-
-    @Parameter(names = "-PARTICIPATION-MODEL", description = "Type of solver")
-    private ParticipationModel participationModel = ParticipationModel.PRICE_HIGHER_THAN_VALUE;
-
     public IStateSaver getStateSaver() {
-        return new SaveStateToFile(getStateFolder());
+        return new SaveStateToFile(getStateFolder(), getEventBus());
     }
 
 
@@ -242,6 +282,8 @@ public class SimulatorParameters extends AbstractOptions {
     private IProblemGenerator problemGenerator;
     @Getter
     private StationDB stationDB;
+    @Getter
+    private EventBus eventBus;
 
     public IFeasibilitySolver createSolver() {
         IFeasibilitySolver solver;
@@ -264,13 +306,16 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public enum ParticipationModel {
-        PRICE_HIGHER_THAN_VALUE
+        PRICE_HIGHER_THAN_VALUE,
+        UNIFORM
     }
 
     public IParticipationDecider getParticipationDecider(IPrices prices) {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
                 return new OpeningPriceHigherThanPrivateValue(prices);
+            case UNIFORM:
+                return new UniformParticipationDecider(uniformProbability, prices);
             default:
                 throw new IllegalStateException();
         }
@@ -475,6 +520,5 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
     }
-
 
 }

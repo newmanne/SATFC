@@ -90,7 +90,7 @@ public class StationInfo implements IStationInfo {
 
     @Override
     public String toString() {
-        return call + " (" + Integer.toString(id) + ", " + homeBand + ")";
+        return call + " (" + Integer.toString(id) + ", HB=" + homeBand + ")";
     }
 
     @Override

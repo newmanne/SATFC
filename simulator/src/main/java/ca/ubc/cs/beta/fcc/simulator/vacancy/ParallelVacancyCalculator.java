@@ -6,6 +6,7 @@ import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
@@ -64,7 +65,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
             @NonNull final Map<Integer, Integer> assignment,
             @NonNull final IPrices previousBenchmarkPrices
     ) {
-        final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = sequentialVacancyCalculator.getBandNeighborIndexMap(ladder);
+        final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, sequentialVacancyCalculator.constraintManager);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
         final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
         try {
@@ -105,29 +106,12 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
 
         @Override
         public ImmutableTable<IStationInfo, Band, Double> computeVacancies(@NonNull Collection<IStationInfo> stations, @NonNull ILadder ladder, @NonNull Map<Integer, Integer> assignment, @NonNull IPrices previousBenchmarkPrices) {
-            final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods = getBandNeighborIndexMap(ladder);
+            final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
             final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
             for (IStationInfo station : stations) {
                 for (Band band : ladder.getAirBands()) {
                     final double vacancy = computeVacancy(station, band, ladder, assignment, bandNeighbourhoods, previousBenchmarkPrices);
                     builder.put(station, band, vacancy);
-                }
-            }
-            return builder.build();
-        }
-
-        // Returns a table mapping from station/band to neighbours using the definition of neighbour as anyone that might interfere with station in band
-        private ImmutableTable<IStationInfo, Band, Set<IStationInfo>> getBandNeighborIndexMap(@NonNull ILadder ladder) {
-            final ImmutableTable.Builder<IStationInfo, Band, Set<IStationInfo>> builder = ImmutableTable.builder();
-            for (Band band : ladder.getAirBands()) {
-                final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
-                        .collect(Collectors.toMap(IStationInfo::toSATFCStation, s -> s.getDomain(band)));
-
-                final Map<Station, IStationInfo> stationToInfo = ladder.getStations().stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, Function.identity()));
-                final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
-                final NeighborIndex<IStationInfo, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-                for (IStationInfo s : stationToInfo.values()) {
-                    builder.put(s, band, neighborIndex.neighborsOf(s));
                 }
             }
             return builder.build();

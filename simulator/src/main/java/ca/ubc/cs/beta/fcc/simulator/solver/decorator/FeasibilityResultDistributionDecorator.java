@@ -2,15 +2,14 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
-import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
+import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import com.google.common.collect.HashMultiset;
-import lombok.Getter;
+import com.google.common.eventbus.Subscribe;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +38,11 @@ public class FeasibilityResultDistributionDecorator extends AFeasibilitySolverDe
             return distribution.elementSet().stream().collect(Collectors.toMap(e -> e, distribution::count));
         }
 
+        @Subscribe
+        public void onReport(SaveStateToFile.ReportStateEvent reportStateEvent) {
+            reportStateEvent.getBuilder().feasibilityDistribution(histogram());
+        }
+
     }
 
     private final FeasibilityResultDistribution distribution;
@@ -49,9 +53,9 @@ public class FeasibilityResultDistributionDecorator extends AFeasibilitySolverDe
     }
 
     @Override
-    public void getFeasibility(SimulatorProblemReader.SATFCProblemSpecification problem, SATFCCallback callback) {
+    public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
         super.getFeasibility(problem, (p, result) -> {
-            distribution.update(result.getResult());
+            distribution.update(result.getSATFCResult().getResult());
             callback.onSuccess(p, result);
         });
     }
