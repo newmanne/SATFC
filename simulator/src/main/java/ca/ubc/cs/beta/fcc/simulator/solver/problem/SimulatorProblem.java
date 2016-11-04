@@ -17,4 +17,5 @@ public class SimulatorProblem {
     private Band band;
     private IStationInfo targetStation;
     private ProblemType problemType;
+    private int problemNumber;
 }

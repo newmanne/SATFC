@@ -92,7 +92,6 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         stationToComponent = ladder.getStations().stream().collect(toImmutableMap(Function.identity(), s -> connectedComponents.stream().filter(component -> component.contains(s)).findFirst().get()));
     }
 
-    // This is sort of at the wrong level of abstraction (Because I no longer know the "type" of problem...) oh well...
     @Override
     public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
         if (problem.getBand().equals(Band.UHF) && CACHEABLE_PROBLEMS.contains(problem.getProblemType())) {
@@ -142,28 +141,30 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         }
         decorated.waitForAllSubmitted();
         log.info("Cache recomputed");
+        needsRebuid = false;
     }
 
     private void purgeDirty(IStationInfo movedStation, Map<Integer, Integer> mostRecentAssignment) {
         // Remove any stale info - any station in the connected component of the UHF interference graph of the moved station is now dirty
         // Note that a station cannot suddenly become feasible if more stations moved into the band, so we should keep UNSAT results
-        final Set<IStationInfo> possiblyAffectedStations = stationToComponent.get(movedStation);
+        final Set<IStationInfo> componentStations = stationToComponent.get(movedStation);
         final Iterator<Map.Entry<IStationInfo, UHFCacheEntry>> iterator = feasibility.entrySet().iterator();
         while (iterator.hasNext()) {
             final Map.Entry<IStationInfo, UHFCacheEntry> entry = iterator.next();
             final SimulatorResult result = entry.getValue().getResult();
             if (!result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
-                if (possiblyAffectedStations.contains(entry.getKey())) {
+                if (componentStations.contains(entry.getKey())) {
                     // If we didn't use the result, add its computation time to "extra"
                     if (entry.getValue().getHitCount() == 0) {
                         wastedTimeTracker.update(result.getSATFCResult());
                     }
+                    // Delete results within the component
                     iterator.remove();
                 } else {
-                    // This is a SAT answer for a station not in the affected component. We need to alter all of the values in the altered component
+                    // This is a SAT answer for a station not in the affected component. We need to alter /augment all of the values in the altered component
                     final SATFCResult satfcResult = entry.getValue().getResult().getSATFCResult();
                     final Map<Integer, Integer> assignment = new HashMap<>(satfcResult.getWitnessAssignment());
-                    for (IStationInfo station : possiblyAffectedStations) {
+                    for (IStationInfo station : componentStations) {
                         final Integer newAssignedChannel = mostRecentAssignment.get(station.getId());
                         if (newAssignedChannel != null) {
                             // Update their channels

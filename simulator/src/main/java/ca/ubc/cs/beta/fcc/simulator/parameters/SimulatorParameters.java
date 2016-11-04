@@ -200,6 +200,7 @@ public class SimulatorParameters extends AbstractOptions {
             }
             outputFolder.mkdirs();
             new File(getStateFolder()).mkdir();
+            new File(getProblemFolder()).mkdir();
         }
 
         dataManager = new DataManager();
@@ -249,6 +250,10 @@ public class SimulatorParameters extends AbstractOptions {
 
     private String getStateFolder() {
         return getOutputFolder() + File.separator + "state";
+    }
+
+    public String getProblemFolder() {
+        return getOutputFolder() + File.separator + "problems";
     }
 
 

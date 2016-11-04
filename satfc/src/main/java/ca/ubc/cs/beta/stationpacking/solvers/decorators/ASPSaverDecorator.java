@@ -37,7 +37,6 @@ public class ASPSaverDecorator extends ASolverDecorator {
     @Override
     public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
         final Map<Station, Set<Integer>> domains = aInstance.getDomains();
-        final Set<Station> stations = aInstance.getStations();
 
         final StringBuilder sb = new StringBuilder();
 

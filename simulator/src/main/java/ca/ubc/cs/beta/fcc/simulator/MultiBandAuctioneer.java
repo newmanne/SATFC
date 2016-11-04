@@ -17,10 +17,7 @@ import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.GreedyFlaggingDecorator;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.UHFCachingFeasibilitySolverDecorator;
+import ca.ubc.cs.beta.fcc.simulator.solver.decorator.*;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
@@ -122,20 +119,34 @@ public class MultiBandAuctioneer {
         }
 
         log.info("Building solver");
-        @Cleanup
-        IFeasibilitySolver solver = parameters.createSolver();
+        IFeasibilitySolver tmp = parameters.createSolver();
+
         if (parameters.isGreedyFirst()) {
-            solver = new GreedyFlaggingDecorator(solver, ladder, parameters.getConstraintManager());
+            tmp = new GreedyFlaggingDecorator(tmp, ladder, parameters.getConstraintManager());
         }
-        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, participation, problemMaker, parameters.isLazyUHF(), ladder, parameters.getConstraintManager());
+
+        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(tmp, participation, problemMaker, parameters.isLazyUHF(), ladder, parameters.getConstraintManager());
         parameters.getEventBus().register(uhfCache);
-        solver = uhfCache;
+        tmp = uhfCache;
+
         final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
-        solver = new FeasibilityResultDistributionDecorator(solver, feasibilityResultDistribution);
-        parameters.getEventBus().register(solver);
-        TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(solver, simulatorWatch, simulatorCPU);
-        solver = timeTrackingDecorator;
-        parameters.getEventBus().register(solver);
+        tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
+        parameters.getEventBus().register(tmp);
+
+        final ProblemSaverDecorator.ProblemSaverInfo problemSaverInfo = ProblemSaverDecorator.ProblemSaverInfo.builder()
+                .interference(parameters.getConstraintSet())
+                .maxChannel(parameters.getMaxChannel())
+                .build();
+        final ProblemSaverDecorator problemSaverDecorator = new ProblemSaverDecorator(tmp, parameters.getProblemFolder(), problemSaverInfo);
+        parameters.getEventBus().register(problemSaverDecorator);
+        tmp = problemSaverDecorator;
+
+        TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(tmp, simulatorWatch, simulatorCPU);
+        tmp = timeTrackingDecorator;
+        parameters.getEventBus().register(tmp);
+
+        @Cleanup
+        final IFeasibilitySolver solver = tmp;
 
         final long notParticipatingUS = stationDB.getStations().stream()
                 .filter(s -> s.getNationality().equals(Nationality.US))
@@ -162,6 +173,8 @@ public class MultiBandAuctioneer {
                 previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getSATFCResult().getWitnessAssignment());
             }
         }
+
+        problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
 
         final Map<IStationInfo, Double> initialCompensations = new HashMap<>();
         for (IStationInfo s : ladder.getStations()) {
@@ -223,7 +236,6 @@ public class MultiBandAuctioneer {
             }
         }
 
-        timeTrackingDecorator.report();
         log.info("Finished. Goodbye :)");
     }
 

@@ -79,6 +79,7 @@ public class SimpleLadder implements IModifiableLadder {
         Preconditions.checkState(band.isAboveOrEqualTo(currentBand));
         ladder.put(station, band);
         previousAssignmentHandler.updatePreviousAssignment(assignment);
+        // Verify previous assignment state is consistent with the ladder
         for (IStationInfo ladderStation : getStations()) {
             final Band ladderBand = getStationBand(ladderStation);
             if (ladderBand.isAirBand()) {

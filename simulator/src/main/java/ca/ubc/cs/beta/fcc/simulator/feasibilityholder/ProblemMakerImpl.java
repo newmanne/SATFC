@@ -35,6 +35,8 @@ public class ProblemMakerImpl implements IProblemMaker {
     @NonNull
     private final RoundTracker roundTracker;
 
+    private int problemNumber = 0;
+
     @Override
     public SimulatorProblem makeProblem(IStationInfo station, Band band, ProblemType problemType, String name) {
         final ImmutableSet<IStationInfo> bandStations = ladder.getBandStations(band);
@@ -51,6 +53,7 @@ public class ProblemMakerImpl implements IProblemMaker {
 
     private SimulatorProblem makeProblem(Set<IStationInfo> stations, Band band, SimulatorProblem.SimulatorProblemBuilder builder, String name) {
         builder.band(band).round(roundTracker.getRound());
+        builder.problemNumber(problemNumber++);
         final Map<Integer, Set<Integer>> domains = stations.stream().collect(toImmutableMap(
                 IStationInfo::getId,
                 s -> s.getDomain(band)
