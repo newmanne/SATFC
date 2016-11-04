@@ -2,8 +2,8 @@ package ca.ubc.cs.beta.fcc.simulator;
 
 import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
+import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.ladder.SimpleLadder;
@@ -28,7 +28,6 @@ import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
@@ -69,12 +68,12 @@ public class MultiBandAuctioneer {
 
         final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler(parameters.getConstraintManager());
 
-        IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()));
+        IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()), previousAssignmentHandler);
         ladder = new LadderEventOnMoveDecorator(ladder, parameters.getEventBus());
 
         final RoundTracker roundTracker = new RoundTracker();
 
-        final IProblemMaker problemMaker = new ProblemMakerImpl(previousAssignmentHandler, ladder, parameters.createProblemSpecGenerator(), roundTracker);
+        final IProblemMaker problemMaker = new ProblemMakerImpl(ladder, parameters.createProblemSpecGenerator(), roundTracker);
 
         log.info("Reading station info from file");
         final StationDB stationDB = parameters.getStationDB();
@@ -128,7 +127,7 @@ public class MultiBandAuctioneer {
         if (parameters.isGreedyFirst()) {
             solver = new GreedyFlaggingDecorator(solver, ladder, parameters.getConstraintManager());
         }
-        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, participation, stationDB, problemMaker, parameters.isLazyUHF());
+        UHFCachingFeasibilitySolverDecorator uhfCache = new UHFCachingFeasibilitySolverDecorator(solver, participation, problemMaker, parameters.isLazyUHF(), ladder, parameters.getConstraintManager());
         parameters.getEventBus().register(uhfCache);
         solver = uhfCache;
         final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
@@ -159,6 +158,7 @@ public class MultiBandAuctioneer {
                 final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null));
                 Preconditions.checkState(SimulatorUtils.isFeasible(initialFeasibility), "Initial non-participating stations in %s do not have a feasible assignment! (Result was %s)", band, initialFeasibility.getSATFCResult().getResult());
                 log.info("Found an initial assignment for the {} non-participating stations in band {}, {}", bandStations.size(), band, initialFeasibility.getSATFCResult().getWitnessAssignment());
+                // This is a bit awkward (Should go through the ladder... but oh well)
                 previousAssignmentHandler.updatePreviousAssignment(initialFeasibility.getSATFCResult().getWitnessAssignment());
             }
         }
@@ -176,7 +176,7 @@ public class MultiBandAuctioneer {
                 .benchmarkPrices(benchmarkPrices)
                 .participation(participation)
                 .round(roundTracker.getRound())
-                .assignment(previousAssignmentHandler.getPreviousAssignment())
+                .assignment(ladder.getPreviousAssignment())
                 .ladder(ladder)
                 .prices(initialCompensations)
                 .baseClockPrice(openingPricesPerUnitVolume.get(Band.OFF))
@@ -196,7 +196,6 @@ public class MultiBandAuctioneer {
                 MultiBandSimulatorParameter
                         .builder()
                         .parameters(parameters.getLadderAuctionParameter())
-                        .previousAssignmentHandler(previousAssignmentHandler)
                         .problemMaker(problemMaker)
                         .vacancyCalculator(vacancyCalculator)
                         .solver(solver)

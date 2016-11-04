@@ -20,7 +20,6 @@ import lombok.Data;
 public class MultiBandSimulatorParameter {
 
     private LadderAuctionParameters parameters;
-    private IPreviousAssignmentHandler previousAssignmentHandler;
     private IProblemMaker problemMaker;
     private IFeasibilitySolver solver;
     private IPricesFactory pricesFactory;

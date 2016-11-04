@@ -6,6 +6,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Created by newmanne on 2016-10-11.
  */
@@ -20,8 +23,8 @@ public class ALadderDecorator implements IModifiableLadder {
     }
 
     @Override
-    public void moveStation(IStationInfo station, Band band) {
-        decorated.moveStation(station, band);
+    public void moveStation(IStationInfo station, Band band, Map<Integer, Integer> assignment) {
+        decorated.moveStation(station, band, assignment);
     }
 
     @Override
@@ -49,4 +52,18 @@ public class ALadderDecorator implements IModifiableLadder {
         return decorated.getPossibleMoves(aStation);
     }
 
+    @Override
+    public Map<Integer, Integer> getPreviousAssignment() {
+        return decorated.getPreviousAssignment();
+    }
+
+    @Override
+    public Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains) {
+        return decorated.getPreviousAssignment(domains);
+    }
+
+    @Override
+    public void updatePreviousAssignment(Map<Integer, Integer> previousAssignment) {
+        decorated.updatePreviousAssignment(previousAssignment);
+    }
 }

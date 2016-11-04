@@ -1,17 +1,16 @@
 package ca.ubc.cs.beta.fcc.simulator.ladder;
 
+import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
@@ -25,15 +24,17 @@ public class SimpleLadder implements IModifiableLadder {
 
     private final Map<IStationInfo, Band> ladder;
     private final ImmutableList<Band> bands;
+    private final IPreviousAssignmentHandler previousAssignmentHandler;
 
     /**
      * Create a simple ladder.
      *
      * @param ladderBands - list of bands forming the ladder (order) is important.
      */
-    public SimpleLadder(List<Band> ladderBands) {
+    public SimpleLadder(@NonNull List<Band> ladderBands, @NonNull IPreviousAssignmentHandler previousAssignmentHandler) {
         ladder = new HashMap<>();
         bands = ImmutableList.copyOf(ladderBands);
+        this.previousAssignmentHandler = previousAssignmentHandler;
     }
 
     @Override
@@ -72,12 +73,36 @@ public class SimpleLadder implements IModifiableLadder {
     }
 
     @Override
-    public void moveStation(IStationInfo station, Band band) {
+    public void moveStation(IStationInfo station, Band band, Map<Integer, Integer> assignment) {
         final Band currentBand = ladder.remove(station);
         Preconditions.checkNotNull(currentBand);
         Preconditions.checkState(band.isAboveOrEqualTo(currentBand));
         ladder.put(station, band);
+        previousAssignmentHandler.updatePreviousAssignment(assignment);
+        for (IStationInfo ladderStation : getStations()) {
+            final Band ladderBand = getStationBand(ladderStation);
+            if (ladderBand.isAirBand()) {
+                int assignedChannel = getPreviousAssignment().get(ladderStation.getId());
+                Preconditions.checkState(BandHelper.toBand(assignedChannel).equals(ladderBand), "Station %s is on channel %s but ladder says is on band %s", ladderStation, assignedChannel, ladderBand);
+            }
+        }
         log.info("Moved {} from {} to {}", station, currentBand, band);
+    }
+
+    @Override
+    public Map<Integer, Integer> getPreviousAssignment() {
+        return previousAssignmentHandler.getPreviousAssignment();
+    }
+
+    @Override
+    public Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains) {
+        return previousAssignmentHandler.getPreviousAssignment(domains);
+    }
+
+    @Override
+    public void updatePreviousAssignment(Map<Integer, Integer> previousAssignment) {
+        // Obviously bad design...
+        throw new IllegalArgumentException("Don't call this method, use moveStation");
     }
 
 }

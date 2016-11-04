@@ -44,8 +44,12 @@ public class ConstraintGrouper implements IComponentGrouper {
 	@Override
 	public Set<Set<Station>> group(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
 		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance.getDomains(), aConstraintManager);
-        final ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<>(aConstraintGraph);
-        return aConnectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+		return group(aConstraintGraph);
+	}
+
+	public static Set<Set<Station>> group(SimpleGraph<Station,DefaultEdge> aConstraintGraph) {
+		final ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<>(aConstraintGraph);
+		return aConnectivityInspector.connectedSets().stream().collect(Collectors.toSet());
 	}
 
 	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(Map<Station, Set<Integer>> aDomains, IConstraintManager aConstraintManager) {

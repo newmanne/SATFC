@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.fcc.simulator.parameters.UnitVolumeCalculator;
 import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -17,6 +18,8 @@ import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.*;
+import humanize.Humanize;
+import humanize.util.Constants.TimeStyle;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -46,9 +49,9 @@ public class VCGMipTest {
 
     @BeforeClass
     public static void init() {
-        ManagerBundle bundle = bundle("/Users/newmanne/research/interference-data/nov2015");
-        constraintManager = bundle.getConstraintManager();
-        stationManager = bundle.getStationManager();
+//        ManagerBundle bundle = bundle("/Users/newmanne/research/interference-data/nov2015");
+//        constraintManager = bundle.getConstraintManager();
+//        stationManager = bundle.getStationManager();
     }
 
     @Test
@@ -187,7 +190,6 @@ public class VCGMipTest {
         counts = icCounts(domains);
         FileUtils.writeStringToFile(new File("/tmp/icmap_simulator.json"), JSONUtils.toString(counts));
 
-
 //        Map<Pair<Station, Station>, Integer> weights = new HashMap<>();
 //        Map<Station, Integer> stationWeight = new HashMap<>();
 //        for (Constraint constraint : constraintManager.getAllRelevantConstraints(domains)) {
@@ -232,5 +234,11 @@ public class VCGMipTest {
 //
 //
 //    }
+
+    @Test
+    public void sanity() {
+        double duration = 60 * 3600 + 15; 
+        System.out.println(SimulatorUtils.duration(duration));
+    }
 
 }

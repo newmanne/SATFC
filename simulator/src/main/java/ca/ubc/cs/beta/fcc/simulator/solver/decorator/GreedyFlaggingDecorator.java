@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 /**
  * Created by newmanne on 2016-11-01.
  * A (blocking) greedy solver
+ * This is used to test every problem, so it is designed to be fast (and lacks checks)
  */
 @Slf4j
 public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
@@ -49,7 +50,7 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
     @Override
     public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
         final Watch watch = Watch.constructAutoStartWatch();
-        final CPUTime cpuTime = new CPUTime();
+        final SimulatorUtils.CPUTimeWatch cpuTimeWatch = SimulatorUtils.CPUTimeWatch.constructAutoStartWatch();
         final IStationInfo targetStation = problem.getTargetStation();
         if (targetStation != null) {
             final Set<IStationInfo> neighbours = neighbourIndex.get(targetStation, problem.getBand());
@@ -68,7 +69,7 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
                 assignment.get(channel).add(targetStation.toSATFCStation());
                 if (constraintManager.isSatisfyingAssignment(assignment)) {
                     final Map<Integer, Integer> witnessAssignment = StationPackingUtils.stationToChannelFromChannelToStation(assignment).entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getID(), Map.Entry::getValue));
-                    final SATFCResult satfcResult = new SATFCResult(SATResult.SAT, watch.getElapsedTime(), cpuTime.getCPUTime(), witnessAssignment);
+                    final SATFCResult satfcResult = new SATFCResult(SATResult.SAT, watch.getElapsedTime(), cpuTimeWatch.getElapsedTime(), witnessAssignment);
                     callback.onSuccess(problem, SimulatorResult.builder().SATFCResult(satfcResult).greedySolved(true).build());
                     return;
                 } else {

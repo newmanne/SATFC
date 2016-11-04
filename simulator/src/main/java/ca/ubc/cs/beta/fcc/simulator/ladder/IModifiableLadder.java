@@ -18,5 +18,5 @@ public interface IModifiableLadder extends ILadder {
      */
     void addStation(IStationInfo s, Band b);
 
-    void moveStation(IStationInfo station, Band band);
+    void moveStation(IStationInfo station, Band band, Map<Integer, Integer> assignment);
 }

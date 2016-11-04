@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
+import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
@@ -13,23 +14,33 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
+import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.jgrapht.alg.ConnectivityInspector;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleGraph;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
 /**
  * Created by newmanne on 2016-10-11.
@@ -54,33 +65,39 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
 
     private final Map<IStationInfo, UHFCacheEntry> feasibility;
     private final ParticipationRecord participation;
-    private final StationDB stationDB;
     private final IProblemMaker problemMaker;
-    private boolean isDirty;
     // If true, then don't prefill the cache every time it dirties - just grab problems one by one, as needed
     private final boolean lazy;
     private final TimeTracker wastedTimeTracker;
 
-    public UHFCachingFeasibilitySolverDecorator(IFeasibilitySolver decorated, ParticipationRecord participation, StationDB stationDB, IProblemMaker problemMaker, boolean lazy) {
+    private final ImmutableMap<IStationInfo, Set<IStationInfo>> stationToComponent;
+    private boolean needsRebuid;
+
+    public UHFCachingFeasibilitySolverDecorator(IFeasibilitySolver decorated, ParticipationRecord participation, IProblemMaker problemMaker, boolean lazy, ILadder ladder, IConstraintManager constraintManager) {
         super(decorated);
         feasibility = new ConcurrentHashMap<>();
         this.participation = participation;
-        this.stationDB = stationDB;
         this.problemMaker = problemMaker;
-        isDirty = true;
         this.lazy = lazy;
         this.wastedTimeTracker = new TimeTracker();
+        needsRebuid = true;
+
+        // Get the connected components in UHF
+        final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
+                .collect(Collectors.toMap(IStationInfo::toSATFCStation, s -> s.getDomain(Band.UHF)));
+        final Map<Station, IStationInfo> stationToInfo = ladder.getStations().stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, Function.identity()));
+        final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
+        final ConnectivityInspector<IStationInfo, DefaultEdge> connectivityInspector = new ConnectivityInspector<>(constraintGraph);
+        final Set<Set<IStationInfo>> connectedComponents = connectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+        stationToComponent = ladder.getStations().stream().collect(toImmutableMap(Function.identity(), s -> connectedComponents.stream().filter(component -> component.contains(s)).findFirst().get()));
     }
 
     // This is sort of at the wrong level of abstraction (Because I no longer know the "type" of problem...) oh well...
     @Override
     public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
         if (problem.getBand().equals(Band.UHF) && CACHEABLE_PROBLEMS.contains(problem.getProblemType())) {
-            if (isDirty) {
-                purgeDirty();
-                if (!lazy) {
-                    rebuildCache();
-                }
+            if (!lazy && needsRebuid) {
+                rebuildCache();
             }
 
             final IStationInfo addedStation = problem.getTargetStation();
@@ -115,7 +132,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                 .filter(s -> !feasibility.containsKey(s))
                 .collect(Collectors.toSet());
         log.info("Recomputing cache... {} problems", stationsToRecompute.size());
-        for (final IStationInfo s: stationsToRecompute) {
+        for (final IStationInfo s : stationsToRecompute) {
             decorated.getFeasibility(problemMaker.makeProblem(s, Band.UHF, ProblemType.UHF_CACHE_PREFILL), new SATFCCallback() {
                 @Override
                 public void onSuccess(SimulatorProblem problem, SimulatorResult result) {
@@ -127,22 +144,37 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         log.info("Cache recomputed");
     }
 
-    private void purgeDirty() {
-        // Remove any stale info (If we wanted to be a bit better, we could only remove stations in the connected component of the band a station moved in to, but it doesn't seem worth the complexity of coding)
+    private void purgeDirty(IStationInfo movedStation, Map<Integer, Integer> mostRecentAssignment) {
+        // Remove any stale info - any station in the connected component of the UHF interference graph of the moved station is now dirty
         // Note that a station cannot suddenly become feasible if more stations moved into the band, so we should keep UNSAT results
+        final Set<IStationInfo> possiblyAffectedStations = stationToComponent.get(movedStation);
         final Iterator<Map.Entry<IStationInfo, UHFCacheEntry>> iterator = feasibility.entrySet().iterator();
         while (iterator.hasNext()) {
             final Map.Entry<IStationInfo, UHFCacheEntry> entry = iterator.next();
             final SimulatorResult result = entry.getValue().getResult();
             if (!result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
-                // If we didn't use the result, add its computation time to "extra"
-                if (entry.getValue().getHitCount() == 0) {
-                    wastedTimeTracker.update(result.getSATFCResult());
+                if (possiblyAffectedStations.contains(entry.getKey())) {
+                    // If we didn't use the result, add its computation time to "extra"
+                    if (entry.getValue().getHitCount() == 0) {
+                        wastedTimeTracker.update(result.getSATFCResult());
+                    }
+                    iterator.remove();
+                } else {
+                    // This is a SAT answer for a station not in the affected component. We need to alter all of the values in the altered component
+                    final SATFCResult satfcResult = entry.getValue().getResult().getSATFCResult();
+                    final Map<Integer, Integer> assignment = new HashMap<>(satfcResult.getWitnessAssignment());
+                    for (IStationInfo station : possiblyAffectedStations) {
+                        final Integer newAssignedChannel = mostRecentAssignment.get(station.getId());
+                        if (newAssignedChannel != null) {
+                            // Update their channels
+                            assignment.put(station.getId(), newAssignedChannel);
+                        }
+                    }
+                    // update assignment
+                    entry.getValue().getResult().setSATFCResult(new SATFCResult(satfcResult.getResult(), satfcResult.getRuntime(), assignment, satfcResult.getCputime(), satfcResult.getExtraInfo()));
                 }
-                iterator.remove();
             }
         }
-        isDirty = false;
     }
 
     /**
@@ -151,8 +183,9 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     @Subscribe
     public void onMove(LadderEventOnMoveDecorator.LadderMoveEvent moveEvent) {
         if (moveEvent.getNewBand().equals(Band.UHF)) {
-            log.info("Station {} moved into UHF, marking UHF cache as dirty", moveEvent.getStation());
-            isDirty = true;
+            log.debug("Station {} moved into UHF, marking UHF cache as dirty", moveEvent.getStation());
+            purgeDirty(moveEvent.getStation(), moveEvent.getLadder().getPreviousAssignment(Band.UHF));
+            needsRebuid = true;
         }
     }
 

@@ -19,6 +19,6 @@ import java.util.Map;
 
 public interface IVacancyCalculator {
 
-    ImmutableTable<IStationInfo, Band, Double> computeVacancies(Collection<IStationInfo> stations, ILadder aLadder, Map<Integer, Integer> aCurrentChannelAssignment, IPrices previousBenchmarkPrices);
+    ImmutableTable<IStationInfo, Band, Double> computeVacancies(Collection<IStationInfo> stations, ILadder aLadder, IPrices previousBenchmarkPrices);
 
 }

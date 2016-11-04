@@ -9,6 +9,7 @@ import lombok.Value;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Created by newmanne on 2016-10-11.
@@ -23,9 +24,9 @@ public class LadderEventOnMoveDecorator extends ALadderDecorator {
     }
 
     @Override
-    public void moveStation(IStationInfo station, Band band) {
+    public void moveStation(IStationInfo station, Band band, Map<Integer, Integer> assignment) {
         final Band prevBand = decorated.getStationBand(station);
-        super.moveStation(station, band);
+        super.moveStation(station, band, assignment);
         eventBus.post(new LadderMoveEvent(station, prevBand, band, this));
     }
 

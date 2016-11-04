@@ -29,8 +29,6 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 public class ProblemMakerImpl implements IProblemMaker {
 
     @NonNull
-    private final IPreviousAssignmentHandler previousAssignmentHandler;
-    @NonNull
     private final ILadder ladder;
     @NonNull
     private final Simulator.ISATFCProblemSpecGenerator problemSpecGenerator;
@@ -60,7 +58,7 @@ public class ProblemMakerImpl implements IProblemMaker {
 
         final SimulatorProblemReader.SATFCProblem satfcProblem = new SimulatorProblemReader.SATFCProblem(
                 domains,
-                previousAssignmentHandler.getPreviousAssignment(domains)
+                ladder.getPreviousAssignment(domains)
         );
         if (name == null) {
             final SimulatorProblem temp = builder.build();

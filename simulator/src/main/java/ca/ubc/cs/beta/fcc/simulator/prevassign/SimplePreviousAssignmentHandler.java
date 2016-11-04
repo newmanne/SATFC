@@ -49,10 +49,12 @@ public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandl
      */
     @Override
     public void updatePreviousAssignment(Map<Integer, Integer> newAssignment) {
+        int oldSize = assignment.size();
         for (Map.Entry<Integer, Integer> entry : newAssignment.entrySet()) {
             // Either change a station's previous value, or else add a new station
             assignment.put(entry.getKey(), entry.getValue());
         }
+        Preconditions.checkState(assignment.size() >= oldSize, "Assignment shrunk from %s to %s stations", oldSize, assignment.size());
         Preconditions.checkState(constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(assignment)), "Updated previous assignment is not SAT!!! (Added %s)", newAssignment);
     }
 

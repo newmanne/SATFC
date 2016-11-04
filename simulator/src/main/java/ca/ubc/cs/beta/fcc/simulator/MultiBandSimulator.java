@@ -9,7 +9,6 @@ import ca.ubc.cs.beta.fcc.simulator.parameters.LadderAuctionParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameter;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPricesFactory;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
@@ -27,11 +26,9 @@ import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -64,8 +61,6 @@ public class MultiBandSimulator {
     private final IPricesFactory pricesFactory;
     private final RoundTracker roundTracker;
 
-    private final IPreviousAssignmentHandler previousAssignmentHandler;
-
     private final ISimulatorUnconstrainedChecker unconstrainedChecker;
 
     private final LadderAuctionParameters parameters;
@@ -80,7 +75,6 @@ public class MultiBandSimulator {
         this.vacancyCalculator = parameters.getVacancyCalculator();
         this.unconstrainedChecker = parameters.getUnconstrainedChecker();
         this.stepReductionCoefficientCalculator = new StepReductionCoefficientCalculator(this.parameters.getOpeningBenchmarkPrices());
-        this.previousAssignmentHandler = parameters.getPreviousAssignmentHandler();
         this.stationOrderer = new StationOrdererImpl();
         this.stationManager = parameters.getStationManager();
         this.constraintManager = parameters.getConstraintManager();
@@ -105,11 +99,13 @@ public class MultiBandSimulator {
         final IModifiableLadder ladder = previousState.getLadder();
         final ParticipationRecord participation = previousState.getParticipation();
 
+        Preconditions.checkState(previousState.getAssignment().equals(ladder.getPreviousAssignment()), "Ladder and previous state do not match on assignments", previousState.getAssignment(), ladder.getPreviousAssignment());
         Preconditions.checkState(StationPackingUtils.weakVerify(stationManager, constraintManager, previousState.getAssignment()), "Round started on an invalid assignment!", previousState.getAssignment());
-        previousAssignmentHandler.updatePreviousAssignment(previousState.getAssignment());
+
+        log.info("There are {} bidding stations remaining, {} provisional winners, and {} frozen stations that are not provisional winners", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
 
         log.info("Computing vacancies...");
-        final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousAssignmentHandler.getPreviousAssignment(), previousState.getBenchmarkPrices());
+        final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
 
         log.info("Calculating reduction coefficients...");
         final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients = stepReductionCoefficientCalculator.computeStepReductionCoefficients(vacancies);
@@ -184,9 +180,8 @@ public class MultiBandSimulator {
                     } else {
                         // If an actual move is taking place
                         if (!ladder.getStationBand(station).equals(moveBand)) {
-                            ladder.moveStation(station, moveBand);
                             Preconditions.checkNotNull(moveFeasibility);
-                            previousAssignmentHandler.updatePreviousAssignment(moveFeasibility.getSATFCResult().getWitnessAssignment());
+                            ladder.moveStation(station, moveBand, moveFeasibility.getSATFCResult().getWitnessAssignment());
                         }
                         stationPrices.put(station, actualPrices.getPrice(station, moveBand));
                     }
@@ -277,7 +272,7 @@ public class MultiBandSimulator {
                 .benchmarkPrices(newBenchmarkPrices)
                 .participation(participation)
                 .round(roundTracker.getRound())
-                .assignment(previousAssignmentHandler.getPreviousAssignment())
+                .assignment(ladder.getPreviousAssignment())
                 .ladder(ladder)
                 .prices(stationPrices)
                 .baseClockPrice(newBaseClockPrice)
@@ -300,9 +295,8 @@ public class MultiBandSimulator {
         Preconditions.checkState(Participation.EXITED.contains(exitStatus), "Must be an exit Participation");
         log.info("Station {} (currently on band {}) is exiting, {}", station, ladder.getStationBand(station), exitStatus);
         participation.setParticipation(station, exitStatus);
-        ladder.moveStation(station, station.getHomeBand());
+        ladder.moveStation(station, station.getHomeBand(), newAssignment);
         stationPrices.put(station, 0.0);
-        previousAssignmentHandler.updatePreviousAssignment(newAssignment);
     }
 
     private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, double price) {

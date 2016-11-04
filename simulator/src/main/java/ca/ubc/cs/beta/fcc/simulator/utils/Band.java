@@ -50,4 +50,7 @@ public enum Band implements Comparable<Band> {
     public boolean isAbove(Band other) { return  ordinal() > other.ordinal(); }
     public boolean isAboveOrEqualTo(Band other) { return  ordinal() >= other.ordinal(); }
 
+    public boolean isAirBand() {
+        return !this.equals(OFF);
+    }
 }

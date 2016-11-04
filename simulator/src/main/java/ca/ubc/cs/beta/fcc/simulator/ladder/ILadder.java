@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.ladder;
 
+import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
@@ -13,7 +14,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableLis
 /**
  * Created by newmanne on 2016-07-26.
  */
-public interface ILadder {
+public interface ILadder extends IPreviousAssignmentHandler {
 
     /**
      * @return the current set of stations in the ladder.

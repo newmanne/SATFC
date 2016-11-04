@@ -55,14 +55,12 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
 
     /**
      * @param ladder     - the auction's ladder structure.
-     * @param assignment - the current feasible channel assignment.
      * @return a map taking each station and band in the ladder to the station's vacancy on the band.
      */
     @Override
     public ImmutableTable<IStationInfo, Band, Double> computeVacancies(
             @NonNull final Collection<IStationInfo> stations,
             @NonNull final ILadder ladder,
-            @NonNull final Map<Integer, Integer> assignment,
             @NonNull final IPrices previousBenchmarkPrices
     ) {
         final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, sequentialVacancyCalculator.constraintManager);
@@ -73,7 +71,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                         stations.parallelStream().forEach(station -> {
                             Map<Band, Double> stationVacancies = new EnumMap<>(Band.class);
                             for (Band band : ladder.getAirBands()) {
-                                stationVacancies.put(band, sequentialVacancyCalculator.computeVacancy(station, band, ladder, assignment, bandNeighborIndexMap, previousBenchmarkPrices));
+                                stationVacancies.put(band, sequentialVacancyCalculator.computeVacancy(station, band, ladder, bandNeighborIndexMap, previousBenchmarkPrices));
                             }
                             vacancies.put(station, stationVacancies);
                         });
@@ -105,12 +103,12 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
         private final double VAC_FLOOR;
 
         @Override
-        public ImmutableTable<IStationInfo, Band, Double> computeVacancies(@NonNull Collection<IStationInfo> stations, @NonNull ILadder ladder, @NonNull Map<Integer, Integer> assignment, @NonNull IPrices previousBenchmarkPrices) {
+        public ImmutableTable<IStationInfo, Band, Double> computeVacancies(@NonNull Collection<IStationInfo> stations, @NonNull ILadder ladder, @NonNull IPrices previousBenchmarkPrices) {
             final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
             final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
             for (IStationInfo station : stations) {
                 for (Band band : ladder.getAirBands()) {
-                    final double vacancy = computeVacancy(station, band, ladder, assignment, bandNeighbourhoods, previousBenchmarkPrices);
+                    final double vacancy = computeVacancy(station, band, ladder, bandNeighbourhoods, previousBenchmarkPrices);
                     builder.put(station, band, vacancy);
                 }
             }
@@ -121,7 +119,6 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 final IStationInfo station,
                 final Band band,
                 final ILadder ladder,
-                final Map<Integer, Integer> assignment,
                 final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods,
                 final IPrices previousBenchmarkPrices) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
@@ -151,7 +148,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                     // Get stations that might interfere with this neighbour on this band
                     final Set<Integer> interferingWithNeighbour = bandNeighbourhoods.get(neighbour, band).stream().map(IStationInfo::getId).collect(Collectors.toSet());
                     // Reduce the tentative assignment so that it only includes these stations, and the neighbour
-                    final Map<Integer, Integer> reducedAssignment = Maps.filterKeys(assignment, interferingWithNeighbour::contains);
+                    final Map<Integer, Integer> reducedAssignment = Maps.filterKeys(ladder.getPreviousAssignment(), interferingWithNeighbour::contains);
                     // Convert into the format that the constraint manager needs
                     final HashMultimap<Integer, Station> channelToStation = StationPackingUtils.channelToStationFromStationToChannelAsMultimap(reducedAssignment);
 
