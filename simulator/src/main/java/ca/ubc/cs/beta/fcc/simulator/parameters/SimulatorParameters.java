@@ -363,10 +363,11 @@ public class SimulatorParameters extends AbstractOptions {
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
 
             final Set<Station> cityStations = domains.keySet().stream()
-                    .filter(s -> stations.get(s.getID()).getCity().equals(city))
+                    .filter(s -> stations.get(s.getID()).getCity().equalsIgnoreCase(city))
                     .collect(Collectors.toSet());
 
             log.info("Found {} stations in city {}", cityStations.size(), city);
+            Preconditions.checkState(cityStations.size() > 0, "No stations found in %s", city);
 
             final Iterator<Set<Station>> stationsToPack = new AddNeighbourLayerStrategy().getStationsToPack(constraintGraph, cityStations).iterator();
             final Set<Station> output = Sets.newHashSet(cityStations);

@@ -126,7 +126,8 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
         writePreviousAssignment(previousAssignment);
     }
 
-    public void close() throws IOException {
+    public void close() throws Exception {
+        super.close();
         if (problemCSVWriter != null) {
             problemCSVWriter.close();
         } else if (assignmentCSVWriter != null) {
