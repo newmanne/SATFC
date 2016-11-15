@@ -59,7 +59,8 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
             final Set<IStationInfo> neighbours = neighbourIndex.get(targetStation, problem.getBand());
             final Map<Integer, Set<Station>> assignment = new HashMap<>();
             final Map<Integer, Integer> previousAssignment = problem.getSATFCProblem().getProblem().getPreviousAssignment();
-            for (IStationInfo neighbour : neighbours) {
+            // Hold neighbours to fixed channels. This means non-neighbours do not matter. Reducing assignment here makes checking faster
+            for (final IStationInfo neighbour : neighbours) {
                 final Integer assignedChannel = previousAssignment.get(neighbour.getId());
                 if (assignedChannel != null) {
                     assignment.putIfAbsent(assignedChannel, new HashSet<>());
@@ -67,16 +68,21 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
                 }
             }
             // Try every channel
-            for (int channel : problem.getSATFCProblem().getProblem().getDomains().get(targetStation.getId())) {
+            final Set<Integer> targetStationDomain = problem.getSATFCProblem().getProblem().getDomains().get(targetStation.getId());
+            for (final int channel : targetStationDomain) {
                 assignment.putIfAbsent(channel, new HashSet<>());
                 assignment.get(channel).add(targetStation.toSATFCStation());
                 if (constraintManager.isSatisfyingAssignment(assignment)) {
-                    final Map<Integer, Integer> witnessAssignment = StationPackingUtils.stationToChannelFromChannelToStation(assignment).entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getID(), Map.Entry::getValue));
+                    final Map<Integer, Integer> witnessAssignment = new HashMap<>(previousAssignment);
+                    witnessAssignment.put(targetStation.getId(), channel);
                     final SATFCResult satfcResult = new SATFCResult(SATResult.SAT, watch.getElapsedTime(), cpuTimeWatch.getElapsedTime(), witnessAssignment);
                     callback.onSuccess(problem, SimulatorResult.builder().SATFCResult(satfcResult).greedySolved(true).build());
                     return;
                 } else {
                     assignment.get(channel).remove(targetStation.toSATFCStation());
+                    if (assignment.get(channel).isEmpty()) {
+                        assignment.remove(channel);
+                    }
                 }
             }
         }

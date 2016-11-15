@@ -73,14 +73,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
     private String volumeFile = ARROW_DIR + "volumes.csv";
 
-    @Getter
-    @Parameter(names = "-VALUES-FILE", description = "values file")
-    private String valuesFile = ARROW_DIR + "values_v2.csv";
 
     @Getter
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
-
 
     @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
@@ -97,9 +93,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-UNIT-VOLUME", description = "Sets all stations to have unit volume")
     private boolean unitVolume = false;
 
-    @Getter
-    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
-    private boolean unitValue = false;
 
     @Getter
     @Parameter(names = "-UHF-ONLY", description = "Ignore non-UHF stations")
@@ -108,11 +101,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-UHF-TO-OFF", description = "Price per unit volume if a UHF station moves to OFF")
     private double UHFToOff = 900;
-
-    // backwards compatibilty
-    public double getBaseClockPrice() {
-        return UHFToOff;
-    }
 
     @Getter
     @Parameter(names = "-IGNORE-CANADA")
@@ -133,18 +121,25 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
     private boolean restore = false;
 
-    // TODO: go to yaml if this gets any more complicated
-    @Getter
-    @Parameter(names = "-START-CITY", description = "City to start from")
-    private String city;
-    @Getter
-    @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
-    private int nLinks = -1;
+//    @Getter
+//    @Parameter(names = "-VALUES-FILE", description = "values file")
+//    private String valuesFile = ARROW_DIR + "values_v2.csv";
 
+    //    @Getter
+//    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
+//    private boolean unitValue = false;
 
-    @Getter
-    @Parameter(names = "-UNIFORM-PROBABILITY-PARTICIPATION", description = "A station participates uniformly with p")
-    private Double uniformProbability;
+//    @Getter
+//    @Parameter(names = "-START-CITY", description = "City to start from")
+//    private String city;
+//    @Getter
+//    @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
+//    private int nLinks = -1;
+
+//
+//    @Getter
+//    @Parameter(names = "-UNIFORM-PROBABILITY-PARTICIPATION", description = "A station participates uniformly with p")
+//    private Double uniformProbability;
 
     @Getter
     @Parameter(names = "-SIMULATOR-OUTPUT-FOLDER", description = "output file name")
@@ -330,8 +325,8 @@ public class SimulatorParameters extends AbstractOptions {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
                 return new OpeningPriceHigherThanPrivateValue(prices);
-            case UNIFORM:
-                return new UniformParticipationDecider(uniformProbability, prices);
+//            case UNIFORM:
+//                return new UniformParticipationDecider(uniformProbability, prices);
             default:
                 throw new IllegalStateException();
         }
@@ -339,15 +334,6 @@ public class SimulatorParameters extends AbstractOptions {
 
     public enum ScoringRule {
         FCC,
-    }
-
-    public IScoringRule getScoringRule() {
-        switch (scoringRule) {
-            case FCC:
-                return new FCCScoringRule();
-            default:
-                throw new IllegalStateException();
-        }
     }
 
     public interface IPredicateFactory {

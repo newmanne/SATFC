@@ -42,7 +42,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 @Slf4j
 public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDecorator {
 
-    ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE);
+    final private static ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE);
 
     @Data
     public static class UHFCacheEntry {
@@ -154,11 +154,11 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                     if (entry.getValue().getHitCount() == 0) {
                         wastedTimeTracker.update(result.getSATFCResult());
                     }
-                    // Delete results within the component
+                    // Delete SAT results within the component
                     iterator.remove();
                 } else {
                     Preconditions.checkState(result.getSATFCResult().getResult().equals(SATResult.SAT), "Trying to augment a non-SAT result!");
-                    // This is a SAT answer for a station not in the affected component. We need to alter /augment all of the values in the altered component
+                    // This is a SAT answer for a station not in the affected component. We need to alter / augment all of the values in the altered component
                     final SATFCResult satfcResult = entry.getValue().getResult().getSATFCResult();
                     final Map<Integer, Integer> assignment = new HashMap<>(satfcResult.getWitnessAssignment());
                     for (IStationInfo station : componentStations) {

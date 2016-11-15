@@ -45,10 +45,6 @@ public class SimulatorUtils {
         return result.getSATFCResult().getResult().equals(SATResult.SAT);
     }
 
-    public static Set<Integer> toID(Collection<IStationInfo> stationInfos) {
-        return stationInfos.stream().map(IStationInfo::getId).collect(Collectors.toSet());
-    }
-
     public static void toCSV(String filename, List<String> header, List<List<Object>> records) {
         FileWriter fileWriter = null;
         CSVPrinter csvPrinter = null;

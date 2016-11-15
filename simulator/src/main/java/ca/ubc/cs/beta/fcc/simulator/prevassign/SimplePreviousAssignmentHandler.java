@@ -33,10 +33,10 @@ public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandl
 
     @Override
     public Map<Integer, Integer> getPreviousAssignment(Map<Integer, Set<Integer>> domains) {
-        Map<Integer, Integer> returnedAssignment = new HashMap<>();
-        Set<Integer> commonStations = Sets.intersection(assignment.keySet(), domains.keySet());
-        for (int stationID : commonStations) {
-            int assignedChannel = assignment.get(stationID);
+        final Map<Integer, Integer> returnedAssignment = new HashMap<>();
+        final Set<Integer> commonStations = Sets.intersection(assignment.keySet(), domains.keySet());
+        for (final int stationID : commonStations) {
+            final int assignedChannel = assignment.get(stationID);
             if (domains.get(stationID).contains(assignedChannel)) {
                 returnedAssignment.put(stationID, assignedChannel);
             }
@@ -45,17 +45,18 @@ public class SimplePreviousAssignmentHandler implements IPreviousAssignmentHandl
     }
 
     /**
-     * Note that this merges the two assignments, does NOT overwrite!
+     * Merge the new assignment into what exists already
      */
     @Override
     public void updatePreviousAssignment(Map<Integer, Integer> newAssignment) {
-        int oldSize = assignment.size();
-        for (Map.Entry<Integer, Integer> entry : newAssignment.entrySet()) {
+        Preconditions.checkState(constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(newAssignment)), "Trying to merge UNSAT assignment into previous assignment! (%s)", newAssignment);
+        final int oldSize = assignment.size();
+        for (final Map.Entry<Integer, Integer> entry : newAssignment.entrySet()) {
             // Either change a station's previous value, or else add a new station
             assignment.put(entry.getKey(), entry.getValue());
         }
         Preconditions.checkState(assignment.size() >= oldSize, "Assignment shrunk from %s to %s stations", oldSize, assignment.size());
-        Preconditions.checkState(constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(assignment)), "Updated previous assignment is not SAT!!! (Added %s)", newAssignment);
+        Preconditions.checkState(constraintManager.isSatisfyingAssignment(StationPackingUtils.channelToStationFromStationToChannel(assignment)), "Updated previous assignment is not SAT!!! (%s)", assignment);
     }
 
 }

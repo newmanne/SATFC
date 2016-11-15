@@ -37,6 +37,7 @@ import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import humanize.Humanize;
 import lombok.Builder;
 import lombok.Cleanup;
@@ -46,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -189,7 +189,8 @@ public class MultiBandAuctioneer {
          * We choose a clearing target as the largest target that can be cleared given participation
          */
         ClearingResult result = null;
-        for (final int maxChannel : SimulatorUtils.CLEARING_TARGETS.reverse()) {
+        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS.reverse();
+        for (final int maxChannel : clearingTargets) {
             log.info("Trying clearing target of {}", maxChannel);
             adjustCT(maxChannel, stationDB);
             final ClearingResult tempResult = testClearingTarget(ladder, solver, problemMaker, maxChannel);
@@ -200,7 +201,7 @@ public class MultiBandAuctioneer {
                 result = tempResult;
             }
         }
-        Preconditions.checkNotNull(result, "Could not clear the opening at ANY clearing target...");
+        Preconditions.checkNotNull(result, "Could not clear the opening at clearing targets %s", clearingTargets);
         log.info("Finalizing clearing target at {}", result.getClearingTarget());
         adjustCT(result.getClearingTarget(), stationDB);
         if (greedyFlaggingDecorator != null) {
@@ -348,7 +349,7 @@ public class MultiBandAuctioneer {
 
     public static ClearingResult testClearingTarget(ILadder ladder, IFeasibilitySolver solver, IProblemMaker problemMaker, int maxChannel) {
         final Map<Band, Map<Integer, Integer>> bandAssignmentMap = new HashMap<>();
-        for (Band band : ladder.getAirBands()) {
+        for (final Band band : ladder.getAirBands()) {
             final Set<IStationInfo> bandStations = ladder.getBandStations(band);
             if (bandStations.size() > 0) {
                 final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null));
