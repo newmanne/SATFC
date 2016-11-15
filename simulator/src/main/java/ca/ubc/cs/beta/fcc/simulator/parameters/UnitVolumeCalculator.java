@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.parameters;
 
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 
 import java.util.Map;
@@ -12,8 +13,8 @@ import java.util.stream.Collectors;
 public class UnitVolumeCalculator implements SimulatorParameters.IVolumeCalculator {
 
     @Override
-    public Map<Integer, Double> getVolumes(Set<StationInfo> stations) {
-        return stations.stream().collect(Collectors.toMap(StationInfo::getId, s -> 1.));
+    public Map<Integer, Integer> getVolumes(Set<IStationInfo> stations) {
+        return stations.stream().collect(Collectors.toMap(IStationInfo::getId, s -> 1));
     }
 
 }

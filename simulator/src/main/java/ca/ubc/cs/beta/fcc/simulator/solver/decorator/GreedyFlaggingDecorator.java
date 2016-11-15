@@ -38,11 +38,14 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
 
     private final IConstraintManager constraintManager;
 
-    private final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> neighbourIndex;
+    private ImmutableTable<IStationInfo, Band, Set<IStationInfo>> neighbourIndex;
 
-    public GreedyFlaggingDecorator(@NonNull IFeasibilitySolver decorated, @NonNull ILadder ladder, @NonNull IConstraintManager constraintManager) {
+    public GreedyFlaggingDecorator(@NonNull IFeasibilitySolver decorated, @NonNull IConstraintManager constraintManager) {
         super(decorated);
         this.constraintManager = constraintManager;
+    }
+
+    public void init(@NonNull ILadder ladder) {
         Preconditions.checkState(ladder.getStations().size() > 0);
         neighbourIndex = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
     }
@@ -52,7 +55,7 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
         final Watch watch = Watch.constructAutoStartWatch();
         final SimulatorUtils.CPUTimeWatch cpuTimeWatch = SimulatorUtils.CPUTimeWatch.constructAutoStartWatch();
         final IStationInfo targetStation = problem.getTargetStation();
-        if (targetStation != null) {
+        if (neighbourIndex != null && targetStation != null) {
             final Set<IStationInfo> neighbours = neighbourIndex.get(targetStation, problem.getBand());
             final Map<Integer, Set<Station>> assignment = new HashMap<>();
             final Map<Integer, Integer> previousAssignment = problem.getSATFCProblem().getProblem().getPreviousAssignment();

@@ -23,7 +23,7 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     }
 
     @Override
-    public Double getVolume() {
+    public Integer getVolume() {
         return decorated.getVolume();
     }
 

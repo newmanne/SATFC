@@ -6,7 +6,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -22,28 +22,19 @@ import java.util.stream.Collectors;
  * Created by newmanne on 2016-05-20.
  */
 @Slf4j
-public class CSVStationDB implements StationDB {
+public class CSVStationDB implements IStationDB.IModifiableStationDB {
 
     private final Map<Integer, IStationInfo> data;
 
-    public CSVStationDB(String infoFile, SimulatorParameters.IVolumeCalculator volumeCalculator,
-                        SimulatorParameters.IValueCalculator valueCalculator, IStationManager stationManager,
-                        int highest, boolean uhfOnly, List<SimulatorParameters.IPredicateFactory> ignores,
-                        Function<IStationInfo, IStationInfo> decorate) {
-        final Map<Integer, IStationInfo> dataTmp = new HashMap<>();
+    public CSVStationDB(String infoFile, IStationManager stationManager) {
+        data = new HashMap<>();
         log.info("Reading station info from {}", infoFile);
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
             IStationInfo stationInfo;
             final int id = Integer.parseInt(record.get("FacID"));
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
-            // Account for Canadian stations having a highest of 1 lower than the clearing target
-            int stationHighest = nationality.equals(Nationality.US) ? highest : highest - 1;
-            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getRestrictedDomain(new Station(id), stationHighest, false));
-            if (domain.size() == 0) {
-                log.info("Station {} has no domain in channels 1-{}, skipping", id, highest);
-                continue;
-            }
+            final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getDomain(new Station(id)));
             final int channel = Integer.parseInt(record.get("Channel"));
             final String city = record.get("City");
             final String call = record.get("Call");
@@ -55,34 +46,15 @@ public class CSVStationDB implements StationDB {
                 final Band band = BandHelper.toBand(channel);
                 stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop);
             }
-            if (!stationInfo.getHomeBand().equals(Band.UHF) && uhfOnly) {
-                log.info("Station {} is not a UHF station and the UHF only flag is set to true", stationInfo);
-                continue;
-            }
-            stationInfo = decorate.apply(stationInfo);
-            dataTmp.put(id, stationInfo);
+            data.put(id, stationInfo);
         }
-        // TODO: should maybe do this sequentially so e.g. carries onwards
-        final Predicate<IStationInfo> ignore = ignores.stream()
-                .map(p -> p.create(dataTmp))
-                .reduce(Predicate::or).get();
-        data = ImmutableMap.copyOf(Maps.filterValues(dataTmp, x -> !ignore.test(x)));
         // ugly...
         final Set<StationInfo> americanStations = data.values().stream().filter(s -> s.getNationality().equals(Nationality.US)).map(s -> (StationInfo) s).collect(Collectors.toSet());
-        final Map<Integer, Double> volumes = volumeCalculator.getVolumes(americanStations);
-        for (StationInfo station : americanStations) {
-            station.setVolume(volumes.get(station.getId()));
-        }
-        valueCalculator.setValues(americanStations);
         log.info("Finished reading stations");
         final Map<Band, List<IStationInfo>> collect = getStations().stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
         for (Band band : collect.keySet()) {
             log.info("{} {} stations", collect.get(band).size(), band);
         }
-    }
-
-    public CSVStationDB(String infoFile, SimulatorParameters.IVolumeCalculator volumeCalculator, SimulatorParameters.IValueCalculator valueCalculator, IStationManager stationManager, int highest, boolean uhfOnly) {
-        this(infoFile, volumeCalculator, valueCalculator, stationManager, highest, uhfOnly, Lists.newArrayList(x -> y -> false), x -> x);
     }
 
     @Override
@@ -93,6 +65,12 @@ public class CSVStationDB implements StationDB {
     @Override
     public Collection<IStationInfo> getStations() {
         return data.values();
+    }
+
+    @Override
+    public void removeStation(int stationID) {
+        final IStationInfo removed = data.remove(stationID);
+        Preconditions.checkNotNull(removed, "Nothing to remove for statoin ID %s", stationID);
     }
 
 }

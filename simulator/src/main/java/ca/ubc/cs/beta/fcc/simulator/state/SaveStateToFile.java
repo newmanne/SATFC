@@ -2,9 +2,8 @@ package ca.ubc.cs.beta.fcc.simulator.state;
 
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
@@ -94,7 +93,7 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public void saveState(StationDB stationDB, LadderAuctionState state) {
+    public void saveState(IStationDB stationDB, LadderAuctionState state) {
         final String fileName = folder + File.separator + "state_" + state.getRound() + ".json";
         final Map<Integer, StationState> stateByStation = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
@@ -129,7 +128,7 @@ public class SaveStateToFile implements IStateSaver {
     }
 
     @Override
-    public AuctionState restoreState(StationDB stationDB) {
+    public AuctionState restoreState(IStationDB stationDB) {
         throw new IllegalStateException();
 //        try {
 //            final Optional<Path> mostRecentState = Files.walk(Paths.get(folder))

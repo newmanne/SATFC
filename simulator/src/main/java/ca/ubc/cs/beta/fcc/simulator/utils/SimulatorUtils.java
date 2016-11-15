@@ -9,6 +9,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableTable;
 import humanize.Humanize;
 import humanize.spi.context.ContextFactory;
@@ -35,13 +36,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SimulatorUtils {
 
+    public static final ImmutableList<Integer> CLEARING_TARGETS = ImmutableList.of(29,31,32,36,38,39,41,43,44);
+
     public static boolean isFeasible(SATFCResult result) {
         return result.getResult().equals(SATResult.SAT);
     }
     public static boolean isFeasible(SimulatorResult result) {
         return result.getSATFCResult().getResult().equals(SATResult.SAT);
     }
-
 
     public static Set<Integer> toID(Collection<IStationInfo> stationInfos) {
         return stationInfos.stream().map(IStationInfo::getId).collect(Collectors.toSet());

@@ -1,35 +1,11 @@
 package ca.ubc.cs.beta.fcc.simulator;
 
-import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
-import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
-import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
-import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
-import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
-import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.FeasibilityResultDistributionDecorator;
-import ca.ubc.cs.beta.fcc.simulator.solver.decorator.TimeTrackerFeasibilitySolverDecorator;
-import ca.ubc.cs.beta.fcc.simulator.state.AuctionState;
-import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
-import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
-import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
@@ -61,7 +37,7 @@ public class Simulator {
 //        final SimpleSimulatorProblemMaker problemMaker = new SimpleSimulatorProblemMaker(parameters.createProblemSpecGenerator(), round);
 //
 //        log.info("Reading station info from file");
-//        final StationDB stationDB = parameters.getStationDB();
+//        final IStationDB stationDB = parameters.getStationDB();
 //
 //        final IStateSaver stateSaver = parameters.getStateSaver();
 //

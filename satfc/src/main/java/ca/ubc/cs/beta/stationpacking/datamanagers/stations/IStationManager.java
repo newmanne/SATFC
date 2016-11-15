@@ -21,7 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.datamanagers.stations;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -57,6 +59,15 @@ public interface IStationManager {
 		final Set<Integer> domain = new HashSet<>(getDomain(station));
 		domain.removeIf(chan -> chan > maxChannel || (UHFOnly && chan < StationPackingUtils.UHFmin));
 		return domain;
+	}
+
+	default Map<Station, Set<Integer>> getDomains() {
+		final Map<Station, Set<Integer>> domains = new HashMap<>();
+		final Set<Station> stations = getStations();
+		for (Station s : stations) {
+			domains.put(s, getDomain(s));
+		}
+		return domains;
 	}
 	
 	/**

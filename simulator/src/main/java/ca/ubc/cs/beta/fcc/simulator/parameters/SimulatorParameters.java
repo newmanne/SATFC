@@ -13,8 +13,6 @@ import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.IProblemGenerator;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SATFCProblemSpecGeneratorImpl;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
@@ -65,17 +63,28 @@ public class SimulatorParameters extends AbstractOptions {
 
     private static Logger log;
 
+    private final String ARROW_DIR = "/ubc/cs/research/arrow/satfc/simulator/data/";
+
     @Getter
     @Parameter(names = "-INFO-FILE", description = "csv file")
-    private String infoFile = "/ubc/cs/research/arrow/satfc/simulator/data/station_info_v2.csv";
+    private String infoFile = ARROW_DIR + "station_info_v2.csv";
 
     @Getter
     @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
-    private String volumeFile = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
+    private String volumeFile = ARROW_DIR + "volumes.csv";
 
     @Getter
     @Parameter(names = "-VALUES-FILE", description = "values file")
-    private String valuesFile = "/ubc/cs/research/arrow/satfc/simulator/data/values_v2.csv";
+    private String valuesFile = ARROW_DIR + "values_v2.csv";
+
+    @Getter
+    @Parameter(names = "-VALUES-SEED", description = "values file")
+    private int valuesSeed = 1;
+
+
+    @Getter
+    @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
+    private String maxCFStickFile = ARROW_DIR + "valuations.csv";
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -107,14 +116,14 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-IGNORE-CANADA")
-    private boolean ignoreCanada = true;
+    private boolean ignoreCanada = false;
 
     @Parameter(names = "-SCORING-RULE")
     private ScoringRule scoringRule = ScoringRule.FCC;
 
     @Getter
     @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
-    private int maxChannel = 29;
+    private Integer maxChannel = null;
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
@@ -150,9 +159,14 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-UNCONSTRAINED-CHECKER", description = "Type of unconstrained checker")
     private UnconstrainedChecker unconstrainedChecker = UnconstrainedChecker.FCC;
 
+
+    @Parameter(names = "-UHF-CACHE", description = "If true, cache problems")
+    @Getter
+    private boolean UHFCache = true;
+
     @Parameter(names = "-LAZY-UHF-CACHE", description = "If true, do not precompute problems")
     @Getter
-    private boolean lazyUHF = false;
+    private boolean lazyUHF = true;
 
     @Parameter(names = "-GREEDY-SOLVER-FIRST", description = "If true, always try solving a problem with the greedy solver first")
     @Getter
@@ -190,7 +204,7 @@ public class SimulatorParameters extends AbstractOptions {
         log = LoggerFactory.getLogger(Simulator.class);
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         eventBus = new EventBus();
-        BandHelper.setUHFChannels(maxChannel);
+        BandHelper.setUHFChannels(maxChannel != null ? maxChannel : StationPackingUtils.UHFmax);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
             Preconditions.checkState(outputFolder.exists() && outputFolder.isDirectory(), "Expected to restore state but no state directory found!");
@@ -209,43 +223,42 @@ public class SimulatorParameters extends AbstractOptions {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        problemGenerator = new ProblemGeneratorImpl(getMaxChannel(), getStationManager());
 
+        stationDB = new CSVStationDB(getInfoFile(), getStationManager());
+
+        final Set<Integer> toRemove = new HashSet<>();
+        for (IStationInfo s : stationDB.getStations()) {
+            if (isIgnoreCanada() && s.getNationality().equals(Nationality.CA)) {
+                log.info("Station {} is a Canadian station and ignore Canada flag is set to true", s);
+                toRemove.add(s.getId());
+            } else if (isUhfOnly() && s.getDomain(Band.UHF).isEmpty()) {
+                log.info("Station {} is not a UHF station and the UHF only flag is set to true", s);
+                toRemove.add(s.getId());
+            }
+//            if (city != null && nLinks >= 0) {
+//                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
+//            }
+        }
+        toRemove.forEach(stationDB::removeStation);
+
+        log.info("Setting volumes");
         IVolumeCalculator volumeCalculator;
         if (isUnitVolume()) {
             volumeCalculator = new UnitVolumeCalculator();
         } else {
             volumeCalculator = new CSVVolumeCalculator(volumeFile);
         }
-        volumeCalculator = new NormalizingVolumeDecorator(volumeCalculator);
-
-        final IValueCalculator valueCalculator;
-        if (isUnitValue()) {
-            valueCalculator = new UnitValueCalculator();
-        } else {
-            valueCalculator = new CSVValueReader(valuesFile);
+        final Set<IStationInfo> americanStations = Sets.newHashSet(stationDB.getStations(Nationality.US));
+        final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);
+        for (IStationInfo stationInfo : americanStations) {
+            int volume = volumes.get(stationInfo.getId());
+            ((StationInfo) stationInfo).setVolume(volume);
         }
 
-        final List<IPredicateFactory> ignorePredicateFactories = new ArrayList<>();
-        ignorePredicateFactories.add(y -> x -> isIgnoreCanada() && x.getNationality().equals(Nationality.CA));
-        ignorePredicateFactories.add(y -> x -> isUhfOnly() && !getStationManager().getDomain(new Station(x.getId())).stream().anyMatch(c -> c >= StationPackingUtils.UHFmin));
-        if (city != null && nLinks >= 0) {
-            ignorePredicateFactories.add(new CityAndLinksPrediateFactory(city, nLinks, getStationManager(), getConstraintManager()));
-        }
-        if (valueCalculator instanceof CSVValueReader) {
-            // Kill off anything we don't have values for in the CSV
-            ignorePredicateFactories.add(y -> x -> {
-                        boolean ignore = x.getNationality().equals(Nationality.US) && !((CSVValueReader) valueCalculator).hasValue(x.getId());
-                        if (ignore) {
-                            log.info("Ignoring station {} because we have no associated value in our values csv", x);
-                        }
-                        return ignore;
-                    });
-        }
 
-        final Function<IStationInfo, IStationInfo> decorators = Function.identity();
+        // TOOD: This might make sense to do if you ever calculate volumes, but for now use FCC
+//        volumeCalculator = new NormalizingVolumeDecorator(volumeCalculator);
 
-        stationDB = new CSVStationDB(getInfoFile(), volumeCalculator, valueCalculator, getStationManager(), maxChannel, uhfOnly, ignorePredicateFactories, decorators);
     }
 
     private String getStateFolder() {
@@ -284,9 +297,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     private DataManager dataManager;
     @Getter
-    private IProblemGenerator problemGenerator;
-    @Getter
-    private StationDB stationDB;
+    private IStationDB.IModifiableStationDB stationDB;
     @Getter
     private EventBus eventBus;
 
@@ -345,8 +356,9 @@ public class SimulatorParameters extends AbstractOptions {
 
     }
 
+    // TODO: Hard to ratify this with endogenous clearing targets...
     @RequiredArgsConstructor
-    public static class CityAndLinksPrediateFactory implements IPredicateFactory {
+    public static class CityAndLinksPredicateFactory implements IPredicateFactory {
 
         private final String city;
         private final int links;
@@ -363,7 +375,7 @@ public class SimulatorParameters extends AbstractOptions {
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
 
             final Set<Station> cityStations = domains.keySet().stream()
-                    .filter(s -> stations.get(s.getID()).getCity().equalsIgnoreCase(city))
+                    .filter(s -> stations.get(s.getID()).getCity().equals(city))
                     .collect(Collectors.toSet());
 
             log.info("Found {} stations in city {}", cityStations.size(), city);
@@ -387,22 +399,22 @@ public class SimulatorParameters extends AbstractOptions {
 
     public interface IVolumeCalculator {
 
-        Map<Integer, Double> getVolumes(Set<StationInfo> stations);
+        Map<Integer, Integer> getVolumes(Set<IStationInfo> stations);
 
     }
 
     public static class CSVVolumeCalculator implements IVolumeCalculator {
 
-        final ImmutableMap<Integer, Double> volumes;
+        final ImmutableMap<Integer, Integer> volumes;
 
         public CSVVolumeCalculator(String volumeFile) {
             log.info("Reading volumes from {}", volumeFile);
             // Parse volumes
-            final ImmutableMap.Builder<Integer, Double> volumeBuilder = ImmutableMap.builder();
+            final ImmutableMap.Builder<Integer, Integer> volumeBuilder = ImmutableMap.builder();
             final Iterable<CSVRecord> volumeRecords = SimulatorUtils.readCSV(volumeFile);
             for (CSVRecord record : volumeRecords) {
                 int id = Integer.parseInt(record.get("FacID"));
-                double volume = Double.parseDouble(record.get("Volume"));
+                int volume = Integer.parseInt(record.get("Volume"));
                 volumeBuilder.put(id, volume);
             }
             volumes = volumeBuilder.build();
@@ -410,7 +422,7 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
         @Override
-        public Map<Integer, Double> getVolumes(Set<StationInfo> stations) {
+        public Map<Integer, Integer> getVolumes(Set<IStationInfo> stations) {
             return volumes;
         }
     }
@@ -421,15 +433,13 @@ public class SimulatorParameters extends AbstractOptions {
         private final IVolumeCalculator decorated;
 
         @Override
-        public Map<Integer, Double> getVolumes(Set<StationInfo> stations) {
-            final Map<Integer, Double> volumes = decorated.getVolumes(stations);
-            final Map<Integer, Double> normalized = new HashMap<>();
-
+        public Map<Integer, Integer> getVolumes(Set<IStationInfo> stations) {
+            final Map<Integer, Integer> volumes = decorated.getVolumes(stations);
+            final Map<Integer, Integer> normalized = new HashMap<>();
 
             double max = volumes.values().stream().mapToDouble(x->x).max().getAsDouble();
-            for (Map.Entry<Integer, Double> entry : volumes.entrySet()) {
-                // TODO: volumes should be rounded to nearest integer
-                normalized.put(entry.getKey(), (entry.getValue() / max) * 1e6);
+            for (Map.Entry<Integer, Integer> entry : volumes.entrySet()) {
+                normalized.put(entry.getKey(), (int) Math.round((entry.getValue() / max) * 1e6));
             }
             return normalized;
         }
@@ -506,18 +516,6 @@ public class SimulatorParameters extends AbstractOptions {
             for (StationInfo station : stationInfos) {
                 Double value = values.get(station.getId());
                 Preconditions.checkNotNull(value, "No value for station %s", station);
-                final Map<Band, Double> valueMap = new HashMap<>();
-                double frac = 1.0;
-                for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
-                    if (band.equals(Band.OFF)) {
-                        continue;
-                    }
-                    // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
-                    valueMap.put(band, value * frac);
-                    frac -= 1./3;
-                }
-                valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
-                station.setValues(valueMap);
             }
         }
 

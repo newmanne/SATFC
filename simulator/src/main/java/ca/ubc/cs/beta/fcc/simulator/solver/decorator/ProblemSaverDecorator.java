@@ -38,6 +38,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
 //    private final String ANSWERS_FILE_NAME = "answers.csv";
 
     private int previousAssignmentNumber;
+    private final File problemDir;
 
     @Builder
     @Data
@@ -46,12 +47,12 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
         String interference;
     }
 
-    public ProblemSaverDecorator(IFeasibilitySolver decorated, String problemDirName, ProblemSaverInfo info) {
+    public ProblemSaverDecorator(IFeasibilitySolver decorated, String problemDirName) {
         super(decorated);
 
         previousAssignmentNumber = 0;
 
-        File problemDir = new File(problemDirName);
+        problemDir = new File(problemDirName);
         Preconditions.checkState(problemDir.exists(), "Problem dir " + problemDir + " was not created in setup!");
 
         try {
@@ -61,11 +62,6 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
             throw new RuntimeException(e);
         }
 
-        try {
-            Files.write(JSONUtils.toString(info), new File(problemDir, INFO_FILE_NAME), Charsets.UTF_8);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private CSVPrinter createCSVWriter(File dir, String fileName, String headers) throws IOException {
@@ -116,6 +112,14 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
         };
         try {
             assignmentCSVWriter.printRecord(record);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void writeInfo(ProblemSaverInfo info) {
+        try {
+            Files.write(JSONUtils.toString(info), new File(problemDir, INFO_FILE_NAME), Charsets.UTF_8);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

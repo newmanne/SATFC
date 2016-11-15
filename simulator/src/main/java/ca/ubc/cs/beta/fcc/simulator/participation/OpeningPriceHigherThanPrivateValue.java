@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import humanize.Humanize;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,7 +25,7 @@ public class OpeningPriceHigherThanPrivateValue implements IParticipationDecider
         final Bid bid = s.queryPreferredBand(prices.getPrices(s, s.getHomeBand().getBandsBelowInclusive()), Band.OFF);
         boolean participating = bid.getPreferredOption().isBelow(s.getHomeBand());
         if (!participating) {
-            log.info("Station {} is not participating as its value {} is lower than it's opening price of {}", s, Humanize.spellBigNumber(s.getValue()), Humanize.spellBigNumber(prices.getPrice(s, Band.OFF)));
+            log.info("Station {} is not participating as its value {} is higher than it's opening price of {}", s, Humanize.spellBigNumber(s.getValue()), Humanize.spellBigNumber(prices.getPrice(s, Band.OFF)));
         }
         return participating;
     }

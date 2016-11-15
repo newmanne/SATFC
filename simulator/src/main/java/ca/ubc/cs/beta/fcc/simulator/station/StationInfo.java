@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.station;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
@@ -35,7 +37,9 @@ public class StationInfo implements IStationInfo {
     @Getter
     private final Band homeBand;
     @Getter
-    private final ImmutableSet<Integer> domain;
+    private ImmutableSet<Integer> domain;
+    @Getter
+    private final ImmutableSet<Integer> fullDomain;
     @Getter
     private final String city;
     @Getter
@@ -45,7 +49,7 @@ public class StationInfo implements IStationInfo {
 
     @Getter
     @Setter
-    private Double volume;
+    private Integer volume;
     @Getter
     @Setter
     private Map<Band, Double> values;
@@ -58,10 +62,18 @@ public class StationInfo implements IStationInfo {
         this.id = id;
         this.nationality = nationality;
         this.homeBand = band;
-        this.domain = ImmutableSet.copyOf(domain);
+        this.fullDomain = ImmutableSet.copyOf(domain);
+        this.domain = this.fullDomain;
         this.city = city;
         this.call = call;
         this.population = population;
+    }
+
+    public void adjustDomain(int maxChan) {
+        this.domain = fullDomain.stream().filter(c -> c <= maxChan).collect(GuavaCollectors.toImmutableSet());
+        if (getHomeBand().equals(Band.UHF)) {
+            Preconditions.checkState(!getDomain(Band.UHF).isEmpty(), "UHF band domain emptied!");
+        }
     }
 
     private double getUtility(Band band, double payment) {

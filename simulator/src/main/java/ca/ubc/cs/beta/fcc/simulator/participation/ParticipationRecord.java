@@ -1,8 +1,8 @@
 package ca.ubc.cs.beta.fcc.simulator.participation;
 
+import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
@@ -22,7 +22,7 @@ public class ParticipationRecord {
         participationMap = new ConcurrentHashMap<>();
     }
 
-    public ParticipationRecord(StationDB stationDB, IParticipationDecider participationDecider) {
+    public ParticipationRecord(IStationDB stationDB, IParticipationDecider participationDecider) {
         this();
         for (IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {

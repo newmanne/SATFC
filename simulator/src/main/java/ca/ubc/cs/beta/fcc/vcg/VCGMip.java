@@ -4,7 +4,7 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.matroid.encoder.MaxSatEncoder;
@@ -12,7 +12,6 @@ import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
-import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
@@ -88,9 +87,9 @@ public class VCGMip {
 
         parameters.setUp();
 
-        final StationDB stationDB = parameters.getStationDB();
+        final IStationDB stationDB = parameters.getStationDB();
         final Set<Integer> use = new HashSet<>(q.ids);
-        final Map<Integer, Set<Integer>> domains = parameters.getProblemGenerator().createProblem(use).getDomains();
+        final Map<Integer, Set<Integer>> domains = null; // TODO: Fix this
         log.info("Looking at {} stations", domains.size());
         log.info("Using max channel {}", parameters.getMaxChannel());
         final IConstraintManager constraintManager = parameters.getConstraintManager();
@@ -146,7 +145,7 @@ public class VCGMip {
     public static class SmallestMaximalCardinalityMIPMaker implements IMIPEncoder {
 
         @Override
-        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, IStationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
             // Objective
             final IloLinearIntExpr objectiveSum = cplex.linearIntExpr();
             for (final Integer station : participating) {
@@ -184,7 +183,7 @@ public class VCGMip {
     public static class VCGMIPMaker implements IMIPEncoder {
 
         @Override
-        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
+        public void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, IStationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException {
             // Objective function
             final IloLinearNumExpr objectiveSum = cplex.linearNumExpr();
             for (final Integer station : participating) {
@@ -205,7 +204,7 @@ public class VCGMip {
 
     public interface IMIPEncoder {
 
-        void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, StationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
+        void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, IStationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
 
     }
 
@@ -213,7 +212,7 @@ public class VCGMip {
     // Not thread safe. Should be reusuable.
     public static class MIPMaker {
 
-        protected final StationDB stationDB;
+        protected final IStationDB stationDB;
         protected final IStationManager stationManager;
         protected final IConstraintManager constraintManager;
         private final IMIPEncoder encoder;
@@ -223,7 +222,7 @@ public class VCGMip {
         protected Table<Integer, Integer, IloIntVar> varLookup;
         protected Map<IloIntVar, StationChannel> variablesDecoder;
 
-        public MIPMaker(StationDB stationDB, IStationManager stationManager, IConstraintManager constraintManager, IMIPEncoder encoder) throws IloException {
+        public MIPMaker(IStationDB stationDB, IStationManager stationManager, IConstraintManager constraintManager, IMIPEncoder encoder) throws IloException {
             this.stationDB = stationDB;
             this.stationManager = stationManager;
             this.constraintManager = constraintManager;

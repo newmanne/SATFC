@@ -11,23 +11,17 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.fcc.simulator.state.SaveStateToFile;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.StationDB;
 import ca.ubc.cs.beta.fcc.simulator.time.TimeTracker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
-import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.eventbus.Subscribe;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +64,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     private final boolean lazy;
     private final TimeTracker wastedTimeTracker;
 
-    private final ImmutableMap<IStationInfo, Set<IStationInfo>> stationToComponent;
+    private ImmutableMap<IStationInfo, Set<IStationInfo>> stationToComponent;
     private boolean needsRebuid;
 
     public UHFCachingFeasibilitySolverDecorator(IFeasibilitySolver decorated, ParticipationRecord participation, IProblemMaker problemMaker, boolean lazy, ILadder ladder, IConstraintManager constraintManager) {
@@ -81,7 +75,9 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         this.lazy = lazy;
         this.wastedTimeTracker = new TimeTracker();
         needsRebuid = true;
+    }
 
+    public void init(ILadder ladder, IConstraintManager constraintManager) {
         // Get the connected components in UHF
         final Map<Station, Set<Integer>> domains = ladder.getStations().stream()
                 .collect(Collectors.toMap(IStationInfo::toSATFCStation, s -> s.getDomain(Band.UHF)));
@@ -152,7 +148,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         while (iterator.hasNext()) {
             final Map.Entry<IStationInfo, UHFCacheEntry> entry = iterator.next();
             final SimulatorResult result = entry.getValue().getResult();
-            if (!result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
+            if (SimulatorUtils.isFeasible(result.getSATFCResult())) {
                 if (componentStations.contains(entry.getKey())) {
                     // If we didn't use the result, add its computation time to "extra"
                     if (entry.getValue().getHitCount() == 0) {
@@ -161,6 +157,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                     // Delete results within the component
                     iterator.remove();
                 } else {
+                    Preconditions.checkState(result.getSATFCResult().getResult().equals(SATResult.SAT), "Trying to augment a non-SAT result!");
                     // This is a SAT answer for a station not in the affected component. We need to alter /augment all of the values in the altered component
                     final SATFCResult satfcResult = entry.getValue().getResult().getSATFCResult();
                     final Map<Integer, Integer> assignment = new HashMap<>(satfcResult.getWitnessAssignment());

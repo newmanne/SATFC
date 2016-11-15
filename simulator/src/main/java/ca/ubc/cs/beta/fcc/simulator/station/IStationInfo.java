@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.station;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -20,7 +21,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet
 public interface IStationInfo {
 
     int getId();
-    Double getVolume();
+    Integer getVolume();
     Map<Band, Double> getValues();
     default double getValue(Band band) {
         Preconditions.checkState(getValues().containsKey(band), "Station %s has no value for band %s", getId(), band);
@@ -37,9 +38,7 @@ public interface IStationInfo {
         final Set<Integer> bandChannels = BandHelper.toChannels(band);
         return ImmutableSet.copyOf(Sets.intersection(domain, bandChannels));
     }
-    default ImmutableSet<Integer> getDomain(Collection<Band> bands) {
-        return bands.stream().flatMap(band -> getDomain(band).stream()).collect(toImmutableSet());
-    }
+
     String getCity();
     String getCall();
     int getPopulation();
