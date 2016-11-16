@@ -13,9 +13,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
@@ -35,8 +35,8 @@ public class SaveStateToFile implements IStateSaver {
 
     @Data
     @AllArgsConstructor
-    @NoArgsConstructor
     @Builder
+    @NoArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class StateFile {
         int round;
@@ -67,6 +67,7 @@ public class SaveStateToFile implements IStateSaver {
         Map<Band, Double> vacancies;
         Map<Band, Double> reductionCoefficients;
         Map<Band, Double> offers;
+        Map<Band, Double> values;
     }
 
     @Data
@@ -101,6 +102,7 @@ public class SaveStateToFile implements IStateSaver {
                     .price(state.getPrices().get(s))
                     .option(BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
                     .offers(state.getOffers().getOffers(s))
+                    .values(s.getValues())
                     .participation(state.getParticipation().getParticipation(s));
             if (state.getRound() > 0) {
                 stationState.vacancies(state.getVacancies().row(s))

@@ -66,7 +66,7 @@ public class ProblemMakerImpl implements IProblemMaker {
         if (name == null) {
             final SimulatorProblem temp = builder.build();
             if (ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE, ProblemType.PROVISIONAL_WINNER_CHECK, ProblemType.UHF_CACHE_PREFILL).contains(temp.getProblemType())) {
-                name = Joiner.on('_').join("R" + temp.getRound(), temp.getProblemType(), temp.getTargetStation(), temp.getBand());
+                name = Joiner.on('_').join("R" + temp.getRound(), temp.getProblemType(), temp.getTargetStation().getId(), temp.getBand());
             } else {
                 name = temp.getProblemType().toString();
             }

@@ -60,5 +60,11 @@ public class FeasibilityResultDistributionDecorator extends AFeasibilitySolverDe
         });
     }
 
+    @Subscribe
+    public void onReportState(SaveStateToFile.ReportStateEvent event) {
+        event.getBuilder()
+                .feasibilityDistribution(distribution.histogram());
+    }
+
 
 }

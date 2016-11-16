@@ -3,6 +3,7 @@ package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.google.common.base.Charsets;
@@ -32,9 +33,9 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
 
     private final static String INFO_FILE_NAME = "info.csv";
     private final static String PROBLEM_FILE_NAME = "problems.csv";
-    private final static String PROBLEM_HEADERS = "ProblemNumber,Stations,Band,Result,CPUTime,WallTime,Greedy,Cached,ProblemType,Round,TargetStation,Name,PreviousAssignment";
+    private final static String PROBLEM_HEADERS = "ProblemNumber,Stations,Band,Result,CPUTime,WallTime,Greedy,Cached,ProblemType,Round,TargetStation,Name,PreviousAssignmentID";
     private final static String ASSIGNMENT_FILE_NAME = "assignments.csv";
-    private final static String ASSIGNMENT_HEADERS = "AssignmentNumber,Assignment";
+    private final static String ASSIGNMENT_HEADERS = "PreviousAssignmentID,Assignment";
 //    private final String ANSWERS_FILE_NAME = "answers.csv";
 
     private int previousAssignmentNumber;
@@ -50,7 +51,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
     public ProblemSaverDecorator(IFeasibilitySolver decorated, String problemDirName) {
         super(decorated);
 
-        previousAssignmentNumber = 0;
+        previousAssignmentNumber = -1;
 
         problemDir = new File(problemDirName);
         Preconditions.checkState(problemDir.exists(), "Problem dir " + problemDir + " was not created in setup!");
@@ -107,7 +108,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
 
     private void writePreviousAssignment(Map<Integer, Integer> previousAssignment) {
         final Object[] record = new Object[] {
-                previousAssignmentNumber++,
+                ++previousAssignmentNumber,
                 JSONUtils.toString(previousAssignment)
         };
         try {
@@ -126,7 +127,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
     }
 
     public void writeStartingAssignment(Map<Integer, Integer> previousAssignment) {
-        Preconditions.checkState(previousAssignmentNumber == 0, "Previous assignment number is not 0!");
+        Preconditions.checkState(previousAssignmentNumber == -1, "Previous assignment number is not 0!");
         writePreviousAssignment(previousAssignment);
     }
 

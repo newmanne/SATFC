@@ -363,6 +363,7 @@ public class MultiBandAuctioneer {
                 }
             }
         }
+        log.info("{} is a feasible clearing target given participation", maxChannel);
         return ClearingResult.builder()
                 .feasible(true)
                 .clearingTarget(maxChannel)
