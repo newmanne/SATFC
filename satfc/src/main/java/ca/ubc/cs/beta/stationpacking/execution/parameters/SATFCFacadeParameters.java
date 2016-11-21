@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.database.DatabaseParameters;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
@@ -30,13 +31,14 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ch.qos.logback.classic.Level;
+import lombok.Getter;
 
 /**
  * SATFC facade parameters.
  * @author afrechet
  */
 @UsageTextField(title="SATFC Facade Parameters",description="Parameters needed to execute SATFC facade on a single instance.")
-public class SATFCFacadeParameters extends AbstractOptions {
+public class SATFCFacadeParameters extends AbstractOptions implements AutoCloseable {
 
     @Parameter(names={"--help-level"}, description="Show options at this level or lower")
     public OptionLevel helpLevel = OptionLevel.BASIC;
@@ -93,7 +95,6 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-MINIMUM-STATIONS", description = "Number of stations to add to the starting assignment before a problem is solved")
     public int minimumAugmentStations;
 
-
     /**
 	 * Clasp library to use (optional - can be automatically detected).
 	 */
@@ -127,4 +128,13 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-SIMULATOR-WORKER")
     public boolean simulatorWorker = false;
 
+    @Getter
+    @ParametersDelegate
+    public DatabaseParameters databaseParameters = new DatabaseParameters();
+
+    @Override
+    public void close() throws Exception {
+        databaseParameters.close();
+        fRedisParameters.close();
+    }
 }

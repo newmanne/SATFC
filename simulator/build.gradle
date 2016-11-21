@@ -6,7 +6,6 @@ buildscript {
 
 dependencies {
     compile project(':satfc')
-    compile 'org.apache.commons:commons-csv:1.3'
     testCompile 'junit:junit:4.12'
 
 }

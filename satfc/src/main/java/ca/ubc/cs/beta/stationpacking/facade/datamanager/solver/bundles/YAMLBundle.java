@@ -481,7 +481,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         }
 
         EncodingType encodingType = EncodingType.DIRECT;
-        
+
     }
 
 

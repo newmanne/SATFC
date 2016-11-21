@@ -41,7 +41,7 @@ import redis.clients.jedis.JedisShardInfo;
  * Created by newmanne on 12/05/15.
  */
 @UsageTextField(title="Redis Parameters",description="Parameters describing how to take jobs from redis", level = OptionLevel.DEVELOPER)
-public class RedisParameters extends AbstractOptions {
+public class RedisParameters extends AbstractOptions implements AutoCloseable {
 
     @Parameter(names = "-REDIS-QUEUE", description = "The queue to take redis jobs from")
     public String fRedisQueue;
@@ -75,5 +75,12 @@ public class RedisParameters extends AbstractOptions {
 
     public boolean areValid() {
         return fRedisQueue != null && fRedisPort != null && fRedisHost != null;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (jedis != null) {
+            jedis.close();
+        }
     }
 }

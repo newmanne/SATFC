@@ -13,6 +13,7 @@ import com.google.common.eventbus.Subscribe;
 import com.google.common.io.Files;
 import lombok.Builder;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
@@ -22,10 +23,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-11-04.
  */
+@Slf4j
 public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implements AutoCloseable {
 
     private CSVPrinter problemCSVWriter;
@@ -78,7 +81,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
         super.getFeasibility(simulatorProblem, (p, r) -> {
             final Object[] record = new Object[] {
                     p.getProblemNumber(),
-                    p.getSATFCProblem().getProblem().getDomains().keySet(),
+                    p.getSATFCProblem().getProblem().getDomains().keySet().stream().sorted().collect(Collectors.toList()),
                     p.getBand(),
                     r.getSATFCResult().getResult(),
                     r.getSATFCResult().getCputime(),
@@ -113,6 +116,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
         };
         try {
             assignmentCSVWriter.printRecord(record);
+            assignmentCSVWriter.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -132,6 +136,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
     }
 
     public void close() throws Exception {
+        log.info("Closing problem saver decorator");
         super.close();
         if (problemCSVWriter != null) {
             problemCSVWriter.close();

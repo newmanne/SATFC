@@ -35,6 +35,7 @@ import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
+import lombok.Cleanup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +71,9 @@ public class SATFCFacadeExecutor {
     /**
      * @param args - parameters satisfying {@link SATFCFacadeParameters}.
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         //Parse the command line arguments in a parameter object.
+        @Cleanup
         SATFCFacadeParameters parameters = new SATFCFacadeParameters();
         Logger log = parseParameter(args, parameters);
         logVersionInfo(log);

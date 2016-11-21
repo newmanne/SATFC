@@ -41,13 +41,17 @@ public abstract class ANameToProblem implements IProblemParser {
         this.interferencesFolder = interferencesFolder;
     }
 
-    final String interferencesFolder;
+    protected final String interferencesFolder;
 
     public abstract Converter.StationPackingProblemSpecs getSpecs(String name) throws IOException;
 
+    protected String getName(String name) {
+        return FilenameUtils.getBaseName(name);
+    }
+
     @Override
     public SATFCFacadeProblem problemFromName(String name) throws IOException {
-        String n = FilenameUtils.getBaseName(name);
+        String n = getName(name);
         Converter.StationPackingProblemSpecs stationPackingProblemSpecs = getSpecs(name);
         return new SATFCFacadeProblem(
                 stationPackingProblemSpecs.getDomains().keySet(),

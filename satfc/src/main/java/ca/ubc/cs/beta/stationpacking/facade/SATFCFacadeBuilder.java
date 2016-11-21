@@ -343,10 +343,10 @@ public class SATFCFacadeBuilder {
         if (parameters.fCNFDir != null) {
             System.out.println("Saving CNFs to disk in " + parameters.fCNFDir);
             CNFSaver = new CNFSaverSolverDecorator.FileCNFSaver(parameters.fCNFDir);
-            if (parameters.fRedisParameters.areValid()) {
-                System.out.println("Saving CNF index to redis");
-                CNFSaver = new CNFSaverSolverDecorator.RedisIndexCNFSaver(CNFSaver, parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
-            }
+//            if (parameters.fRedisParameters.areValid()) {
+//                System.out.println("Saving CNF index to redis");
+//                CNFSaver = new CNFSaverSolverDecorator.RedisIndexCNFSaver(CNFSaver, parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
+//            }
         }
         
         // developer parameters

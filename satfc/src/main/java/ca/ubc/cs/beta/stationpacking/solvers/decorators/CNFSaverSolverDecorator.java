@@ -21,10 +21,11 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
+import lombok.Cleanup;
 import org.apache.commons.io.FileUtils;
 
 import com.google.common.base.Joiner;
@@ -54,6 +55,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
     private final ICNFSaver fCNFSaver;
     private EncodingType encodingType;
     private boolean saveAssignment;
+    private boolean compress;
 
     public CNFSaverSolverDecorator(@NonNull ISolver aSolver,
                                    @NonNull IConstraintManager aConstraintManager,
@@ -150,6 +152,14 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
         private final String fCNFDirectory;
 
+        private void saveCompressed(File file, String contents) throws IOException {
+            GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(file));
+            @Cleanup
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
+            writer.append(contents);
+        }
+
+
         public FileCNFSaver(@NonNull String aCNFDirectory) {
             File cnfdir = new File(aCNFDirectory);
             if (!cnfdir.exists()) {
@@ -163,8 +173,10 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
         @Override
         public void saveCNF(String instanceName, String CNFName, String CNFContents) {
+            final String filename = fCNFDirectory + File.separator + CNFName + ".cnf.gz";
+            final File file = new File(filename);
             try {
-                FileUtils.writeStringToFile(new File(fCNFDirectory + File.separator + CNFName + ".cnf"), CNFContents);
+                saveCompressed(file, CNFContents);
             } catch (IOException e) {
                 throw new IllegalStateException("Could not write CNF to file", e);
             }
@@ -173,7 +185,9 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
         @Override
         public void saveAssignment(String CNFName, String assignmentContents) {
             try {
-                FileUtils.writeStringToFile(new File(fCNFDirectory + File.separator + CNFName + "_assignment.txt"), assignmentContents);
+                final String filename = fCNFDirectory + File.separator + CNFName + "_assignment.txt.gz";
+                final File file = new File(filename);
+                saveCompressed(file, assignmentContents);
             } catch (IOException e) {
                 throw new IllegalStateException("Could not write CNF to file", e);
             }
