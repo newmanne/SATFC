@@ -23,10 +23,8 @@ package ca.ubc.cs.beta.stationpacking.solvers.decorators;
 
 import java.io.*;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
 
-import lombok.Cleanup;
-import org.apache.commons.io.FileUtils;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 
 import com.google.common.base.Joiner;
 
@@ -152,13 +150,6 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
 
         private final String fCNFDirectory;
 
-        private void saveCompressed(File file, String contents) throws IOException {
-            GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(file));
-            @Cleanup
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
-            writer.append(contents);
-        }
-
 
         public FileCNFSaver(@NonNull String aCNFDirectory) {
             File cnfdir = new File(aCNFDirectory);
@@ -176,7 +167,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
             final String filename = fCNFDirectory + File.separator + CNFName + ".cnf.gz";
             final File file = new File(filename);
             try {
-                saveCompressed(file, CNFContents);
+                StationPackingUtils.saveCompressed(file, CNFContents);
             } catch (IOException e) {
                 throw new IllegalStateException("Could not write CNF to file", e);
             }
@@ -187,7 +178,7 @@ public class CNFSaverSolverDecorator extends ASolverDecorator {
             try {
                 final String filename = fCNFDirectory + File.separator + CNFName + "_assignment.txt.gz";
                 final File file = new File(filename);
-                saveCompressed(file, assignmentContents);
+                StationPackingUtils.saveCompressed(file, assignmentContents);
             } catch (IOException e) {
                 throw new IllegalStateException("Could not write CNF to file", e);
             }

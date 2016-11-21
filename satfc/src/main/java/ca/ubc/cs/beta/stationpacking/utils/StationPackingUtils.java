@@ -21,11 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.utils;
 
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
@@ -34,6 +36,7 @@ import com.google.common.collect.Multimaps;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -85,4 +88,14 @@ public class StationPackingUtils {
         return solution.keySet().stream().allMatch(s -> stationManager.getStations().contains(new Station(s))) && solution.entrySet().stream().allMatch(e -> stationManager.getDomain(stationManager.getStationfromID(e.getKey())).contains(e.getValue())) && constraintManager.isSatisfyingAssignment(channelToStationFromStationToChannel(solution));
     }
 
+    /**
+     * Save contents as GZipped
+     * @throws IOException
+     */
+    public static void saveCompressed(File file, String contents) throws IOException {
+        GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(file));
+        @Cleanup
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
+        writer.append(contents);
+    }
 }

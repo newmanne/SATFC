@@ -98,6 +98,13 @@ def createScript(project, mainClass, name, jvmArgs) {
             fileMode = 0755
         }
     }
+
+    // This is a dumb hack to get rid of the backslash that inevitably appears before the dollar sign...
+    project.tasks[name].doLast {
+        def f = new File(project.buildDir, "scripts/${name}")
+        def replace = f.text.replace("-Djava.library.path=\\", "-Djava.library.path=")
+        f.setText(replace)
+    }
 }
 
 //Project properties.
