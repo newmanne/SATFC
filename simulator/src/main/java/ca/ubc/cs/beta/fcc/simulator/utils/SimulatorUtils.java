@@ -30,6 +30,9 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 /**
  * Created by newmanne on 2016-05-20.
  */
@@ -109,6 +112,14 @@ public class SimulatorUtils {
             }
         }
         return builder.build();
+    }
+
+    public static double benchmarkToActualPrice(IStationInfo station, Band band, Map<Band, Double> benchmarkPrices) {
+        final double benchmarkHome = benchmarkPrices.get(station.getHomeBand());
+        // Second arg to min is about splitting the cost of a UHF station going to your spot and you going elsewhere
+        final double nonVolumeWeightedActual = max(0, min(benchmarkPrices.get(Band.OFF), benchmarkPrices.get(band) - benchmarkHome));
+        // Price offers are rounded down to nearest integer
+        return Math.floor(station.getVolume() * nonVolumeWeightedActual);
     }
 
     /**

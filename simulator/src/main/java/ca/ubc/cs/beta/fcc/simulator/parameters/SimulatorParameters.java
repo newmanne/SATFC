@@ -3,13 +3,11 @@ package ca.ubc.cs.beta.fcc.simulator.parameters;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.Simulator;
+import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.participation.IParticipationDecider;
-import ca.ubc.cs.beta.fcc.simulator.participation.OpeningPriceHigherThanPrivateValue;
+import ca.ubc.cs.beta.fcc.simulator.participation.OpeningOffPriceHigherThanPrivateValue;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
-import ca.ubc.cs.beta.fcc.simulator.participation.UniformParticipationDecider;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
-import ca.ubc.cs.beta.fcc.simulator.scoring.FCCScoringRule;
-import ca.ubc.cs.beta.fcc.simulator.scoring.IScoringRule;
 import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
@@ -51,7 +49,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -101,6 +98,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-UHF-TO-OFF", description = "Price per unit volume if a UHF station moves to OFF")
     private double UHFToOff = 900;
+
+    @Getter
+    @Parameter(names = "-INCLUDE-VHF", description = "Include the VHF bands in the auctions")
+    private boolean includeVHFBands = true;
 
     @Getter
     @Parameter(names = "-IGNORE-CANADA")
@@ -167,20 +168,27 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean greedyFirst = true;
 
+    @Parameter(names = "-GREEDY-SOLVER-ONLY", description = "If true, don't use SATFC after init")
+    @Getter
+    private boolean greedyOnly = false;
 
     @Getter
     @ParametersDelegate
     private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
-    public ISimulatorUnconstrainedChecker getUnconstrainedChecker(ParticipationRecord participation) {
+    public ISimulatorUnconstrainedChecker getUnconstrainedChecker(ParticipationRecord participation, ILadder ladder) {
         switch(unconstrainedChecker) {
             case FCC:
-                return new SimulatorUnconstrainedCheckerImpl(getConstraintManager(), participation);
+                return new SimulatorUnconstrainedCheckerImpl(getConstraintManager(), participation, ladder);
             case BAD:
                 return new NeverUnconstrainedStationChecker();
             default:
                 throw new IllegalStateException();
         }
+    }
+
+    public List<Band> getAuctionBands() {
+        return isIncludeVHFBands() ? Arrays.asList(Band.values()) : Arrays.asList(Band.OFF, Band.UHF);
     }
 
     public enum UnconstrainedChecker {
@@ -226,8 +234,8 @@ public class SimulatorParameters extends AbstractOptions {
             if (isIgnoreCanada() && s.getNationality().equals(Nationality.CA)) {
                 log.info("Station {} is a Canadian station and ignore Canada flag is set to true", s);
                 toRemove.add(s.getId());
-            } else if (isUhfOnly() && s.getDomain(Band.UHF).isEmpty()) {
-                log.info("Station {} is not a UHF station and the UHF only flag is set to true", s);
+            } else if ((isUhfOnly() || !isIncludeVHFBands()) && s.getDomain(Band.UHF).isEmpty()) {
+                log.info("Station {} has no domain in UHF, skipping due to flag", s);
                 toRemove.add(s.getId());
             }
 //            if (city != null && nLinks >= 0) {
@@ -324,7 +332,7 @@ public class SimulatorParameters extends AbstractOptions {
     public IParticipationDecider getParticipationDecider(IPrices prices) {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
-                return new OpeningPriceHigherThanPrivateValue(prices);
+                return new OpeningOffPriceHigherThanPrivateValue(prices);
 //            case UNIFORM:
 //                return new UniformParticipationDecider(uniformProbability, prices);
             default:

@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
@@ -63,7 +65,12 @@ public class SimpleLadder implements IModifiableLadder {
     @Override
     public ImmutableList<Band> getPossibleMoves(@NonNull IStationInfo station) {
         final Band band = getStationBand(station);
-        return ImmutableList.copyOf(Band.values()).subList(band.ordinal(), station.getHomeBand().ordinal() + 1);
+        return getPermissibleOptions(station).stream().filter(b -> b.isAboveOrEqualTo(band)).collect(GuavaCollectors.toImmutableList());
+    }
+
+    @Override
+    public ImmutableList<Band> getPermissibleOptions(IStationInfo station) {
+        return station.getHomeBand().getBandsBelowInclusive().stream().filter(b -> getBands().contains(b)).collect(GuavaCollectors.toImmutableList());
     }
 
     @Override

@@ -22,11 +22,7 @@
 package ca.ubc.cs.beta.stationpacking.utils;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Splitter;
@@ -65,6 +61,14 @@ public class StationPackingUtils {
     public static String parseAuctionFromName(String name) {
         if (name != null) {
             try {
+                // New format
+                final List<String> splits = Splitter.on("-").splitToList(name);
+                final int sourceId = Integer.parseInt(splits.get(0));
+                return Integer.toString(sourceId);
+            } catch (Exception ignored) {
+            }
+            try {
+                /// Old format
                 return Splitter.on('_').splitToList(name).get(0);
             } catch (Exception ignored) {
             }

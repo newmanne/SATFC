@@ -17,6 +17,7 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.SimplePreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.*;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
@@ -38,7 +39,6 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import humanize.Humanize;
 import lombok.Builder;
 import lombok.Cleanup;
 import lombok.Data;
@@ -71,7 +71,7 @@ public class MultiBandAuctioneer {
 
         final IPreviousAssignmentHandler previousAssignmentHandler = new SimplePreviousAssignmentHandler(parameters.getConstraintManager());
 
-        IModifiableLadder ladder = new SimpleLadder(Arrays.asList(Band.values()), previousAssignmentHandler);
+        IModifiableLadder ladder = new SimpleLadder(parameters.getAuctionBands(), previousAssignmentHandler);
         ladder = new LadderEventOnMoveDecorator(ladder, parameters.getEventBus());
 
         final RoundTracker roundTracker = new RoundTracker();
@@ -81,12 +81,6 @@ public class MultiBandAuctioneer {
         log.info("Reading station info from file");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
 
-        // Initialize opening benchmarkPrices
-        log.info("Setting opening prices");
-        final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
-        final IPrices actualPrices = setOpeningPrices.getActualPrices();
-        final IPrices benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
-
         log.info("Assigning valuations to stations");
         final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
         final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
@@ -94,12 +88,18 @@ public class MultiBandAuctioneer {
         final Set<IStationInfo> removed = new HashSet<>();
         for (final IStationInfo station : americanStations) {
             final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
-            if (iValueGenerator == null) {
-                log.info("No valuation model for station {}, skipping", station);
+            if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
+                if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
+                    log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
+                } else {
+                    log.info("No valuation model for station {}, skipping", station);
+                }
                 stationDB.removeStation(station.getId());
                 removed.add(station);
                 continue;
             }
+
+
 //            Double value = null;
 //            int onCount = 0;
 //            int n = 1000;
@@ -130,16 +130,26 @@ public class MultiBandAuctioneer {
             log.info("Dropped {} {} stations due to not having valuations", entry.getValue().size(), entry.getKey());
         }
 
+        // Initialize opening benchmarkPrices
+        log.info("Setting opening prices");
+        final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
+        final IPrices actualPrices = setOpeningPrices.getActualPrices();
+        final IPrices benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
+
         log.info("Figuring out participation");
         // Figure out participation
         ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
-        // TODO: Right now, I'm dumping any active station into "OFF" (e.g. even if they are only considering a move to LV). This is an oversimplification.
+        // This dumps every participating station into OFF. This is fine (provided that the participation decider takes into account that the original OFF offer gives a positive utility), but is an oversimplification due to not simulating the initial clearing target optimization
         for (final IStationInfo s : stationDB.getStations()) {
             ladder.addStation(s, Participation.EXITED.contains(participation.getParticipation(s)) ? s.getHomeBand() : Band.OFF);
         }
 
         log.info("Building solver");
-        IFeasibilitySolver tmp = parameters.createSolver();
+        IFeasibilitySolver tmp = new VoidFeasibilitySolver();
+
+        if (!parameters.isGreedyOnly()) {
+            tmp = new SequentialSolverDecorator(tmp, parameters.createSolver());
+        }
 
         GreedyFlaggingDecorator greedyFlaggingDecorator = null;
         if (parameters.isGreedyFirst()) {
@@ -185,23 +195,25 @@ public class MultiBandAuctioneer {
         log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
 
         /**
-         * Now we go through clearing targets, in descending order, and try to find out whether we can even begin the auction by finding a satisfying assignment
+         * Now we go through clearing targets, in order from most aggressive to least aggressive, and try to find out whether we can even begin the auction by finding a satisfying assignment
          * We choose a clearing target as the largest target that can be cleared given participation
          */
         ClearingResult result = null;
-        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS.reverse();
+        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS;
+        // Use a separate solver for clearing target initialization procedure. Of course, this means...
+        @Cleanup
+        final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
         for (final int maxChannel : clearingTargets) {
             log.info("Trying clearing target of {}", maxChannel);
             adjustCT(maxChannel, stationDB);
-            final ClearingResult tempResult = testClearingTarget(ladder, solver, problemMaker, maxChannel);
-            if (!tempResult.isFeasible()) {
-                log.info("Failed to clear at {}", maxChannel);
-                break; // Use previous value
+            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel);
+            if (result.isFeasible()) {
+                break;
             } else {
-                result = tempResult;
+                log.info("Failed to clear at {}", maxChannel);
             }
         }
-        Preconditions.checkNotNull(result, "Could not clear the opening at clearing targets %s", clearingTargets);
+        Preconditions.checkState(result != null && result.isFeasible(), "Could not clear the opening at clearing targets %s", clearingTargets);
         log.info("Finalizing clearing target at {}", result.getClearingTarget());
         adjustCT(result.getClearingTarget(), stationDB);
         if (greedyFlaggingDecorator != null) {
@@ -248,7 +260,7 @@ public class MultiBandAuctioneer {
                 Runtime.getRuntime().availableProcessors()
         );
 
-        final ISimulatorUnconstrainedChecker unconstrainedChecker = parameters.getUnconstrainedChecker(participation);
+        final ISimulatorUnconstrainedChecker unconstrainedChecker = parameters.getUnconstrainedChecker(participation, ladder);
 
         final MultiBandSimulator simulator = new MultiBandSimulator(
                 MultiBandSimulatorParameter
@@ -291,37 +303,22 @@ public class MultiBandAuctioneer {
     }
 
     public static OpeningPrices setOpeningPrices(MultiBandSimulatorParameters parameters) {
-        IPrices benchmarkPrices = new PricesImpl();
-        IPrices actualPrices = new PricesImpl();
-        Map<Band, Double> openingPricesPerUnitVolume = parameters.getOpeningBenchmarkPrices();
+        final IPrices benchmarkPrices = new PricesImpl();
+        final IPrices actualPrices = new PricesImpl();
+        final Map<Band, Double> openingPricesPerUnitVolume = parameters.getOpeningBenchmarkPrices();
         final IStationDB stationDB = parameters.getStationDB();
+
         for (final IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {
                 continue;
             }
-            benchmarkPrices.setPrice(s, s.getHomeBand(), 0.);
-            actualPrices.setPrice(s, s.getHomeBand(), 0.);
-            Arrays.stream(Band.values()).filter(b -> b.isBelow(s.getHomeBand())).forEach(band -> {
-                final double price;
-                if (s.getHomeBand().equals(Band.UHF)) {
-                    price = openingPricesPerUnitVolume.get(band);
-                } else if (s.getHomeBand().equals(Band.HVHF)) {
-                    if (band.equals(Band.OFF)) {
-                        price = openingPricesPerUnitVolume.get(Band.OFF) - openingPricesPerUnitVolume.get(Band.HVHF);
-                    } else {
-                        price = openingPricesPerUnitVolume.get(Band.LVHF) - openingPricesPerUnitVolume.get(Band.HVHF);
-                    }
-                } else if (s.getHomeBand().equals(Band.LVHF)) {
-                    price = openingPricesPerUnitVolume.get(Band.OFF) - openingPricesPerUnitVolume.get(Band.LVHF);
-                } else {
-                    throw new IllegalStateException();
-                }
-                benchmarkPrices.setPrice(s, band, price);
-                if (band.equals(Band.OFF)) {
-                    log.debug("Station: {}, Price: {}, Volume: {}, Actual price: {}", s, Humanize.spellBigNumber(price), Humanize.spellBigNumber(s.getVolume()), Humanize.spellBigNumber(price * s.getVolume()));
-                }
-                actualPrices.setPrice(s, band, price * s.getVolume());
-            });
+            // In round 0, the benchmark prices of all stations are set equal to the opening benchmark prices of UHF stations, irrespective of home band
+            for (Band band : parameters.getAuctionBands()) {
+                benchmarkPrices.setPrice(s, band, openingPricesPerUnitVolume.get(band));
+            }
+            for (Band band : parameters.getAuctionBands()) {
+                actualPrices.setPrice(s, band, SimulatorUtils.benchmarkToActualPrice(s, band, benchmarkPrices.getOffers(s)));
+            }
         }
         return new OpeningPrices(benchmarkPrices, actualPrices);
     }

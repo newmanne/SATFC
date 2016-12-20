@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.stepreductions;
 
+import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BigDecimalUtils;
@@ -35,7 +36,7 @@ public class StepReductionCoefficientCalculator {
      * @param vacancies - per station, band vacancies.
      * @return a per station, band map of step reduction coefficients.
      */
-    public ImmutableTable<IStationInfo, Band, Double> computeStepReductionCoefficients(Table<IStationInfo, Band, Double> vacancies) {
+    public ImmutableTable<IStationInfo, Band, Double> computeStepReductionCoefficients(Table<IStationInfo, Band, Double> vacancies, ILadder ladder) {
         final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
 
         final double initialHVHF = initialBenchmarkPayments.get(Band.HVHF);
@@ -46,8 +47,6 @@ public class StepReductionCoefficientCalculator {
 
         for (IStationInfo station : vacancies.rowKeySet()) {
             double vacU = vacancies.get(station, Band.UHF);
-            double vacH = vacancies.get(station, Band.HVHF);
-            double vacL = vacancies.get(station, Band.LVHF);
 
             // You always get the full decrement to go off air
             builder.put(station, Band.OFF, 1.0);
@@ -55,11 +54,16 @@ public class StepReductionCoefficientCalculator {
             // You don't decrement if you are going to UHF (because it's already 0 payment)
             builder.put(station, Band.UHF, 0.0);
 
-            final double rHVHF = (initialHVHF * (Math.pow(vacU, vacancyResistance))) / (((initialOff - initialHVHF) * Math.pow(vacH, vacancyResistance)) + (initialHVHF * (Math.pow(vacU, vacancyResistance))));
-            builder.put(station, Band.HVHF, rHVHF);
+            if (ladder.getBands().stream().anyMatch(Band::isVHF)) {
+                double vacH = vacancies.get(station, Band.HVHF);
+                double vacL = vacancies.get(station, Band.LVHF);
 
-            final double rLVHF = ((((initialLVHF - initialHVHF) * Math.pow(vacH, vacancyResistance)) / (((initialOff - initialLVHF) * Math.pow(vacL, vacancyResistance)) + ((initialLVHF - initialHVHF) * Math.pow(vacH, vacancyResistance)))) * (1 - rHVHF)) + rHVHF;
-            builder.put(station, Band.LVHF, rLVHF);
+                final double rHVHF = (initialHVHF * (Math.pow(vacU, vacancyResistance))) / (((initialOff - initialHVHF) * Math.pow(vacH, vacancyResistance)) + (initialHVHF * (Math.pow(vacU, vacancyResistance))));
+                builder.put(station, Band.HVHF, rHVHF);
+
+                final double rLVHF = ((((initialLVHF - initialHVHF) * Math.pow(vacH, vacancyResistance)) / (((initialOff - initialLVHF) * Math.pow(vacL, vacancyResistance)) + ((initialLVHF - initialHVHF) * Math.pow(vacH, vacancyResistance)))) * (1 - rHVHF)) + rHVHF;
+                builder.put(station, Band.LVHF, rLVHF);
+            }
         }
 
         return builder.build();

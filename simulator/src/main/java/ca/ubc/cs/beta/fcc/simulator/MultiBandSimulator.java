@@ -82,7 +82,6 @@ public class MultiBandSimulator {
         // TODO: calculate the interference compononent manually? (i.e. manual volume calculation)
     }
 
-
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
         roundTracker.incrementRound();
         log.info("Starting round {}", roundTracker.getRound());
@@ -102,13 +101,13 @@ public class MultiBandSimulator {
         Preconditions.checkState(previousState.getAssignment().equals(ladder.getPreviousAssignment()), "Ladder and previous state do not match on assignments", previousState.getAssignment(), ladder.getPreviousAssignment());
         Preconditions.checkState(StationPackingUtils.weakVerify(stationManager, constraintManager, previousState.getAssignment()), "Round started on an invalid assignment!", previousState.getAssignment());
 
-        log.info("There are {} bidding stations remaining, {} provisional winners, and {} frozen stations that are not provisional winners", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
+        log.info("There are {} bidding stations remaining (HB={}), {} provisional winners, and {} frozen stations that are not provisional winners", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.BIDDING).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
 
         log.info("Computing vacancies...");
         final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
 
         log.info("Calculating reduction coefficients...");
-        final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients = stepReductionCoefficientCalculator.computeStepReductionCoefficients(vacancies);
+        final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients = stepReductionCoefficientCalculator.computeStepReductionCoefficients(vacancies, ladder);
 
         log.info("Calculating new benchmark prices...");
         // Either 5% of previous value or 1% of starting value
@@ -118,13 +117,13 @@ public class MultiBandSimulator {
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
 
         for (IStationInfo station : participation.getMatching(Participation.ACTIVE)) {
-            for (Band band : station.getHomeBand().getBandsBelowInclusive()) {
+            for (Band band : ladder.getBands()) {
                 // If this station were a "comparable" UHF station, the prices for all of the moves...
                 final double benchmarkValue = oldBenchmarkPrices.getPrice(station, band) - reductionCoefficients.get(station, band) * decrement;
                 newBenchmarkPrices.setPrice(station, band, benchmarkValue);
             }
             for (Band band : ladder.getPossibleMoves(station)) {
-                actualPrices.setPrice(station, band, benchmarkToActualPrice(station, band, newBenchmarkPrices.getPrices(station, station.getHomeBand().getBandsBelowInclusive())));
+                actualPrices.setPrice(station, band, SimulatorUtils.benchmarkToActualPrice(station, band, newBenchmarkPrices.getOffers(station)));
             }
         }
 
@@ -237,7 +236,6 @@ public class MultiBandSimulator {
                             @Override
                             public void onSuccess(SimulatorProblem problem, SimulatorResult result) {
                                 if (!SimulatorUtils.isFeasible(result)) {
-                                    // TODO: Is a TIMEOUT enough to do this, or should I wait for a real UNSAT?
                                     makeProvisionalWinner(participation, station, stationPrices.get(station));
                                 }
                             }
@@ -284,14 +282,6 @@ public class MultiBandSimulator {
                 .offers(actualPrices)
                 .bidProcessingOrder(stationsToQueryOrdering)
                 .build();
-    }
-
-    private double benchmarkToActualPrice(IStationInfo station, Band band, Map<Band, Double> benchmarkPrices) {
-        final double benchmarkHome = benchmarkPrices.get(station.getHomeBand());
-        // Second arg to min is about splitting the cost of a UHF station going to your spot and you going elsewhere
-        final double nonVolumeWeightedActual = max(0, min(benchmarkPrices.get(Band.OFF), benchmarkPrices.get(band) - benchmarkHome));
-        // Price offers are rounded down to nearest integer
-        return Math.floor(station.getVolume() * nonVolumeWeightedActual);
     }
 
     private void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Double> stationPrices) {

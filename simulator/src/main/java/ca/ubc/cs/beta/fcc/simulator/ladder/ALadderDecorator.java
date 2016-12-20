@@ -53,6 +53,11 @@ public class ALadderDecorator implements IModifiableLadder {
     }
 
     @Override
+    public ImmutableList<Band> getPermissibleOptions(IStationInfo aStation) {
+        return decorated.getPermissibleOptions(aStation);
+    }
+
+    @Override
     public Map<Integer, Integer> getPreviousAssignment() {
         return decorated.getPreviousAssignment();
     }

@@ -5,26 +5,16 @@ import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
-import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
-import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableTable;
 import lombok.NonNull;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
-import org.jgrapht.alg.NeighborIndex;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleGraph;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-09-27.
@@ -33,79 +23,65 @@ import java.util.stream.Collectors;
 public class SimulatorUnconstrainedCheckerImpl implements ISimulatorUnconstrainedChecker {
 
     private final ParticipationRecord participationRecord;
-    private final ImmutableMap<UnconstrainedKey, Integer> icMap;
+    private final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap;
 
-    public SimulatorUnconstrainedCheckerImpl(@NonNull IConstraintManager constraintManager, @NonNull ParticipationRecord participationRecord) {
+    // Index 1: s, Index 2: u, Index 3: Maximum number of channels that s can block on u's home band
+    private final ImmutableTable<IStationInfo, IStationInfo, Integer> blockingTable;
+
+    public SimulatorUnconstrainedCheckerImpl(@NonNull IConstraintManager constraintManager, @NonNull ParticipationRecord participationRecord, @NonNull ILadder ladder) {
         this.participationRecord = participationRecord;
-        final ImmutableMap.Builder<UnconstrainedKey, Integer> builder = ImmutableMap.builder();
-        final ImmutableSet<IStationInfo> stations = participationRecord.getStations();
-        final Map<Station, Set<Integer>> domains = stations.stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, IStationInfo::getDomain));
-        final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
-        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-        log.info("Filling in unconstrained table for {} stations", stations.size());
-        for (Station s : domains.keySet()) {
-            for (int c : domains.get(s)) {
-                // s is on c
-                final Set<Station> neighbours = neighborIndex.neighborsOf(s);
-                for (Station u : domains.keySet()) {
-                    int Acsu = 0;
-                    if (neighbours.contains(u)) {
-                        Acsu = domains.get(u).stream()
-                                .filter(uChan -> Math.abs(c - uChan) <= 2)
-                                .mapToInt(uChan -> {
-                                    final Map<Station, Set<Integer>> d2 = ImmutableMap.of(s, ImmutableSet.of(c), u, ImmutableSet.of(uChan));
-                                    return BooleanUtils.toInteger(Iterables.isEmpty(constraintManager.getAllRelevantConstraints(d2)));
-                                })
-                                .sum();
-                        log.trace("Station {} on {} blocks {} channels of {}", s, c, Acsu, u);
-                    }
+        this.bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
+        final ImmutableTable.Builder<IStationInfo, IStationInfo, Integer> builder = ImmutableTable.builder();
+
+        log.info("Filling in unconstrained table for {} stations", participationRecord.getActiveStations().size());
+        // We might need to check if any participating station is unconstrained
+        for (IStationInfo u : participationRecord.getActiveStations()) {
+            // Who are its neighbours in the interference graph of its home band?
+            final Band b = u.getHomeBand();
+            for (IStationInfo s : bandNeighborIndexMap.get(u, b)) {
+                int overallMax = 0;
+                // For each channel that neighbour could go on, how many channels on u's domain could it block?
+                for (int c : s.getDomain(b)) {
+                    // the number of channels s blocks for u when s is on c
+                    int Acsu = u.getDomain(b).stream()
+                            .filter(uChan -> Math.abs(c - uChan) <= 2)
+                            .mapToInt(uChan -> BooleanUtils.toInteger(constraintManager.isSatisfyingAssignment(s.toSATFCStation(), c, u.toSATFCStation(), uChan)))
+                            .sum();
+                    log.trace("Station {} on {} blocks {} channels of {}", s, c, Acsu, u);
                     Preconditions.checkState(Acsu >= 0 && Acsu <= 5, "Unconstrained weird value of %s", Acsu);
-                    // number of applicable constraints limiting assignment of u to {c-2...c+2} when s is on c
-                    builder.put(new UnconstrainedKey(s.getID(), u.getID(), c), Acsu);
+                    overallMax = Math.max(overallMax, Acsu);
                 }
+                builder.put(s, u, overallMax);
             }
         }
-        icMap = builder.build();
-    }
-
-    /**
-     * @return The number of channels that are blocked for u in {c-2 ... c+2} if s is placed on c
-     */
-    private int getBlocked(IStationInfo s, IStationInfo u, int c) {
-        final UnconstrainedKey key = new UnconstrainedKey(s.getId(), u.getId(), c);
-        Integer count = icMap.get(key);
-        Preconditions.checkState(count != null, "No key was precomputed for %s on %s and %s", s, u, c);
-        return count;
+        blockingTable = builder.build();
     }
 
     @Override
     public boolean isUnconstrained(@NonNull IStationInfo stationInfo, @NonNull ILadder ladder) {
+        // 1) Get the set of stations that could ever wind up in the station's home band
         final Band homeBand = stationInfo.getHomeBand();
         final Set<IStationInfo> possibleStations = new HashSet<>();
         for (IStationInfo station : ladder.getStations()) {
             final Band stationBand = ladder.getStationBand(station);
-            if (stationBand.equals(homeBand) || // currently held option is the same
-                    (stationBand.isBelow(homeBand) // OR: below option, not a provisional winner, and its permissible
+            if (stationBand.equals(homeBand) || // they are already there
+                    (stationBand.isBelow(homeBand) // OR: below home band, not a provisional winner, and home band is permissible for them
                             && !participationRecord.getParticipation(station).equals(Participation.FROZEN_PROVISIONALLY_WINNING)
-                            && ladder.getPossibleMoves(station).contains(homeBand))) {
-                possibleStations.add(station);
+                            && ladder.getPermissibleOptions(station).contains(homeBand))) {
+                // Only worth adding if they are actual neighbours, otherwise they block 0 channels
+                if (bandNeighborIndexMap.get(stationInfo, homeBand).contains(station)) {
+                    possibleStations.add(station);
+                }
             }
         }
-        final int blocked = possibleStations.stream()
-                .mapToInt(competingStation -> competingStation.getDomain(homeBand).stream()
-                        .mapToInt(channel -> getBlocked(competingStation, stationInfo, channel))
-                        .max()
-                        .getAsInt()
-                )
-                .sum();
-        return blocked < stationInfo.getDomain(homeBand).size();
-    }
 
-    @Value
-    private static class UnconstrainedKey {
-        private final int s;
-        private final int u;
-        private final int c;
+        // 2) For every station that might block a channel, how many channels could they block?
+        final int blocked = possibleStations.stream()
+                .mapToInt(s -> blockingTable.get(s, stationInfo))
+                .sum();
+
+        // 3) If this is less than the number of channels the station has in its home band, the station is unconstrained
+        return blocked < stationInfo.getDomain(homeBand).size();
     }
 
 }

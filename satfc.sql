@@ -12,12 +12,34 @@ CREATE TABLE IF NOT EXISTS `Results` (
   UNIQUE (`result`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `Solvers` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `solver` VARCHAR(250) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE (`solver`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `ProblemResults` (
+  `id` INT NOT NULL,
+  `source_id` INT NOT NULL,
+  `result_id` INT NOT NULL,
+  `cputime` DOUBLE NOT NULL,
+  `solver_id` INT NOT NULL,
+  PRIMARY KEY (`source_id`, `id`),
+  INDEX `source_id_index` (`source_id`),
+  CONSTRAINT `fk_result_id` FOREIGN KEY (`result_id`) REFERENCES `Results` (`id`),
+  CONSTRAINT `fk_source` FOREIGN KEY (`source_id`) REFERENCES `Sources` (`id`)
+  CONSTRAINT `fk_solver_id` FOREIGN KEY (`solver_id`) REFERENCES `Solvers` (`id`),
+) ENGINE=InnoDB ROW_FORMAT=COMPRESSED DEFAULT CHARSET=utf8;
+
+
 INSERT INTO `Results` 
   (`id`, `result`) 
 VALUES
   (default, 'SAT'),
   (default, 'UNSAT'),
-  (default, 'TIMEOUT');
+  (default, 'TIMEOUT'),
+  (default, 'CRASHED');
 
 CREATE TABLE IF NOT EXISTS `Bands` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -99,11 +121,15 @@ CREATE TABLE IF NOT EXISTS `Problems` (
   CONSTRAINT `fk_previous_assignment_id` FOREIGN KEY (`source_id`, `assignment_id`) REFERENCES `Assignments` (`source_id`, `id`)
 ) ENGINE=InnoDB ROW_FORMAT=COMPRESSED DEFAULT CHARSET=utf8;
 
+
+
 # Query to get a specific problem
-SELECT `Problems`.`stations`, `Problems`.`name`, `Problems`.`max_channel`, `Problems`.`interference`, `Assignments`.`assignment`
+SELECT `Problems`.`stations`, `Problems`.`name`, `Problems`.`max_channel`, `Interferences`.`interference`, `Assignments`.`assignment`, `Bands`.`band`
 FROM `Problems`
-INNER JOIN `Assignments` ON `Problems`.`assignment_id` = `Assignments`.`id` AND `Problems`.`source` = `Assignments`.`source`
-WHERE `Problems`.`id` = 100 AND `Problems`.`source` = 'Generator_9';
+INNER JOIN `Assignments` ON `Problems`.`assignment_id` = `Assignments`.`id` AND `Problems`.`source_id` = `Assignments`.`source_id`
+INNER JOIN `Interferences` ON `Problems`.`interference_id` = `Interferences`.`id`
+INNER JOIN `Bands` ON `Problems`.`band_id` = `Bands`.`id`
+WHERE `Problems`.`id` = 100 AND `Problems`.`source_id` = 12;
 
 # Query to get relevant problems
 SELECT `Problems`.`id`, `Problems`.`source` FROM Problems WHERE `Problems`.`cached` = 0 AND `Problems`.`greedy` = 0 AND `Problems`.`band` = 'UHF';

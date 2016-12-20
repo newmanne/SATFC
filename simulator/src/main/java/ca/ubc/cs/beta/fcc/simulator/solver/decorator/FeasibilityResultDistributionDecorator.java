@@ -38,11 +38,6 @@ public class FeasibilityResultDistributionDecorator extends AFeasibilitySolverDe
             return distribution.elementSet().stream().collect(Collectors.toMap(e -> e, distribution::count));
         }
 
-        @Subscribe
-        public void onReport(SaveStateToFile.ReportStateEvent reportStateEvent) {
-            reportStateEvent.getBuilder().feasibilityDistribution(histogram());
-        }
-
     }
 
     private final FeasibilityResultDistribution distribution;

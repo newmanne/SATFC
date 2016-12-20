@@ -51,4 +51,12 @@ public interface ILadder extends IPreviousAssignmentHandler {
      */
     ImmutableList<Band> getPossibleMoves(IStationInfo aStation);
 
+    /**
+     * Get the bands to which a station could EVER have moved (i.e. at or below home band)
+     * @param aStation - a station.
+     * @return set of bands to which the station could move.
+     */
+    ImmutableList<Band> getPermissibleOptions(IStationInfo aStation);
+
+
 }

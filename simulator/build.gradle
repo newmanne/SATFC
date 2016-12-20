@@ -45,6 +45,8 @@ def createScript(project, mainClass, name, jvmArgs) {
     }
 }
 
+
+
 createScript(project,
              'ca.ubc.cs.beta.fcc.vcg.VCGMip',
              'VCG',

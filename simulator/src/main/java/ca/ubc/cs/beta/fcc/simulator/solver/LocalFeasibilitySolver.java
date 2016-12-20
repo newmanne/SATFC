@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LocalFeasibilitySolver extends AFeasibilitySolver {
 
-    private final SATFCFacade facade;
+    private SATFCFacade facade;
     private final IMetricWriter metricWriter;
 
     public LocalFeasibilitySolver(SATFCFacadeParameters facadeParameters) {
@@ -48,6 +48,13 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
         callback.onSuccess(simulatorProblem, SimulatorResult.fromSATFCResult(solve));
+    }
+
+    // Swap in the new SATFCFacade, returns the old one. It is up to you to close it.
+    public SATFCFacade setFacade(SATFCFacade facade) {
+        final SATFCFacade old = this.facade;
+        this.facade = facade;
+        return old;
     }
 
     @Override

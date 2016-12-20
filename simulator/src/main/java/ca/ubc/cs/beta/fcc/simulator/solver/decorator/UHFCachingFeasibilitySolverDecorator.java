@@ -38,6 +38,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 
 /**
  * Created by newmanne on 2016-10-11.
+ * // TODO: Add the ability to revisit TIMEOUT results (i.e. delete them whenever anyone moves to UHF)
  */
 @Slf4j
 public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDecorator {

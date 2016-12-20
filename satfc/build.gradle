@@ -114,6 +114,14 @@ version = "$SATFCVersion-"+getGitName()
 mainClassName = 'ca.ubc.cs.beta.stationpacking.execution.SATFCFacadeExecutor'
 applicationDefaultJvmArgs = ['-Djava.library.path=${CPLEX_DIR}', '-Xmx8g']
 
+startScripts{
+    doLast{
+        def f = new File(getOutputDir(), applicationName)
+        def replace = f.text.replace("-Djava.library.path=\\", "-Djava.library.path=")
+        f.setText(replace)
+    }
+}
+
 //Publishing to EARG maven repo.
 public String getEARGMavenRepo()
 {

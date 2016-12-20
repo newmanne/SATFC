@@ -8,7 +8,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
  * Created by newmanne on 2016-10-26.
  */
 // Extend OpeningPrice because it still wouldn't make sense to participate if prices are lower than your value?
-public class UniformParticipationDecider extends OpeningPriceHigherThanPrivateValue {
+public class UniformParticipationDecider extends OpeningOffPriceHigherThanPrivateValue {
 
     private final double uniformProbability;
 

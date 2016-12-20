@@ -10,20 +10,22 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by newmanne on 2016-05-20.
+ * A station participates IFF its open price for going off air is higher than its private value
  */
 @Slf4j
-public class OpeningPriceHigherThanPrivateValue implements IParticipationDecider {
+public class OpeningOffPriceHigherThanPrivateValue implements IParticipationDecider {
 
     private final IPrices prices;
 
-    public OpeningPriceHigherThanPrivateValue(IPrices prices) {
+    public OpeningOffPriceHigherThanPrivateValue(IPrices prices) {
         this.prices = prices;
     }
 
     @Override
     public boolean isParticipating(IStationInfo s) {
-        final Bid bid = s.queryPreferredBand(prices.getPrices(s, s.getHomeBand().getBandsBelowInclusive()), Band.OFF);
-        boolean participating = bid.getPreferredOption().isBelow(s.getHomeBand());
+        final double value = s.getValue();
+        final double offOffer = prices.getPrice(s, Band.OFF);
+        final boolean participating = offOffer > value;
         if (!participating) {
             log.info("Station {} is not participating as its value {} is higher than it's opening price of {}", s, Humanize.spellBigNumber(s.getValue()), Humanize.spellBigNumber(prices.getPrice(s, Band.OFF)));
         }
