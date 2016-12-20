@@ -28,5 +28,9 @@ public class SequentialSolverDecorator extends AFeasibilitySolverDecorator {
         }
     }
 
-
+    @Override
+    public void close() throws Exception {
+        super.close();
+        firstSolver.close();
+    }
 }
