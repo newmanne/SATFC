@@ -46,6 +46,7 @@ public class TimeTrackerFeasibilitySolverDecorator extends AFeasibilitySolverDec
         cpuTimeCount += cpuTime.getCPUTime();
         super.getFeasibility(problem, (p, result) -> {
             simulatorTimeOnlyWatch.start();
+            double s = simulatorTimeOnlyWatch.getElapsedTime();
             cpuTime = new CPUTime();
             if (p.getBand().equals(Band.UHF) && !result.isCached()) {
                 UHFTimeTracker.update(result.getSATFCResult());
@@ -65,10 +66,14 @@ public class TimeTrackerFeasibilitySolverDecorator extends AFeasibilitySolverDec
                 .simulatorTime(simulatorTimeOnlyWatch.getElapsedTime())
                 .simulatorCPUTime(getCpuTime())
                 .overallWalltime(getOverallTime())
-                .problemCPUTime(UHFTimeTracker.getCputime().get())
+                .UHFProblemCPUTime(UHFTimeTracker.getCputime().get())
+                .VHFProblemCPUTime(VHFTimeTracker.getCputime().get())
+                .UHFProblemWallTime(UHFTimeTracker.getWalltime().get())
+                .VHFProblemWallTime(VHFTimeTracker.getWalltime().get())
                 .nProblems(UHFTimeTracker.getNProblems().get())
                 .greedySolved(greedySolvedUHF)
-                .problemWallTime(UHFTimeTracker.getWalltime().get());
+                ;
+
     }
 
     private double getOverallTime() {

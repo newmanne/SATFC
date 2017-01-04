@@ -1,9 +1,14 @@
 package ca.ubc.cs.beta.fcc.simulator.utils;
 
+import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
+import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
@@ -120,6 +125,45 @@ public class SimulatorUtils {
         final double nonVolumeWeightedActual = max(0, min(benchmarkPrices.get(Band.OFF), benchmarkPrices.get(band) - benchmarkHome));
         // Price offers are rounded down to nearest integer
         return Math.floor(station.getVolume() * nonVolumeWeightedActual);
+    }
+
+    public static void assignValues(MultiBandSimulatorParameters parameters) {
+        log.info("Assigning valuations to stations");
+        final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
+        final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
+        final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
+        final Collection<IStationInfo> americanStations = stationDB.getStations(Nationality.US);
+        final Set<IStationInfo> removed = new HashSet<>();
+        for (final IStationInfo station : americanStations) {
+            final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
+            if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
+                if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
+                    log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
+                } else {
+                    log.info("No valuation model for station {}, skipping", station);
+                }
+                stationDB.removeStation(station.getId());
+                removed.add(station);
+                continue;
+            }
+            double value = iValueGenerator.generateValue();
+            final Map<Band, Double> valueMap = new HashMap<>();
+            double frac = 1.0;
+            for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
+                if (band.equals(Band.OFF)) {
+                    continue;
+                }
+                // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
+                valueMap.put(band, value * frac);
+                frac -= 1. / 3;
+            }
+            valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+            ((StationInfo) station).setValues(valueMap);
+        }
+        final Map<Band, List<IStationInfo>> droppedStationToBand = removed.stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
+        for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {
+            log.info("Dropped {} {} stations due to not having valuations", entry.getValue().size(), entry.getKey());
+        }
     }
 
     /**

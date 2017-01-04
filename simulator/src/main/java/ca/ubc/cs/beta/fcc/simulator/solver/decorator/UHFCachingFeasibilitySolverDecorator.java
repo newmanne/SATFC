@@ -19,6 +19,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -63,12 +64,16 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     private final IProblemMaker problemMaker;
     // If true, then don't prefill the cache every time it dirties - just grab problems one by one, as needed
     private final boolean lazy;
+    // If false, when a result times out in UHF, it will remain a timeout forever. If true, it gets retried when a new station moves into the band
+    private final boolean revisitTimeouts;
     private final TimeTracker wastedTimeTracker;
 
     private ImmutableMap<IStationInfo, Set<IStationInfo>> stationToComponent;
     private boolean needsRebuid;
 
-    public UHFCachingFeasibilitySolverDecorator(IFeasibilitySolver decorated, ParticipationRecord participation, IProblemMaker problemMaker, boolean lazy, ILadder ladder, IConstraintManager constraintManager) {
+    private final GreedyFlaggingDecorator greedyFlaggingDecorator;
+
+    public UHFCachingFeasibilitySolverDecorator(IFeasibilitySolver decorated, ParticipationRecord participation, IProblemMaker problemMaker, boolean lazy, boolean revisitTimeouts, ILadder ladder, IConstraintManager constraintManager) {
         super(decorated);
         feasibility = new ConcurrentHashMap<>();
         this.participation = participation;
@@ -76,6 +81,9 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         this.lazy = lazy;
         this.wastedTimeTracker = new TimeTracker();
         needsRebuid = true;
+        this.revisitTimeouts = revisitTimeouts;
+        // We maintain a separate decorator here literally just for flagging cached problems
+        this.greedyFlaggingDecorator = new GreedyFlaggingDecorator(new VoidFeasibilitySolver(), constraintManager);
     }
 
     public void init(ILadder ladder, IConstraintManager constraintManager) {
@@ -87,6 +95,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         final ConnectivityInspector<IStationInfo, DefaultEdge> connectivityInspector = new ConnectivityInspector<>(constraintGraph);
         final Set<Set<IStationInfo>> connectedComponents = connectivityInspector.connectedSets().stream().collect(Collectors.toSet());
         stationToComponent = ladder.getStations().stream().collect(toImmutableMap(Function.identity(), s -> connectedComponents.stream().filter(component -> component.contains(s)).findFirst().get()));
+        greedyFlaggingDecorator.init(ladder);
     }
 
     @Override
@@ -111,6 +120,10 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                 if (lazy || cacheEntry.getHitCount() > 0) {
                     // valid code, unsupported in intellij lombok plugin
                     result = result.toBuilder().cached(true).build();
+                }
+                // We want to know if a greedy solver COULD have solved the initial problem (it won't get there due to decorator ordering)
+                if (greedyFlaggingDecorator.getFeasibilityBlocking(problem).isGreedySolved()) {
+                    result = result.toBuilder().greedySolved(true).build();
                 }
                 cacheEntry.setHitCount(cacheEntry.getHitCount() + 1);
                 log.trace("Successful cache hit for {}", problem.getSATFCProblem().getName());
@@ -172,6 +185,9 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                     // update assignment
                     entry.getValue().getResult().setSATFCResult(new SATFCResult(satfcResult.getResult(), satfcResult.getRuntime(), assignment, satfcResult.getCputime(), satfcResult.getExtraInfo()));
                 }
+            } else if (revisitTimeouts && result.getSATFCResult().getResult().equals(SATResult.TIMEOUT)) {
+                // If the revisit timeouts flag is set, then delete all timeout results whenver a station moves into UHF. We could probably limit this to whenever a UHF station moves into the same component if we used a SATFC configuration that always reduces to by component
+                iterator.remove();
             }
         }
     }
@@ -183,6 +199,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
     public void onMove(LadderEventOnMoveDecorator.LadderMoveEvent moveEvent) {
         if (moveEvent.getNewBand().equals(Band.UHF)) {
             log.debug("Station {} moved into UHF, marking UHF cache as dirty", moveEvent.getStation());
+            final Watch purgeWatch = Watch.constructAutoStartWatch();
             purgeDirty(moveEvent.getStation(), moveEvent.getLadder().getPreviousAssignment(Band.UHF));
             needsRebuid = true;
         }

@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -38,6 +39,7 @@ public class StationInfo implements IStationInfo {
     private final Band homeBand;
     @Getter
     private ImmutableSet<Integer> domain;
+    // What you read out of Domain.csv, never modified
     @Getter
     private final ImmutableSet<Integer> fullDomain;
     @Getter
@@ -54,6 +56,9 @@ public class StationInfo implements IStationInfo {
     @Setter
     private Map<Band, Double> values;
 
+    private int maxChan = StationPackingUtils.UHFmax;
+    private int minChan = StationPackingUtils.LVHFmin;
+
     public static StationInfo canadianStation(int id, Band band, Set<Integer> domain, String city, String call, int pop) {
         return new StationInfo(id, Nationality.CA, band, ImmutableSet.copyOf(domain), city, call, pop);
     }
@@ -69,11 +74,21 @@ public class StationInfo implements IStationInfo {
         this.population = population;
     }
 
-    public void adjustDomain(int maxChan) {
-        this.domain = fullDomain.stream().filter(c -> c <= maxChan).collect(GuavaCollectors.toImmutableSet());
+    private void adjustDomain() {
+        this.domain = fullDomain.stream().filter(c -> c <= maxChan && c >= minChan).collect(GuavaCollectors.toImmutableSet());
         if (getHomeBand().equals(Band.UHF)) {
             Preconditions.checkState(!getDomain(Band.UHF).isEmpty(), "UHF band domain emptied!");
         }
+    }
+
+    public void setMaxChannel(int c) {
+        this.maxChan = c;
+        adjustDomain();
+    }
+
+    public void setMinChannel(int c) {
+        this.minChan = c;
+        adjustDomain();
     }
 
     private double getUtility(Band band, double payment) {

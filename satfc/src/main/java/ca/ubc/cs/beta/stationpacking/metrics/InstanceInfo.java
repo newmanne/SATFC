@@ -55,5 +55,6 @@ public class InstanceInfo {
     private Map<Station, Integer> assignment;
     private String nickname;
     private String hash;
+    private Double cputime;
 
 }

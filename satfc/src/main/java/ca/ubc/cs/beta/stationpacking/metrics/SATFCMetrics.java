@@ -106,6 +106,7 @@ public class SATFCMetrics {
     public static class InstanceSolvedEvent {
         private final String name;
         private final SolverResult solverResult;
+        private final Double cputime;
     }
 
     @Data
@@ -217,6 +218,7 @@ public class SATFCMetrics {
                 info.setRuntime(event.getSolverResult().getRuntime());
                 info.setSolvedBy(event.getSolverResult().getSolvedBy());
                 info.setNickname(event.getSolverResult().getNickname());
+                info.setCputime(event.getCputime());
             });
         }
 

@@ -53,7 +53,7 @@ public class GreedySolverDecorator extends ASolverDecorator {
         for (Station s: unassigned) {
             boolean foundChannel = false;
             Set<Integer> domain = domains.get(s);
-            for (Integer c: domain) {
+            for (int c: domain) {
                 assignment.put(c, s);
                 if (constraintManager.isSatisfyingAssignment(Multimaps.asMap(assignment))) {
                     foundChannel = true;

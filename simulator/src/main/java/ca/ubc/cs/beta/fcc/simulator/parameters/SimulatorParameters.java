@@ -38,6 +38,7 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import humanize.Humanize;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
@@ -130,12 +131,12 @@ public class SimulatorParameters extends AbstractOptions {
 //    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
 //    private boolean unitValue = false;
 
-//    @Getter
-//    @Parameter(names = "-START-CITY", description = "City to start from")
-//    private String city;
-//    @Getter
-//    @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
-//    private int nLinks = -1;
+    @Getter
+    @Parameter(names = "-START-CITY", description = "City to start from")
+    private String city;
+    @Getter
+    @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
+    private int nLinks = 0;
 
 //
 //    @Getter
@@ -163,6 +164,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-LAZY-UHF-CACHE", description = "If true, do not precompute problems")
     @Getter
     private boolean lazyUHF = true;
+
+    @Getter
+    @Parameter(names = "-REVISIT-TIMEOUTS", description = "If true, revisit timeout results")
+    private boolean revisitTimeouts = false;
 
     @Parameter(names = "-GREEDY-SOLVER-FIRST", description = "If true, always try solving a problem with the greedy solver first")
     @Getter
@@ -237,12 +242,18 @@ public class SimulatorParameters extends AbstractOptions {
             } else if ((isUhfOnly() || !isIncludeVHFBands()) && s.getDomain(Band.UHF).isEmpty()) {
                 log.info("Station {} has no domain in UHF, skipping due to flag", s);
                 toRemove.add(s.getId());
+            } else {
+                // not removing
+                if (!isIncludeVHFBands()) {
+                    ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
+                }
             }
 //            if (city != null && nLinks >= 0) {
 //                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
 //            }
         }
         toRemove.forEach(stationDB::removeStation);
+
 
         log.info("Setting volumes");
         IVolumeCalculator volumeCalculator;
@@ -352,24 +363,24 @@ public class SimulatorParameters extends AbstractOptions {
 
     // TODO: Hard to ratify this with endogenous clearing targets...
     @RequiredArgsConstructor
-    public static class CityAndLinksPredicateFactory implements IPredicateFactory {
+    public static class CityAndLinks {
 
+        @NonNull
         private final String city;
         private final int links;
-        private final IStationManager stationManager;
+        private final IStationDB.IModifiableStationDB stationDB;
         private final IConstraintManager constraintManager;
 
-        @Override
-        public Predicate<IStationInfo> create(Map<Integer, IStationInfo> stations) {
-            final Map<Station, Set<Integer>> domains = stationManager.getStations()
+        public void function() {
+            // Step 1: Construct the interference graph based on stations in the DB and their domains
+            final Map<Station, Set<Integer>> domains = stationDB.getStations()
                     .stream()
-                    .filter(s -> stations.get(s.getID()) != null)
-                    .collect(Collectors.toMap(s -> s, s -> stations.get(s.getID()).getDomain()));
+                    .collect(Collectors.toMap(IStationInfo::toSATFCStation, IStationInfo::getDomain));
 
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
 
             final Set<Station> cityStations = domains.keySet().stream()
-                    .filter(s -> stations.get(s.getID()).getCity().equals(city))
+                    .filter(s -> stationDB.getStationById(s.getID()).getCity().equals(city))
                     .collect(Collectors.toSet());
 
             log.info("Found {} stations in city {}", cityStations.size(), city);
@@ -385,10 +396,18 @@ public class SimulatorParameters extends AbstractOptions {
                 }
             }
 
-            log.info("Found {} stations within {} links of {}", output.size(), links, city);
-
-            return (x -> !output.contains(x.toSATFCStation()));
+            log.info("Found {} stations within {} links of {}. Removing all other stations", output.size(), links, city);
+            final Set<IStationInfo> toRemove = new HashSet<>();
+            for (IStationInfo s : stationDB.getStations()) {
+                if (!output.contains(s.toSATFCStation())) {
+                    toRemove.add(s);
+                }
+            }
+            for (IStationInfo s: toRemove) {
+                stationDB.removeStation(s.getId());
+            }
         }
+
     }
 
     public interface IVolumeCalculator {

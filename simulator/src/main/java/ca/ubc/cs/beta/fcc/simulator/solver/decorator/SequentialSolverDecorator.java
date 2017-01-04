@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
+import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 
 /**
  * The idea here is that you want to try solvers in sequence
@@ -24,7 +25,11 @@ public class SequentialSolverDecorator extends AFeasibilitySolverDecorator {
         if (result.getSATFCResult().getResult().isConclusive()) {
             callback.onSuccess(problem, result);
         } else {
-            super.getFeasibility(problem, callback);
+            super.getFeasibility(problem, (p, r) -> {
+                double cputime = r.getSATFCResult().getCputime() + result.getSATFCResult().getCputime();
+                double walltime = r.getSATFCResult().getRuntime() + result.getSATFCResult().getRuntime();
+                final SATFCResult mergedR = new SATFCResult(r.getSATFCResult().getResult(), walltime, r.getSATFCResult().getWitnessAssignment(), cputime, r.getSATFCResult().getExtraInfo());
+            });
         }
     }
 

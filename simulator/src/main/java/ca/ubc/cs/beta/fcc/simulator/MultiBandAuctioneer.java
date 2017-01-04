@@ -34,7 +34,6 @@ import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
-import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
@@ -47,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-09-27.
@@ -81,54 +79,7 @@ public class MultiBandAuctioneer {
         log.info("Reading station info from file");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
 
-        log.info("Assigning valuations to stations");
-        final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
-        final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
-        final Collection<IStationInfo> americanStations = stationDB.getStations(Nationality.US);
-        final Set<IStationInfo> removed = new HashSet<>();
-        for (final IStationInfo station : americanStations) {
-            final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
-            if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
-                if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
-                    log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
-                } else {
-                    log.info("No valuation model for station {}, skipping", station);
-                }
-                stationDB.removeStation(station.getId());
-                removed.add(station);
-                continue;
-            }
-
-
-//            Double value = null;
-//            int onCount = 0;
-//            int n = 1000;
-//            for (int i = 0; i < n; i++) {
-//                value = iValueGenerator.generateValue();
-//                if (value < actualPrices.getPrice(station, Band.OFF)) {
-//                    onCount++;
-//                }
-//            }
-//            log.info("Station {} participates {} of the time", station.getId(), Humanize.formatPercent(onCount / (double) n));
-
-            double value = iValueGenerator.generateValue();
-            final Map<Band, Double> valueMap = new HashMap<>();
-            double frac = 1.0;
-            for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
-                if (band.equals(Band.OFF)) {
-                    continue;
-                }
-                // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
-                valueMap.put(band, value * frac);
-                frac -= 1. / 3;
-            }
-            valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
-            ((StationInfo) station).setValues(valueMap);
-        }
-        final Map<Band, List<IStationInfo>> droppedStationToBand = removed.stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
-        for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {
-            log.info("Dropped {} {} stations due to not having valuations", entry.getValue().size(), entry.getKey());
-        }
+        SimulatorUtils.assignValues(parameters);
 
         // Initialize opening benchmarkPrices
         log.info("Setting opening prices");
@@ -159,7 +110,7 @@ public class MultiBandAuctioneer {
 
         UHFCachingFeasibilitySolverDecorator uhfCache = null;
         if (parameters.isUHFCache()) {
-            uhfCache = new UHFCachingFeasibilitySolverDecorator(tmp, participation, problemMaker, parameters.isLazyUHF(), ladder, parameters.getConstraintManager());
+            uhfCache = new UHFCachingFeasibilitySolverDecorator(tmp, participation, problemMaker, parameters.isLazyUHF(), parameters.isRevisitTimeouts(), ladder, parameters.getConstraintManager());
             parameters.getEventBus().register(uhfCache);
             tmp = uhfCache;
         }

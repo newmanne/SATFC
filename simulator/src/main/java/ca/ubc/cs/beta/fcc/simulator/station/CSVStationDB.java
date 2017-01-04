@@ -6,6 +6,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -41,15 +42,13 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
             final int pop = Integer.parseInt(record.get("Population"));
             if (nationality.equals(Nationality.CA)) {
                 // Canadian stations have some channel 52 stations... messes everything up...
-                stationInfo = StationInfo.canadianStation(id, channel >= 14 ? Band.UHF : BandHelper.toBand(channel), domain, city, call, pop);
+                stationInfo = StationInfo.canadianStation(id, channel >= StationPackingUtils.UHFmin ? Band.UHF : BandHelper.toBand(channel), domain, city, call, pop);
             } else {
                 final Band band = BandHelper.toBand(channel);
                 stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop);
             }
             data.put(id, stationInfo);
         }
-        // ugly...
-        final Set<StationInfo> americanStations = data.values().stream().filter(s -> s.getNationality().equals(Nationality.US)).map(s -> (StationInfo) s).collect(Collectors.toSet());
         log.info("Finished reading stations");
         final Map<Band, List<IStationInfo>> collect = getStations().stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
         for (Band band : collect.keySet()) {
@@ -70,7 +69,7 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
     @Override
     public void removeStation(int stationID) {
         final IStationInfo removed = data.remove(stationID);
-        Preconditions.checkNotNull(removed, "Nothing to remove for statoin ID %s", stationID);
+        Preconditions.checkNotNull(removed, "Nothing to remove for station ID %s", stationID);
     }
 
 }

@@ -385,8 +385,8 @@ public class SATFCFacade implements AutoCloseable {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
             double cputime = testLib.getCpuTime() - cpuStart;
+            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result, cputime));
 
             log.debug("Transforming result into SATFC output...");
             // Transform back solver result to output result

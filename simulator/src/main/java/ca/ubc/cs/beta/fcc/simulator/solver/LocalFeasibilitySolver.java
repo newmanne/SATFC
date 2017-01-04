@@ -37,6 +37,7 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
 
     public void getFeasibility(SimulatorProblem simulatorProblem, SATFCCallback callback) {
         final SimulatorProblemReader.SATFCProblemSpecification problem = simulatorProblem.getSATFCProblem();
+        log.info("Waiting on SATFC facade...");
         final SATFCResult solve = facade.solve(
                 problem.getProblem().getDomains(),
                 problem.getProblem().getPreviousAssignment(),
@@ -45,6 +46,7 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
                 problem.getStationInfoFolder(),
                 problem.getName()
         );
+        log.info("Back from facade...");
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
         callback.onSuccess(simulatorProblem, SimulatorResult.fromSATFCResult(solve));

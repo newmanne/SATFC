@@ -254,7 +254,7 @@ public class MultiBandSimulator {
                 boolean feasibleInHomeBand = SimulatorUtils.isFeasible(entry.getValue());
                 if (feasibleInHomeBand) {
                     // for every active station feasible in home band check if it can NEVER become infeasible (not needed)
-                    // note we can't use the previous assignment from the feasiblility result eariler incase more than one station exits in the same round, but we are guarenteed to be able to greedily add them to the current assignment
+                    // note we can't use the previous assignment from the feasiblility result earlier in case more than one station exits in the same round, but we are guarenteed to be able to greedily add them to the current assignment
                     if (unconstrainedChecker.isUnconstrained(station, ladder)) {
                         final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
                         Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly!");

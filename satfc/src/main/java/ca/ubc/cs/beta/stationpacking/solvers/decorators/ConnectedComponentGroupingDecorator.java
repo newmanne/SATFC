@@ -107,7 +107,7 @@ public class ConnectedComponentGroupingDecorator extends ASolverDecorator {
             log.debug("Solving component {}...", i);
             log.debug("Component {} has {} stations.", i, stationComponent.getStations().size());
             final SolverResult componentResult = fDecoratedSolver.solve(stationComponent, aTerminationCriterion, aSeed);
-            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult));
+            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(stationComponent.getName(), componentResult, null));
             solverResults.add(componentResult);
             // If any component matches this clause (is not SAT), the whole instance cannot be SAT, might as well stop then
             if (!componentResult.getResult().equals(SATResult.SAT) && !fSolveEverything) {

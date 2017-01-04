@@ -48,8 +48,10 @@ public class SaveStateToFile implements IStateSaver {
         double overallWalltime;
         double simulatorTime;
         double simulatorCPUTime;
-        double problemCPUTime;
-        double problemWallTime;
+        double UHFProblemCPUTime;
+        double UHFProblemWallTime;
+        double VHFProblemCPUTime;
+        double VHFProblemWallTime;
         int nProblems;
         int greedySolved;
         UHFCacheState uhfCacheState;

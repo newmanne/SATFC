@@ -3,10 +3,15 @@ package ca.ubc.cs.beta.fcc.vcg;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
+import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
+import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.matroid.encoder.MaxSatEncoder;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
@@ -27,10 +32,13 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
-import ilog.concert.*;
+import ilog.concert.IloException;
+import ilog.concert.IloIntVar;
+import ilog.concert.IloLinearIntExpr;
+import ilog.concert.IloLinearNumExpr;
 import ilog.cplex.IloCplex;
+import lombok.Builder;
 import lombok.Data;
-import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.util.MathUtils;
@@ -55,7 +63,7 @@ public class VCGMip {
     public static class VCGParameters extends AbstractOptions {
 
         @ParametersDelegate
-        private SimulatorParameters simulatorParameters = new SimulatorParameters();
+        private MultiBandSimulatorParameters simulatorParameters = new MultiBandSimulatorParameters();
 
         @Parameter(names = "-VCG-PACKING")
         List<Integer> ids = new ArrayList<>();
@@ -69,6 +77,15 @@ public class VCGMip {
         @Parameter(names = "-MIP-TYPE")
         MIPType mipType = MIPType.VCG;
 
+        @Parameter(names = "-CPLEX-THREADS")
+        int nThreads = Runtime.getRuntime().availableProcessors();
+
+        // When to drop stations due to city requirement. After dropping stations with no valuations / domain in CT, or before?
+        // Dropping after leads to fewer stations overall (since graph is less connected)
+        @Parameter(names = "-CITY-DROP-AFTER")
+        boolean cityDropAfter = true;
+
+
     }
 
     enum MIPType {
@@ -79,17 +96,22 @@ public class VCGMip {
     public static void main(String[] args) throws IloException, IOException {
         final VCGParameters q = new VCGParameters();
         JCommanderHelper.parseCheckingForHelpAndVersion(args, q);
-        // TODO: probably want to override the default name...
-        final SimulatorParameters parameters = q.simulatorParameters;
+        final MultiBandSimulatorParameters parameters = q.simulatorParameters;
         SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
         JCommanderHelper.logCallString(args, VCGMip.class);
         log = LoggerFactory.getLogger(VCGMip.class);
 
         parameters.setUp();
-
-        final IStationDB stationDB = parameters.getStationDB();
-        final Set<Integer> use = new HashSet<>(q.ids);
-        final Map<Integer, Set<Integer>> domains = null; // TODO: Fix this
+        if (!q.cityDropAfter && parameters.getCity() != null) {
+            new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
+        }
+        SimulatorUtils.assignValues(parameters);
+        MultiBandAuctioneer.adjustCT(parameters.getMaxChannel(), parameters.getStationDB());
+        if (q.cityDropAfter && parameters.getCity() != null) {
+            new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
+        }
+        final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
+        final Map<Integer, Set<Integer>> domains = stationDB.getStations().stream().collect(Collectors.toMap(IStationInfo::getId, IStationInfo::getDomain));
         log.info("Looking at {} stations", domains.size());
         log.info("Using max channel {}", parameters.getMaxChannel());
         final IConstraintManager constraintManager = parameters.getConstraintManager();
@@ -101,12 +123,15 @@ public class VCGMip {
         } else {
             throw new IllegalStateException();
         }
+
+        final Set<Integer> notParticipating = new HashSet<>(q.notParticipating);
+        notParticipating.addAll(stationDB.getStations(Nationality.CA).stream().map(IStationInfo::getId).collect(Collectors.toSet()));
         final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager, encoder);
-        final MIPResult mipResult = mipMaker.solve(domains, new HashSet<>(q.notParticipating), parameters.getCutoff(), (int) parameters.getSeed());
+        final MIPResult mipResult = mipMaker.solve(domains, notParticipating, parameters.getCutoff(), (int) parameters.getSeed(), q.nThreads);
 
         if (q.mipType.equals(MIPType.VCG)) {
             final double computedValue = mipResult.getAssignment().entrySet().stream()
-                    .filter(e -> !q.notParticipating.contains(e.getKey()))
+                    .filter(e -> !notParticipating.contains(e.getKey()))
                     .mapToDouble(e -> stationDB.getStationById(e.getKey()).getValues().get(BandHelper.toBand(e.getValue())))
                     .sum();
             final double obj = mipResult.getObjectiveValue();
@@ -229,11 +254,11 @@ public class VCGMip {
             this.encoder = encoder;
         }
 
-        public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed) throws IloException {
-            return solve(domains, ImmutableSet.of(), cutoff, seed);
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed, int nThreads) throws IloException {
+            return solve(domains, ImmutableSet.of(), cutoff, seed, nThreads);
         }
 
-        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed) throws IloException {
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed, int nThreads) throws IloException {
             this.varLookup = HashBasedTable.create();
             this.variablesDecoder = new HashMap<>();
             this.cplex = new IloCplex();
@@ -247,6 +272,7 @@ public class VCGMip {
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
                 final int station = domainsEntry.getKey();
                 final List<Integer> domainList = domainsEntry.getValue().stream().sorted().collect(toImmutableList());
+                Preconditions.checkState(!domainList.isEmpty(), "Station %s has no domain!", station);
                 final IloIntVar[] domainVars = cplex.boolVarArray(domainList.size());
 //                log.debug("{}", station);
                 for (int i = 0; i < domainList.size(); i++) {
@@ -297,6 +323,7 @@ public class VCGMip {
                 cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Optimality);
                 cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, 0);
                 cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time
+                cplex.setParam(IloCplex.IntParam.Threads, nThreads);
             } catch (IloException e) {
                 log.error("Could not set CPLEX's parameters to the desired values", e);
                 throw new IllegalStateException("Could not set CPLEX's parameters to the desired values (" + e.getMessage() + ").");
