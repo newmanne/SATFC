@@ -279,7 +279,7 @@ public class MultiBandAuctioneer {
         // WARNING: This can lead to a lot of strange bugs if something queries a station's domain and stores it before CT is finalized...
         BandHelper.setUHFChannels(ct);
         for (IStationInfo s : stationDB.getStations()) {
-            ((StationInfo) s).adjustDomain(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
+            ((StationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
         }
     }
 
