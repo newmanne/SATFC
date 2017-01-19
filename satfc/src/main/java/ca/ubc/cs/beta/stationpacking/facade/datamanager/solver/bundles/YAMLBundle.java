@@ -53,6 +53,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.picoSAT.picoSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -230,6 +231,26 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         private String config;
         private EncodingType encodingType = EncodingType.DIRECT;
         private int seedOffset = 0;
+        private String nickname;
+
+    }
+
+
+    @Data
+    public static class picoSATConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
+            final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
+            final AbstractCompressedSATSolver picoSATSolver = new picoSATSolver( picoSATPath, runsolverPath, config , nickname);
+            return new CompressedSATBasedSolver(picoSATSolver, new SATCompressor(constraintManager, encodingType));
+        }
+
+        private String config;
+        private String picoSATPath;
+        private String runsolverPath;
+        private EncodingType encodingType = EncodingType.DIRECT;
         private String nickname;
 
     }
