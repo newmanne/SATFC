@@ -56,6 +56,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
 //    private final ProblemIncrementor problemIncrementor;
     private final String nickname;
+    private final int cutOff = 30;
 
 //    public picoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
 //        this.picosatPath = picosatPath;
@@ -99,8 +100,10 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             // create temp files
             File tempIn = File.createTempFile("tempFile",".txt");
             tempIn.deleteOnExit();
-            File tempOut = File.createTempFile("tempFile",".txt");
-            tempOut.deleteOnExit();
+            File tempOutPico = File.createTempFile("tempFile",".txt");
+            tempOutPico.deleteOnExit();
+            File tempOutRunsolver = File.createTempFile("tempFile",".txt");
+            tempOutRunsolver.deleteOnExit();
 
 
             // Write problem to file
@@ -113,24 +116,32 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
             // Run picosat process
             Runtime rt = Runtime.getRuntime();
-            File picoSATDir = new File("/Users/peterawest/Desktop/2016_2017/cpsc449/code/picosat/picosat-957");
-            Process pr = rt.exec("./picosat " + tempIn.getCanonicalPath()+ " -o " + tempOut.getCanonicalPath(),null,picoSATDir);
-            InputStream stream = pr.getInputStream();
-            System.out.println("process running");
+//            File picoSATDir = new File("/Users/peterawest/Desktop/2016_2017/cpsc449/code/picosat/picosat-957");
+//            Process pr = rt.exec("./picosat " + tempIn.getCanonicalPath()+ " -o " + tempOut.getCanonicalPath(),null,picoSATDir);
 
-            try {
-                pr.waitFor(); }
-            catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            File picoSATDir = new File(picoSATPath);
+            String processString = "";
+            processString = processString + runsolverPath + "/runsolver";
+            processString = processString + "-C" + Integer.toString(cutOff);
+            processString = processString + " -o " + tempOutPico.getCanonicalPath();
+            processString = processString + "-w " + tempOutRunsolver.getCanonicalPath();
+            processString = processString + "./picosat" + tempIn.getCanonicalPath();
+            Process pr = rt.exec(processString,null,picoSATDir);
+
+//            InputStream stream = pr.getInputStream();
+//            System.out.println("process running");
+//
+//            try {
+//                pr.waitFor(); }
+//            catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
 
 
             // Create list of lines from tempOut file
-            List<String> fileLines = Files.readAllLines(Paths.get(tempOut.getCanonicalPath()), StandardCharsets.UTF_8);
-
+            List<String> fileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
 
             List<Integer> assignment = new ArrayList<Integer>();
-
 
             for (String x : fileLines) {
                 System.out.println(x);
@@ -140,7 +151,6 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //                        System.out.println("it is SATISFIABLE");
                     }
                 }
-
 
                 if (x.charAt(0) == "v".charAt(0)){
 //                    System.out.println("it is v " + x.substring(2,x.length()));
@@ -154,7 +164,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                 }
             }
             tempIn.delete();
-            tempOut.delete();
+            tempOutPico.delete();
 
 
             Set<Literal> literalAssignment = new HashSet<Literal>();
@@ -240,20 +250,8 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //    }
 
     @Override
-    public void notifyShutdown() {
-
-    }
+    public void notifyShutdown() {}
 
     @Override
-    public void interrupt() {
-
-        lock.lock();
-
-        if (isCurrentlySolving.get()) {
-
-            fLibrary.interrupt(fState);
-
-        }
-        lock.unlock();
-    }
+    public void interrupt() {}
 }

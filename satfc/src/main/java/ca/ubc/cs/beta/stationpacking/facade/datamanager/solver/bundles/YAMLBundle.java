@@ -660,6 +660,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.GREEDY, GreedyConfig.class)
                         .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
                         .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
+                        .put(SolverType.PICOSAT, picoSATConfig.class)
                         .build();
 
         @Override
