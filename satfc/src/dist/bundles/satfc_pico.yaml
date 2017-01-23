@@ -15,29 +15,3 @@ UHF:
                 picoSATPath:
                 runsolverPath:
                 nickname: 
-VHF:
-    - name: CLASP
-      args:
-        config: *claspVHF
-    - name: CONNECTED_COMPONENTS
-    - name: UNDERCONSTRAINED
-      args:
-        expensive: false
-        recursive: false
-    - name: SAT_PRESOLVER
-      args:
-        solverConfig:
-          name: CLASP
-          args:
-            config: *claspVHF
-        strategy:
-          name: ITERATIVE_DEEPEN
-          args:
-            baseCutoff: 5
-            config:
-              name: NEIGHBOURHOOD
-              args:
-                numLayers: 1
-    - name: RESULT_SAVER
-    - name: PYTHON_VERIFIER
-    - name: VERIFIER
