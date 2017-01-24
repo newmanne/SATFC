@@ -16,6 +16,8 @@ import com.google.common.base.Preconditions;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.HashSet;
@@ -57,6 +59,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //    private final ProblemIncrementor problemIncrementor;
     private final String nickname;
     private final int cutOff = 30;
+    private static Logger log = LoggerFactory.getLogger(picoSATSolver.class);
 
 //    public picoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
 //        this.picosatPath = picosatPath;
@@ -94,7 +97,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
     @Override
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
-
+        log.info("using PICOSAT");
         try {
 
             // create temp files
