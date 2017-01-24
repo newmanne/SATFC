@@ -1,10 +1,10 @@
 ---
 CONFIGS:
-  picosat: &claspS1 
+  picosat: &pico  
 UHF:
     - name: PICOSAT
       args:
-        config: 
+        config: *pico
         picoSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
         nickname: picosat
@@ -12,7 +12,7 @@ UHF:
 VHF:
     - name: PICOSAT
       args:
-        config: 
+        config: *pico
         picoSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
         nickname: picosat
