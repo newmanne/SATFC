@@ -1,6 +1,6 @@
 ---
 CONFIGS:
-  picosat: &pico  
+  picosat: &pico
 UHF:
     - name: PICOSAT
       args:
