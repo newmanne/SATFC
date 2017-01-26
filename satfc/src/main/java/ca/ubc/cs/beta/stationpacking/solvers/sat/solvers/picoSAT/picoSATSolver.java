@@ -202,7 +202,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
             for (String x : runsolverFileLines) {
-                log.info(x);
+//                log.info(x);
 
 //                if (x.charAt(0) == "s".charAt(0)){
 //                    if (x.substring(2,3).equals("S" ) ) {
@@ -250,6 +250,8 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
             log.info("walltime: " + walltime);
+            log.info("will try to print pico file: ");
+            log.info(picoFileLines.toString());
             log.info("will try to print satResult");
             log.info("satResult: " + satResult.toString());
             log.info("assignment: " + literalAssignment.toString());
