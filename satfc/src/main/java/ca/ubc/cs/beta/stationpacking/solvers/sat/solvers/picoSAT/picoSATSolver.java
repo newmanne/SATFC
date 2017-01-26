@@ -134,7 +134,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             cutOff = aTerminationCriterion.getRemainingTime();
             processString = processString + " -C " + Double.toString(cutOff);
             processString = processString + " -o " + tempOutPico.getCanonicalPath();
-            processString = processString + "-w " + tempOutRunsolver.getCanonicalPath();
+            processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + "./picosat" + tempIn.getCanonicalPath();
             Process pr = rt.exec(processString,null,picoSATDir);
 
@@ -211,7 +211,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //                }
                 Matcher walltimeMatcher = walltimePattern.matcher(x);
                 Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
-                Matcher timeLimit2Matcher = timeLimit1Pattern.matcher(x);
+                Matcher timeLimit2Matcher = timeLimit2Pattern.matcher(x);
                 Matcher memLimitMatcher = memLimitPattern.matcher(x);
 
 
