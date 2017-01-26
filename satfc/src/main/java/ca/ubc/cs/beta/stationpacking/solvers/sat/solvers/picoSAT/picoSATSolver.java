@@ -70,28 +70,14 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //    }
 
     public picoSATSolver(String picoSATPath, String runsolverPath,String parameters, String nickname) {
-        log.info("Building picoSATSolver");
+//        log.info("Building picoSATSolver");
         this.picoSATPath = picoSATPath;
         this.runsolverPath = runsolverPath;
         this.nickname = nickname;
 //        this.seedOffset = seedOffset;
         String mutableParameters = parameters;
-//        if (mutableParameters.contains("-seed ")) {
-//            throw new IllegalArgumentException("The parameter string cannot contain a seed as it is given upon a call to solve!" + System.lineSeparator() + mutableParameters);
-//        }
-//        if (!mutableParameters.contains("-alg ")) {
-//            throw new IllegalArgumentException("Missing required UBCSAT parameter: -alg." + System.lineSeparator() + mutableParameters);
-//        }
-//        if (!mutableParameters.contains("-cutoff ")) {
-//            mutableParameters = mutableParameters + " -cutoff max";
-//        }
-//        String testParameters = mutableParameters + " -seed 1";
-//        Pointer jnaProblem = fLibrary.initConfig(testParameters);
-//        fLibrary.destroyProblem(jnaProblem);
 
-//        fParameters = mutableParameters;
-//        problemIncrementor = new ProblemIncrementor(pollingService, this);
-        log.info("Done Building picoSATSolver");
+//        log.info("Done Building picoSATSolver");
     }
 
     @Override
@@ -124,8 +110,6 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
             // Run picosat process
             Runtime rt = Runtime.getRuntime();
-//            File picoSATDir = new File("/Users/peterawest/Desktop/2016_2017/cpsc449/code/picosat/picosat-957");
-//            Process pr = rt.exec("./picosat " + tempIn.getCanonicalPath()+ " -o " + tempOut.getCanonicalPath(),null,picoSATDir);
 
             File picoSATDir = new File(picoSATPath);
             String processString = "";
@@ -141,15 +125,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             pr.waitFor();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
-            };
-//            InputStream stream = pr.getInputStream();
-//            System.out.println("process running");
-//
-//            try {
-//                pr.waitFor(); }
-//            catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
+            }
 
 
             // Create list of lines from tempOut file
@@ -162,14 +138,8 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
 
             for (String x : picoFileLines) {
-//                log.info(x);
                 System.out.println(x);
 
-//                if (x.charAt(0) == "s".charAt(0)){
-//                    if (x.substring(2,3).equals("S" ) ) {
-////                        System.out.println("it is SATISFIABLE");
-//                    }
-//                }
                 Matcher satMatcher = satPattern.matcher(x);
                 Matcher unsatMatcher = unsatPattern.matcher(x);
                 Matcher unknownMatcher = unknownPattern.matcher(x);
@@ -185,7 +155,6 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
 
                 if (x.charAt(0) == "v".charAt(0)){
-//                    System.out.println("it is v " + x.substring(2,x.length()));
 
                     Scanner scanner = new Scanner(x.substring(1));
                     List<Integer> list = new ArrayList<Integer>();
@@ -229,7 +198,6 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
 
                 if (x.length() > 0 && x.charAt(0) == "v".charAt(0)){
-//                    System.out.println("it is v " + x.substring(2,x.length()));
 
                     Scanner scanner = new Scanner(x.substring(1));
                     List<Integer> list = new ArrayList<Integer>();
@@ -253,15 +221,8 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             for (Integer x : assignment) {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
-            log.info("walltime: " + walltime);
-            log.info("will try to print pico file: ");
-            log.info(picoFileLines.toString());
-            log.info(Integer.toString(picoFileLines.size()));
-            log.info("will try to print runsolver file: ");
-            log.info(runsolverFileLines.toString());
-            log.info("will try to print satResult");
-            log.info("satResult: " + satResult.toString());
-            log.info("assignment: " + literalAssignment.toString());
+
+
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
 
