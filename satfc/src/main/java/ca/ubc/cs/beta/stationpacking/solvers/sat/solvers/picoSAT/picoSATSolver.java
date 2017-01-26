@@ -252,6 +252,9 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             log.info("walltime: " + walltime);
             log.info("will try to print pico file: ");
             log.info(picoFileLines.toString());
+            log.info(Integer.toString(picoFileLines.size()));
+            log.info("will try to print runsolver file: ");
+            log.info(runsolverFileLines.toString());
             log.info("will try to print satResult");
             log.info("satResult: " + satResult.toString());
             log.info("assignment: " + literalAssignment.toString());
