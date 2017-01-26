@@ -159,7 +159,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
             for (String x : picoFileLines) {
 //                log.info(x);
-//                System.out.println(x);
+                System.out.println(x);
 
 //                if (x.charAt(0) == "s".charAt(0)){
 //                    if (x.substring(2,3).equals("S" ) ) {
@@ -202,7 +202,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
             for (String x : runsolverFileLines) {
-//                log.info(x);
+                log.info(x);
 
 //                if (x.charAt(0) == "s".charAt(0)){
 //                    if (x.substring(2,3).equals("S" ) ) {
