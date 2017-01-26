@@ -135,7 +135,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             processString = processString + " -C " + Double.toString(cutOff);
             processString = processString + " -o " + tempOutPico.getCanonicalPath();
             processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
-            processString = processString + "./picosat" + tempIn.getCanonicalPath();
+            processString = processString + " ./picosat " + tempIn.getCanonicalPath();
             Process pr = rt.exec(processString,null,picoSATDir);
 
 //            InputStream stream = pr.getInputStream();
