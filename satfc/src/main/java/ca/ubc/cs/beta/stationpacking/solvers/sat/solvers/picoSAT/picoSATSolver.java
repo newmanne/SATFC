@@ -53,7 +53,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
     private final String picoSATPath;
     private final String runsolverPath;
 //    private final int seedOffset;
-    private final String fParameters;
+//    private final String fParameters;
     private Pointer fState;
     private final Lock lock = new ReentrantLock();
     // boolean represents whether or not a solve is in progress, so that it is safe to do an interrupt
@@ -70,6 +70,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //    }
 
     public picoSATSolver(String picoSATPath, String runsolverPath,String parameters, String nickname) {
+        log.info("Building picoSATSolver");
         this.picoSATPath = picoSATPath;
         this.runsolverPath = runsolverPath;
         this.nickname = nickname;
@@ -81,15 +82,16 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //        if (!mutableParameters.contains("-alg ")) {
 //            throw new IllegalArgumentException("Missing required UBCSAT parameter: -alg." + System.lineSeparator() + mutableParameters);
 //        }
-        if (!mutableParameters.contains("-cutoff ")) {
-            mutableParameters = mutableParameters + " -cutoff max";
-        }
-        String testParameters = mutableParameters + " -seed 1";
-        Pointer jnaProblem = fLibrary.initConfig(testParameters);
-        fLibrary.destroyProblem(jnaProblem);
+//        if (!mutableParameters.contains("-cutoff ")) {
+//            mutableParameters = mutableParameters + " -cutoff max";
+//        }
+//        String testParameters = mutableParameters + " -seed 1";
+//        Pointer jnaProblem = fLibrary.initConfig(testParameters);
+//        fLibrary.destroyProblem(jnaProblem);
 
-        fParameters = mutableParameters;
+//        fParameters = mutableParameters;
 //        problemIncrementor = new ProblemIncrementor(pollingService, this);
+        log.info("Done Building picoSATSolver");
     }
 
     @Override
