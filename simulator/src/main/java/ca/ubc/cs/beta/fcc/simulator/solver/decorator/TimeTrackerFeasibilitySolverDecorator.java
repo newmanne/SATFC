@@ -53,7 +53,7 @@ public class TimeTrackerFeasibilitySolverDecorator extends AFeasibilitySolverDec
                 if (result.isGreedySolved()) {
                     greedySolvedUHF += 1;
                 }
-            } else if (p.getBand().isVHF()) {
+            } else if (p.getBand().isVHF() && !result.isCached()) {
                 VHFTimeTracker.update(result.getSATFCResult());
             }
             callback.onSuccess(p, result);
