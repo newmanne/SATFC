@@ -77,7 +77,8 @@ public class SolverResult implements Serializable {
         UNDERCONSTRAINED,
 		UNSAT_LABELLER,
 		PREVIOUS_ASSIGNMENT,
-		GREEDY
+		GREEDY,
+        PICOSAT
     }
 
 	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {
