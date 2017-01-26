@@ -248,6 +248,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
             log.info("walltime: " + walltime);
+            log.info("will try to print satResult");
             log.info("satResult: " + satResult.toString());
             log.info("assignment: " + literalAssignment.toString());
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
