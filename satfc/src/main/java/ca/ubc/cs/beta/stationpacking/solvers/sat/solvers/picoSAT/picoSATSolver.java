@@ -58,8 +58,10 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
     private final AtomicBoolean isCurrentlySolving = new AtomicBoolean(false);
 //    private final ProblemIncrementor problemIncrementor;
     private final String nickname;
-    private final int cutOff = 30;
+    private double cutOff = 30;
     private static Logger log = LoggerFactory.getLogger(picoSATSolver.class);
+    private SATResult satResult;
+    private float walltime;
 
 //    public picoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
 //        this.picosatPath = picosatPath;
@@ -125,7 +127,9 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             File picoSATDir = new File(picoSATPath);
             String processString = "";
             processString = processString + runsolverPath + "/runsolver";
-            processString = processString + "-C" + Integer.toString(cutOff);
+
+            cutOff = aTerminationCriterion.getRemainingTime();
+            processString = processString + "-C" + Double.toString(cutOff);
             processString = processString + " -o " + tempOutPico.getCanonicalPath();
             processString = processString + "-w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + "./picosat" + tempIn.getCanonicalPath();
@@ -142,18 +146,35 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 
 
             // Create list of lines from tempOut file
-            List<String> fileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
+            List<String> picoFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
 
             List<Integer> assignment = new ArrayList<Integer>();
+            Pattern satPattern = Pattern.compile("s SATISFIABLE");
+            Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
+            Pattern unknownPattern = Pattern.compile("s UNKNOWN");
+            Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
 
-            for (String x : fileLines) {
-                System.out.println(x);
+            for (String x : picoFileLines) {
+//                System.out.println(x);
 
-                if (x.charAt(0) == "s".charAt(0)){
-                    if (x.substring(2,3).equals("S" ) ) {
-//                        System.out.println("it is SATISFIABLE");
-                    }
+//                if (x.charAt(0) == "s".charAt(0)){
+//                    if (x.substring(2,3).equals("S" ) ) {
+////                        System.out.println("it is SATISFIABLE");
+//                    }
+//                }
+                Matcher satMatcher = satPattern.matcher(x);
+                Matcher unsatMatcher = unsatPattern.matcher(x);
+                Matcher unknownMatcher = unknownPattern.matcher(x);
+                Matcher indeterminateMatcher = indeterminatePattern.matcher(x);
+
+                if (satMatcher.find()) {
+                    satResult = SATResult.SAT;
+                } else if (unsatMatcher.find()) {
+                    satResult = SATResult.UNSAT;
+                } else if (unknownMatcher.find() || indeterminateMatcher.find()) {
+                    satResult = SATResult.TIMEOUT;
                 }
+
 
                 if (x.charAt(0) == "v".charAt(0)){
 //                    System.out.println("it is v " + x.substring(2,x.length()));
@@ -166,8 +187,56 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                     assignment.addAll(list);
                 }
             }
+
+
+            // Create list of lines from tempOut file
+            List<String> runsolverFileLines = Files.readAllLines(Paths.get(tempOutRunsolver.getCanonicalPath()), StandardCharsets.UTF_8);
+
+            Pattern walltimePattern = Pattern.compile("walltime:");
+            Pattern timeLimit1Pattern = Pattern.compile("runsolver_max_cpu_time_exceeded");
+            Pattern timeLimit2Pattern = Pattern.compile("Maximum CPU time exceeded");
+            Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
+
+            for (String x : runsolverFileLines) {
+
+//                if (x.charAt(0) == "s".charAt(0)){
+//                    if (x.substring(2,3).equals("S" ) ) {
+////                        System.out.println("it is SATISFIABLE");
+//                    }
+//                }
+                Matcher walltimeMatcher = walltimePattern.matcher(x);
+                Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
+                Matcher timeLimit2Matcher = timeLimit1Pattern.matcher(x);
+                Matcher memLimitMatcher = memLimitPattern.matcher(x);
+
+
+                if (walltimeMatcher.find()) {
+                    walltime = Float.parseFloat(x.substring(walltimeMatcher.end()));
+                } else if (timeLimit1Matcher.find() || timeLimit2Matcher.find()) {
+                    satResult = SATResult.TIMEOUT;
+                } else if (memLimitMatcher.find()) {
+                    satResult = SATResult.TIMEOUT;
+                }
+
+
+                if (x.charAt(0) == "v".charAt(0)){
+//                    System.out.println("it is v " + x.substring(2,x.length()));
+
+                    Scanner scanner = new Scanner(x.substring(1));
+                    List<Integer> list = new ArrayList<Integer>();
+                    while (scanner.hasNextInt()) {
+                        list.add(scanner.nextInt());
+                    }
+                    assignment.addAll(list);
+                }
+            }
+
+
+
+
             tempIn.delete();
             tempOutPico.delete();
+            tempOutRunsolver.delete();
 
 
             Set<Literal> literalAssignment = new HashSet<Literal>();
@@ -176,7 +245,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
 
-            return new SATSolverResult(SATResult.SAT, 0, literalAssignment,SolverResult.SolvedBy.UNKNOWN);
+            return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
 
 
