@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +46,7 @@ import java.io.BufferedWriter; // ->]
 /**
  * Created by peterawest on 16-11-15.
  */
+@Slf4j
 public class picoSATSolver extends AbstractCompressedSATSolver {
 
     private UBCSATLibrary fLibrary;
@@ -59,7 +61,6 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
 //    private final ProblemIncrementor problemIncrementor;
     private final String nickname;
     private double cutOff = 30;
-    private static Logger log = LoggerFactory.getLogger(picoSATSolver.class);
     private SATResult satResult;
     private float walltime;
 
