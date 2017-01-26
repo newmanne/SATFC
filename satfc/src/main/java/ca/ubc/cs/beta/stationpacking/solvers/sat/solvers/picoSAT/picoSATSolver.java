@@ -132,7 +132,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
             processString = processString + runsolverPath + "/runsolver";
 
             cutOff = aTerminationCriterion.getRemainingTime();
-            processString = processString + "-C" + Double.toString(cutOff);
+            processString = processString + " -C " + Double.toString(cutOff);
             processString = processString + " -o " + tempOutPico.getCanonicalPath();
             processString = processString + "-w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + "./picosat" + tempIn.getCanonicalPath();
