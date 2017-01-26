@@ -224,7 +224,7 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
                 }
 
 
-                if (x.charAt(0) == "v".charAt(0)){
+                if (x.length() > 0 && x.charAt(0) == "v".charAt(0)){
 //                    System.out.println("it is v " + x.substring(2,x.length()));
 
                     Scanner scanner = new Scanner(x.substring(1));
