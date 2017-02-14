@@ -100,6 +100,7 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
             processString = processString + " -o " + tempOutPico.getCanonicalPath();
             processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + " ./gnovelty+PCL " + tempIn.getCanonicalPath();
+            processString = processString + " -seed " + aSeed;
             Process pr = rt.exec(processString,null,picoSATDir);
             try {
             pr.waitFor();
