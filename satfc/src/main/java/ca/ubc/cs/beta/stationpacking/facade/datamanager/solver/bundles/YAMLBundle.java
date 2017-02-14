@@ -51,9 +51,10 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.greedy.GreedySolverDecor
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.gnoveltyPCL.GnoveltyPCLSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
-import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.picoSAT.picoSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.picoSAT.PicoSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -237,18 +238,37 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
 
     @Data
-    public static class picoSATConfig implements ISolverConfig {
+         public static class picoSATConfig implements ISolverConfig {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
-            final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver picoSATSolver = new picoSATSolver( picoSATPath, runsolverPath, config , nickname);
+//            final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
+            final AbstractCompressedSATSolver picoSATSolver = new PicoSATSolver( picoSATPath, runsolverPath, config , nickname);
             return new CompressedSATBasedSolver(picoSATSolver, new SATCompressor(constraintManager, encodingType));
         }
 
         private String config;
         private String picoSATPath;
+        private String runsolverPath;
+        private EncodingType encodingType = EncodingType.DIRECT;
+        private String nickname;
+
+    }
+
+    @Data
+    public static class gnoveltyPCLConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
+//            final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
+            final AbstractCompressedSATSolver gnoveltyPCLSolver = new GnoveltyPCLSolver( gnoveltyPCLPath, runsolverPath, config , nickname);
+            return new CompressedSATBasedSolver(gnoveltyPCLSolver, new SATCompressor(constraintManager, encodingType));
+        }
+
+        private String config;
+        private String gnoveltyPCLPath;
         private String runsolverPath;
         private EncodingType encodingType = EncodingType.DIRECT;
         private String nickname;
@@ -661,6 +681,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
                         .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
                         .put(SolverType.PICOSAT, picoSATConfig.class)
+                        .put(SolverType.GNOVELTYPCL, gnoveltyPCLConfig.class)
                         .build();
 
         @Override
