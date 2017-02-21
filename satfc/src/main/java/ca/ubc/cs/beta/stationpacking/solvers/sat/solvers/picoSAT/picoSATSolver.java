@@ -47,7 +47,7 @@ import java.io.BufferedWriter; // ->]
  * Created by peterawest on 16-11-15.
  */
 @Slf4j
-public class picoSATSolver extends AbstractCompressedSATSolver {
+public class PicoSATSolver extends AbstractCompressedSATSolver {
 
     private UBCSATLibrary fLibrary;
     private final String picoSATPath;
@@ -64,20 +64,20 @@ public class picoSATSolver extends AbstractCompressedSATSolver {
     private SATResult satResult;
     private float walltime;
 
-//    public picoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
+//    public PicoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
 //        this.picosatPath = picosatPath;
 //
 //    }
 
-    public picoSATSolver(String picoSATPath, String runsolverPath,String parameters, String nickname) {
-//        log.info("Building picoSATSolver");
+    public PicoSATSolver(String picoSATPath, String runsolverPath, String parameters, String nickname) {
+//        log.info("Building PicoSATSolver");
         this.picoSATPath = picoSATPath;
         this.runsolverPath = runsolverPath;
         this.nickname = nickname;
 //        this.seedOffset = seedOffset;
         String mutableParameters = parameters;
 
-//        log.info("Done Building picoSATSolver");
+//        log.info("Done Building PicoSATSolver");
     }
 
     @Override
