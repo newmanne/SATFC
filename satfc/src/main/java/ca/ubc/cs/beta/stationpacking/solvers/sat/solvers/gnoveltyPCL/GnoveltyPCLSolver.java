@@ -87,6 +87,7 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
             writer.write(problem);
             writer.close();
 
+            
 
             // Run picosat process
             Runtime rt = Runtime.getRuntime();
