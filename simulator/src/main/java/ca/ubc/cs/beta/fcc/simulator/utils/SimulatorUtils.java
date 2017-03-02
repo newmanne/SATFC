@@ -50,7 +50,6 @@ public class SimulatorUtils {
         return result.getResult().equals(SATResult.SAT);
     }
     public static boolean isFeasible(SimulatorResult result) {
-        System.out.println("result in utils is" + result.toString() + "\n");
         return result.getSATFCResult().getResult().equals(SATResult.SAT);
     }
 
