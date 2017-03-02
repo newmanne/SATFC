@@ -64,10 +64,6 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
     private SATResult satResult;
     private float walltime;
 
-//    public PicoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
-//        this.picosatPath = picosatPath;
-//
-//    }
 
     public PicoSATSolver(String picoSATPath, String runsolverPath, String parameters, String nickname) {
 //        log.info("Building PicoSATSolver");
@@ -175,13 +171,6 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
             Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
             for (String x : runsolverFileLines) {
-//                log.info(x);
-
-//                if (x.charAt(0) == "s".charAt(0)){
-//                    if (x.substring(2,3).equals("S" ) ) {
-////                        System.out.println("it is SATISFIABLE");
-//                    }
-//                }
                 Matcher walltimeMatcher = walltimePattern.matcher(x);
                 Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
                 Matcher timeLimit2Matcher = timeLimit2Pattern.matcher(x);
@@ -222,7 +211,7 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
 
-            System.out.println("sat result here is: " + satResult.toString() + "\n");
+//            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
 
@@ -231,74 +220,11 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
             log.info("io exception");
             throw new RuntimeException(e);
         }
-
-
-
-
-
-
-
-
-
     }
 
     private void checkStatus(boolean status, UBCSATLibrary library, Pointer state) {
         Preconditions.checkState(status, library.getErrorMessage(state));
     }
-
-//    private SATSolverResult getSolverResult(UBCSATLibrary fLibrary, Pointer fState, double runtime) {
-//        final SATResult satResult;
-//        int resultState = fLibrary.getResultState(fState);
-//        HashSet<Literal> assignment = null;
-//        if (resultState == 1) {
-//            satResult = SATResult.SAT;
-//            assignment = getAssignment(fLibrary, fState);
-//        }
-//        else if (resultState == 2) {
-//            satResult = SATResult.TIMEOUT;
-//        }
-//        else if (resultState == 3) {
-//            satResult = SATResult.INTERRUPTED;
-//        }
-//        else {
-//            satResult = SATResult.CRASHED;
-//
-//        }
-//        if(assignment == null) {
-//            assignment = new HashSet<>();
-//        }
-//        return new SATSolverResult(satResult, runtime, assignment, SolverResult.SolvedBy.SATENSTEIN, nickname);
-//    }
-
-//    private HashSet<Literal> getAssignment(UBCSATLibrary fLibrary, Pointer fState) {
-//        HashSet<Literal> assignment = new HashSet<>();
-//        IntByReference pRef = fLibrary.getResultAssignment(fState);
-//        int numVars = pRef.getValue();
-//        int[] tempAssignment = pRef.getPointer().getIntArray(0, numVars + 1);
-//        for (int i = 1; i <= numVars; i++) {
-//            int intLit = tempAssignment[i];
-//            int var = Math.abs(intLit);
-//            boolean sign = intLit > 0;
-//            Literal aLit = new Literal(var, sign);
-//            assignment.add(aLit);
-//        }
-//
-//        return assignment;
-//    }
-
-//    private void setPreviousAssignment(Map<Long, Boolean> aPreviousAssignment) {
-//        long[] assignment = new long[aPreviousAssignment.size()];
-//        int i = 0;
-//        for (Long varID : aPreviousAssignment.keySet()) {
-//            if (aPreviousAssignment.get(varID)) {
-//                assignment[i] = varID;
-//            } else {
-//                assignment[i] = -varID;
-//            }
-//            i++;
-//        }
-//        fLibrary.initAssignment(fState, assignment, assignment.length);
-//    }
 
     @Override
     public void notifyShutdown() {}
