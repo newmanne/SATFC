@@ -46,6 +46,9 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
                 problem.getStationInfoFolder(),
                 problem.getName()
         );
+        log.info("Is solve null in Feas? : " + Boolean.toString(solve == null));
+        log.info("this is solve: " + solve.toString());
+
         log.info("Back from facade...");
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
