@@ -211,6 +211,8 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
 
+
+            System.out.println("Is the result null in picosat?: " + Boolean.toString(satResult == null));
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
