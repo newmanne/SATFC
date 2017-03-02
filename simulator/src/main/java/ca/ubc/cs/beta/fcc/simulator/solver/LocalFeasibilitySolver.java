@@ -62,9 +62,11 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         final AtomicReference<SimulatorResult> resultReference = new AtomicReference<>();
         getFeasibility(problem, (p, result) -> {
             log.info("In callback funct, result is null? " + Boolean.toString(result == null));
-            resultReference.set(result);});
+            resultReference.set(result);
+            log.info("In callback funct par 2, resultReference is set? " + Boolean.toString(resultReference.get() == null));});
         // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
         waitForAllSubmitted();
+        log.info("In get feasibility blocking, resultReference is set? " + Boolean.toString(resultReference.get() == null));
         return resultReference.get();
     }
 
