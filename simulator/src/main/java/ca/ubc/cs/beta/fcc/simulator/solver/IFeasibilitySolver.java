@@ -17,7 +17,7 @@ public interface IFeasibilitySolver extends AutoCloseable {
     default SimulatorResult getFeasibilityBlocking(SimulatorProblem problem) {
         final AtomicReference<SimulatorResult> resultReference = new AtomicReference<>();
         getFeasibility(problem, (p, result) -> {
-            System.out.print("In callback funct, result is null? " + Boolean.toString(result == null));
+//            System.out.print("In callback funct, result is null? " + Boolean.toString(result == null));
             resultReference.set(result);});
         // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
         waitForAllSubmitted();
