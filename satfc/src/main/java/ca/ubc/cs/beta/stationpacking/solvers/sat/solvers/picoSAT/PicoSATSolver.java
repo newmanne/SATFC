@@ -199,6 +199,10 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
 
 
+            if (satResult == SATResult.TIMEOUT) {
+                log.info("returning timeout object");
+                return SATSolverResult.timeout(walltime);
+            }
 
             tempIn.delete();
             tempOutPico.delete();
