@@ -229,8 +229,12 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
     }
 
     @Override
-    public void notifyShutdown() {}
+    public void notifyShutdown() {
+        log.info("In Picosat, notifyShutdown");
+    }
 
     @Override
-    public void interrupt() {}
+    public void interrupt() {
+        log.info("In Picosat, interrupt");
+    }
 }
