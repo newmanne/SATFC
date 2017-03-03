@@ -67,6 +67,7 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
         // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
         waitForAllSubmitted();
         log.info("In get feasibility blocking, resultReference is set? " + Boolean.toString(resultReference.get() == null));
+        log.info("It is set, and its value is: " + resultReference.get().toString());
         return resultReference.get();
     }
 
