@@ -28,7 +28,8 @@ public class SequentialSolverDecorator extends AFeasibilitySolverDecorator {
             super.getFeasibility(problem, (p, r) -> {
                 double cputime = r.getSATFCResult().getCputime() + result.getSATFCResult().getCputime();
                 double walltime = r.getSATFCResult().getRuntime() + result.getSATFCResult().getRuntime();
-                final SATFCResult mergedR = new SATFCResult(r.getSATFCResult().getResult(), walltime, r.getSATFCResult().getWitnessAssignment(), cputime, r.getSATFCResult().getExtraInfo());
+                final SATFCResult mergedResult = new SATFCResult(r.getSATFCResult().getResult(), walltime, r.getSATFCResult().getWitnessAssignment(), cputime, r.getSATFCResult().getExtraInfo());
+                callback.onSuccess(p, result.toBuilder().SATFCResult(mergedResult).build());
             });
         }
     }

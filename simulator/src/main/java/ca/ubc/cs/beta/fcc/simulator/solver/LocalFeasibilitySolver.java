@@ -14,8 +14,6 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.metrics.SATFCMetrics;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * Created by newmanne on 2016-05-20.
  */
@@ -48,27 +46,10 @@ public class LocalFeasibilitySolver extends AFeasibilitySolver {
                 problem.getStationInfoFolder(),
                 problem.getName()
         );
-        // The problem is not here
-//        log.info("Is solve null in Feas? : " + Boolean.toString(solve == null));
-//        log.info("this is solve: " + solve.toString());
-
         log.info("Back from facade...");
         metricWriter.writeMetrics();
         SATFCMetrics.clear();
         callback.onSuccess(simulatorProblem, SimulatorResult.fromSATFCResult(solve));
-    }
-
-    public SimulatorResult getFeasibilityBlocking(SimulatorProblem problem) {
-        final AtomicReference<SimulatorResult> resultReference = new AtomicReference<>();
-        getFeasibility(problem, (p, result) -> {
-            log.info("In callback funct, result is null? " + Boolean.toString(result == null));
-            resultReference.set(result);
-            log.info("In callback funct par 2, resultReference is set? " + Boolean.toString(resultReference.get() == null));});
-        // TODO: this shouldn't wait for ALL... it should just do what it says and wait for one...
-        waitForAllSubmitted();
-        log.info("In get feasibility blocking, resultReference is set? " + Boolean.toString(resultReference.get() == null));
-        log.info("It is set, and its value is: " + resultReference.get().toString());
-        return resultReference.get();
     }
 
     // Swap in the new SATFCFacade, returns the old one. It is up to you to close it.

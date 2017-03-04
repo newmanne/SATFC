@@ -10,6 +10,7 @@ import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.ladder.SimpleLadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameter;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
+import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
@@ -80,6 +81,13 @@ public class MultiBandAuctioneer {
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
 
         SimulatorUtils.assignValues(parameters);
+
+        if (parameters.getMaxChannel() != null) {
+            adjustCT(parameters.getMaxChannel(), stationDB);
+        }
+        if (parameters.getCity() != null) {
+            new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), stationDB, parameters.getConstraintManager()).function();
+        }
 
         // Initialize opening benchmarkPrices
         log.info("Setting opening prices");

@@ -49,8 +49,8 @@ public class SimulatorUtils {
     public static boolean isFeasible(SATFCResult result) {
         return result.getResult().equals(SATResult.SAT);
     }
-    public static boolean isFeasible(SimulatorResult result) {
-        return result.getSATFCResult().getResult().equals(SATResult.SAT);
+    public static boolean isFeasible(@NonNull SimulatorResult result) {
+        return isFeasible(result.getSATFCResult());
     }
 
     public static void toCSV(String filename, List<String> header, List<List<Object>> records) {

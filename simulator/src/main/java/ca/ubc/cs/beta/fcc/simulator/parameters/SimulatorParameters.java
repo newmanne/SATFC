@@ -71,7 +71,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
     private String volumeFile = ARROW_DIR + "volumes.csv";
 
-
     @Getter
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
@@ -107,9 +106,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-IGNORE-CANADA")
     private boolean ignoreCanada = false;
-
-    @Parameter(names = "-SCORING-RULE")
-    private ScoringRule scoringRule = ScoringRule.FCC;
 
     @Getter
     @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
