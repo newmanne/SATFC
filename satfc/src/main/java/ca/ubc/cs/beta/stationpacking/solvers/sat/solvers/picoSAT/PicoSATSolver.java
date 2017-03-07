@@ -84,15 +84,19 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
     @Override
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
+
+        File tempIn = null;
+        File tempOutPico = null;
+        File tempOutRunsolver = null;
         log.info("using PICOSAT");
         try {
 
             // create temp files
-            File tempIn = File.createTempFile("tempFile",".txt");
+            tempIn = File.createTempFile("tempFile",".txt");
             tempIn.deleteOnExit();
-            File tempOutPico = File.createTempFile("tempFile",".txt");
+            tempOutPico = File.createTempFile("tempFile",".txt");
             tempOutPico.deleteOnExit();
-            File tempOutRunsolver = File.createTempFile("tempFile",".txt");
+            tempOutRunsolver = File.createTempFile("tempFile",".txt");
             tempOutRunsolver.deleteOnExit();
 
 
@@ -199,14 +203,15 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
 
 
-            if (satResult == SATResult.TIMEOUT) {
-                log.info("returning timeout object");
-                return SATSolverResult.timeout(walltime);
-            }
+//            if (satResult == SATResult.TIMEOUT) {
+//                log.info("returning timeout object");
+//                return SATSolverResult.timeout(walltime);
+//            }
 
-            tempIn.delete();
-            tempOutPico.delete();
-            tempOutRunsolver.delete();
+
+
+
+
 
 
             Set<Literal> literalAssignment = new HashSet<Literal>();
@@ -225,6 +230,11 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
         } catch (IOException e){
             log.info("io exception");
             throw new RuntimeException(e);
+        }
+        finally {
+            if(! (tempIn.delete() && tempOutPico.delete() &&tempOutRunsolver.delete())) {
+                throw new RuntimeException("temp files not deleted in picosat");
+            }
         }
     }
 
