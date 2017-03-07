@@ -66,14 +66,14 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
 
     public PicoSATSolver(String picoSATPath, String runsolverPath, String parameters, String nickname) {
-//        log.info("Building PicoSATSolver");
+//        log.info("Building SimpSATSolver");
         this.picoSATPath = picoSATPath;
         this.runsolverPath = runsolverPath;
         this.nickname = nickname;
 //        this.seedOffset = seedOffset;
         String mutableParameters = parameters;
 
-//        log.info("Done Building PicoSATSolver");
+//        log.info("Done Building SimpSATSolver");
     }
 
     @Override
