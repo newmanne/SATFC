@@ -1,0 +1,18 @@
+---
+CONFIGS:
+
+UHF:
+    - name: PROBSAT
+      args:
+        parameters:
+        probSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
+        runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
+        nickname: simpsat
+
+VHF:
+    - name: PROBSAT
+      args:
+        parameters:
+        probSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
+        runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
+        nickname: simpsat
