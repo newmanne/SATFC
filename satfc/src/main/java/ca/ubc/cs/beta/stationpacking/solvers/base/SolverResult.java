@@ -78,7 +78,10 @@ public class SolverResult implements Serializable {
 		UNSAT_LABELLER,
 		PREVIOUS_ASSIGNMENT,
 		GREEDY,
-        PICOSAT
+        PICOSAT,
+        PROBSAT,
+        GNOVELTYPCL,
+        SIMPSAT
     }
 
 	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {
