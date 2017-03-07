@@ -48,5 +48,7 @@ public enum SolverType {
     UNSAT_LABELLER,
     GREEDY,
     MIP_SAVER, ASP_SAVER, NONE,
-    GNOVELTYPCL
+    GNOVELTYPCL,
+    PROBSAT,
+    SIMPSAT
 }
