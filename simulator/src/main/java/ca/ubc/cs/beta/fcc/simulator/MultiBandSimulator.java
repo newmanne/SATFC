@@ -155,8 +155,8 @@ public class MultiBandSimulator {
                 final Band currentBand = ladder.getStationBand(station);
                 log.debug("Checking if {}, currently on {}, is feasible on its home band", station, currentBand, homeBand);
                 final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE));
-                log.info("input to getFeasBlock: " + station.toString() + " " + homeBand.toString());
-                log.info("is hBF null? : " + Boolean.toString(homeBandFeasibility == null));
+//                log.info("input to getFeasBlock: " + station.toString() + " " + homeBand.toString());
+//                log.info("is hBF null? : " + Boolean.toString(homeBandFeasibility == null));
 //                log.info("sat result in mb simulator: " + homeBandFeasibility.toString() + "\n");
                 final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(homeBandFeasibility);
                 log.debug("{}", homeBandFeasibility.getSATFCResult().getResult());
