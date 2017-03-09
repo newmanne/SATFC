@@ -203,10 +203,10 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
 
 
-//            if (satResult == SATResult.TIMEOUT) {
-//                log.info("returning timeout object");
-//                return SATSolverResult.timeout(walltime);
-//            }
+            if (satResult == SATResult.TIMEOUT) {
+                log.info("returning timeout object");
+                return SATSolverResult.timeout(walltime);
+            }
 
 
 
@@ -229,10 +229,12 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
         } catch (IOException e){
             log.info("io exception");
+            log.info(e.toString());
             throw new RuntimeException(e);
         }
         finally {
             if(! (tempIn.delete() && tempOutPico.delete() &&tempOutRunsolver.delete())) {
+                log.info("temp files not deleted");
                 throw new RuntimeException("temp files not deleted in picosat");
             }
         }
