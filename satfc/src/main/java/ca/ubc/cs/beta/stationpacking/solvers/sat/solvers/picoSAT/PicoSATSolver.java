@@ -130,6 +130,7 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
             // Create list of lines from tempOut file
             List<String> picoFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
+            log.info("Number of lines in picoFile is: " + picoFileLines.size());
 
             List<Integer> assignment = new ArrayList<Integer>();
             Pattern satPattern = Pattern.compile("s SATISFIABLE");
@@ -168,6 +169,8 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
             // Create list of lines from tempOut file
             List<String> runsolverFileLines = Files.readAllLines(Paths.get(tempOutRunsolver.getCanonicalPath()), StandardCharsets.UTF_8);
+
+            log.info("Number of lines in runsolverFile is: " + runsolverFileLines.size());
 
             Pattern walltimePattern = Pattern.compile("walltime:");
             Pattern timeLimit1Pattern = Pattern.compile("runsolver_max_cpu_time_exceeded");
@@ -221,7 +224,7 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
             }
 
 
-            System.out.println("Is the result null in picosat?: " + Boolean.toString(satResult == null));
+//            System.out.println("Is the result null in picosat?: " + Boolean.toString(satResult == null));
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
