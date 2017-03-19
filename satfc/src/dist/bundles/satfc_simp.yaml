@@ -5,7 +5,7 @@ UHF:
     - name: SIMPSAT
       args:
         parameters:
-        simpSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
+        simpSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/simpsat
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
         nickname: simpsat
 
@@ -13,6 +13,6 @@ VHF:
     - name: SIMPSAT
       args:
         parameters:
-        simpSATPath: /ubc/cs/home/p/pwest/picoSatTest/picosat/picosat-957
+        simpSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/simpsat
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
         nickname: simpsat
