@@ -120,7 +120,7 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
 
             for (String x : picoFileLines) {
-                System.out.println(x);
+//                System.out.println(x);
 
                 Matcher satMatcher = satPattern.matcher(x);
                 Matcher unsatMatcher = unsatPattern.matcher(x);
