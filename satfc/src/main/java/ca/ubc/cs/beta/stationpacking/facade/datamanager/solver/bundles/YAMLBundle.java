@@ -303,11 +303,11 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
 //            final UBCSATLibraryGenerator ubcsatLibraryGenerator = context.getUbcsatLibraryGenerator();
-            final AbstractCompressedSATSolver gnoveltyPCLSolver = new GnoveltyPCLSolver( gnoveltyPCLPath, runsolverPath, config , nickname);
+            final AbstractCompressedSATSolver gnoveltyPCLSolver = new GnoveltyPCLSolver( gnoveltyPCLPath, runsolverPath, parameters , nickname);
             return new CompressedSATBasedSolver(gnoveltyPCLSolver, new SATCompressor(constraintManager, encodingType));
         }
 
-        private String config;
+        private String parameters;
         private String gnoveltyPCLPath;
         private String runsolverPath;
         private EncodingType encodingType = EncodingType.DIRECT;
