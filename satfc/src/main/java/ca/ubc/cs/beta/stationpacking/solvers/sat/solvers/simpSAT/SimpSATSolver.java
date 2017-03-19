@@ -197,8 +197,8 @@ public class SimpSATSolver extends AbstractCompressedSATSolver {
             for (Integer x : assignment) {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
-//            log.info("solved by: " + SolverResult.SolvedBy.SIMPSAT.toString() );
-//            log.info("result: " + satResult.toString());
+            log.info("solved by: " + SolverResult.SolvedBy.SIMPSAT.toString() );
+            log.info("result: " + satResult.toString());
 
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.SIMPSAT);

@@ -198,8 +198,8 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
 
-//            log.info(satResult.toString());
-//            log.info(SolverResult.SolvedBy.PROBSAT.toString());
+            log.info(satResult.toString());
+            log.info(SolverResult.SolvedBy.PROBSAT.toString());
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PROBSAT);
 
