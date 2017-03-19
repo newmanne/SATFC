@@ -7,7 +7,7 @@ UHF:
         parameters:
         probSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/probSAT-cssc14
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
-        nickname: simpsat
+        nickname: probsat
 
 VHF:
     - name: PROBSAT
@@ -15,4 +15,4 @@ VHF:
         parameters:
         probSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/probSAT-cssc14
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
-        nickname: simpsat
+        nickname: probsat

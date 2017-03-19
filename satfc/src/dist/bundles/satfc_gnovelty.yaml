@@ -2,17 +2,17 @@
 CONFIGS:
 
 UHF:
-    - name: PROBSAT
+    - name: GNOVELTYPCL
       args:
-        config:
+        parameters:
         gnoveltyPCLPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/gnovelty+PCL
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
-        nickname: simpsat
+        nickname: gnovelty
 
 VHF:
-    - name: PROBSAT
+    - name: GNOVELTYPCL
       args:
-        config:
+        parameters:
         gnoveltyPCLPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/gnovelty+PCL
         runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
-        nickname: simpsat
+        nickname: gnovelty
