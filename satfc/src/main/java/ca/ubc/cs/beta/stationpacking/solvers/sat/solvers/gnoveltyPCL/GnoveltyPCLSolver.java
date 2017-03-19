@@ -45,20 +45,20 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
     private float walltime;
 
 
-//    public PicoSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
+//    public SimpSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
 //        this.picosatPath = picosatPath;
 //
 //    }
 
     public GnoveltyPCLSolver(String gnoveltyPCLPath, String runsolverPath, String parameters, String nickname) {
-//        log.info("Building PicoSATSolver");
+//        log.info("Building SimpSATSolver");
         this.gnoveltyPCLPath = gnoveltyPCLPath;
         this.runsolverPath = runsolverPath;
         this.nickname = nickname;
 //        this.seedOffset = seedOffset;
         String mutableParameters = parameters;
 
-//        log.info("Done Building PicoSATSolver");
+//        log.info("Done Building SimpSATSolver");
     }
 
     @Override
@@ -205,7 +205,7 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
             }
 
 
-            return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
+            return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.GNOVELTYPCL);
 
 
 

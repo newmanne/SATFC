@@ -206,15 +206,10 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 
 
 
-            if (satResult == SATResult.TIMEOUT) {
-                log.info("returning timeout object");
-                return SATSolverResult.timeout(walltime);
-            }
-
-
-
-
-
+//            if (satResult == SATResult.TIMEOUT) {
+//                log.info("returning timeout object");
+//                return SATSolverResult.timeout(walltime);
+//            }
 
 
             Set<Literal> literalAssignment = new HashSet<Literal>();
@@ -224,8 +219,6 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
             }
 
 
-//            System.out.println("Is the result null in picosat?: " + Boolean.toString(satResult == null));
-//            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
 
 

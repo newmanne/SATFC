@@ -66,7 +66,7 @@ public class SimpSATSolver extends AbstractCompressedSATSolver {
     @Override
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
-        log.info("using PROBSAT");
+        log.info("using SIMPSAT");
         try {
 
             // create temp files
@@ -197,7 +197,8 @@ public class SimpSATSolver extends AbstractCompressedSATSolver {
             for (Integer x : assignment) {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
-
+            log.info("solved by: " + SolverResult.SolvedBy.SIMPSAT.toString() );
+            log.info("result: " + satResult.toString());
 
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.SIMPSAT);
