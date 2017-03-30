@@ -47,11 +47,13 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                                      int nCores
     ) {
         this.nCores = nCores;
+        forkJoinPool = new ForkJoinPool(nCores);
         sequentialVacancyCalculator = new SequentialVacancyCalculator(participation, constraintManager, feasibilityVacancyContributionFloor);
     }
 
     private final SequentialVacancyCalculator sequentialVacancyCalculator;
     private final int nCores;
+    private final ForkJoinPool forkJoinPool;
 
     /**
      * @param ladder     - the auction's ladder structure.
@@ -65,7 +67,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
     ) {
         final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, sequentialVacancyCalculator.constraintManager);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
-        final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
+//        final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
         try {
             forkJoinPool.submit(() -> {
                         stations.parallelStream().forEach(station -> {
