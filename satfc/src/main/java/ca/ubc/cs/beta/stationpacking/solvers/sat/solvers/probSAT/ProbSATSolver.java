@@ -117,7 +117,8 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
 
             for (String x : picoFileLines) {
-//                System.out.println(x);
+                log.info("probsatlines");
+                log.info(x);
 
                 Matcher satMatcher = satPattern.matcher(x);
                 Matcher unsatMatcher = unsatPattern.matcher(x);
@@ -154,6 +155,8 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
             for (String x : runsolverFileLines) {
+                log.info("runsolver lines");
+                log.info(x);
                 Matcher walltimeMatcher = walltimePattern.matcher(x);
                 Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
                 Matcher timeLimit2Matcher = timeLimit2Pattern.matcher(x);
