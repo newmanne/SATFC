@@ -116,33 +116,34 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
             Pattern unknownPattern = Pattern.compile("s UNKNOWN");
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
-//            log.info("probsatlines");
+            log.info("probsatlines");
             for (String x : picoFileLines) {
+                log.info(x);
 
-//                log.info(x);
+                if (x.length() > 0) {
+                    Matcher satMatcher = satPattern.matcher(x);
+                    Matcher unsatMatcher = unsatPattern.matcher(x);
+                    Matcher unknownMatcher = unknownPattern.matcher(x);
+                    Matcher indeterminateMatcher = indeterminatePattern.matcher(x);
 
-                Matcher satMatcher = satPattern.matcher(x);
-                Matcher unsatMatcher = unsatPattern.matcher(x);
-                Matcher unknownMatcher = unknownPattern.matcher(x);
-                Matcher indeterminateMatcher = indeterminatePattern.matcher(x);
-
-                if (satMatcher.find()) {
-                    satResult = SATResult.SAT;
-                } else if (unsatMatcher.find()) {
-                    satResult = SATResult.UNSAT;
-                } else if (unknownMatcher.find() || indeterminateMatcher.find()) {
-                    satResult = SATResult.TIMEOUT;
-                }
-
-
-                if (x.charAt(0) == "v".charAt(0)){
-
-                    Scanner scanner = new Scanner(x.substring(1));
-                    List<Integer> list = new ArrayList<Integer>();
-                    while (scanner.hasNextInt()) {
-                        list.add(scanner.nextInt());
+                    if (satMatcher.find()) {
+                        satResult = SATResult.SAT;
+                    } else if (unsatMatcher.find()) {
+                        satResult = SATResult.UNSAT;
+                    } else if (unknownMatcher.find() || indeterminateMatcher.find()) {
+                        satResult = SATResult.TIMEOUT;
                     }
-                    assignment.addAll(list);
+
+
+                    if (x.charAt(0) == "v".charAt(0)) {
+
+                        Scanner scanner = new Scanner(x.substring(1));
+                        List<Integer> list = new ArrayList<Integer>();
+                        while (scanner.hasNextInt()) {
+                            list.add(scanner.nextInt());
+                        }
+                        assignment.addAll(list);
+                    }
                 }
             }
 
