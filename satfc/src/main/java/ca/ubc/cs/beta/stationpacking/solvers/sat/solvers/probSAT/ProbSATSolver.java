@@ -99,7 +99,7 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + " ./probSAT -a " + parameters;
             processString = processString + " " + tempIn.getCanonicalPath() + " " + Long.toString(aSeed);
-            log.info("processString: " + processString);
+//            log.info("processString: " + processString);
             Process pr = rt.exec(processString,null,probSATDir);
             try {
             pr.waitFor();
@@ -109,16 +109,16 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
 
 
             // Create list of lines from tempOut file
-            List<String> picoFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
+            List<String> solverFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
 
             List<Integer> assignment = new ArrayList<Integer>();
             Pattern satPattern = Pattern.compile("s SATISFIABLE");
             Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
             Pattern unknownPattern = Pattern.compile("s UNKNOWN");
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
-            log.info("probsatlines");
-            for (String x : picoFileLines) {
-                log.info(x);
+//            log.info("probsatlines");
+            for (String x : solverFileLines) {
+//                log.info(x);
 
                 if (x.length() > 0) {
                     Matcher satMatcher = satPattern.matcher(x);
