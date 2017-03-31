@@ -99,6 +99,7 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
             processString = processString + " ./probSAT -a " + parameters;
             processString = processString + " " + tempIn.getCanonicalPath() + " " + Long.toString(aSeed);
+            log.info("processString: " + processString);
             Process pr = rt.exec(processString,null,probSATDir);
             try {
             pr.waitFor();
@@ -115,9 +116,9 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
             Pattern unknownPattern = Pattern.compile("s UNKNOWN");
             Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
-
+            log.info("probsatlines");
             for (String x : picoFileLines) {
-                log.info("probsatlines");
+
                 log.info(x);
 
                 Matcher satMatcher = satPattern.matcher(x);
@@ -154,8 +155,9 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             Pattern timeLimit2Pattern = Pattern.compile("Maximum CPU time exceeded");
             Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
+            log.info("runsolver lines");
             for (String x : runsolverFileLines) {
-                log.info("runsolver lines");
+
                 log.info(x);
                 Matcher walltimeMatcher = walltimePattern.matcher(x);
                 Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
