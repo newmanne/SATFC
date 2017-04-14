@@ -63,6 +63,7 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
     private double cutOff = 30;
     private SATResult satResult;
     private float walltime;
+    private int tries = 0;
 
 
     public PicoSATSolver(String picoSATPath, String runsolverPath, String parameters, String nickname) {
@@ -85,125 +86,125 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
     public SATSolverResult solve(CNF aCNF, Map<Long, Boolean> aPreviousAssignment, ITerminationCriterion aTerminationCriterion, long aSeed) {
 
 
-        File tempIn = null;
-        File tempOutPico = null;
-        File tempOutRunsolver = null;
-        log.info("using PICOSAT");
-        try {
 
-            // create temp files
-            tempIn = File.createTempFile("tempFile",".txt");
-            tempIn.deleteOnExit();
-            tempOutPico = File.createTempFile("tempFile",".txt");
-            tempOutPico.deleteOnExit();
-            tempOutRunsolver = File.createTempFile("tempFile",".txt");
-            tempOutRunsolver.deleteOnExit();
-
-
-            // Write problem to file
-            String problem = aCNF.toDIMACS(null);
-            Writer writer = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(tempIn.getCanonicalPath()), "utf-8"));
-            writer.write(problem);
-            writer.close();
-
-
-            // Run picosat process
-            Runtime rt = Runtime.getRuntime();
-
-            File picoSATDir = new File(picoSATPath);
-            String processString = "";
-            processString = processString + runsolverPath + "/runsolver";
-
-            cutOff = aTerminationCriterion.getRemainingTime();
-            processString = processString + " -C " + Double.toString(cutOff);
-            processString = processString + " -o " + tempOutPico.getCanonicalPath();
-            processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
-            processString = processString + " ./picosat " + tempIn.getCanonicalPath();
-            Process pr = rt.exec(processString,null,picoSATDir);
+            File tempIn = null;
+            File tempOutPico = null;
+            File tempOutRunsolver = null;
+            log.info("using PICOSAT");
             try {
-            pr.waitFor();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
+                // create temp files
+                tempIn = File.createTempFile("tempFile", ".txt");
+                tempIn.deleteOnExit();
+                tempOutPico = File.createTempFile("tempFile", ".txt");
+                tempOutPico.deleteOnExit();
+                tempOutRunsolver = File.createTempFile("tempFile", ".txt");
+                tempOutRunsolver.deleteOnExit();
 
 
-            // Create list of lines from tempOut file
-            List<String> picoFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
+                // Write problem to file
+                String problem = aCNF.toDIMACS(null);
+                Writer writer = new BufferedWriter(new OutputStreamWriter(
+                        new FileOutputStream(tempIn.getCanonicalPath()), "utf-8"));
+                writer.write(problem);
+                writer.close();
+
+
+                // Run picosat process
+                Runtime rt = Runtime.getRuntime();
+
+                File picoSATDir = new File(picoSATPath);
+                String processString = "";
+                processString = processString + runsolverPath + "/runsolver";
+
+                cutOff = aTerminationCriterion.getRemainingTime();
+                processString = processString + " -C " + Double.toString(cutOff);
+                processString = processString + " -o " + tempOutPico.getCanonicalPath();
+                processString = processString + " -w " + tempOutRunsolver.getCanonicalPath();
+                processString = processString + " ./picosat " + tempIn.getCanonicalPath();
+                Process pr = rt.exec(processString, null, picoSATDir);
+                try {
+                    pr.waitFor();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+                // Create list of lines from tempOut file
+                List<String> picoFileLines = Files.readAllLines(Paths.get(tempOutPico.getCanonicalPath()), StandardCharsets.UTF_8);
 //            log.info("Number of lines in picoFile is: " + picoFileLines.size());
 
-            List<Integer> assignment = new ArrayList<Integer>();
-            Pattern satPattern = Pattern.compile("s SATISFIABLE");
-            Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
-            Pattern unknownPattern = Pattern.compile("s UNKNOWN");
-            Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
+                List<Integer> assignment = new ArrayList<Integer>();
+                Pattern satPattern = Pattern.compile("s SATISFIABLE");
+                Pattern unsatPattern = Pattern.compile("s UNSATISFIABLE");
+                Pattern unknownPattern = Pattern.compile("s UNKNOWN");
+                Pattern indeterminatePattern = Pattern.compile("INDETERMINATE");
 
-            for (String x : picoFileLines) {
+                for (String x : picoFileLines) {
 //                System.out.println(x);
 
-                Matcher satMatcher = satPattern.matcher(x);
-                Matcher unsatMatcher = unsatPattern.matcher(x);
-                Matcher unknownMatcher = unknownPattern.matcher(x);
-                Matcher indeterminateMatcher = indeterminatePattern.matcher(x);
+                    Matcher satMatcher = satPattern.matcher(x);
+                    Matcher unsatMatcher = unsatPattern.matcher(x);
+                    Matcher unknownMatcher = unknownPattern.matcher(x);
+                    Matcher indeterminateMatcher = indeterminatePattern.matcher(x);
 
-                if (satMatcher.find()) {
-                    satResult = SATResult.SAT;
-                } else if (unsatMatcher.find()) {
-                    satResult = SATResult.UNSAT;
-                } else if (unknownMatcher.find() || indeterminateMatcher.find()) {
-                    satResult = SATResult.TIMEOUT;
-                }
-
-
-                if (x.charAt(0) == "v".charAt(0)){
-
-                    Scanner scanner = new Scanner(x.substring(1));
-                    List<Integer> list = new ArrayList<Integer>();
-                    while (scanner.hasNextInt()) {
-                        list.add(scanner.nextInt());
+                    if (satMatcher.find()) {
+                        satResult = SATResult.SAT;
+                    } else if (unsatMatcher.find()) {
+                        satResult = SATResult.UNSAT;
+                    } else if (unknownMatcher.find() || indeterminateMatcher.find()) {
+                        satResult = SATResult.TIMEOUT;
                     }
-                    assignment.addAll(list);
+
+
+                    if (x.charAt(0) == "v".charAt(0)) {
+
+                        Scanner scanner = new Scanner(x.substring(1));
+                        List<Integer> list = new ArrayList<Integer>();
+                        while (scanner.hasNextInt()) {
+                            list.add(scanner.nextInt());
+                        }
+                        assignment.addAll(list);
+                    }
                 }
-            }
 
 
-            // Create list of lines from tempOut file
-            List<String> runsolverFileLines = Files.readAllLines(Paths.get(tempOutRunsolver.getCanonicalPath()), StandardCharsets.UTF_8);
+                // Create list of lines from tempOut file
+                List<String> runsolverFileLines = Files.readAllLines(Paths.get(tempOutRunsolver.getCanonicalPath()), StandardCharsets.UTF_8);
 
 //            log.info("Number of lines in runsolverFile is: " + runsolverFileLines.size());
 
-            Pattern walltimePattern = Pattern.compile("walltime:");
-            Pattern timeLimit1Pattern = Pattern.compile("runsolver_max_cpu_time_exceeded");
-            Pattern timeLimit2Pattern = Pattern.compile("Maximum CPU time exceeded");
-            Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
+                Pattern walltimePattern = Pattern.compile("walltime:");
+                Pattern timeLimit1Pattern = Pattern.compile("runsolver_max_cpu_time_exceeded");
+                Pattern timeLimit2Pattern = Pattern.compile("Maximum CPU time exceeded");
+                Pattern memLimitPattern = Pattern.compile("runsolver_max_memory_limit_exceeded");
 
-            for (String x : runsolverFileLines) {
-                Matcher walltimeMatcher = walltimePattern.matcher(x);
-                Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
-                Matcher timeLimit2Matcher = timeLimit2Pattern.matcher(x);
-                Matcher memLimitMatcher = memLimitPattern.matcher(x);
-
-
-                if (walltimeMatcher.find()) {
-                    walltime = Float.parseFloat(x.substring(walltimeMatcher.end()));
-                } else if (timeLimit1Matcher.find() || timeLimit2Matcher.find()) {
-                    satResult = SATResult.TIMEOUT;
-                } else if (memLimitMatcher.find()) {
-                    satResult = SATResult.TIMEOUT;
-                }
+                for (String x : runsolverFileLines) {
+                    Matcher walltimeMatcher = walltimePattern.matcher(x);
+                    Matcher timeLimit1Matcher = timeLimit1Pattern.matcher(x);
+                    Matcher timeLimit2Matcher = timeLimit2Pattern.matcher(x);
+                    Matcher memLimitMatcher = memLimitPattern.matcher(x);
 
 
-                if (x.length() > 0 && x.charAt(0) == "v".charAt(0)){
-
-                    Scanner scanner = new Scanner(x.substring(1));
-                    List<Integer> list = new ArrayList<Integer>();
-                    while (scanner.hasNextInt()) {
-                        list.add(scanner.nextInt());
+                    if (walltimeMatcher.find()) {
+                        walltime = Float.parseFloat(x.substring(walltimeMatcher.end()));
+                    } else if (timeLimit1Matcher.find() || timeLimit2Matcher.find()) {
+                        satResult = SATResult.TIMEOUT;
+                    } else if (memLimitMatcher.find()) {
+                        satResult = SATResult.TIMEOUT;
                     }
-                    assignment.addAll(list);
-                }
-            }
 
+
+                    if (x.length() > 0 && x.charAt(0) == "v".charAt(0)) {
+
+                        Scanner scanner = new Scanner(x.substring(1));
+                        List<Integer> list = new ArrayList<Integer>();
+                        while (scanner.hasNextInt()) {
+                            list.add(scanner.nextInt());
+                        }
+                        assignment.addAll(list);
+                    }
+                }
 
 
 //            if (satResult == SATResult.TIMEOUT) {
@@ -212,29 +213,35 @@ public class PicoSATSolver extends AbstractCompressedSATSolver {
 //            }
 
 
-            Set<Literal> literalAssignment = new HashSet<Literal>();
+                Set<Literal> literalAssignment = new HashSet<Literal>();
 
-            for (Integer x : assignment) {
-                literalAssignment.add(new Literal(Math.abs(x), (x>0)));
+                for (Integer x : assignment) {
+                    literalAssignment.add(new Literal(Math.abs(x), (x > 0)));
+                }
+
+                tries = 0;
+                return new SATSolverResult(satResult, walltime, literalAssignment, SolverResult.SolvedBy.PICOSAT);
+
+
+            } catch (IOException e) {
+                log.info("io exception");
+                log.info(e.toString());
+                if (tries < 2) {
+                    tries++;
+                    return this.solve( aCNF,  aPreviousAssignment, aTerminationCriterion, aSeed);
+                    } else {
+                    throw new RuntimeException(e);
+                }
+            } finally {
+                if (!(tempIn.delete() && tempOutPico.delete() && tempOutRunsolver.delete())) {
+                    log.info("temp files not deleted");
+                    throw new RuntimeException("temp files not deleted in picosat");
+                }
             }
-
-
-            return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PICOSAT);
-
-
-
-        } catch (IOException e){
-            log.info("io exception");
-            log.info(e.toString());
-            throw new RuntimeException(e);
-        }
-        finally {
-            if(! (tempIn.delete() && tempOutPico.delete() &&tempOutRunsolver.delete())) {
-                log.info("temp files not deleted");
-                throw new RuntimeException("temp files not deleted in picosat");
-            }
-        }
     }
+
+
+
 
     private void checkStatus(boolean status, UBCSATLibrary library, Pointer state) {
         Preconditions.checkState(status, library.getErrorMessage(state));
