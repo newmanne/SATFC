@@ -44,6 +44,7 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
     private SATResult satResult;
     private float walltime;
     private final String parameters;
+    private int tries = 0;
 
 
 //    public SimpSATSolver(String picosatPath, String parameters, IPollingService pollingService) {
@@ -208,14 +209,18 @@ public class GnoveltyPCLSolver extends AbstractCompressedSATSolver {
                 literalAssignment.add(new Literal(Math.abs(x), (x>0)));
             }
 
-
+            tries = 0;
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.GNOVELTYPCL);
 
 
 
         } catch (IOException e){
-            log.info("io exception");
-            throw new RuntimeException(e);
+            if (tries < 2) {
+                tries++;
+                return this.solve( aCNF,  aPreviousAssignment, aTerminationCriterion, aSeed);
+            } else {
+                throw new RuntimeException(e);
+            }
         }
 
 

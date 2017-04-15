@@ -44,6 +44,7 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
     private double cutOff = 30;
     private SATResult satResult;
     private float walltime;
+    private int tries = 0;
 
 
     public ProbSATSolver(String probSATPath, String runsolverPath, String parameters, String nickname) {
@@ -190,6 +191,7 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
 
             if (satResult == SATResult.TIMEOUT) {
                 log.info("returning timeout object");
+                tries = 0;
                 return SATSolverResult.timeout(walltime);
             }
 
@@ -207,13 +209,19 @@ public class ProbSATSolver extends AbstractCompressedSATSolver {
             log.info(satResult.toString());
             log.info(SolverResult.SolvedBy.PROBSAT.toString());
 //            System.out.println("sat result here is: " + satResult.toString() + "\n");
+            tries = 0;
             return new SATSolverResult(satResult, walltime, literalAssignment,SolverResult.SolvedBy.PROBSAT);
 
 
 
         } catch (IOException e){
             log.info("io exception");
-            throw new RuntimeException(e);
+            if (tries < 2) {
+                tries++;
+                return this.solve( aCNF,  aPreviousAssignment, aTerminationCriterion, aSeed);
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
