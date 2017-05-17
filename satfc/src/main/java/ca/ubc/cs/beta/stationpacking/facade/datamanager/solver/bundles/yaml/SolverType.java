@@ -28,7 +28,6 @@ public enum SolverType {
     CLASP,
     SATENSTEIN,
     SAT_PRESOLVER,
-    PICOSAT,
     UNSAT_PRESOLVER,
     UNDERCONSTRAINED,
     CONNECTED_COMPONENTS,
@@ -48,7 +47,5 @@ public enum SolverType {
     UNSAT_LABELLER,
     GREEDY,
     MIP_SAVER, ASP_SAVER, NONE,
-    GNOVELTYPCL,
-    PROBSAT,
-    SIMPSAT
+    COMMAND_LINE
 }

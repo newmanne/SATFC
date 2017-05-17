@@ -54,4 +54,4 @@ createScript(project,
 createScript(project,
         'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
         'MutliBandSimulator',
-        ['-Xmx16g'])
+        ['-Djava.library.path=${CPLEX_DIR}', '-Xmx16g'])

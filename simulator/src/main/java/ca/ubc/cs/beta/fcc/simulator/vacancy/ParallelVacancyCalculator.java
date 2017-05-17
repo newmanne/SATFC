@@ -67,7 +67,6 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
     ) {
         final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, sequentialVacancyCalculator.constraintManager);
         final Map<IStationInfo, Map<Band, Double>> vacancies = new ConcurrentHashMap<>(ladder.getAirBands().size());
-//        final ForkJoinPool forkJoinPool = new ForkJoinPool(nCores);
         try {
             forkJoinPool.submit(() -> {
                         stations.parallelStream().forEach(station -> {

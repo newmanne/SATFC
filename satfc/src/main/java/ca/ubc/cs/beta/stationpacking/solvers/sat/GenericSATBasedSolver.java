@@ -83,45 +83,11 @@ public class GenericSATBasedSolver implements ISolver {
                 satSolverResult = new SATSolverResult(SATResult.TIMEOUT, satSolverResult.getRuntime(), satSolverResult.getAssignment(), satSolverResult.getSolvedBy(), satSolverResult.getNickname());
             }
             log.debug("Parsing result.");
-            Map<Integer, Set<Station>> aStationAssignment = new HashMap<Integer, Set<Station>>();
-            final Set<Station> assignedStations = new HashSet<>();
+            final Map<Integer, Set<Station>> aStationAssignment;
             if (satSolverResult.getResult().equals(SATResult.SAT)) {
-                HashMap<Long, Boolean> aLitteralChecker = new HashMap<Long, Boolean>();
-                for (Literal aLiteral : satSolverResult.getAssignment()) {
-                    boolean aSign = aLiteral.getSign();
-                    long aVariable = aLiteral.getVariable();
-    
-                    //Do some quick verifications of the assignment.
-                    if (aLitteralChecker.containsKey(aVariable)) {
-                        log.warn("A variable was present twice in a SAT assignment.");
-                        if (!aLitteralChecker.get(aVariable).equals(aSign)) {
-                            throw new IllegalStateException("SAT assignment from TAE wrapper assigns a variable to true AND false.");
-                        }
-                    } else {
-                        aLitteralChecker.put(aVariable, aSign);
-                    }
-    
-                    //If the litteral is positive, then we keep it as it is an assigned station to a channel.
-                    if (aSign) {
-                        Pair<Station, Integer> aStationChannelPair = aDecoder.decode(aVariable);
-                        Station aStation = aStationChannelPair.getKey();
-                        if (assignedStations.contains(aStation)) {
-                            continue;
-                        }
-                        Integer aChannel = aStationChannelPair.getValue();
-    
-                        if (!aInstance.getStations().contains(aStation) || !aInstance.getDomains().get(aStation).contains(aChannel)) {
-                            throw new IllegalStateException("A decoded station and channel from a component SAT assignment is not in that component's problem instance. (" + aStation + ", channel:" + aChannel + ")");
-                        }
-    
-                        if (!aStationAssignment.containsKey(aChannel)) {
-                            aStationAssignment.put(aChannel, new HashSet<Station>());
-                        }
-
-                        aStationAssignment.get(aChannel).add(aStation);
-                        assignedStations.add(aStation);
-                    }
-                }
+                aStationAssignment = decodeSolution(aInstance, aDecoder, satSolverResult.getAssignment());
+            } else {
+                aStationAssignment = new HashMap<>();
             }
     
             log.debug("...done.");
@@ -135,7 +101,49 @@ public class GenericSATBasedSolver implements ISolver {
             return solverResult;
         }
     }
-    
+
+    public static Map<Integer, Set<Station>> decodeSolution(StationPackingInstance aInstance, ISATDecoder aDecoder, Set<Literal> literals) {
+        final Map<Integer, Set<Station>> aStationAssignment = new HashMap<>();
+        final Set<Station> assignedStations = new HashSet<>();
+        HashMap<Long, Boolean> aLitteralChecker = new HashMap<>();
+        for (Literal aLiteral : literals) {
+            boolean aSign = aLiteral.getSign();
+            long aVariable = aLiteral.getVariable();
+
+            //Do some quick verifications of the assignment.
+            if (aLitteralChecker.containsKey(aVariable)) {
+                log.warn("A variable was present twice in a SAT assignment.");
+                if (!aLitteralChecker.get(aVariable).equals(aSign)) {
+                    throw new IllegalStateException("SAT assignment from TAE wrapper assigns a variable to true AND false.");
+                }
+            } else {
+                aLitteralChecker.put(aVariable, aSign);
+            }
+
+            //If the litteral is positive, then we keep it as it is an assigned station to a channel.
+            if (aSign) {
+                Pair<Station, Integer> aStationChannelPair = aDecoder.decode(aVariable);
+                Station aStation = aStationChannelPair.getKey();
+                if (assignedStations.contains(aStation)) {
+                    continue;
+                }
+                Integer aChannel = aStationChannelPair.getValue();
+
+                if (!aInstance.getStations().contains(aStation) || !aInstance.getDomains().get(aStation).contains(aChannel)) {
+                    throw new IllegalStateException("A decoded station and channel from a component SAT assignment is not in that component's problem instance. (" + aStation + ", channel:" + aChannel + ")");
+                }
+
+                if (!aStationAssignment.containsKey(aChannel)) {
+                    aStationAssignment.put(aChannel, new HashSet<Station>());
+                }
+
+                aStationAssignment.get(aChannel).add(aStation);
+                assignedStations.add(aStation);
+            }
+        }
+        return aStationAssignment;
+    }
+
     @Override
     public void interrupt() {
     	fSATSolver.interrupt();
