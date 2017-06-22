@@ -1,0 +1,9 @@
+---
+UHF:
+    - name: GREEDY
+    - name: PYTHON_VERIFIER
+    - name: VERIFIER
+VHF:
+    - name: GREEDY
+    - name: PYTHON_VERIFIER
+    - name: VERIFIER

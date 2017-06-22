@@ -35,6 +35,7 @@ import com.google.common.hash.Hashing;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import lombok.Getter;
 
 public abstract class AMapBasedConstraintManager extends AConstraintManager {
 

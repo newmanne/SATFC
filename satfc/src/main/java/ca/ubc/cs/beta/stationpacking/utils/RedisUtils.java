@@ -38,4 +38,8 @@ public class RedisUtils {
         return Joiner.on(':').join(args);
     }
 
+    public static String processing(String arg) {
+        return makeKey(arg, PROCESSING_QUEUE);
+    }
+
 }

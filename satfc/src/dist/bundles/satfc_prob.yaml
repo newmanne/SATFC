@@ -1,0 +1,18 @@
+---
+CONFIGS:
+
+UHF:
+    - name: PROBSAT
+      args:
+        parameters:
+        probSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/probSAT-cssc14
+        runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
+        nickname: probsat
+
+VHF:
+    - name: PROBSAT
+      args:
+        parameters:
+        probSATPath: /ubc/cs/research/arrow/satfc/aclib/target_algorithms/sat/probSAT-cssc14
+        runsolverPath: /ubc/cs/home/n/newmanne/satfc/runsolver
+        nickname: probsat

@@ -45,4 +45,5 @@ appender("CONSOLE", ConsoleAppender) {
     }
 }
 
+logger 'ca.ubc.cs.beta.fcc', DEBUG, ['CONSOLE', 'FILE']
 root(ROOT_LOG_LEVEL, ["CONSOLE", "FILE"])

@@ -21,10 +21,13 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 
+import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.CsvToProblem;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.IProblemParser;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.SrpkToProblem;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.StupidProblemParser;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
 /**
  * Created by newmanne on 12/05/15.
@@ -33,7 +36,7 @@ public class ProblemGeneratorFactory {
 
     public static IProblemReader createFromParameters(SATFCFacadeParameters parameters) {
         IProblemReader reader;
-        IProblemParser nameToProblem = parameters.fCsvRoot == null ? new SrpkToProblem(parameters.fInterferencesFolder) : new CsvToProblem(parameters.fInterferencesFolder, parameters.fCsvRoot, parameters.checkForSolution);
+        IProblemParser nameToProblem = parameters.databaseParameters.isValid() ? new StupidProblemParser(new DataManager(), parameters.fInterferencesFolder, parameters.databaseParameters.getConnection()) : (parameters.fCsvRoot == null ? new SrpkToProblem(parameters.fInterferencesFolder) : new CsvToProblem(parameters.fInterferencesFolder, parameters.fCsvRoot, parameters.checkForSolution));
         if (parameters.fInstanceParameters.fDataFoldername != null && parameters.fInstanceParameters.getDomains() != null) {
             reader = new SingleProblemFromCommandLineProblemReader(new SATFCFacadeProblem(
                     parameters.fInstanceParameters.getPackingStationIDs(),
@@ -43,10 +46,12 @@ public class ProblemGeneratorFactory {
                     parameters.fInstanceParameters.fDataFoldername,
                     null
             ));
+        } else if (parameters.simulatorWorker) {
+            reader = new SimulatorProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
         } else if (parameters.fsrpkFile != null) {
             reader = new SingleSrpkProblemReader(parameters.fsrpkFile, nameToProblem);
         } else if (parameters.fRedisParameters.areValid() && parameters.fInterferencesFolder != null) {
-            reader = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, nameToProblem, parameters.checkForSolution);
+            reader = new RedisProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue, nameToProblem);
         } else if (parameters.fFileOfInstanceFiles != null && parameters.fInterferencesFolder != null) {
             reader = new FileProblemReader(parameters.fFileOfInstanceFiles, nameToProblem);
         } else {

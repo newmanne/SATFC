@@ -44,26 +44,35 @@ public class ConstraintGrouper implements IComponentGrouper {
 	@Override
 	public Set<Set<Station>> group(StationPackingInstance aInstance, IConstraintManager aConstraintManager){
 		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = getConstraintGraph(aInstance.getDomains(), aConstraintManager);
-        final ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<>(aConstraintGraph);
-        return aConnectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+		return group(aConstraintGraph);
 	}
-	
+
+	public static Set<Set<Station>> group(SimpleGraph<Station,DefaultEdge> aConstraintGraph) {
+		final ConnectivityInspector<Station, DefaultEdge> aConnectivityInspector = new ConnectivityInspector<>(aConstraintGraph);
+		return aConnectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+	}
+
+	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(Map<Station, Set<Integer>> aDomains, IConstraintManager aConstraintManager) {
+		return getConstraintGraph(aDomains, aConstraintManager, aDomains.keySet().stream().collect(Collectors.toMap(s -> s, s -> s)));
+	}
+
 	/**
 	 * @param aConstraintManager - the constraint manager to use to form edges of the constraint graph.
 	 * @return the constraint graph.
 	 */
-	public static SimpleGraph<Station,DefaultEdge> getConstraintGraph(Map<Station, Set<Integer>> aDomains, IConstraintManager aConstraintManager)
+	public static <K> SimpleGraph<K,DefaultEdge> getConstraintGraph(Map<Station, Set<Integer>> aDomains, IConstraintManager aConstraintManager, Map<Station, K> stationToOther)
 	{
 		final Set<Station> aStations = aDomains.keySet();
-		final SimpleGraph<Station,DefaultEdge> aConstraintGraph = new SimpleGraph<Station,DefaultEdge>(DefaultEdge.class);
+		final SimpleGraph<K,DefaultEdge> aConstraintGraph = new SimpleGraph<>(DefaultEdge.class);
         for(Station aStation : aStations){
-            aConstraintGraph.addVertex(aStation);
+            aConstraintGraph.addVertex(stationToOther.get(aStation));
         }
         aConstraintManager.getAllRelevantConstraints(aDomains).forEach(constraint -> {
-            aConstraintGraph.addEdge(constraint.getSource(), constraint.getTarget());
+            aConstraintGraph.addEdge(stationToOther.get(constraint.getSource()), stationToOther.get(constraint.getTarget()));
         });
 		return aConstraintGraph;
 	}
+
 
 }
 

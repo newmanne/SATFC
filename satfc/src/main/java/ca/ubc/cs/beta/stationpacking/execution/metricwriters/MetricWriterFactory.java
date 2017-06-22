@@ -36,18 +36,19 @@ public class MetricWriterFactory {
             return new FileMetricsWriter(parameters.fMetricsFile);
         } else {
             // a void implementation that does nothing
-            return new IMetricWriter() {
-                @Override
-                public void writeMetrics() {
-
-                }
-
-                @Override
-                public void onFinished() {
-
-                }
-            };
+            return new VoidMetricWriter();
         }
     }
 
+    public static class VoidMetricWriter implements IMetricWriter {
+        @Override
+        public void writeMetrics() {
+
+        }
+
+        @Override
+        public void onFinished() {
+
+        }
+    }
 }

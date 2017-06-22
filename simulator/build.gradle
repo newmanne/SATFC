@@ -1,0 +1,57 @@
+buildscript {
+    dependencies {
+        classpath 'org.ajoberstar:gradle-git:0.12.0'
+    }
+}
+
+dependencies {
+    compile project(':satfc')
+    testCompile 'junit:junit:4.12'
+
+}
+
+//Project properties.
+applicationName = 'FCCSimulator'
+mainClassName = 'ca.ubc.cs.beta.fcc.simulator.Simulator'
+version = "$SATFCVersion-"+getGitName()
+applicationDefaultJvmArgs = ['-Xmx16g']
+
+jar {
+    baseName = applicationName
+}
+
+// Creates scripts for entry points
+// Subproject must apply application plugin to be able to call this method.
+def createScript(project, mainClass, name, jvmArgs) {
+    project.tasks.create(name: name, type: CreateStartScripts) {
+        outputDir = new File(project.buildDir, 'scripts')
+        mainClassName = mainClass
+        applicationName = name
+        classpath = project.tasks[JavaPlugin.JAR_TASK_NAME].outputs.files + project.configurations.runtime
+        defaultJvmOpts = jvmArgs
+    }
+    project.tasks[name].dependsOn(project.jar)
+    project.applicationDistribution.with {
+        into("bin") {
+            from(project.tasks[name])
+            fileMode = 0755
+        }
+    }
+    // This is a dumb hack to get rid of the backslash that inevitably appears before the dollar sign...
+    project.tasks[name].doLast {
+        def f = new File(project.buildDir, "scripts/${name}")
+        def replace = f.text.replace("-Djava.library.path=\\", "-Djava.library.path=")
+        f.setText(replace)
+    }
+}
+
+
+
+createScript(project,
+             'ca.ubc.cs.beta.fcc.vcg.VCGMip',
+             'VCG',
+             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
+createScript(project,
+        'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
+        'MutliBandSimulator',
+        ['-Djava.library.path=${CPLEX_DIR}', '-Xmx16g'])

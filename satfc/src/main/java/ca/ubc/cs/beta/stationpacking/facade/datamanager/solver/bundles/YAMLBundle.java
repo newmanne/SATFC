@@ -1,26 +1,28 @@
 /**
  * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
+ * <p>
  * This file is part of SATFC.
- *
+ * <p>
  * SATFC is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * SATFC is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * <p>
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
 package ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.bundles;
 
+import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
@@ -47,12 +49,20 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SubsetCacheUNSATDe
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.cache.SupersetCacheSATDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ArcConsistencyEnforcerDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.decorators.consistency.ChannelKillerDecorator;
+import ca.ubc.cs.beta.stationpacking.solvers.decorators.greedy.GreedySolverDecorator;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.CompressedSATBasedSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.GenericSATBasedSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.base.CNF;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.base.Literal;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.ISATDecoder;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.cnfencoder.SATCompressor;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.AbstractCompressedSATSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonJNISolvers.ACLibSolver;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonJNISolvers.CommandLineSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.Clasp3SATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.nonincremental.ubcsat.UBCSATSolver;
 import ca.ubc.cs.beta.stationpacking.solvers.underconstrained.HeuristicUnderconstrainedStationFinder;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.YAMLUtils;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -62,19 +72,27 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.snakeyaml.Yaml;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import ilog.concert.IloException;
+import ilog.cplex.IloCplex;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.math3.util.Pair;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -233,6 +251,94 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+
+    @Data
+    public static class CommandLineConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
+            ACLibSolver.IProblemEncoder encoder;
+            switch (encodingCategory) {
+                case SAT:
+                    final SATCompressor satCompressor = new SATCompressor(constraintManager, encodingType);
+                    encoder = new ACLibSolver.IProblemEncoder() {
+                        @Override
+                        public ACLibSolver.IProblemDecoder encodeToFile(StationPackingInstance instance, File file) throws IOException {
+                            final Pair<CNF, ISATDecoder> encode = satCompressor.encode(instance);
+                            final CNF cnf = encode.getFirst();
+                            final ISATDecoder decoder = encode.getSecond();
+                            final String content = cnf.toDIMACS(null);
+                            FileUtils.writeStringToFile(file, content);
+                            return new ACLibSolver.IProblemDecoder() {
+                                @Override
+                                public Map<Integer, Set<Station>> decode(String solution) {
+                                    final ImmutableSet<Literal> literals = Splitter.on(" ").splitToList(solution).stream().map(v -> {
+                                        long variable = Long.parseLong(v);
+                                        boolean sign = variable > 0;
+                                        return new Literal(variable, sign);
+                                    }).collect(GuavaCollectors.toImmutableSet());
+                                    return GenericSATBasedSolver.decodeSolution(instance, decoder, literals);
+                                }
+                            };
+                        }
+                    };
+                    break;
+                case MIP:
+                    encoder = new ACLibSolver.IProblemEncoder() {
+                        @Override
+                        public ACLibSolver.IProblemDecoder encodeToFile(StationPackingInstance instance, File file) throws IOException {
+                            final MIPSaverDecorator.MIPEncoder mipEncoder = new MIPSaverDecorator.MIPEncoder(constraintManager);
+                            final IloCplex cplex = mipEncoder.encode(instance);
+                            final String filename = file.getCanonicalPath();
+                            try {
+                                cplex.exportModel(filename);
+                                cplex.end();
+                            } catch (IloException e) {
+                                throw new RuntimeException("Couldn't save MIP", e);
+                            }
+                            return new ACLibSolver.IProblemDecoder() {
+                                @Override
+                                public Map<Integer, Set<Station>> decode(String solution) {
+                                    final List<String> lines = Splitter.on(System.lineSeparator()).splitToList(solution);
+                                    final Map<Integer, Set<Station>> assignment = new HashMap<>();
+                                    for (String line : lines) {
+                                        if (line.startsWith("#") || CharMatcher.WHITESPACE.matchesAllOf(line)) {
+                                            continue;
+                                        }
+                                        final List<String> splits = Splitter.on(" ").splitToList(line);
+                                        final long value = Long.parseLong(splits.get(1));
+                                        if (value == 1) {
+                                            final String varName = Splitter.on('#').splitToList(splits.get(0)).get(0).substring(1);
+                                            final List<String> splits2 = Splitter.on('.').splitToList(varName);
+                                            final Station station = new Station(Integer.parseInt(splits2.get(0)));
+                                            final int channel = Integer.parseInt(splits2.get(1));
+                                            assignment.putIfAbsent(channel, new HashSet<>());
+                                            assignment.get(channel).add(station);
+                                        }
+                                    }
+                                    return assignment;
+                                }
+                            };
+                        }
+                    };
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
+            return new ACLibSolver(encoder, seedOffset, wrapperPath, parameters, solverName, encodingCategory);
+        }
+
+        private String parameters = "";
+        private String solverName;
+        private String wrapperPath;
+        int seedOffset = 0;
+
+        private EncodingCategory encodingCategory = EncodingCategory.SAT;
+        private EncodingType encodingType = EncodingType.DIRECT;
+
+    }
+
     @Data
     public static class AssignmentVerifierConfig implements ISolverConfig {
 
@@ -383,7 +489,9 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                     new StationSubsetSATCertifier(solverConfig.createSolver(context)),
                     strategy.createStrategy(),
                     context.getManagerBundle().getConstraintManager());
-        };
+        }
+
+        ;
 
         private ISolverConfig solverConfig;
         private IStationPackingConfigurationStrategyConfig strategy;
@@ -400,7 +508,9 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                     new StationSubsetSATCertifier(solverConfig.createSolver(context)),
                     strategy.createStrategy(),
                     context.getManagerBundle().getConstraintManager());
-        };
+        }
+
+        ;
 
 
         private ISolverConfig solverConfig;
@@ -480,7 +590,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         }
 
         EncodingType encodingType = EncodingType.DIRECT;
-        
+
     }
 
 
@@ -533,6 +643,26 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class GreedyConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new GreedySolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), context.getManagerBundle().getStationManager());
+        }
+
+    }
+
+    @Data
+    public static class MIPSaverSolverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new MIPSaverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+        }
+
+    }
+
 
     @Data
     public static class PreviousAssignmentConfig implements ISolverConfig {
@@ -541,6 +671,18 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             return new PreviousAssignmentContainsAnswerDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
         }
+
+    }
+
+    @Data
+    public static class ASPSaverConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new ASPSaverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), aspdir);
+        }
+
+        private String aspdir;
 
     }
 
@@ -603,6 +745,10 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.TIME_BOUNDED, TimeBoundedSolverConfig.class)
                         .put(SolverType.PREVIOUS_ASSIGNMENT, PreviousAssignmentConfig.class)
                         .put(SolverType.UNSAT_LABELLER, UNSATLabellerConfig.class)
+                        .put(SolverType.GREEDY, GreedyConfig.class)
+                        .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
+                        .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
+                        .put(SolverType.COMMAND_LINE, CommandLineConfig.class)
                         .build();
 
         @Override

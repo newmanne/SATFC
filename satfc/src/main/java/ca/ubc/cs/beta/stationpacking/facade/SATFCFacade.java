@@ -36,6 +36,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
+import ca.ubc.cs.beta.stationpacking.facade.datamanager.solver.factories.Clasp3LibraryGenerator;
+import ca.ubc.cs.beta.stationpacking.solvers.sat.solvers.jnalibraries.Clasp3Library;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 
 import com.google.common.base.Charsets;
@@ -98,6 +101,9 @@ public class SATFCFacade implements AutoCloseable {
     @Getter
     private String versionInfo;
 
+    // stupid hack to measure CPU time in native processes...
+    private final Clasp3Library testLib;
+
     /**
      * Construct a SATFC solver facade
      * Package protected to enforce use of the builder
@@ -155,6 +161,7 @@ public class SATFCFacade implements AutoCloseable {
             versionInfo = "Unknown version";
         }
 
+        testLib = new Clasp3LibraryGenerator(aSATFCParameters.getClaspLibrary()).createLibrary();
     }
 
     /**
@@ -271,9 +278,9 @@ public class SATFCFacade implements AutoCloseable {
      * @param stationDB
      * @param cutoff               how long to spend on each generated problem before giving up
      */
-    public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff) {
+    public void augment(@NonNull Map<Integer, Set<Integer>> domains, @NonNull Map<Integer, Integer> assignment, @NonNull IStationDB stationDB, @NonNull String aStationConfigFolder, double cutoff, int minStations) {
         final SATFCCacheAugmenter satfcCacheAugmenter = new SATFCCacheAugmenter(this);
-        satfcCacheAugmenter.augment(domains, assignment, stationDB, aStationConfigFolder, cutoff);
+        satfcCacheAugmenter.augment(domains, assignment, stationDB, aStationConfigFolder, cutoff, minStations);
     }
 
     @AllArgsConstructor
@@ -301,7 +308,7 @@ public class SATFCFacade implements AutoCloseable {
 
             if (aDomains.isEmpty()) {
                 log.warn("Provided an empty domains map.");
-                return new SATFCResult(SATResult.SAT, 0.0, ImmutableMap.of());
+                return new SATFCResult(SATResult.SAT, 0.0, 0.0, ImmutableMap.of());
             }
             Preconditions.checkArgument(aCutoff > 0, "Cutoff must be strictly positive");
 
@@ -323,7 +330,7 @@ public class SATFCFacade implements AutoCloseable {
 
                 if (trueDomain.isEmpty()) {
                     log.warn("Station {} has an empty domain, cannot pack.", station);
-                    return new SATFCResult(SATResult.UNSAT, 0.0, ImmutableMap.of());
+                    return new SATFCResult(SATResult.UNSAT, 0.0, 0.0, ImmutableMap.of());
                 }
 
                 domains.put(station, trueDomain);
@@ -369,6 +376,7 @@ public class SATFCFacade implements AutoCloseable {
             final DisjunctiveCompositeTerminationCriterion disjunctiveCompositeTerminationCriterion = new DisjunctiveCompositeTerminationCriterion(new WalltimeTerminationCriterion(aCutoff), criterion);
 
             //Solve instance.
+            double cpuStart = testLib.getCpuTime();
             final SolverResult result;
             try {
                 result = TimeLimitedCodeBlock.runWithTimeout(() -> solver.solve(instance, disjunctiveCompositeTerminationCriterion, aSeed), totalSuicideGraceTimeInMillis, TimeUnit.MILLISECONDS);
@@ -377,7 +385,8 @@ public class SATFCFacade implements AutoCloseable {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result));
+            double cputime = testLib.getCpuTime() - cpuStart;
+            SATFCMetrics.postEvent(new SATFCMetrics.InstanceSolvedEvent(instanceName, result, cputime));
 
             log.debug("Transforming result into SATFC output...");
             // Transform back solver result to output result
@@ -391,7 +400,8 @@ public class SATFCFacade implements AutoCloseable {
 
             final String extraInfo = getExtraInfo(bundle);
 
-            final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness, extraInfo);
+
+            final SATFCResult outputResult = new SATFCResult(result.getResult(), result.getRuntime(), witness, result.getCpuTime() == 0 ? cputime : result.getCpuTime(), extraInfo);
             log.debug("Result: {}.", outputResult);
 
             if (!internal && parameter.getAutoAugmentOptions().isAugment()) {

@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.Setter;
 import org.python.google.common.base.Preconditions;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -53,6 +54,9 @@ public class SolverResult implements Serializable {
 	private SATResult fResult;
 	private double fRuntime;
 	private ImmutableMap<Integer,Set<Station>> fAssignment;
+	@Getter
+	@Setter
+	private double cpuTime;
     @JsonIgnore
     @Getter
     private final SolvedBy solvedBy;
@@ -75,7 +79,13 @@ public class SolverResult implements Serializable {
         DCCA,
         SATENSTEIN,
         UNDERCONSTRAINED,
-		UNSAT_LABELLER, PREVIOUS_ASSIGNMENT
+		UNSAT_LABELLER,
+		PREVIOUS_ASSIGNMENT,
+		GREEDY,
+        PICOSAT,
+        PROBSAT,
+        GNOVELTYPCL,
+		COMMAND_LINE_SOLVER, SIMPSAT
     }
 
 	public SolverResult(SATResult aResult, double aRuntime, Map<Integer,Set<Station>> aAssignment, SolvedBy aSolvedBy) {

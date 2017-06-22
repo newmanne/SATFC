@@ -21,11 +21,9 @@
  */
 package ca.ubc.cs.beta.stationpacking.utils;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
+import java.util.zip.GZIPOutputStream;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
@@ -34,6 +32,7 @@ import com.google.common.collect.Multimaps;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -62,6 +61,14 @@ public class StationPackingUtils {
     public static String parseAuctionFromName(String name) {
         if (name != null) {
             try {
+                // New format
+                final List<String> splits = Splitter.on("-").splitToList(name);
+                final int sourceId = Integer.parseInt(splits.get(0));
+                return Integer.toString(sourceId);
+            } catch (Exception ignored) {
+            }
+            try {
+                /// Old format
                 return Splitter.on('_').splitToList(name).get(0);
             } catch (Exception ignored) {
             }
@@ -70,15 +77,29 @@ public class StationPackingUtils {
     }
 
     public static Map<Integer, Set<Station>> channelToStationFromStationToChannel(Map<Integer, Integer> stationToChannel) {
+        return Multimaps.asMap(channelToStationFromStationToChannelAsMultimap(stationToChannel));
+    }
+
+    public static HashMultimap<Integer, Station> channelToStationFromStationToChannelAsMultimap(Map<Integer, Integer> stationToChannel) {
         final HashMultimap<Integer, Station> channelAssignment = HashMultimap.create();
         stationToChannel.entrySet().forEach(entry -> {
             channelAssignment.get(entry.getValue()).add(new Station(entry.getKey()));
         });
-        return Multimaps.asMap(channelAssignment);
+        return channelAssignment;
     }
 
     public static boolean weakVerify(IStationManager stationManager, IConstraintManager constraintManager, Map<Integer, Integer> solution) {
         return solution.keySet().stream().allMatch(s -> stationManager.getStations().contains(new Station(s))) && solution.entrySet().stream().allMatch(e -> stationManager.getDomain(stationManager.getStationfromID(e.getKey())).contains(e.getValue())) && constraintManager.isSatisfyingAssignment(channelToStationFromStationToChannel(solution));
     }
 
+    /**
+     * Save contents as GZipped
+     * @throws IOException
+     */
+    public static void saveCompressed(File file, String contents) throws IOException {
+        GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(file));
+        @Cleanup
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
+        writer.append(contents);
+    }
 }

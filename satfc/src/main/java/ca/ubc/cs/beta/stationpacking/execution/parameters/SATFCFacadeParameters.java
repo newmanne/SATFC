@@ -21,6 +21,7 @@
  */
 package ca.ubc.cs.beta.stationpacking.execution.parameters;
 
+import ca.ubc.cs.beta.stationpacking.execution.parameters.database.DatabaseParameters;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
@@ -30,13 +31,14 @@ import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.solver.base.InstanceParameters;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeParameter.SolverChoice;
 import ch.qos.logback.classic.Level;
+import lombok.Getter;
 
 /**
  * SATFC facade parameters.
  * @author afrechet
  */
 @UsageTextField(title="SATFC Facade Parameters",description="Parameters needed to execute SATFC facade on a single instance.")
-public class SATFCFacadeParameters extends AbstractOptions {
+public class SATFCFacadeParameters extends AbstractOptions implements AutoCloseable {
 
     @Parameter(names={"--help-level"}, description="Show options at this level or lower")
     public OptionLevel helpLevel = OptionLevel.BASIC;
@@ -74,10 +76,24 @@ public class SATFCFacadeParameters extends AbstractOptions {
     public String fMetricsFile;
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
-    public String fInterferencesFolder;
+    public String fInterferencesFolder = System.getenv("SATFC_INTERFERENCE");
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-CUTOFF-FILE", description = "file listing each instance and the corresponding cutoff")
     public String fCutoffFile;
+
+    // Augmentation worker options
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT", description = "Run augmentation")
+    public boolean augment = false;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT-CONSTRAINT-SET", description = "Constraint set for augmentation")
+    public String augmentConstraintSet;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-AUGMENT-CHANNEL", description = "Channel for augmentation")
+    public int augmentChannel;
+    @UsageTextField(level = OptionLevel.DEVELOPER)
+    @Parameter(names = "-MINIMUM-STATIONS", description = "Number of stations to add to the starting assignment before a problem is solved")
+    public int minimumAugmentStations;
 
     /**
 	 * Clasp library to use (optional - can be automatically detected).
@@ -88,7 +104,7 @@ public class SATFCFacadeParameters extends AbstractOptions {
 	/**
      * SATenstein library to use (optional - can be automatically detected).
      */
-    @Parameter(names = "-SATENSTEIN-LIBRARY",description = "SATenstein library file")
+    @Parameter(names = "-SATENSTEIN-LIBRARY",description = "wSATenstein library file")
     public String fSATensteinLibrary;
 
 	/**
@@ -109,4 +125,16 @@ public class SATFCFacadeParameters extends AbstractOptions {
     @Parameter(names = "-SOLVER-CHOICE", hidden=true)
     public SolverChoice solverChoice = SolverChoice.YAML;
 
+    @Parameter(names = "-SIMULATOR-WORKER")
+    public boolean simulatorWorker = false;
+
+    @Getter
+    @ParametersDelegate
+    public DatabaseParameters databaseParameters = new DatabaseParameters();
+
+    @Override
+    public void close() throws Exception {
+        databaseParameters.close();
+        fRedisParameters.close();
+    }
 }

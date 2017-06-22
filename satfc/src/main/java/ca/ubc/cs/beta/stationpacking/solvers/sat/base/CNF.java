@@ -39,12 +39,12 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class CNF implements Collection<Clause>{
 
-    private final Collection<Clause> fClauses;
+    protected final Collection<Clause> clauses;
 
     public CNF()
     {
-        fClauses = new ArrayDeque<Clause>();
-        //fClauses = new HashSet<Clause>();
+        clauses = new ArrayDeque<Clause>();
+        //clauses = new HashSet<Clause>();
     }
 
     /**
@@ -56,10 +56,10 @@ public class CNF implements Collection<Clause>{
     {
         StringBuilder aStringBuilder = new StringBuilder();
 
-        int aNumClauses = fClauses.size();
+        int aNumClauses = clauses.size();
         long aMaxVariable = 0;
 
-        for(Clause aClause : fClauses)
+        for(Clause aClause : clauses)
         {
             ArrayList<String> aLitteralStrings = new ArrayList<String>();
 
@@ -76,7 +76,7 @@ public class CNF implements Collection<Clause>{
                 aLitteralStrings.add((aLitteral.getSign() ? "" : "-") + Long.toString(aLitteral.getVariable()));
             }
 
-            aStringBuilder.append(StringUtils.join(aLitteralStrings," ")+" 0\n");
+            aStringBuilder.append(StringUtils.join(aLitteralStrings, " ")).append(" 0\n");
         }
 
         aStringBuilder.insert(0, "p cnf "+aMaxVariable+" "+aNumClauses+"\n");
@@ -99,7 +99,7 @@ public class CNF implements Collection<Clause>{
     {
         Collection<Long> aVariables = new HashSet<Long>();
 
-        for(Clause aClause : fClauses)
+        for(Clause aClause : clauses)
         {
             for(Literal aLitteral : aClause)
             {
@@ -114,7 +114,7 @@ public class CNF implements Collection<Clause>{
     public String toString()
     {
         ArrayDeque<String> aClauseStrings = new ArrayDeque<String>();
-        for(Clause aClause : fClauses)
+        for(Clause aClause : clauses)
         {
             aClauseStrings.add("("+aClause.toString()+")");
         }
@@ -136,32 +136,32 @@ public class CNF implements Collection<Clause>{
 
     @Override
     public int size() {
-        return fClauses.size();
+        return clauses.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return fClauses.isEmpty();
+        return clauses.isEmpty();
     }
 
     @Override
     public boolean contains(Object o) {
-        return fClauses.contains(o);
+        return clauses.contains(o);
     }
 
     @Override
     public Iterator<Clause> iterator() {
-        return fClauses.iterator();
+        return clauses.iterator();
     }
 
     @Override
     public Object[] toArray() {
-        return fClauses.toArray();
+        return clauses.toArray();
     }
 
     @Override
     public <T> T[] toArray(T[] a) {
-        return fClauses.toArray(a);
+        return clauses.toArray(a);
     }
 
     @Override
@@ -172,17 +172,17 @@ public class CNF implements Collection<Clause>{
             throw new IllegalArgumentException("Cannot add a null clause to a CNF.");
         }
 
-        return fClauses.add(e);
+        return clauses.add(e);
     }
 
     @Override
     public boolean remove(Object o) {
-        return fClauses.remove(o);
+        return clauses.remove(o);
     }
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        return fClauses.containsAll(c);
+        return clauses.containsAll(c);
     }
 
     @Override
@@ -193,22 +193,22 @@ public class CNF implements Collection<Clause>{
             throw new IllegalArgumentException("Cannot add a null clause to a CNF.");
         }
 
-        return fClauses.addAll(c);
+        return clauses.addAll(c);
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        return fClauses.retainAll(c);
+        return clauses.retainAll(c);
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        return fClauses.remove(c);
+        return clauses.remove(c);
     }
 
     @Override
     public void clear() {
-        fClauses.clear();
+        clauses.clear();
     }
 
 }
