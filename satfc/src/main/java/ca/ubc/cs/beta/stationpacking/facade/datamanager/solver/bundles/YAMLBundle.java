@@ -340,26 +340,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
-    public static class ACLibSolverConfig implements ISolverConfig {
-
-        @Override
-        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            final IConstraintManager constraintManager = context.getManagerBundle().getConstraintManager();
-            final AbstractCompressedSATSolver commandLineSolver = new CommandLineSolver(solverPath, runsolverPath, parameters, seedOffset, context.getPollingService(), nickname);
-            return new CompressedSATBasedSolver(commandLineSolver, new SATCompressor(constraintManager, encodingType));
-        }
-
-        private String parameters = "";
-        private String solverPath;
-        private String runsolverPath;
-        private EncodingType encodingType = EncodingType.DIRECT;
-        private String nickname;
-        int seedOffset = 0;
-
-    }
-
-
-    @Data
     public static class AssignmentVerifierConfig implements ISolverConfig {
 
         @Override

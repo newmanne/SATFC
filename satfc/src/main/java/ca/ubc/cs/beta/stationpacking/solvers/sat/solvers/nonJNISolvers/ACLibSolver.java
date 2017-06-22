@@ -7,12 +7,17 @@ import ca.ubc.cs.beta.stationpacking.solvers.ISolver;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SolverResult;
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
+import ca.ubc.cs.beta.stationpacking.solvers.termination.walltime.WalltimeTerminationCriterion;
 import com.google.common.base.Joiner;
+import com.google.common.io.Files;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -22,6 +27,9 @@ import java.util.*;
  */
 @Slf4j
 public class ACLibSolver implements ISolver {
+
+    private final static int RETRY_COUNT = 3;
+
 
     public ACLibSolver(IProblemEncoder encoder, int seedOffset, String wrapperPath, String parameters, String solverName, EncodingCategory encodingCategory) {
         this.encoder = encoder;
@@ -34,7 +42,7 @@ public class ACLibSolver implements ISolver {
 
     public interface IProblemDecoder {
 
-        Map<Integer,Set<Station>> decode(String solution);
+        Map<Integer, Set<Station>> decode(String solution);
 
     }
 
@@ -51,20 +59,20 @@ public class ACLibSolver implements ISolver {
     private final String wrapperPath;
     private final EncodingCategory encodingCategory;
 
-    @Override
-    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed, int retryCount) {
         if (aTerminationCriterion.hasToStop()) {
             return SolverResult.createTimeoutResult(0);
         }
         final int seed = Math.abs(new Random(aSeed + seedOffset).nextInt());
-
-        File problemFile = null;
         File solutionFile = null;
+        File problemFile = null;
+        String processString = null;
+        BufferedReader stdInput = null;
+        BufferedReader stdError = null;
+        final double timeCriterion = aTerminationCriterion.getRemainingTime();
         try {
             problemFile = File.createTempFile("problemFile", encodingCategory.equals(EncodingCategory.SAT) ? ".cnf" : ".lp");
             solutionFile = File.createTempFile("solutionFile", ".txt");
-            problemFile.deleteOnExit();
-            solutionFile.deleteOnExit();
 
             // Encode to file
             final IProblemDecoder decoder = encoder.encodeToFile(aInstance, problemFile);
@@ -72,9 +80,13 @@ public class ACLibSolver implements ISolver {
             // Call process
             final Runtime rt = Runtime.getRuntime();
             final double cutOff = aTerminationCriterion.getRemainingTime();
-            final String processString = "python " + wrapperPath + " " + problemFile.getCanonicalPath() + " 0 " + cutOff + " 0 " + seed + " --output_solution_file " + solutionFile.getCanonicalPath() + " -algorithm " + solverName + " " + parameters;
-            log.info(processString);
+            processString = "python " + wrapperPath + " " + problemFile.getCanonicalPath() + " 0 " + cutOff + " 0 " + seed + " --output_solution_file " + solutionFile.getCanonicalPath() + " -algorithm " + solverName + " " + parameters;
+            log.debug(processString);
             final Process pr = rt.exec(processString, null, new File(wrapperPath).getParentFile());
+
+            stdInput = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+            stdError = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+
             try {
                 pr.waitFor();
                 // TODO: interrupt
@@ -95,17 +107,50 @@ public class ACLibSolver implements ISolver {
             }
             final SolverResult solverResult = new SolverResult(satResult, walltime, assignment, SolverResult.SolvedBy.COMMAND_LINE_SOLVER, solverName);
             solverResult.setCpuTime(cputime);
+            problemFile.delete();
+            solutionFile.delete();
             return solverResult;
-        } catch (IOException e) {
-            throw new RuntimeException("Trouble using aclib solver", e);
-        } finally {
-            if (problemFile != null) {
-                problemFile.delete();
+        } catch (Exception e) {
+            log.error("Error parsing results");
+            try {
+                log.error("STDOUT, followed by STDERR");
+                String s;
+                if (stdInput != null) {
+                    while ((s = stdInput.readLine()) != null) {
+                        log.error(s);
+                    }
+                }
+                if (stdError != null) {
+                    while ((s = stdError.readLine()) != null) {
+                        log.error(s);
+                    }
+                }
+            } catch (IOException e2) {
+                throw new RuntimeException(e2);
             }
             if (solutionFile != null) {
-                solutionFile.delete();
+                try {
+                    log.error("Solution file {} not in expected format:\nResult\ncputime\nwalltime\n(model)", solutionFile.getCanonicalPath());
+                    log.error("File:" + System.lineSeparator() + Files.toString(solutionFile, Charset.defaultCharset()));
+                    log.error("Problem file:" + System.lineSeparator() + Files.toString(problemFile, Charset.defaultCharset()));
+                } catch (IOException e1) {
+                    throw new RuntimeException(e1);
+                }
             }
+            log.error("Command:" + processString);
+            log.error("Exception in ACLib solver: ", e);
+            if (retryCount < RETRY_COUNT) {
+                // TODO: This will obviously ignore any interrupt signals, but they aren't working now anyways, so oh well.
+                return solve(aInstance, new WalltimeTerminationCriterion(timeCriterion), aSeed, retryCount + 1);
+            }
+            throw new RuntimeException("Trouble using aclib solver", e);
         }
+    }
+
+
+    @Override
+    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion, long aSeed) {
+        return solve(aInstance, aTerminationCriterion, aSeed, 0);
     }
 
     @Override
