@@ -14,6 +14,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableTable;
 import humanize.Humanize;
@@ -44,11 +45,12 @@ import static java.lang.Math.min;
 @Slf4j
 public class SimulatorUtils {
 
-    public static final ImmutableList<Integer> CLEARING_TARGETS = ImmutableList.of(29,31,32,36,38,39,41,43,44);
+    public static final ImmutableList<Integer> CLEARING_TARGETS = ImmutableList.of(29, 31, 32, 36, 38, 39, 41, 43, 44);
 
     public static boolean isFeasible(SATFCResult result) {
         return result.getResult().equals(SATResult.SAT);
     }
+
     public static boolean isFeasible(@NonNull SimulatorResult result) {
         return isFeasible(result.getSATFCResult());
     }
@@ -130,36 +132,72 @@ public class SimulatorUtils {
     public static void assignValues(MultiBandSimulatorParameters parameters) {
         log.info("Assigning valuations to stations");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
-        final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
-        final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
         final Collection<IStationInfo> americanStations = stationDB.getStations(Nationality.US);
         final Set<IStationInfo> removed = new HashSet<>();
-        for (final IStationInfo station : americanStations) {
-            final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
-            if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
-                if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
-                    log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
-                } else {
-                    log.info("No valuation model for station {}, skipping", station);
-                }
-                stationDB.removeStation(station.getId());
-                removed.add(station);
-                continue;
-            }
-            double value = iValueGenerator.generateValue();
-            final Map<Band, Double> valueMap = new HashMap<>();
-            double frac = 1.0;
-            for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
-                if (band.equals(Band.OFF)) {
+
+        if (parameters.getMaxCFStickFile() != null) {
+            final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
+            final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
+            for (final IStationInfo station : americanStations) {
+                final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
+                if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
+                    if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
+                        log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
+                    } else {
+                        log.info("No valuation model for station {}, skipping", station);
+                    }
+                    stationDB.removeStation(station.getId());
+                    removed.add(station);
                     continue;
                 }
-                // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
-                valueMap.put(band, value * frac);
-                frac -= 1. / 3;
+                double value = iValueGenerator.generateValue();
+                final Map<Band, Double> valueMap = new HashMap<>();
+                double frac = 1.0;
+                for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
+                    if (band.equals(Band.OFF)) {
+                        continue;
+                    }
+                    // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
+                    valueMap.put(band, value * frac);
+                    frac -= 1. / 3;
+                }
+                valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+                ((StationInfo) station).setValues(valueMap);
             }
-            valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
-            ((StationInfo) station).setValues(valueMap);
+        } else if (parameters.getValueFile() != null) {
+            log.info("Reading station values from {}", parameters.getValueFile());
+            final Iterable<CSVRecord> records = SimulatorUtils.readCSV(parameters.getValueFile());
+            removed.addAll(americanStations);
+            for (CSVRecord record : records) {
+                final int id = Integer.parseInt(record.get("FacID"));
+                final IStationInfo station = stationDB.getStationById(id);
+                Preconditions.checkState(station.getNationality().equals(Nationality.US), "Station %s is not a US station! Only US stations should have values", station);
+                final String UHFValueString = record.get("UHFValue");
+                final String HVHFValueString = record.get("HVHFValue");
+                final String LVHFValueString = record.get("LVHFValue");
+                final Map<Band, Double> valueMap = new HashMap<>();
+                valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+                ((StationInfo) station).setValues(valueMap);
+                if (station.getHomeBand().isAboveOrEqualTo(Band.UHF)) {
+                    Preconditions.checkNotNull(UHFValueString, "UHF value cannot be null for station %s", station);
+                    valueMap.put(Band.UHF, Double.parseDouble(UHFValueString));
+                }
+                if (station.getHomeBand().isAboveOrEqualTo(Band.HVHF)) {
+                    Preconditions.checkNotNull(HVHFValueString, "HVHF value cannot be null for station %s", station);
+                    valueMap.put(Band.HVHF, Double.parseDouble(HVHFValueString));
+                }
+                if (station.getHomeBand().isAboveOrEqualTo(Band.LVHF)) {
+                    Preconditions.checkNotNull(LVHFValueString, "LVHF value cannot be null for station %s", station);
+                    valueMap.put(Band.LVHF, Double.parseDouble(LVHFValueString));
+                }
+                removed.remove(station);
+                log.info("Value of {} for {}", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
+            }
+        } else {
+            throw new IllegalStateException("No way to assign station values. Must specify value file with -VALUE-FILE");
         }
+
+
         final Map<Band, List<IStationInfo>> droppedStationToBand = removed.stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
         for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {
             log.info("Dropped {} {} stations due to not having valuations", entry.getValue().size(), entry.getKey());
@@ -181,11 +219,13 @@ public class SimulatorUtils {
             return (getCpuTime() - startTime) / 1e9;
         }
 
-        /** Get CPU time in nanoseconds. */
-        private long getCpuTime( ) {
+        /**
+         * Get CPU time in nanoseconds.
+         */
+        private long getCpuTime() {
             final ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-            return bean.isCurrentThreadCpuTimeSupported( ) ?
-                    bean.getCurrentThreadCpuTime( ) : 0L;
+            return bean.isCurrentThreadCpuTimeSupported() ?
+                    bean.getCurrentThreadCpuTime() : 0L;
         }
 
         public static CPUTimeWatch constructAutoStartWatch() {
@@ -205,13 +245,11 @@ public class SimulatorUtils {
 
         String r;
 
-        if (h == 0)
-        {
+        if (h == 0) {
             r = (m == 0) ? String.format("%d%s", sec, "s") :
                     (sec == 0) ? String.format("%d%s", m, "m") :
                             String.format("%d%s %d%s", m, "m", sec, "s");
-        } else
-        {
+        } else {
             r = (m == 0) ?
                     ((sec == 0) ? String.format("%d%s", h, "h") :
                             String.format("%d%s %d%s", h, "h", sec, "s")) :

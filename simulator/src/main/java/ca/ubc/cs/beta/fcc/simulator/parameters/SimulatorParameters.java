@@ -36,6 +36,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
+import com.google.common.io.Resources;
 import humanize.Humanize;
 import lombok.Getter;
 import lombok.NonNull;
@@ -49,6 +50,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -61,15 +66,23 @@ public class SimulatorParameters extends AbstractOptions {
 
     private static Logger log;
 
-    private final String ARROW_DIR = "/ubc/cs/research/arrow/satfc/simulator/data/";
+    private String getInternalFile(String filename) {
+        return new File(Paths.get(".").toAbsolutePath().normalize().toString()).getParentFile().getAbsolutePath() + File.separator + "simulator_data" + File.separator + filename;
+    }
 
-    @Getter
-    @Parameter(names = "-INFO-FILE", description = "csv file")
-    private String infoFile = ARROW_DIR + "station_info_v2.csv";
+    @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population")
+    private String infoFile;
 
-    @Getter
-    @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
-    private String volumeFile = ARROW_DIR + "volumes.csv";
+    public String getInfoFile() {
+        return infoFile != null ? infoFile : getInternalFile("station_info.csv");
+    }
+
+    @Parameter(names = "-VOLUMES-FILE", description = "volumes csv file headers FacID, Volume")
+    private String volumeFile;
+
+    public String getVolumeFile() {
+        return volumeFile != null ? volumeFile : getInternalFile("volumes.csv");
+    }
 
     @Getter
     @Parameter(names = "-VALUES-SEED", description = "values file")
@@ -77,7 +90,11 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
-    private String maxCFStickFile = ARROW_DIR + "valuations.csv";
+    private String maxCFStickFile;
+
+    @Getter
+    @Parameter(names = "-VALUE-FILE", description = "CSV file with station value in each band for each American station (FacID, UHFValue, HVHFValue, LVHFValue)")
+    private String valueFile;
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -119,13 +136,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
     private boolean restore = false;
 
-//    @Getter
-//    @Parameter(names = "-VALUES-FILE", description = "values file")
-//    private String valuesFile = ARROW_DIR + "values_v2.csv";
-
-    //    @Getter
-//    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
-//    private boolean unitValue = false;
 
     @Getter
     @Parameter(names = "-START-CITY", description = "City to start from")
@@ -133,11 +143,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
     private int nLinks = 0;
-
-//
-//    @Getter
-//    @Parameter(names = "-UNIFORM-PROBABILITY-PARTICIPATION", description = "A station participates uniformly with p")
-//    private Double uniformProbability;
 
     @Getter
     @Parameter(names = "-SIMULATOR-OUTPUT-FOLDER", description = "output file name")
@@ -177,8 +182,12 @@ public class SimulatorParameters extends AbstractOptions {
     @ParametersDelegate
     private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
+    public String getInteferenceFolder() {
+        return facadeParameters.fInterferencesFolder != null ? facadeParameters.fInterferencesFolder : getInternalFile("interference_data");
+    }
+
     public ISimulatorUnconstrainedChecker getUnconstrainedChecker(ParticipationRecord participation, ILadder ladder) {
-        switch(unconstrainedChecker) {
+        switch (unconstrainedChecker) {
             case FCC:
                 return new SimulatorUnconstrainedCheckerImpl(getConstraintManager(), participation, ladder);
             case BAD:
@@ -197,7 +206,7 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public String getStationInfoFolder() {
-        return facadeParameters.fInterferencesFolder + File.separator + constraintSet;
+        return getInteferenceFolder() + File.separator + constraintSet;
     }
 
     public double getCutoff() {
@@ -206,6 +215,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     public void setUp() {
         log = LoggerFactory.getLogger(Simulator.class);
+
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         eventBus = new EventBus();
         BandHelper.setUHFChannels(maxChannel != null ? maxChannel : StationPackingUtils.UHFmax);
@@ -256,7 +266,7 @@ public class SimulatorParameters extends AbstractOptions {
         if (isUnitVolume()) {
             volumeCalculator = new UnitVolumeCalculator();
         } else {
-            volumeCalculator = new CSVVolumeCalculator(volumeFile);
+            volumeCalculator = new CSVVolumeCalculator(getVolumeFile());
         }
         final Set<IStationInfo> americanStations = Sets.newHashSet(stationDB.getStations(Nationality.US));
         final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);
@@ -399,7 +409,7 @@ public class SimulatorParameters extends AbstractOptions {
                     toRemove.add(s);
                 }
             }
-            for (IStationInfo s: toRemove) {
+            for (IStationInfo s : toRemove) {
                 stationDB.removeStation(s.getId());
             }
         }
@@ -446,7 +456,7 @@ public class SimulatorParameters extends AbstractOptions {
             final Map<Integer, Integer> volumes = decorated.getVolumes(stations);
             final Map<Integer, Integer> normalized = new HashMap<>();
 
-            double max = volumes.values().stream().mapToDouble(x->x).max().getAsDouble();
+            double max = volumes.values().stream().mapToDouble(x -> x).max().getAsDouble();
             for (Map.Entry<Integer, Integer> entry : volumes.entrySet()) {
                 normalized.put(entry.getKey(), (int) Math.round((entry.getValue() / max) * 1e6));
             }
@@ -495,43 +505,5 @@ public class SimulatorParameters extends AbstractOptions {
 //        }
 //    }
 
-    public interface IValueCalculator {
-
-        void setValues(Set<StationInfo> stationInfos);
-
-    }
-
-    @Slf4j
-    public static class CSVValueReader implements IValueCalculator {
-
-        private final Map<Integer, Double> values;
-
-        public CSVValueReader(final String infoFile) {
-            log.info("Reading station values from {}", infoFile);
-            values = new HashMap<>();
-            final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
-            for (CSVRecord record : records) {
-                final int id = Integer.parseInt(record.get("FacID"));
-                final String valueString = record.get("Value");
-                Preconditions.checkState(!valueString.isEmpty());
-                double value = Double.parseDouble(valueString) * 1e6;
-                log.info("Value of {} for {}", Humanize.spellBigNumber(value), id);
-                values.put(id, value);
-            }
-        }
-
-        @Override
-        public void setValues(Set<StationInfo> stationInfos) {
-            for (StationInfo station : stationInfos) {
-                Double value = values.get(station.getId());
-                Preconditions.checkNotNull(value, "No value for station %s", station);
-            }
-        }
-
-        public boolean hasValue(int id) {
-            return values.containsKey(id);
-        }
-
-    }
 
 }

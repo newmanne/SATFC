@@ -10,9 +10,11 @@ dependencies {
 
 }
 
+apply plugin: 'maven-publish'
+
 //Project properties.
 applicationName = 'FCCSimulator'
-mainClassName = 'ca.ubc.cs.beta.fcc.simulator.Simulator'
+mainClassName = 'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer'
 version = "$SATFCVersion-"+getGitName()
 applicationDefaultJvmArgs = ['-Xmx16g']
 
@@ -45,13 +47,58 @@ def createScript(project, mainClass, name, jvmArgs) {
     }
 }
 
+//Publishing to EARG maven repo.
+public String getEARGMavenRepo()
+{
+    Properties properties = new Properties()
+    def propertyFilename = 'local.properties'
+    def propertyFile = project.rootProject.file(propertyFilename)
+    if(!propertyFile.exists()) {
+        println 'Necessary file '+propertyFilename+' was not present, creating an empty version of it!'
+        propertyFile.createNewFile()
+    }
+    properties.load(propertyFile.newDataInputStream())
+    def eargMavenRepo = properties.getProperty('earg.mavenrepo.dir')
+    return eargMavenRepo
+}
+
+publishing {
+
+    repositories {
+        //Local EARG maven repo.
+        maven {
+            url getEARGMavenRepo()+'/snapshots/'
+        }
+    }
+
+    publications {
+
+        maven(MavenPublication) {
+            groupId 'ca.ubc.cs.beta'
+            artifactId applicationName
+            version version
+
+            from components.java
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+            artifact distZip {
+                classifier "dist"
+            }
+        }
+
+    }
+}
 
 
-createScript(project,
-             'ca.ubc.cs.beta.fcc.vcg.VCGMip',
-             'VCG',
-             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
-createScript(project,
-        'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
-        'MutliBandSimulator',
-        ['-Djava.library.path=${CPLEX_DIR}', '-Xmx16g'])
+
+//createScript(project,
+//             'ca.ubc.cs.beta.fcc.vcg.VCGMip',
+//             'VCG',
+//             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
+//createScript(project,
+//        'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
+//        'MutliBandSimulator',
+//        ['-Djava.library.path=${CPLEX_DIR}', '-Xmx16g'])
+

@@ -67,6 +67,7 @@ public class VCGMipTest {
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
         writer.append(contents);
     }
+    
 
 //    @Test
 //    public void databaseConnectionTest() throws NamingException, SQLException, IOException {
