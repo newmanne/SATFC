@@ -17,6 +17,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Ordering;
 import humanize.Humanize;
 import humanize.spi.context.ContextFactory;
 import humanize.spi.context.DefaultContext;
@@ -28,6 +29,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
+import org.omg.CORBA.ORB;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
@@ -175,6 +177,7 @@ public class SimulatorUtils {
                 final String UHFValueString = record.get("UHFValue");
                 final String HVHFValueString = record.get("HVHFValue");
                 final String LVHFValueString = record.get("LVHFValue");
+
                 final Map<Band, Double> valueMap = new HashMap<>();
                 valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
                 ((StationInfo) station).setValues(valueMap);
@@ -190,8 +193,16 @@ public class SimulatorUtils {
                     Preconditions.checkNotNull(LVHFValueString, "LVHF value cannot be null for station %s", station);
                     valueMap.put(Band.LVHF, Double.parseDouble(LVHFValueString));
                 }
+
+                final List<Double> valuesSortedByBand = valueMap.entrySet().stream()
+                        .sorted(Comparator.comparing(Map.Entry::getKey))
+                        .map(Map.Entry::getValue).collect(Collectors.toList());
+                if (!Ordering.natural().isStrictlyOrdered(valuesSortedByBand)) {
+                    log.warn("Station {} does not value its bands UHF > HVHF > LVHF > OFF. This can lead to strange behaviour and may be a mistake in the value file.", id);
+                }
+
                 removed.remove(station);
-                log.info("Value of {} for {}", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
+                log.info("Value of {} for {} in most valued band", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
             }
         } else {
             throw new IllegalStateException("No way to assign station values. Must specify value file with -VALUE-FILE");

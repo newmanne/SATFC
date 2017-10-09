@@ -97,6 +97,11 @@ public class SimulatorParameters extends AbstractOptions {
     private String valueFile;
 
     @Getter
+    @Parameter(names = "-STARTING-ASSIGNMENT-FILE", description = "CSV file with columns Ch, FacID specifying a starting assignment for non-participating stations")
+    private String startingAssignmentFile;
+
+
+    @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
     private String sendQueue = "send";
     @Getter
@@ -464,6 +469,21 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
+    public Map<Integer, Integer> getStartingAssignment() {
+        final String sFile = getStartingAssignmentFile();
+        final Map<Integer, Integer> assignment = new HashMap<>();
+        if (sFile != null) {
+            for (CSVRecord record : SimulatorUtils.readCSV(sFile)) {
+                final int facID = Integer.parseInt(record.get("FacID"));
+                final int chan = Integer.parseInt(record.get("Ch"));
+                assignment.put(facID, chan);
+            }
+        }
+        return assignment;
+    }
+
+}
+
 //    public class FCCVolumeCalculator implements IVolumeCalculator {
 //
 //        @Override
@@ -505,5 +525,3 @@ public class SimulatorParameters extends AbstractOptions {
 //        }
 //    }
 
-
-}

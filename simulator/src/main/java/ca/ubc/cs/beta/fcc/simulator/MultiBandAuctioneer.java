@@ -22,6 +22,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.*;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
@@ -159,13 +160,15 @@ public class MultiBandAuctioneer {
          */
         ClearingResult result = null;
         final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS;
+
+
         // Use a separate solver for clearing target initialization procedure. Of course, this means...
         @Cleanup
         final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
         for (final int maxChannel : clearingTargets) {
             log.info("Trying clearing target of {}", maxChannel);
             adjustCT(maxChannel, stationDB);
-            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel);
+            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel, parameters.getStartingAssignment());
             if (result.isFeasible()) {
                 break;
             } else {
@@ -303,12 +306,16 @@ public class MultiBandAuctioneer {
         }
     }
 
-    public static ClearingResult testClearingTarget(ILadder ladder, IFeasibilitySolver solver, IProblemMaker problemMaker, int maxChannel) {
+    public static ClearingResult testClearingTarget(ILadder ladder, IFeasibilitySolver solver, IProblemMaker problemMaker, int maxChannel, Map<Integer, Integer> previousAssignment) {
         final Map<Band, Map<Integer, Integer>> bandAssignmentMap = new HashMap<>();
         for (final Band band : ladder.getAirBands()) {
             final Set<IStationInfo> bandStations = ladder.getBandStations(band);
             if (bandStations.size() > 0) {
-                final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null));
+                final SimulatorProblem simulatorProblem = problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null);
+
+                simulatorProblem.getSATFCProblem().getProblem().setPreviousAssignment(previousAssignment);
+
+                final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(simulatorProblem);
                 if (SimulatorUtils.isFeasible(initialFeasibility)) {
                     final Map<Integer, Integer> assignment = initialFeasibility.getSATFCResult().getWitnessAssignment();
                     log.info("Found an initial assignment for the {} non-participating stations in band {}", bandStations.size(), band);
