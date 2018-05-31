@@ -48,6 +48,11 @@ public class StationInfo implements IStationInfo {
     private final String call;
     @Getter
     private final int population;
+    @Getter
+    private final boolean eligible;
+
+    @Getter
+    private final String DMA;
 
     @Getter
     @Setter
@@ -56,14 +61,21 @@ public class StationInfo implements IStationInfo {
     @Setter
     private Map<Band, Double> values;
 
+    @Setter
+    private Boolean commercial;
+
+    public Boolean isCommercial() {
+        return commercial;
+    }
+
     private int maxChan = StationPackingUtils.UHFmax;
     private int minChan = StationPackingUtils.LVHFmin;
 
     public static StationInfo canadianStation(int id, Band band, Set<Integer> domain, String city, String call, int pop) {
-        return new StationInfo(id, Nationality.CA, band, ImmutableSet.copyOf(domain), city, call, pop);
+        return new StationInfo(id, Nationality.CA, band, ImmutableSet.copyOf(domain), city, call, pop, null, false);
     }
 
-    public StationInfo(int id, Nationality nationality, Band band, Set<Integer> domain, String city, String call, int population) {
+    public StationInfo(int id, Nationality nationality, Band band, Set<Integer> domain, String city, String call, int population, String DMA, boolean eligible) {
         this.id = id;
         this.nationality = nationality;
         this.homeBand = band;
@@ -72,6 +84,9 @@ public class StationInfo implements IStationInfo {
         this.city = city;
         this.call = call;
         this.population = population;
+        this.commercial = null;
+        this.DMA = DMA;
+        this.eligible = eligible;
     }
 
     private void adjustDomain() {

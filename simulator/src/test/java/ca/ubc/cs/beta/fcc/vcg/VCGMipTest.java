@@ -58,16 +58,16 @@ public class VCGMipTest {
     static String VOLUMES_FILE = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
 
 
-    @Test
-    public void gzip() throws Exception {
-        final String filename = "/tmp/hello.gz";
-        final String contents = "hello chicken";
-        GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(filename));
-        @Cleanup
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
-        writer.append(contents);
-    }
-    
+//    @Test
+//    public void gzip() throws Exception {
+//        final String filename = "/tmp/hello.gz";
+//        final String contents = "hello chicken";
+//        GZIPOutputStream zip = new GZIPOutputStream(new FileOutputStream(filename));
+//        @Cleanup
+//        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zip, "UTF-8"));
+//        writer.append(contents);
+//    }
+//
 
 //    @Test
 //    public void databaseConnectionTest() throws NamingException, SQLException, IOException {
@@ -209,95 +209,95 @@ public class VCGMipTest {
 //
 //    }
 
-//    public static Map<Station, Integer> icCounts(Map<Station, Set<Integer>> domains, CSVStationDB stationDB) {
-//        final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
-//        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-//        final Map<Station, Integer> icMap = new HashMap<>();
-//        log.info("{} stations (roughly)", domains.keySet().size());
-//        int j = 0;
-//
-//        Set<Station> stuff = new HashSet<>();
-//        stuff.addAll(domains.keySet());
-////        stuff.add(new Station(53586));
-//
-//        for (Station a : stuff) {
-//            j++;
-//            if (j % 100 == 0) {
-//                log.info(""+j);
-//            }
-//            if (stationDB.getStationById(a.getID()).getNationality().equals(Nationality.CA)) {
-//                continue;
-//            }
-//            int icNum = 0;
-//            int caNum = 0;
-//
-//            Set<Station> neighbours = neighborIndex.neighborsOf(a);
-////            if (neighbours.stream().anyMatch(n -> stationDB.getStationById(n.getID()).getNationality().equals(Nationality.CA))) {
-////                log.info("Skipping {} because has CDN neighbours", a);
-////            	continue;
-////            }
-//
-//
-//            for (Station b : neighbours) {
-//                int overallChanMax = 0;
-//                int CAD = 0;
-//                boolean canNeighbour = stationDB.getStationById(b.getID()).getNationality().equals(Nationality.CA);
-//                for (int chanA : domains.get(a)) {
-//                    int chanMax = 0;
-//                    for (int chanB : domains.get(b)) {
-//                        if (!constraintManager.isSatisfyingAssignment(a, chanA, b, chanB)) {
-//                            chanMax += 1;
-//                        }
-//                    }
-//                    overallChanMax = Math.max(overallChanMax, chanMax);
-//                    if (overallChanMax >= 3) {
-//                        break;
-//                    }
-//                }
-//                icNum += overallChanMax;
-//
-//                if (stationDB.getStationById(b.getID()).getNationality().equals(Nationality.CA)) {
-//                    caNum += overallChanMax;
-//                }
-//            }
-//
-//            icNum = (int) Math.round(icNum - caNum + caNum * 2.3);
-//
-//            icMap.put(a, icNum);
-////            if (caNum > 0) {
-////                log.info("CA num for {}, {}", a, caNum);
-////            }
-//        }
-//        return icMap;
-//    }
-//
-//    @Test
-//    public void t() {
-//        final Map<Station, Set<Integer>> domains = stationManager.getDomains();
-//        final CSVStationDB stationDB = new CSVStationDB(INFO_FILE, new UnitVolumeCalculator(), stationManager, 52, false);
-//        for (final Station s : domains.keySet()) {
-//            final Set<Integer> domain = domains.get(s);
-//            final Set<Integer> ufh  = domain.stream().filter(c -> c >= 14).collect(Collectors.toSet());
-//            if (!ufh.isEmpty()) {
-//                int minChan = ufh.stream().mapToInt(c -> c).min().getAsInt();
-//                if (minChan > 25) {
-//                    System.out.println(s.getID() + ":" + minChan);
-//                }
-//            }
-//        }
+    public static Map<Station, Integer> icCounts(Map<Station, Set<Integer>> domains, CSVStationDB stationDB) {
+        final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
+        final Map<Station, Integer> icMap = new HashMap<>();
+        log.info("{} stations (roughly)", domains.keySet().size());
+        int j = 0;
 
-//        final Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV("/Users/newmanne/research/ic_counts.csv");
-//        final Map<Station, Integer> fccCounts = new HashMap<>();
-//        for (CSVRecord record : csvRecords) {
-//            fccCounts.put(new Station(Integer.parseInt(record.get("FacID"))), Integer.parseInt(record.get("Interference")));
-//        }
-//        final Map<Station, Integer> counts = icCounts(stationManager.getDomains(), stationDB);
-//        log.info("FCC has {} records, we have {}", fccCounts.size(), counts.size());
-//
-//        final MapDifference<Station, Integer> difference = Maps.difference(counts, fccCounts);
-//        log.info("Size difference: {}", difference.entriesDiffering().size());
-//        System.out.println("DIFFERENCE:" + difference.entriesDiffering());
-//    }
+        Set<Station> stuff = new HashSet<>();
+        stuff.addAll(domains.keySet());
+//        stuff.add(new Station(53586));
+
+        for (Station a : stuff) {
+            j++;
+            if (j % 100 == 0) {
+                log.info(""+j);
+            }
+            if (stationDB.getStationById(a.getID()).getNationality().equals(Nationality.CA)) {
+                continue;
+            }
+            int icNum = 0;
+            int caNum = 0;
+
+            Set<Station> neighbours = neighborIndex.neighborsOf(a);
+//            if (neighbours.stream().anyMatch(n -> stationDB.getStationById(n.getID()).getNationality().equals(Nationality.CA))) {
+//                log.info("Skipping {} because has CDN neighbours", a);
+//            	continue;
+//            }
+
+
+            for (Station b : neighbours) {
+                int overallChanMax = 0;
+                int CAD = 0;
+                boolean canNeighbour = stationDB.getStationById(b.getID()).getNationality().equals(Nationality.CA);
+                for (int chanA : domains.get(a)) {
+                    int chanMax = 0;
+                    for (int chanB : domains.get(b)) {
+                        if (!constraintManager.isSatisfyingAssignment(a, chanA, b, chanB)) {
+                            chanMax += 1;
+                        }
+                    }
+                    overallChanMax = Math.max(overallChanMax, chanMax);
+                    if (overallChanMax >= 3) {
+                        break;
+                    }
+                }
+                icNum += overallChanMax;
+
+                if (stationDB.getStationById(b.getID()).getNationality().equals(Nationality.CA)) {
+                    caNum += overallChanMax;
+                }
+            }
+
+            icNum = (int) Math.round(icNum - caNum + caNum * 2.3);
+
+            icMap.put(a, icNum);
+//            if (caNum > 0) {
+//                log.info("CA num for {}, {}", a, caNum);
+//            }
+        }
+        return icMap;
+    }
+
+    @Test
+    public void t() {
+        final Map<Station, Set<Integer>> domains = stationManager.getDomains();
+        final CSVStationDB stationDB = new CSVStationDB(INFO_FILE, new UnitVolumeCalculator(), stationManager, 52, false);
+        for (final Station s : domains.keySet()) {
+            final Set<Integer> domain = domains.get(s);
+            final Set<Integer> ufh  = domain.stream().filter(c -> c >= 14).collect(Collectors.toSet());
+            if (!ufh.isEmpty()) {
+                int minChan = ufh.stream().mapToInt(c -> c).min().getAsInt();
+                if (minChan > 25) {
+                    System.out.println(s.getID() + ":" + minChan);
+                }
+            }
+        }
+
+        final Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV("/Users/newmanne/research/ic_counts.csv");
+        final Map<Station, Integer> fccCounts = new HashMap<>();
+        for (CSVRecord record : csvRecords) {
+            fccCounts.put(new Station(Integer.parseInt(record.get("FacID"))), Integer.parseInt(record.get("Interference")));
+        }
+        final Map<Station, Integer> counts = icCounts(stationManager.getDomains(), stationDB);
+        log.info("FCC has {} records, we have {}", fccCounts.size(), counts.size());
+
+        final MapDifference<Station, Integer> difference = Maps.difference(counts, fccCounts);
+        log.info("Size difference: {}", difference.entriesDiffering().size());
+        System.out.println("DIFFERENCE:" + difference.entriesDiffering());
+    }
 
 //    public class FCCVolumeCalculator {
 //

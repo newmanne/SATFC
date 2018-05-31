@@ -4,6 +4,9 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import com.google.common.base.Preconditions;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.math.util.FastMath;
 import org.apache.commons.math3.distribution.NormalDistribution;
@@ -15,6 +18,7 @@ import java.util.Random;
 /**
  * Created by newmanne on 2016-11-03.
  */
+@Slf4j
 public class MaxCFStickValues {
 
     public interface IValueGenerator {
@@ -28,6 +32,9 @@ public class MaxCFStickValues {
     final String MEAN_CF_MULTIPLES = "MeanCFMultiples";
     final String MEAN_LOG_STICK = "MeanLogStick";
 
+    @Getter
+    private final Random random;
+
     private Map<IStationInfo, IValueGenerator> stationToGenerator;
 
     public Map<IStationInfo, IValueGenerator> get() {
@@ -35,7 +42,8 @@ public class MaxCFStickValues {
     }
 
     public MaxCFStickValues(String csvFile, IStationDB.IModifiableStationDB stationDB, int valuesSeed) {
-        final Random r = new Random(valuesSeed);
+        log.info("Reading valuations from {}", csvFile);
+        this.random = new Random(valuesSeed);
         stationToGenerator = new HashMap<>();
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(csvFile);
         for (CSVRecord record : records) {
@@ -44,8 +52,11 @@ public class MaxCFStickValues {
             final double meanCFMultiples = Double.parseDouble(record.get(MEAN_CF_MULTIPLES));
             final double meanLogStick = Double.parseDouble(record.get(MEAN_LOG_STICK));
             final IStationInfo station = stationDB.getStationById(id);
-            final ValueGenerator valueGenerator = new ValueGenerator(r, station, meanCF, meanCFMultiples, meanLogStick);
-            stationToGenerator.put(station, valueGenerator);
+            if (station != null) {
+                // It is possible to be null here when Ulrich provides a value for a station that was not offered an opening price and is therefore not eligible
+                final ValueGenerator valueGenerator = new ValueGenerator(random, station, meanCF, meanCFMultiples, meanLogStick);
+                stationToGenerator.put(station, valueGenerator);
+            }
         }
     }
 
@@ -67,7 +78,7 @@ public class MaxCFStickValues {
 
         IStationInfo stationInfo;
 
-        public ValueGenerator(Random random, IStationInfo stationInfo, double meanCF, double meanCFMultiple, double meanLogStick) {
+        public ValueGenerator(Random random, @NonNull IStationInfo stationInfo, double meanCF, double meanCFMultiple, double meanLogStick) {
             cashFlow = new NormalDistribution(meanCF, STD_CASH_FLOW);
             cashFlowMultiple = new NormalDistribution(meanCFMultiple, STD_CASH_FLOW_MULTIPLE);
             logStick = new NormalDistribution(meanLogStick, STD_LOG_STICK);
@@ -83,6 +94,7 @@ public class MaxCFStickValues {
             Preconditions.checkState(cfMultiple > 0 || cf > 0, "Neither CF nor CF multiple was positive!");
 
             final double logStickVal = logStick.inverseCumulativeProbability(random.nextDouble());
+
             final int pop = stationInfo.getPopulation();
             final double stickVal = (FastMath.exp(logStickVal) * 6 * pop) / 1e6;
 

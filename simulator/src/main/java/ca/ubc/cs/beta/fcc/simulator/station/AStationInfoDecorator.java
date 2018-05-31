@@ -61,4 +61,10 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     public String getCall() {
         return decorated.getCall();
     }
+
+    @Override
+    public Boolean isCommercial() {
+        return decorated.isCommercial();
+    }
+
 }

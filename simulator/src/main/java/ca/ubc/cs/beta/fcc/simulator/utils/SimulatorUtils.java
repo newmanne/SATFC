@@ -15,6 +15,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Ordering;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.math.distribution.NormalDistribution;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
+import static java.lang.Math.random;
 
 /**
  * Created by newmanne on 2016-05-20.
@@ -131,6 +134,33 @@ public class SimulatorUtils {
         return Math.floor(station.getVolume() * nonVolumeWeightedActual);
     }
 
+
+    public static Map<Band, Double> createValueMap(double UHFPrice, IStationInfo station, Random random, double noiseStd) {
+        // Take care that stations MUST value higher bands more for this to make any sense
+        final Map<Band, Double> valueMap = new HashMap<>();
+        // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0 with some noise
+        double frac = 1.0;
+        if (station.getHomeBand().equals(Band.HVHF)) {
+            frac = 2. / 3;
+        } else if (station.getHomeBand().equals(Band.LVHF)) {
+            frac = 1. / 3;
+        }
+        for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
+            if (band.equals(Band.OFF)) {
+                continue;
+            }
+            valueMap.put(band, UHFPrice * frac);
+            double noise = random.nextGaussian() * noiseStd;
+            double oldFrac = frac;
+            frac -= (1. / 3) + noise;
+            if (frac >= oldFrac) {
+                frac = oldFrac - 0.0001; // Just make sure values actually diminish
+            }
+        }
+        valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+        return valueMap;
+    }
+
     public static void assignValues(MultiBandSimulatorParameters parameters) {
         log.info("Assigning valuations to stations");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
@@ -138,34 +168,50 @@ public class SimulatorUtils {
         final Set<IStationInfo> removed = new HashSet<>();
 
         if (parameters.getMaxCFStickFile() != null) {
+            final ArrayListMultimap<String, Double> dmaToPricePerPopCommercial = ArrayListMultimap.create();
+            final ArrayListMultimap<String, Double> dmaToPricePerPopNonCommercial = ArrayListMultimap.create();
             final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
+            final Random random = maxCFStickValues.getRandom();
             final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
-            for (final IStationInfo station : americanStations) {
-                final MaxCFStickValues.IValueGenerator iValueGenerator = stationToGenerator.get(station);
-                if (iValueGenerator == null || !station.getHomeBand().equals(Band.UHF)) {
-                    if (iValueGenerator != null && !station.getHomeBand().equals(Band.UHF)) {
-                        log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now! TODO: change this once you model VHF stations with values", station);
-                    } else {
-                        log.info("No valuation model for station {}, skipping", station);
-                    }
-                    stationDB.removeStation(station.getId());
-                    removed.add(station);
-                    continue;
+            // First, process the stations with a value model
+            for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet()) {
+                final IStationInfo station = entry.getKey();
+                double value = entry.getValue().generateValue();
+                if (station.isCommercial()) {
+                    dmaToPricePerPopCommercial.put(station.getDMA(), value / station.getPopulation());
+                } else {
+                    dmaToPricePerPopNonCommercial.put(station.getDMA(), value / station.getPopulation());
                 }
-                double value = iValueGenerator.generateValue();
-                final Map<Band, Double> valueMap = new HashMap<>();
-                double frac = 1.0;
-                for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
-                    if (band.equals(Band.OFF)) {
-                        continue;
-                    }
-                    // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0
-                    valueMap.put(band, value * frac);
-                    frac -= 1. / 3;
-                }
-                valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+                final Map<Band, Double> valueMap = createValueMap(value, station, random, parameters.getNoiseStd());
                 ((StationInfo) station).setValues(valueMap);
             }
+
+            // Get the mean price per DMA for the stations we do know about
+            final Map<String, Double> meanPricePerDMACommercial = new HashMap<>();
+            for (String dma : dmaToPricePerPopCommercial.keySet()) {
+                meanPricePerDMACommercial.put(dma, dmaToPricePerPopCommercial.get(dma).stream().collect(Collectors.averagingDouble(d -> d)));
+            }
+            final Map<String, Double> meanPricePerDMANonCommercial = new HashMap<>();
+            for (String dma : dmaToPricePerPopNonCommercial.keySet()) {
+                meanPricePerDMANonCommercial.put(dma, dmaToPricePerPopNonCommercial.get(dma).stream().collect(Collectors.averagingDouble(d -> d)));
+            }
+
+            double meanCommercialPricePerPop = dmaToPricePerPopCommercial.values().stream().collect(Collectors.averagingDouble(d -> d));
+            double meanNonCommercialPricePerPop = dmaToPricePerPopNonCommercial.values().stream().collect(Collectors.averagingDouble(d -> d));
+
+            // Next, process stations without a model
+            for (IStationInfo station : americanStations) {
+                if (station.getValues() == null) {
+                    final Double meanDMAPrice = station.isCommercial() ? meanPricePerDMACommercial.getOrDefault(station.getDMA(), meanCommercialPricePerPop) : meanPricePerDMANonCommercial.getOrDefault(station.getDMA(), meanNonCommercialPricePerPop);
+                    if ((station.isCommercial() && (meanPricePerDMACommercial.get(station.getDMA()) == null)) || (!station.isCommercial() && meanPricePerDMANonCommercial.get(station.getDMA()) == null)) {
+                        log.debug("Mean DMA not available for DMA {} commercial={}. Using average price nationally", station.getDMA(), station.isCommercial());
+                    }
+                    final Map<Band, Double> valueMap = createValueMap(meanDMAPrice * station.getPopulation(), station, random, parameters.getNoiseStd());
+                    ((StationInfo) station).setValues(valueMap);
+                }
+            }
+
+
         } else if (parameters.getValueFile() != null) {
             log.info("Reading station values from {}", parameters.getValueFile());
             final Iterable<CSVRecord> records = SimulatorUtils.readCSV(parameters.getValueFile());

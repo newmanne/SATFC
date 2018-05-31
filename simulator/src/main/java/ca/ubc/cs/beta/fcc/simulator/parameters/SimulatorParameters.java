@@ -70,7 +70,7 @@ public class SimulatorParameters extends AbstractOptions {
         return new File(Paths.get(".").toAbsolutePath().normalize().toString()).getParentFile().getAbsolutePath() + File.separator + "simulator_data" + File.separator + filename;
     }
 
-    @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population")
+    @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population,DMA,Eligible")
     private String infoFile;
 
     public String getInfoFile() {
@@ -88,13 +88,22 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
 
+    // TODO: Use an env var, this only makes sense for you...
     @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
-    private String maxCFStickFile;
+    private String maxCFStickFile = "/ubc/cs/research/arrow/satfc/simulator/data/valuations.csv";
 
     @Getter
     @Parameter(names = "-VALUE-FILE", description = "CSV file with station value in each band for each American station (FacID, UHFValue, HVHFValue, LVHFValue)")
     private String valueFile;
+
+    @Parameter(names = "-COMMERCIAL-FILE", description = "CSV file with whether eligible stations are commercial non-commercial (FacID, Commercial)")
+    private String commercialFile;
+
+    public String getCommercialFile() {
+        return commercialFile != null ? commercialFile : getInternalFile("commercial.csv");
+    }
+
 
     @Getter
     @Parameter(names = "-STARTING-ASSIGNMENT-FILE", description = "CSV file with columns Ch, FacID specifying a starting assignment for non-participating stations")
@@ -183,6 +192,19 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean greedyOnly = false;
 
+    @Parameter(names = "-NOISE-STD", description = "Noise to add to 1/3, 2/3")
+    @Getter
+    private double noiseStd = 0.05;
+
+    @Parameter(names = "-PARALLELISM", description = "Max threads to run for MIP solving")
+    @Getter
+    private int parallelism = Runtime.getRuntime().availableProcessors();
+
+    @Parameter(names = "-MIP-CUTOFF", description = "Number of seconds to run initial MIP")
+    @Getter
+    private double mipCutoff = 60 * 60;
+
+
     @Getter
     @ParametersDelegate
     private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
@@ -247,17 +269,19 @@ public class SimulatorParameters extends AbstractOptions {
 
         final Set<Integer> toRemove = new HashSet<>();
         for (IStationInfo s : stationDB.getStations()) {
+            if (s.getNationality().equals(Nationality.US) && !s.isEligible()) {
+                log.info("Station {} is a US station that was not offered an opening price, meaning it must be Not Needed and can effectively be ignored. Excluding from auction", s);
+                toRemove.add(s.getId());
+            }
             if (isIgnoreCanada() && s.getNationality().equals(Nationality.CA)) {
                 log.info("Station {} is a Canadian station and ignore Canada flag is set to true", s);
                 toRemove.add(s.getId());
             } else if ((isUhfOnly() || !isIncludeVHFBands()) && s.getDomain(Band.UHF).isEmpty()) {
                 log.info("Station {} has no domain in UHF, skipping due to flag", s);
                 toRemove.add(s.getId());
-            } else {
-                // not removing
-                if (!isIncludeVHFBands()) {
-                    ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
-                }
+            } else if (!isIncludeVHFBands()) {
+                // Remove the VHF bands of UHF stations if we are doing a UHF-only auction
+                ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
             }
 //            if (city != null && nLinks >= 0) {
 //                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
@@ -266,6 +290,7 @@ public class SimulatorParameters extends AbstractOptions {
         toRemove.forEach(stationDB::removeStation);
 
 
+        // Assign volumes
         log.info("Setting volumes");
         IVolumeCalculator volumeCalculator;
         if (isUnitVolume()) {
@@ -273,6 +298,7 @@ public class SimulatorParameters extends AbstractOptions {
         } else {
             volumeCalculator = new CSVVolumeCalculator(getVolumeFile());
         }
+
         final Set<IStationInfo> americanStations = Sets.newHashSet(stationDB.getStations(Nationality.US));
         final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);
         for (IStationInfo stationInfo : americanStations) {
@@ -280,10 +306,13 @@ public class SimulatorParameters extends AbstractOptions {
             ((StationInfo) stationInfo).setVolume(volume);
         }
 
-
-        // TOOD: This might make sense to do if you ever calculate volumes, but for now use FCC
-//        volumeCalculator = new NormalizingVolumeDecorator(volumeCalculator);
-
+        // Set stations as commercial or non-commercial
+        final CSVCommercial commercialReader = new CSVCommercial(getCommercialFile());
+        final Map<Integer, Boolean> commercialStatus = commercialReader.getCommercialStatus(americanStations);
+        for (IStationInfo stationInfo : americanStations) {
+            boolean commercial = commercialStatus.get(stationInfo.getId());
+            ((StationInfo) stationInfo).setCommercial(commercial);
+        }
     }
 
     private String getStateFolder() {
@@ -451,6 +480,30 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
+    public static class CSVCommercial {
+
+        final ImmutableMap<Integer, Boolean> commerical;
+
+        public CSVCommercial(String commercialFile) {
+            log.info("Reading commercial status from {}", commercialFile);
+            final ImmutableMap.Builder<Integer, Boolean> commericalBuilder = ImmutableMap.builder();
+            final Iterable<CSVRecord> commercialRecords = SimulatorUtils.readCSV(commercialFile);
+            for (CSVRecord record : commercialRecords) {
+                int id = Integer.parseInt(record.get("FacID"));
+                boolean isCommerical = Boolean.parseBoolean(record.get("Commercial"));
+                commericalBuilder.put(id, isCommerical);
+            }
+            commerical = commericalBuilder.build();
+            log.info("Finished reading commercial status");
+        }
+
+        public Map<Integer, Boolean> getCommercialStatus(Set<IStationInfo> stations) {
+            return commerical;
+        }
+
+
+    }
+
     @RequiredArgsConstructor
     public static class NormalizingVolumeDecorator implements IVolumeCalculator {
 
@@ -524,4 +577,3 @@ public class SimulatorParameters extends AbstractOptions {
 //
 //        }
 //    }
-

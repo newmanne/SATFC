@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator;
 
 import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
@@ -36,10 +37,17 @@ import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
+import ca.ubc.cs.beta.fcc.vcg.VCGMip;
+import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import ilog.cplex.IloCplex;
 import lombok.Builder;
 import lombok.Cleanup;
 import lombok.Data;
@@ -48,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by newmanne on 2016-09-27.
@@ -139,10 +148,11 @@ public class MultiBandAuctioneer {
         @Cleanup
         final IFeasibilitySolver solver = tmp;
 
-        final long notParticipatingUS = stationDB.getStations(Nationality.US).stream()
-                .map(participation::getParticipation)
-                .filter(p -> p.equals(Participation.EXITED_NOT_PARTICIPATING))
-                .count();
+
+        final Set<IStationInfo> nonParticipatingUSStations = stationDB.getStations(Nationality.US).stream()
+                .filter(s -> participation.getParticipation(s).equals(Participation.EXITED_NOT_PARTICIPATING)).collect(Collectors.toSet());
+
+        final long notParticipatingUS = nonParticipatingUSStations.size();
         final long totalUS = stationDB.getStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
         log.info("There are {} participating and {} non-participating US stations out of {} US stations", totalUS - notParticipatingUS, notParticipatingUS, totalUS);
 
@@ -152,32 +162,65 @@ public class MultiBandAuctioneer {
         }
 
         final Set<IStationInfo> onAirStations = participation.getOnAirStations();
-        log.info("Finding an initial assignment for the {} initially on air stations", onAirStations.size());
+        log.info("Finding an initial assignment for the {} initially on air stations ({} US UHF, {} US VHF)", onAirStations.size(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), nonParticipatingUSStations.stream().filter(s -> !s.getHomeBand().equals(Band.UHF)).count());
 
-        /**
-         * Now we go through clearing targets, in order from most aggressive to least aggressive, and try to find out whether we can even begin the auction by finding a satisfying assignment
-         * We choose a clearing target as the largest target that can be cleared given participation
-         */
-        ClearingResult result = null;
-        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS;
+        final int clearingTarget = parameters.getMaxChannel();
+        final int impairingAllowedStart = clearingTarget + 3;
+        final Set<Integer> impairingChannels = StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c >= impairingAllowedStart).collect(GuavaCollectors.toImmutableSet());
+        final ClearingTargetOptimizationMIP clearingTargetOptimizationMIP = new ClearingTargetOptimizationMIP(impairingChannels);
+        final VCGMip.MIPMaker mipMaker = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIP);
+        final Map<Integer, Set<Integer>> domains = onAirStations
+                .stream().collect(GuavaCollectors.toImmutableMap(
+                                IStationInfo::getId,
+                                s -> Sets.union(s.getDomain(s.getHomeBand()), Sets.intersection(impairingChannels, parameters.getStationManager().getDomain(new Station(s.getId())))))
+                );
+        final VCGMip.MIPResult mipResult = mipMaker.solve(domains, onAirStations.stream().map(IStationInfo::getId).collect(Collectors.toSet()), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null);
+        if (!(mipResult.getStatus().equals(IloCplex.Status.Feasible) || mipResult.getStatus().equals(IloCplex.Status.Optimal))) {
+            log.warn("Could not find any feasible way to set up the non-participating stations!. Aborting the auction");
+            return;
+        }
+        final Map<Integer, Integer> assignment = mipResult.getAssignment();
 
+//        // TODO: START CHANGE
+//        /**
+//         * Now we go through clearing targets, in order from most aggressive to least aggressive, and try to find out whether we can even begin the auction by finding a satisfying assignment
+//         * We choose a clearing target as the largest target that can be cleared given participation
+//         */
+//        ClearingResult result = null;
+//        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS;
+//
+//        // Use a separate solver for clearing target initialization procedure. Of course, this means...
+//        @Cleanup
+//        final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
+//        for (final int maxChannel : clearingTargets) {
+//            log.info("Trying clearing target of {}", maxChannel);
+//            adjustCT(maxChannel, stationDB);
+//            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel, parameters.getStartingAssignment());
+//            if (result.isFeasible()) {
+//                break;
+//            } else {
+//                log.info("Failed to clear at {}", maxChannel);
+//            }
+//        }
+//        Preconditions.checkState(result != null && result.isFeasible(), "Could not clear the opening at clearing targets %s", clearingTargets);
+//        int clearingTarget = result.getClearingTarget();
+//        log.info("Finalizing clearing target at {}", clearingTarget);
 
-        // Use a separate solver for clearing target initialization procedure. Of course, this means...
-        @Cleanup
-        final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
-        for (final int maxChannel : clearingTargets) {
-            log.info("Trying clearing target of {}", maxChannel);
-            adjustCT(maxChannel, stationDB);
-            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel, parameters.getStartingAssignment());
-            if (result.isFeasible()) {
-                break;
-            } else {
-                log.info("Failed to clear at {}", maxChannel);
+        adjustCT(clearingTarget, stationDB);
+        // Restrict any impairing stations to the impairing channel they are on
+        int impairingCount = 0;
+        final Set<IStationInfo> toRemove = new HashSet<>();
+        for (Map.Entry<Integer, Integer> entry : assignment.entrySet()) {
+            int channel = entry.getValue();
+            if (channel > clearingTarget) {
+                impairingCount++;
+                int station = entry.getKey();
+                ((StationInfo) stationDB.getStationById(station)).setMaxChannel(channel);
+                ((StationInfo) stationDB.getStationById(station)).setMinChannel(channel);
             }
         }
-        Preconditions.checkState(result != null && result.isFeasible(), "Could not clear the opening at clearing targets %s", clearingTargets);
-        log.info("Finalizing clearing target at {}", result.getClearingTarget());
-        adjustCT(result.getClearingTarget(), stationDB);
+        log.info("There are {} impairing stations out of {} UHF non-participating stations. Removing them from auction", impairingCount, onAirStations.size());
+
         if (greedyFlaggingDecorator != null) {
             greedyFlaggingDecorator.init(ladder);
         }
@@ -185,8 +228,8 @@ public class MultiBandAuctioneer {
             uhfCache.init(ladder, parameters.getConstraintManager());
         }
         // This is a bit awkward (Should go through the ladder... but oh well)
-        result.getAssignment().entrySet().forEach(bandAssignmentEntry -> previousAssignmentHandler.updatePreviousAssignment(bandAssignmentEntry.getValue()));
-        int clearingTarget = result.getClearingTarget();
+//        assignment.entrySet().forEach(bandAssignmentEntry -> previousAssignmentHandler.updatePreviousAssignment(bandAssignmentEntry.getValue()));
+        previousAssignmentHandler.updatePreviousAssignment(assignment);
 
         final ProblemSaverDecorator.ProblemSaverInfo problemSaverInfo = ProblemSaverDecorator.ProblemSaverInfo.builder()
                 .interference(parameters.getConstraintSet())

@@ -15,8 +15,17 @@ apply plugin: 'maven-publish'
 //Project properties.
 applicationName = 'FCCSimulator'
 mainClassName = 'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer'
-version = "$SATFCVersion-"+getGitName()
-applicationDefaultJvmArgs = ['-Xmx16g']
+version = "$SATFCVersion-" + getGitName()
+applicationDefaultJvmArgs = ['-Xmx16g', '-Djava.library.path=${CPLEX_DIR}']
+
+startScripts{
+    doLast{
+        def bashFile = new File(getOutputDir(),applicationName)
+        def replace = bashFile.text.replace("-Djava.library.path=\\", "-Djava.library.path=")
+        bashFile.setText(replace)
+    }
+}
+
 
 jar {
     baseName = applicationName
@@ -48,13 +57,12 @@ def createScript(project, mainClass, name, jvmArgs) {
 }
 
 //Publishing to EARG maven repo.
-public String getEARGMavenRepo()
-{
+public String getEARGMavenRepo() {
     Properties properties = new Properties()
     def propertyFilename = 'local.properties'
     def propertyFile = project.rootProject.file(propertyFilename)
-    if(!propertyFile.exists()) {
-        println 'Necessary file '+propertyFilename+' was not present, creating an empty version of it!'
+    if (!propertyFile.exists()) {
+        println 'Necessary file ' + propertyFilename + ' was not present, creating an empty version of it!'
         propertyFile.createNewFile()
     }
     properties.load(propertyFile.newDataInputStream())
@@ -67,7 +75,7 @@ publishing {
     repositories {
         //Local EARG maven repo.
         maven {
-            url getEARGMavenRepo()+'/snapshots/'
+            url getEARGMavenRepo() + '/snapshots/'
         }
     }
 
@@ -90,7 +98,6 @@ publishing {
 
     }
 }
-
 
 
 //createScript(project,

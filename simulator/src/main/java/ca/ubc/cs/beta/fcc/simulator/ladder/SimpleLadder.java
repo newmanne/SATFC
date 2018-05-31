@@ -92,7 +92,7 @@ public class SimpleLadder implements IModifiableLadder {
             if (ladderBand.isAirBand()) {
                 int assignedChannel = getPreviousAssignment().get(ladderStation.getId());
                 Preconditions.checkState(BandHelper.toBand(assignedChannel).equals(ladderBand), "Station %s is on channel %s but ladder says is on band %s", ladderStation, assignedChannel, ladderBand);
-                Preconditions.checkState(ladderStation.getDomain(ladderBand).contains(assignedChannel), "Station %s is on channel %s not in domain %s", ladderBand, assignedChannel, ladderStation.getDomain());
+                Preconditions.checkState(ladderStation.getDomain(ladderBand).contains(assignedChannel), "Station %s is on channel %s not in domain %s", ladderStation, assignedChannel, ladderStation.getDomain());
             }
         }
         log.info("Moved {} from {} to {}", station, currentBand, band);

@@ -44,6 +44,9 @@ public interface IStationInfo {
     int getPopulation();
 
     Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand);
+    Boolean isCommercial();
+    boolean isEligible();
+    String getDMA();
 
     default Station toSATFCStation() {
         return new Station(getId());

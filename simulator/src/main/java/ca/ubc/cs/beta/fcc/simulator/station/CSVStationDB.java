@@ -39,13 +39,15 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
             final int channel = Integer.parseInt(record.get("Channel"));
             final String city = record.get("City");
             final String call = record.get("Call");
+            final String DMA = record.get("DMA");
             final int pop = Integer.parseInt(record.get("Population"));
+            final boolean eligible = Boolean.parseBoolean(record.get("Eligible"));
             if (nationality.equals(Nationality.CA)) {
                 // Canadian stations have some channel 52 stations... messes everything up...
                 stationInfo = StationInfo.canadianStation(id, channel >= StationPackingUtils.UHFmin ? Band.UHF : BandHelper.toBand(channel), domain, city, call, pop);
             } else {
                 final Band band = BandHelper.toBand(channel);
-                stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop);
+                stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop, DMA, eligible);
             }
             data.put(id, stationInfo);
         }
