@@ -7,9 +7,9 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import com.google.common.collect.ImmutableTable;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.Builder;
 
 import java.util.List;
 import java.util.Map;

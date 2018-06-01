@@ -137,9 +137,14 @@ public class MultiBandAuctioneer {
         tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
         parameters.getEventBus().register(tmp);
 
-        final ProblemSaverDecorator problemSaverDecorator = new ProblemSaverDecorator(tmp, parameters.getProblemFolder());
-        parameters.getEventBus().register(problemSaverDecorator);
-        tmp = problemSaverDecorator;
+        final ProblemSaverDecorator problemSaverDecorator;
+        if (parameters.isStoreProblems()) {
+            problemSaverDecorator = new ProblemSaverDecorator(tmp, parameters.getProblemFolder());
+            parameters.getEventBus().register(problemSaverDecorator);
+            tmp = problemSaverDecorator;
+        } else {
+            problemSaverDecorator = null;
+        }
 
         final TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(tmp, simulatorWatch, simulatorCPU);
         tmp = timeTrackingDecorator;
@@ -181,31 +186,6 @@ public class MultiBandAuctioneer {
         }
         final Map<Integer, Integer> assignment = mipResult.getAssignment();
 
-//        // TODO: START CHANGE
-//        /**
-//         * Now we go through clearing targets, in order from most aggressive to least aggressive, and try to find out whether we can even begin the auction by finding a satisfying assignment
-//         * We choose a clearing target as the largest target that can be cleared given participation
-//         */
-//        ClearingResult result = null;
-//        final List<Integer> clearingTargets = parameters.getMaxChannel() != null ? Lists.newArrayList(parameters.getMaxChannel()) : SimulatorUtils.CLEARING_TARGETS;
-//
-//        // Use a separate solver for clearing target initialization procedure. Of course, this means...
-//        @Cleanup
-//        final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
-//        for (final int maxChannel : clearingTargets) {
-//            log.info("Trying clearing target of {}", maxChannel);
-//            adjustCT(maxChannel, stationDB);
-//            result = testClearingTarget(ladder, ctSolver, problemMaker, maxChannel, parameters.getStartingAssignment());
-//            if (result.isFeasible()) {
-//                break;
-//            } else {
-//                log.info("Failed to clear at {}", maxChannel);
-//            }
-//        }
-//        Preconditions.checkState(result != null && result.isFeasible(), "Could not clear the opening at clearing targets %s", clearingTargets);
-//        int clearingTarget = result.getClearingTarget();
-//        log.info("Finalizing clearing target at {}", clearingTarget);
-
         adjustCT(clearingTarget, stationDB);
         // Restrict any impairing stations to the impairing channel they are on
         int impairingCount = 0;
@@ -235,8 +215,11 @@ public class MultiBandAuctioneer {
                 .interference(parameters.getConstraintSet())
                 .maxChannel(clearingTarget)
                 .build();
-        problemSaverDecorator.writeInfo(problemSaverInfo);
-        problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
+
+        if (problemSaverDecorator != null) {
+            problemSaverDecorator.writeInfo(problemSaverInfo);
+            problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
+        }
 
         final Map<IStationInfo, Double> initialCompensations = new HashMap<>();
         for (IStationInfo s : ladder.getStations()) {
@@ -335,46 +318,6 @@ public class MultiBandAuctioneer {
         for (IStationInfo s : stationDB.getStations()) {
             ((StationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
         }
-    }
-
-    @Data
-    @Builder
-    public static class ClearingResult {
-        private Map<Band, Map<Integer, Integer>> assignment;
-        private boolean feasible;
-        private int clearingTarget;
-
-        public static ClearingResult infeasible() {
-            return ClearingResult.builder().feasible(false).build();
-        }
-    }
-
-    public static ClearingResult testClearingTarget(ILadder ladder, IFeasibilitySolver solver, IProblemMaker problemMaker, int maxChannel, Map<Integer, Integer> previousAssignment) {
-        final Map<Band, Map<Integer, Integer>> bandAssignmentMap = new HashMap<>();
-        for (final Band band : ladder.getAirBands()) {
-            final Set<IStationInfo> bandStations = ladder.getBandStations(band);
-            if (bandStations.size() > 0) {
-                final SimulatorProblem simulatorProblem = problemMaker.makeProblem(bandStations, band, ProblemType.INITIAL_PLACEMENT, null);
-
-                simulatorProblem.getSATFCProblem().getProblem().setPreviousAssignment(previousAssignment);
-
-                final SimulatorResult initialFeasibility = solver.getFeasibilityBlocking(simulatorProblem);
-                if (SimulatorUtils.isFeasible(initialFeasibility)) {
-                    final Map<Integer, Integer> assignment = initialFeasibility.getSATFCResult().getWitnessAssignment();
-                    log.info("Found an initial assignment for the {} non-participating stations in band {}", bandStations.size(), band);
-                    bandAssignmentMap.put(band, assignment);
-                } else {
-                    log.info("Initial non-participating stations in {} do not have a feasible assignment with CT of {}! (Result was {})", band, maxChannel, initialFeasibility.getSATFCResult().getResult());
-                    return ClearingResult.infeasible();
-                }
-            }
-        }
-        log.info("{} is a feasible clearing target given participation", maxChannel);
-        return ClearingResult.builder()
-                .feasible(true)
-                .clearingTarget(maxChannel)
-                .assignment(bandAssignmentMap)
-                .build();
     }
 
 }

@@ -204,6 +204,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private double mipCutoff = 60 * 60;
 
+    @Parameter(names = "-STORE-PROBLEMS", description = "Write every problem to disk")
+    @Getter
+    private boolean storeProblems = false;
+
 
     @Getter
     @ParametersDelegate
@@ -536,44 +540,3 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
 }
-
-//    public class FCCVolumeCalculator implements IVolumeCalculator {
-//
-//        @Override
-//        public void setVolumes(Set<StationInfo> stationInfo) {
-//            final Map<StationInfo, Double> nonNormlalizedVolumes = new HashMap<>();
-//            final IStationManager stationManager = getStationManager();
-//            final IConstraintManager constraintManager = getConstraintManager();
-//            log.debug("There are {} stations in the manager", stationManager.getStations().size());
-//            final Map<Station, Set<Integer>> domains = stationManager.getStations()
-//                    .stream()
-//                    .filter(s -> stationDB.getStationById(s.getID()) != null)
-//                    .collect(Collectors.toMap(s -> s, s -> stationDB.getStationById(s.getID()).getDomain()));
-//            final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, getConstraintManager());
-//            final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-//            final Map<Station, Integer> icMap = new HashMap<>();
-//            for (Station a : domains.keySet()) {
-//                int icNum = 0;
-//                for (Station b : neighborIndex.neighborsOf(a)) {
-//                    int overallChanMax = 0;
-//                    for (Integer chanA : domains.get(a)) {
-//                        int chanMax = 0;
-//                        for (Integer chanB : domains.get(b)) {
-//                            if (!constraintManager.isSatisfyingAssignment(a, chanA, b, chanB)) {
-//                                chanMax += 1;
-//                            }
-//                        }
-//                        overallChanMax = Math.max(overallChanMax, chanMax);
-//                    }
-//                    icNum += overallChanMax;
-//                }
-//                icMap.put(a, icNum);
-//            }
-//
-//            for (StationInfo s: stationInfo) {
-//                int pop = s.getPopulation();
-//
-//            }
-//
-//        }
-//    }
