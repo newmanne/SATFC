@@ -118,11 +118,6 @@ public class SimulatorParameters extends AbstractOptions {
     private String listenQueue = "listen";
 
     @Getter
-    @Parameter(names = "-UNIT-VOLUME", description = "Sets all stations to have unit volume")
-    private boolean unitVolume = false;
-
-
-    @Getter
     @Parameter(names = "-UHF-ONLY", description = "Ignore non-UHF stations")
     private boolean uhfOnly = false;
 
@@ -191,6 +186,14 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-GREEDY-SOLVER-ONLY", description = "If true, don't use SATFC after init")
     @Getter
     private boolean greedyOnly = false;
+
+    public enum BidProcessingAlgorithm {
+        FCC, FIRST_TO_FINISH
+    }
+
+    @Getter
+    @Parameter(names = "-BID-PROCESSING", description = "Which bid processing algorithm to use")
+    private BidProcessingAlgorithm bidProcessingAlgorithm = BidProcessingAlgorithm.FCC;
 
     @Parameter(names = "-NOISE-STD", description = "Noise to add to 1/3, 2/3")
     @Getter
@@ -296,12 +299,7 @@ public class SimulatorParameters extends AbstractOptions {
 
         // Assign volumes
         log.info("Setting volumes");
-        IVolumeCalculator volumeCalculator;
-        if (isUnitVolume()) {
-            volumeCalculator = new UnitVolumeCalculator();
-        } else {
-            volumeCalculator = new CSVVolumeCalculator(getVolumeFile());
-        }
+        final IVolumeCalculator volumeCalculator = new CSVVolumeCalculator(getVolumeFile());
 
         final Set<IStationInfo> americanStations = Sets.newHashSet(stationDB.getStations(Nationality.US));
         final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);

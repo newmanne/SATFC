@@ -1,6 +1,5 @@
 package ca.ubc.cs.beta.fcc.simulator.utils;
 
-import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
@@ -20,18 +19,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Ordering;
 import humanize.Humanize;
-import humanize.spi.context.ContextFactory;
-import humanize.spi.context.DefaultContext;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.math.distribution.NormalDistribution;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
-import org.omg.CORBA.ORB;
 
 import java.io.*;
 import java.lang.management.ManagementFactory;
@@ -42,7 +37,6 @@ import java.util.stream.Collectors;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
-import static java.lang.Math.random;
 
 /**
  * Created by newmanne on 2016-05-20.
@@ -138,27 +132,37 @@ public class SimulatorUtils {
     public static Map<Band, Double> createValueMap(double UHFPrice, IStationInfo station, Random random, double noiseStd) {
         // Take care that stations MUST value higher bands more for this to make any sense
         final Map<Band, Double> valueMap = new HashMap<>();
-        // UHF gets full value for home, 2/3 for HVHF, 1/3 for LVHF, then 0 with some noise
-        double frac = 1.0;
-        if (station.getHomeBand().equals(Band.HVHF)) {
-            frac = 2. / 3;
-        } else if (station.getHomeBand().equals(Band.LVHF)) {
-            frac = 1. / 3;
+
+        // UHF Value
+        if (station.getHomeBand().equals(Band.UHF)) {
+            valueMap.put(Band.UHF, UHFPrice);
         }
-        for (Band band : station.getHomeBand().getBandsBelowInclusive(false)) {
-            if (band.equals(Band.OFF)) {
-                continue;
+
+        // HVHF Value
+        if (station.getHomeBand().isAbove(Band.LVHF)) {
+            double HVHFValue;
+            do {
+                HVHFValue = noisyValue(UHFPrice, random, 2. / 3, noiseStd);
             }
-            valueMap.put(band, UHFPrice * frac);
-            double noise = random.nextGaussian() * noiseStd;
-            double oldFrac = frac;
-            frac -= (1. / 3) + noise;
-            if (frac >= oldFrac) {
-                frac = oldFrac - 0.0001; // Just make sure values actually diminish
-            }
+            while (HVHFValue <= 0 || HVHFValue >= UHFPrice); // Should not be negative, should not be bigger than UHF price. Remember that normals are unbounded...
+            valueMap.put(Band.HVHF, HVHFValue);
         }
-        valueMap.put(Band.OFF, 0.); // Do this explicitly to not have any floating point nonsense
+
+        // LVHF Value
+        double LVHFValue;
+        do {
+            LVHFValue = noisyValue(UHFPrice, random, 1. / 3, noiseStd);
+        } while (LVHFValue <= 0 || (LVHFValue >= valueMap.getOrDefault(Band.HVHF, UHFPrice)));
+        valueMap.put(Band.LVHF, LVHFValue);
+
+        valueMap.put(Band.OFF, 0.);
+        checkValuesOrdered(station.getId(), valueMap);
         return valueMap;
+    }
+
+    private static double noisyValue(double UHFPrice, Random random, double frac, double noiseStd) {
+        double noise = random.nextGaussian() * noiseStd + 1;
+        return UHFPrice * frac * noise;
     }
 
     public static void assignValues(MultiBandSimulatorParameters parameters) {
@@ -240,12 +244,7 @@ public class SimulatorUtils {
                     valueMap.put(Band.LVHF, Double.parseDouble(LVHFValueString));
                 }
 
-                final List<Double> valuesSortedByBand = valueMap.entrySet().stream()
-                        .sorted(Comparator.comparing(Map.Entry::getKey))
-                        .map(Map.Entry::getValue).collect(Collectors.toList());
-                if (!Ordering.natural().isStrictlyOrdered(valuesSortedByBand)) {
-                    log.warn("Station {} does not value its bands UHF > HVHF > LVHF > OFF. This can lead to strange behaviour and may be a mistake in the value file.", id);
-                }
+                checkValuesOrdered(id, valueMap);
 
                 removed.remove(station);
                 log.info("Value of {} for {} in most valued band", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
@@ -258,6 +257,17 @@ public class SimulatorUtils {
         final Map<Band, List<IStationInfo>> droppedStationToBand = removed.stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
         for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {
             log.info("Dropped {} {} stations due to not having valuations", entry.getValue().size(), entry.getKey());
+        }
+
+
+    }
+
+    private static void checkValuesOrdered(int id, Map<Band, Double> valueMap) {
+        final List<Double> valuesSortedByBand = valueMap.entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .map(Map.Entry::getValue).collect(Collectors.toList());
+        if (!Ordering.natural().isStrictlyOrdered(valuesSortedByBand)) {
+            throw new IllegalStateException(String.format("Station %s does not value its bands UHF > HVHF > LVHF > OFF. This can lead to strange behaviour and is probably a mistake. %s", id, valueMap.toString()));
         }
     }
 

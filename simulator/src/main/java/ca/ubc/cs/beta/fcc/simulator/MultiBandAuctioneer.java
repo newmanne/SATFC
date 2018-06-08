@@ -169,6 +169,7 @@ public class MultiBandAuctioneer {
         final Set<IStationInfo> onAirStations = participation.getOnAirStations();
         log.info("Finding an initial assignment for the {} initially on air stations ({} US UHF, {} US VHF)", onAirStations.size(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), nonParticipatingUSStations.stream().filter(s -> !s.getHomeBand().equals(Band.UHF)).count());
 
+        // TODO: Encapsulate this better!
         final int clearingTarget = parameters.getMaxChannel();
         final int impairingAllowedStart = clearingTarget + 3;
         final Set<Integer> impairingChannels = StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c >= impairingAllowedStart).collect(GuavaCollectors.toImmutableSet());
@@ -179,11 +180,21 @@ public class MultiBandAuctioneer {
                                 IStationInfo::getId,
                                 s -> Sets.union(s.getDomain(s.getHomeBand()), Sets.intersection(impairingChannels, parameters.getStationManager().getDomain(new Station(s.getId())))))
                 );
-        final VCGMip.MIPResult mipResult = mipMaker.solve(domains, onAirStations.stream().map(IStationInfo::getId).collect(Collectors.toSet()), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null);
-        if (!(mipResult.getStatus().equals(IloCplex.Status.Feasible) || mipResult.getStatus().equals(IloCplex.Status.Optimal))) {
+        final VCGMip.MIPResult phaseOneResult = mipMaker.solve(domains, onAirStations.stream().map(IStationInfo::getId).collect(Collectors.toSet()), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null);
+        if (!(phaseOneResult.getStatus().equals(IloCplex.Status.Feasible) || phaseOneResult.getStatus().equals(IloCplex.Status.Optimal))) {
             log.warn("Could not find any feasible way to set up the non-participating stations!. Aborting the auction");
             return;
         }
+        final int nImpairingStations = (int) Math.round(phaseOneResult.getObjectiveValue());
+        log.info("{} stations will impair. Now finding best set", nImpairingStations);
+        final ClearingTargetOptimizationMIP.ClearingTargetOptimizationMIPPhaseTwo clearingTargetOptimizationMIPPhaseTwo = new ClearingTargetOptimizationMIP.ClearingTargetOptimizationMIPPhaseTwo(nImpairingStations, impairingChannels);
+        final VCGMip.MIPMaker mipMakerPhaseTwo = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIPPhaseTwo);
+        final VCGMip.MIPResult mipResult = mipMakerPhaseTwo.solve(domains, onAirStations.stream().map(IStationInfo::getId).collect(Collectors.toSet()), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null);
+        if (!(phaseOneResult.getStatus().equals(IloCplex.Status.Feasible) || phaseOneResult.getStatus().equals(IloCplex.Status.Optimal))) {
+            log.warn("Could not find any feasible way to set up the non-participating stations!. Aborting the auction");
+            return;
+        }
+
         final Map<Integer, Integer> assignment = mipResult.getAssignment();
 
         adjustCT(clearingTarget, stationDB);
@@ -262,6 +273,7 @@ public class MultiBandAuctioneer {
                         .constraintManager(parameters.getConstraintManager())
                         .stationManager(parameters.getStationManager())
                         .roundTracker(roundTracker)
+                        .bidProcessingAlgorithm(parameters.getBidProcessingAlgorithm())
                         .build()
         );
 

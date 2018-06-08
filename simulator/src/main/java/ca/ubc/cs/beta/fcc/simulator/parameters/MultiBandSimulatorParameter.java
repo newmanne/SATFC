@@ -28,5 +28,6 @@ public class MultiBandSimulatorParameter {
     private IStationManager stationManager;
     private IConstraintManager constraintManager;
     private RoundTracker roundTracker;
+    private SimulatorParameters.BidProcessingAlgorithm bidProcessingAlgorithm;
 
 }
