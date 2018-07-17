@@ -67,7 +67,15 @@ public class SimulatorParameters extends AbstractOptions {
     private static Logger log;
 
     private String getInternalFile(String filename) {
-        return new File(Paths.get(".").toAbsolutePath().normalize().toString()).getParentFile().getAbsolutePath() + File.separator + "simulator_data" + File.separator + filename;
+        // TODO: Need to change this to reflect where its runninig...
+        try {
+            File f = new File(SimulatorParameters.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            String jarPath = f.getCanonicalPath();
+            return new File(jarPath).getParentFile().getParentFile().getCanonicalPath() + File.separator + "simulator_data" + File.separator + filename;
+        } catch (URISyntaxException | IOException e) {
+            throw new IllegalStateException();
+        }
+//        return new File(Paths.get(".").toAbsolutePath().normalize().toString()).getParentFile().getAbsolutePath() + File.separator + "simulator_data" + File.separator + filename;
     }
 
     @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population,DMA,Eligible")
@@ -134,8 +142,12 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean ignoreCanada = false;
 
     @Getter
-    @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
-    private Integer maxChannel = null;
+    @Parameter(names = "-MAX-CHANNEL", description = "highest available channel for the first stage", required = true)
+    private int maxChannel;
+
+    @Getter
+    @Parameter(names = "-MAX-CHANNEL-FINAL", description = "highest available channel in the last stage")
+    private Integer maxChannelFinal = null;
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
@@ -250,9 +262,18 @@ public class SimulatorParameters extends AbstractOptions {
     public void setUp() {
         log = LoggerFactory.getLogger(Simulator.class);
 
+        Preconditions.checkState(SimulatorUtils.CLEARING_TARGETS.contains(maxChannel), "Unrecognized start clearing target %s", maxChannel);
+        if (maxChannelFinal != null) {
+            Preconditions.checkState(maxChannelFinal >= maxChannel, "Auction must end on a higher channel");
+            Preconditions.checkState(SimulatorUtils.CLEARING_TARGETS.contains(maxChannelFinal), "Unrecognized final clearing target %s", maxChannelFinal);
+        } else {
+            maxChannelFinal = maxChannel;
+        }
+
+
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         eventBus = new EventBus();
-        BandHelper.setUHFChannels(maxChannel != null ? maxChannel : StationPackingUtils.UHFmax);
+        BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
             Preconditions.checkState(outputFolder.exists() && outputFolder.isDirectory(), "Expected to restore state but no state directory found!");

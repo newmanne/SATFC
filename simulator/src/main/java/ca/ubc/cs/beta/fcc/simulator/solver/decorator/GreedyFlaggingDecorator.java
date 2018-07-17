@@ -1,6 +1,7 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
 import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
+import ca.ubc.cs.beta.fcc.simulator.DomainChangeEvent;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
@@ -19,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Sets;
+import com.google.common.eventbus.Subscribe;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -87,6 +89,12 @@ public class GreedyFlaggingDecorator extends AFeasibilitySolverDecorator {
             }
         }
         super.getFeasibility(problem, callback);
+    }
+
+
+    @Subscribe
+    public void onDomainChanged(DomainChangeEvent event) {
+        init(event.getLadder());
     }
 
 }

@@ -10,12 +10,21 @@ public class RoundTracker {
     @Getter
     private int round;
 
+    @Getter
+    private int stage;
+
     public RoundTracker() {
         round = 0;
+        stage = 1;
     }
 
     public void incrementRound() {
         round++;
+    }
+
+    public void incrementStage() {
+        stage++;
+        round = 1;
     }
 
 }

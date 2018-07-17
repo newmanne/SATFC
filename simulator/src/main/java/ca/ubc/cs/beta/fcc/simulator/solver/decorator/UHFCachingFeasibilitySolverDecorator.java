@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
+import ca.ubc.cs.beta.fcc.simulator.DomainChangeEvent;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
@@ -205,6 +206,18 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
             }
         }
     }
+
+    @Subscribe
+    public void onDomainChanged(DomainChangeEvent domainChangeEvent) {
+        log.debug("Domain has been changed. Flushing UNSAT and TIMEOUT results from the cache and updating component graph");
+        init(domainChangeEvent.getLadder(), domainChangeEvent.getConstraintManager());
+        final Set<IStationInfo> keysToRemove = feasibility.entrySet().stream()
+                .filter(entry -> !entry.getValue().getResult().getSATFCResult().getResult().equals(SATResult.SAT))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        feasibility.keySet().removeAll(keysToRemove);
+    }
+
 
     /**
      * If a station moves into UHF, we need to clear all of our results and recompute them

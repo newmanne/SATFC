@@ -3,12 +3,11 @@ package ca.ubc.cs.beta.fcc.simulator;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.IStationOrderer;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
+import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
-import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.LadderAuctionParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameter;
-import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
@@ -33,21 +32,17 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import humanize.Humanize;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.math.util.FastMath;
+import org.apache.commons.math3.util.Precision;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static java.lang.Math.max;
-import static java.lang.Math.min;
 
 /**
  * Created by newmanne on 2016-08-02.
@@ -100,6 +95,8 @@ public class MultiBandSimulator {
         final IPrices newBenchmarkPrices = pricesFactory.create();
         final IPrices actualPrices = pricesFactory.create();
 
+        final Map<IStationInfo, CatchupPoint> catchupPoints = new HashMap<>(previousState.getCatchupPoints());
+
         // TODO: Why not make these fields? Seems like you just reuse them anyways and could make method calls cleaner
         final IModifiableLadder ladder = previousState.getLadder();
         final ParticipationRecord participation = previousState.getParticipation();
@@ -117,15 +114,61 @@ public class MultiBandSimulator {
 
         log.info("Calculating new benchmark prices...");
         // Either 5% of previous value or 1% of starting value
-        final double decrement = Math.max(parameters.getR1() * oldBaseClockPrice, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF));
+        final Function<Double, Double> calcDecrement = r1 -> Math.max(r1 * oldBaseClockPrice, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF));
+        double mutableDecrement = calcDecrement.apply(parameters.getR1());
+        double proposedNewBaseClockPrice = oldBaseClockPrice - mutableDecrement;
+
+        // Check for empty rounds
+        final OptionalDouble maxCatchupPoint = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).stream().mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max();
+        if (participation.getMatching(Participation.BIDDING).isEmpty() && maxCatchupPoint.isPresent() && proposedNewBaseClockPrice > maxCatchupPoint.getAsDouble()) {
+            // Need to prevent an empty round
+            final double r1 = Precision.round((oldBaseClockPrice - maxCatchupPoint.getAsDouble()) / oldBaseClockPrice, 2, BigDecimal.ROUND_CEILING);
+            log.info("Preventing an empty round by using R1={} due to base clock being at {} after a normal decrement and our highest uncaught station at {}", r1, proposedNewBaseClockPrice, maxCatchupPoint.getAsDouble());
+            mutableDecrement = calcDecrement.apply(r1);
+        }
+
+        final double decrement = mutableDecrement;
+
+
         // This is the benchmark price for a UHF station to go off air
         final double newBaseClockPrice = oldBaseClockPrice - decrement;
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
 
-        for (IStationInfo station : participation.getMatching(Participation.ACTIVE)) {
+        final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
+        for (IStationInfo station : participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP)) {
+            // Maintain benchmark prices
+            for (Band band : ladder.getBands()) {
+                newBenchmarkPrices.setPrice(station, band, oldBenchmarkPrices.getPrice(station, band));
+            }
+            final CatchupPoint catchupPoint = catchupPoints.get(station);
+            if (newBaseClockPrice < catchupPoint.getCatchUpPoint()) {
+                // Station has caught up!
+                // If it is feasible in its pre-auction band, it is now bidding
+                // Else, it is Frozen, currently infeasible. Note that this MUST mean it is a VHF station, otherwise it would have been subject to checks
+                final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE));
+                final Participation newStatus;
+                if (SimulatorUtils.isFeasible(homeBandFeasibility)) {
+                    newStatus = Participation.BIDDING;
+                } else {
+                    Preconditions.checkState(station.getHomeBand().isVHF(), "Only a VHF station can be Frozen-Currently Infeasible after being a Provisional Winner. Yet station %s is not", station);
+                    newStatus = Participation.FROZEN_CURRENTLY_INFEASIBLE;
+                }
+
+                // Calculate a personal decrement
+                final double personalDecrement = catchupPoint.getBenchmarkPrices().get(Band.OFF) - newBaseClockPrice;
+                Preconditions.checkState(personalDecrement <= decrement);
+                personalDecrementsBuilder.put(station, personalDecrement);
+                participation.setParticipation(station, newStatus);
+                log.info("Station {} has caught up. Status switched to {}", station, newStatus);
+            }
+        }
+        final ImmutableMap<IStationInfo, Double> personalDecrements = personalDecrementsBuilder.build();
+
+        for (IStationInfo station : participation.getMatching(Sets.difference(Participation.ACTIVE, ImmutableSet.of(Participation.FROZEN_PENDING_CATCH_UP)))) {
             for (Band band : ladder.getBands()) {
                 // If this station were a "comparable" UHF station, the prices for all of the moves...
-                final double benchmarkValue = oldBenchmarkPrices.getPrice(station, band) - reductionCoefficients.get(station, band) * decrement;
+                // Use the personal decrement when available (because the station is newly caught up), otherwise use the normal decrement
+                final double benchmarkValue = oldBenchmarkPrices.getPrice(station, band) - reductionCoefficients.get(station, band) * personalDecrements.getOrDefault(station, decrement);
                 newBenchmarkPrices.setPrice(station, band, benchmarkValue);
             }
             for (Band band : ladder.getPossibleMoves(station)) {
@@ -253,7 +296,7 @@ public class MultiBandSimulator {
                 final Participation bidStatus = participation.getParticipation(station);
                 if (!feasibleInHomeBand && !bidStatus.equals(Participation.FROZEN_PROVISIONALLY_WINNING)) {
                     if (station.getHomeBand().equals(Band.UHF)) {
-                        makeProvisionalWinner(participation, station, stationPrices.get(station));
+                        makeProvisionalWinner(participation, station, stationPrices.get(station), catchupPoints, newBaseClockPrice, newBenchmarkPrices.getOffers(station));
                     } else {
                         // Need to do a provisional winner check
                         // Provisionally winning if cannot assign s, all exited in s's home band, and all provisionally winning with home bands above currently assigned to s's home band
@@ -267,7 +310,7 @@ public class MultiBandSimulator {
                             @Override
                             public void onSuccess(SimulatorProblem problem, SimulatorResult result) {
                                 if (!SimulatorUtils.isFeasible(result)) {
-                                    makeProvisionalWinner(participation, station, stationPrices.get(station));
+                                    makeProvisionalWinner(participation, station, stationPrices.get(station), catchupPoints, newBaseClockPrice, newBenchmarkPrices.getOffers(station));
                                 }
                             }
                         });
@@ -312,10 +355,11 @@ public class MultiBandSimulator {
                 .reductionCoefficients(reductionCoefficients)
                 .offers(actualPrices)
                 .bidProcessingOrder(stationsToQueryOrdering)
+                .catchupPoints(catchupPoints)
                 .build();
     }
 
-    private void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Double> stationPrices) {
+    static void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Double> stationPrices) {
         Preconditions.checkState(Participation.EXITED.contains(exitStatus), "Must be an exit Participation");
         log.info("Station {} (currently on band {}) is exiting, {}", station, ladder.getStationBand(station), exitStatus);
         participation.setParticipation(station, exitStatus);
@@ -323,9 +367,14 @@ public class MultiBandSimulator {
         stationPrices.put(station, 0.0);
     }
 
-    private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, double price) {
+    private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, double price, Map<IStationInfo, CatchupPoint> catchupPoints, double baseClock, Map<Band, Double> benchmarkPrices) {
         participation.setParticipation(station, Participation.FROZEN_PROVISIONALLY_WINNING);
         log.info("Station {}, with a value of {}, is now a provisional winner with a price of {}", station, Humanize.spellBigNumber(station.getValue()), Humanize.spellBigNumber(price));
+        if (catchupPoints.get(station) == null || catchupPoints.get(station).getCatchUpPoint() > baseClock) {
+            // If you were previously a provisional winner and don't bid to accept a lower price offer, your price doesn't change
+            // q_{s,b} is the LOWEST base clock price a station became provisionally winning in a previous stage
+            catchupPoints.put(station, new CatchupPoint(baseClock, benchmarkPrices));
+        }
     }
 
     // Just some sanity checks on bids
@@ -366,5 +415,6 @@ public class MultiBandSimulator {
             stationPrices.put(station, actualPrices.getPrice(station, moveBand));
         }
     }
+
 
 }

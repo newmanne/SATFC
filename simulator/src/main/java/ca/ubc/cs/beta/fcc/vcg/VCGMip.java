@@ -106,7 +106,7 @@ public class VCGMip {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
         SimulatorUtils.assignValues(parameters);
-        MultiBandAuctioneer.adjustCT(parameters.getMaxChannel(), parameters.getStationDB());
+        MultiBandAuctioneer.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
         if (q.cityDropAfter && parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }

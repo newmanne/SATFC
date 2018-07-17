@@ -2,6 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator;
 
 import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
+import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
@@ -19,11 +20,9 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.SimplePreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
-import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.*;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
-import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
@@ -39,18 +38,16 @@ import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
 import ca.ubc.cs.beta.fcc.vcg.VCGMip;
 import ca.ubc.cs.beta.stationpacking.base.Station;
+import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.eventbus.EventBus;
 import ilog.cplex.IloCplex;
-import lombok.Builder;
 import lombok.Cleanup;
-import lombok.Data;
 import lombok.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,9 +89,7 @@ public class MultiBandAuctioneer {
 
         SimulatorUtils.assignValues(parameters);
 
-        if (parameters.getMaxChannel() != null) {
-            adjustCT(parameters.getMaxChannel(), stationDB);
-        }
+        adjustCT(parameters.getMaxChannel(), stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
         if (parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), stationDB, parameters.getConstraintManager()).function();
         }
@@ -170,8 +165,9 @@ public class MultiBandAuctioneer {
         log.info("Finding an initial assignment for the {} initially on air stations ({} US UHF, {} US VHF)", onAirStations.size(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), nonParticipatingUSStations.stream().filter(s -> !s.getHomeBand().equals(Band.UHF)).count());
 
         // TODO: Encapsulate this better!
-        final int clearingTarget = parameters.getMaxChannel();
-        final int impairingAllowedStart = clearingTarget + 3;
+        // TODO: A separate, fake, "Impairing" Channel
+        int clearingTarget = parameters.getMaxChannel();
+        final int impairingAllowedStart = parameters.getMaxChannelFinal() + 3;
         final Set<Integer> impairingChannels = StationPackingUtils.UHF_CHANNELS.stream().filter(c -> c >= impairingAllowedStart).collect(GuavaCollectors.toImmutableSet());
         final ClearingTargetOptimizationMIP clearingTargetOptimizationMIP = new ClearingTargetOptimizationMIP(impairingChannels);
         final VCGMip.MIPMaker mipMaker = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIP);
@@ -197,7 +193,7 @@ public class MultiBandAuctioneer {
 
         final Map<Integer, Integer> assignment = mipResult.getAssignment();
 
-        adjustCT(clearingTarget, stationDB);
+        adjustCT(clearingTarget, stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
         // Restrict any impairing stations to the impairing channel they are on
         int impairingCount = 0;
         final Set<IStationInfo> toRemove = new HashSet<>();
@@ -213,9 +209,11 @@ public class MultiBandAuctioneer {
         log.info("There are {} impairing stations out of {} UHF non-participating stations. Removing them from auction", impairingCount, onAirStations.size());
 
         if (greedyFlaggingDecorator != null) {
+            parameters.getEventBus().register(greedyFlaggingDecorator);
             greedyFlaggingDecorator.init(ladder);
         }
         if (uhfCache != null) {
+            parameters.getEventBus().register(uhfCache);
             uhfCache.init(ladder, parameters.getConstraintManager());
         }
         // This is a bit awkward (Should go through the ladder... but oh well)
@@ -247,9 +245,11 @@ public class MultiBandAuctioneer {
                 .round(roundTracker.getRound())
                 .assignment(ladder.getPreviousAssignment())
                 .ladder(ladder)
+                .stage(roundTracker.getStage())
                 .prices(initialCompensations)
                 .baseClockPrice(parameters.getOpeningBenchmarkPrices().get(Band.OFF))
                 .offers(actualPrices)
+                .catchupPoints(new HashMap<>())
                 .build();
 
         final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
@@ -282,17 +282,71 @@ public class MultiBandAuctioneer {
         stateSaver.saveState(stationDB, state);
         timeTrackingDecorator.report();
 
-        while (true) {
-            state = simulator.executeRound(state);
-            timeTrackingDecorator.report();
-            stateSaver.saveState(stationDB, state);
-            // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
-            if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
-                log.info("All stations are inactive. Ending simulation");
-                break;
+        final int numberOfStages = 1 + SimulatorUtils.CLEARING_TARGETS.indexOf(parameters.getMaxChannelFinal()) - SimulatorUtils.CLEARING_TARGETS.indexOf(parameters.getMaxChannel());
+        log.info("The auction will proceed for {} stages", numberOfStages);
+
+        while (roundTracker.getStage() <= numberOfStages) {
+            log.info("Beginning stage {} of the auction", roundTracker.getStage());
+            if (roundTracker.getStage() > 1) {
+                log.info("Finding starting base clock price for stage {}", roundTracker.getStage());
+                final Set<IStationInfo> provisionalWinners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
+                final Optional<Integer> nextTarget = SimulatorUtils.getNextTarget(clearingTarget);
+                if (!nextTarget.isPresent()) {
+                    throw new IllegalStateException("Outside the range of the band plan!");
+                }
+                clearingTarget = nextTarget.get();
+                adjustCT(clearingTarget, stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
+
+                final ParticipationRecord endOfStageParticipation = state.getParticipation();
+
+                for (IStationInfo station : provisionalWinners.stream().sorted(Comparator.comparingInt(s -> -s.getHomeBand().ordinal())).collect(Collectors.toSet())) {
+                    final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE));
+                    if (SimulatorUtils.isFeasible(homeBandFeasibility)) {
+                        if (unconstrainedChecker.isUnconstrained(station, ladder)) {
+                            final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
+                            Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly!");
+                            MultiBandSimulator.exitStation(station, Participation.EXITED_NOT_NEEDED, feasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, state.getPrices());
+                        } else {
+                            endOfStageParticipation.setParticipation(station, Participation.FROZEN_PENDING_CATCH_UP);
+                        }
+                    } else if (station.getHomeBand().isVHF()) {
+                        // If it's a UHF station, that means it will remain a provisional winner
+                        // If it's a VHF station, need to differentiate between still a PW or F-CI (which would be F-PCU for now)
+                        final Set<IStationInfo> provisionalWinnerProblemStationSet = Sets.newHashSet(station);
+                        final ILadder tmpLadder = ladder;
+                        provisionalWinnerProblemStationSet.addAll(
+                                participation.getMatching(Participation.INACTIVE).stream()
+                                        .filter(s -> tmpLadder.getStationBand(s).equals(station.getHomeBand()))
+                                        .collect(Collectors.toSet())
+                        );
+                        final SimulatorResult result = solver.getFeasibilityBlocking(problemMaker.makeProblem(provisionalWinnerProblemStationSet, station.getHomeBand(), ProblemType.PROVISIONAL_WINNER_CHECK, station));
+                        if (SimulatorUtils.isFeasible(result)) {
+                            endOfStageParticipation.setParticipation(station, Participation.FROZEN_PENDING_CATCH_UP);
+                        }
+                    }
+                }
+
+                final Map<IStationInfo, CatchupPoint> catchupPoints = state.getCatchupPoints();
+                final double maxCatchupPoint = provisionalWinners.stream().filter(s -> endOfStageParticipation.getParticipation(s).equals(Participation.FROZEN_PENDING_CATCH_UP)).mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max().getAsDouble();
+                state.setBaseClockPrice(maxCatchupPoint);
+                log.info("Base clock price is set to {}", maxCatchupPoint);
             }
+
+            while (true) {
+                state = simulator.executeRound(state);
+                timeTrackingDecorator.report();
+                stateSaver.saveState(stationDB, state);
+                // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
+                if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
+                    log.info("All stations are inactive. Ending stage");
+                    roundTracker.incrementStage();
+                    break;
+                }
+            }
+
         }
 
+        log.info("Ending simulation");
         log.info("Finished. Goodbye :)");
     }
 
@@ -323,7 +377,12 @@ public class MultiBandAuctioneer {
         return new OpeningPrices(benchmarkPrices, actualPrices);
     }
 
-    public static void adjustCT(int ct, IStationDB.IModifiableStationDB stationDB) {
+    public static void adjustCT(int ct, IStationDB.IModifiableStationDB stationDB, EventBus eventBus, ILadder ladder, IConstraintManager constraintManager) {
+        adjustCTSimple(ct, stationDB);
+        eventBus.post(new DomainChangeEvent(ladder, constraintManager));
+    }
+
+    public static void adjustCTSimple(int ct, IStationDB.IModifiableStationDB stationDB) {
         // "Apply" the new clearing target to anything that was maintaining max channel state
         // WARNING: This can lead to a lot of strange bugs if something queries a station's domain and stores it before CT is finalized...
         BandHelper.setUHFChannels(ct);

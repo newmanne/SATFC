@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
+import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
@@ -39,6 +40,7 @@ public class SaveStateToFile implements IStateSaver {
     @NoArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class StateFile {
+        int stage;
         int round;
         Map<Integer, Integer> assignment;
         Map<Integer, StationState> state;
@@ -70,6 +72,7 @@ public class SaveStateToFile implements IStateSaver {
         Map<Band, Double> reductionCoefficients;
         Map<Band, Double> offers;
         Map<Band, Double> values;
+        CatchupPoint catchupPoint;
     }
 
     @Data
@@ -97,7 +100,7 @@ public class SaveStateToFile implements IStateSaver {
 
     @Override
     public void saveState(IStationDB stationDB, LadderAuctionState state) {
-        final String fileName = folder + File.separator + "state_" + state.getRound() + ".json";
+        final String fileName = folder + File.separator + "stage_" + state.getStage() + "_round_" + state.getRound() + ".json";
         final Map<Integer, StationState> stateByStation = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
             final StationState.StationStateBuilder stationState = StationState.builder()
@@ -105,16 +108,18 @@ public class SaveStateToFile implements IStateSaver {
                     .option(BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
                     .offers(state.getOffers().getOffers(s))
                     .values(s.getValues())
+                    .catchupPoint(state.getCatchupPoints().get(s))
                     .participation(state.getParticipation().getParticipation(s));
             if (state.getRound() > 0) {
                 stationState.vacancies(state.getVacancies().row(s))
-                            .reductionCoefficients(state.getReductionCoefficients().row(s));
+                        .reductionCoefficients(state.getReductionCoefficients().row(s));
             }
             stateByStation.put(s.getId(), stationState.build());
         }
         final StateFile.StateFileBuilder stateFile = StateFile.builder()
                 .assignment(state.getAssignment())
                 .state(stateByStation)
+                .stage(state.getStage())
                 .round(state.getRound())
                 .exitOrder(exitOrder);
         if (state.getRound() > 0) {

@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
+import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
@@ -26,6 +27,7 @@ public class LadderAuctionState {
     private IPrices benchmarkPrices;
     private ParticipationRecord participation;
     private int round;
+    private int stage;
     private Map<Integer, Integer> assignment;
     private IModifiableLadder ladder;
 
@@ -36,6 +38,10 @@ public class LadderAuctionState {
 
     // The current compensation of every station
     private Map<IStationInfo, Double> prices;
+
+    // The current catchup point of each station
+    private Map<IStationInfo, CatchupPoint> catchupPoints;
+
     // UHF to off benchmark
     private double baseClockPrice;
 

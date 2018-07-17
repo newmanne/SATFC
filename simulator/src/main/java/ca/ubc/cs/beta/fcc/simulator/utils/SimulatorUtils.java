@@ -46,6 +46,10 @@ public class SimulatorUtils {
 
     public static final ImmutableList<Integer> CLEARING_TARGETS = ImmutableList.of(29, 31, 32, 36, 38, 39, 41, 43, 44);
 
+    public static Optional<Integer> getNextTarget(int prevTarget) {
+        return CLEARING_TARGETS.stream().filter(c -> c > prevTarget).findFirst();
+    }
+
     public static boolean isFeasible(SATFCResult result) {
         return result.getResult().equals(SATResult.SAT);
     }

@@ -13,12 +13,13 @@ public enum Participation {
     BIDDING,
     FROZEN_PROVISIONALLY_WINNING,
     FROZEN_CURRENTLY_INFEASIBLE,
+    FROZEN_PENDING_CATCH_UP,
     EXITED_NOT_PARTICIPATING,
     EXITED_NOT_NEEDED,
     EXITED_VOLUNTARILY;
 
     // You need to compute prices for these stations
-    public static final Set<Participation> ACTIVE = ImmutableSet.of(BIDDING, FROZEN_CURRENTLY_INFEASIBLE);
+    public static final Set<Participation> ACTIVE = ImmutableSet.of(BIDDING, FROZEN_CURRENTLY_INFEASIBLE, FROZEN_PENDING_CATCH_UP);
     public static final Set<Participation> NON_ZERO_PRICES = ImmutableSet.copyOf(Sets.union(ACTIVE, ImmutableSet.of(FROZEN_PROVISIONALLY_WINNING)));
 
     public static final Set<Participation> EXITED = ImmutableSet.of(EXITED_NOT_NEEDED, EXITED_NOT_PARTICIPATING, EXITED_VOLUNTARILY);
