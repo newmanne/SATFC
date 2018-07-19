@@ -36,7 +36,7 @@ public class SimulatorProblemReader extends AProblemReader {
 
     @Override
     public SATFCFacadeProblem getNextProblem() {
-        SATFCFacadeProblem problem = null;
+        SATFCFacadeProblem problem;
         while (true) {
             activeProblemKey = jedis.rpoplpush(RedisUtils.makeKey(queueName), RedisUtils.processing(queueName));
             if (activeProblemKey == null) {
@@ -89,6 +89,10 @@ public class SimulatorProblemReader extends AProblemReader {
             log.error("Couldn't delete problem {} from the processing queue!", activeProblemKey);
         }
 
+    }
+
+    public boolean shouldInterrupt() {
+        return jedis.get(RedisUtils.makeKey(queueName) + ":INTERRUPT").equals("STOP");
     }
 
     // TODO: actually write proper json constructors for immutability

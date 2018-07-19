@@ -38,9 +38,7 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.io.Resources;
 import humanize.Humanize;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.jgrapht.graph.DefaultEdge;
@@ -67,7 +65,6 @@ public class SimulatorParameters extends AbstractOptions {
     private static Logger log;
 
     private String getInternalFile(String filename) {
-        // TODO: Need to change this to reflect where its runninig...
         try {
             File f = new File(SimulatorParameters.class.getProtectionDomain().getCodeSource().getLocation().toURI());
             String jarPath = f.getCanonicalPath();
@@ -75,7 +72,6 @@ public class SimulatorParameters extends AbstractOptions {
         } catch (URISyntaxException | IOException e) {
             throw new IllegalStateException();
         }
-//        return new File(Paths.get(".").toAbsolutePath().normalize().toString()).getParentFile().getAbsolutePath() + File.separator + "simulator_data" + File.separator + filename;
     }
 
     @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population,DMA,Eligible")
@@ -207,6 +203,12 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-BID-PROCESSING", description = "Which bid processing algorithm to use")
     private BidProcessingAlgorithm bidProcessingAlgorithm = BidProcessingAlgorithm.FCC;
 
+
+    @Getter
+    @Parameter(names = "-FIRST-TO-FINISH-ROUND-WALLTIME")
+    private Double roundWalltime = 4. * 60 * 60;
+
+
     @Parameter(names = "-NOISE-STD", description = "Noise to add to 1/3, 2/3")
     @Getter
     private double noiseStd = 0.05;
@@ -223,6 +225,9 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean storeProblems = false;
 
+
+    @Getter
+    private BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
 
     @Getter
     @ParametersDelegate
@@ -270,6 +275,14 @@ public class SimulatorParameters extends AbstractOptions {
             maxChannelFinal = maxChannel;
         }
 
+        final BidProcessingAlgorithmParameters.BidProcessingAlgorithmParametersBuilder bidProcessingAlgorithmParametersBuilder = BidProcessingAlgorithmParameters.builder().bidProcessingAlgorithm(getBidProcessingAlgorithm());
+        if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+            final DistributedFeasibilitySolver distributedFeasibilitySolver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+            bidProcessingAlgorithmParametersBuilder.distributedFeasibilitySolver(distributedFeasibilitySolver);
+            bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
+        }
+        bidProcessingAlgorithmParameters = bidProcessingAlgorithmParametersBuilder.build();
+
 
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         eventBus = new EventBus();
@@ -296,9 +309,10 @@ public class SimulatorParameters extends AbstractOptions {
         stationDB = new CSVStationDB(getInfoFile(), getStationManager());
 
         final Set<Integer> toRemove = new HashSet<>();
+        final Set<IStationInfo> notNeeded = new HashSet<>();
         for (IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.US) && !s.isEligible()) {
-                log.info("Station {} is a US station that was not offered an opening price, meaning it must be Not Needed and can effectively be ignored. Excluding from auction", s);
+                notNeeded.add(s);
                 toRemove.add(s.getId());
             }
             if (isIgnoreCanada() && s.getNationality().equals(Nationality.CA)) {
@@ -314,6 +328,9 @@ public class SimulatorParameters extends AbstractOptions {
 //            if (city != null && nLinks >= 0) {
 //                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
 //            }
+        }
+        if (!notNeeded.isEmpty()) {
+            log.info("The following {} US stations that were not offered an opening price, meaning they must be Not Needed and can effectively be ignored. Excluding from auction" + System.lineSeparator() + "{}", notNeeded.size(), notNeeded);
         }
         toRemove.forEach(stationDB::removeStation);
 
@@ -556,6 +573,14 @@ public class SimulatorParameters extends AbstractOptions {
             }
         }
         return assignment;
+    }
+
+    @Builder
+    @Data
+    public static class BidProcessingAlgorithmParameters {
+        BidProcessingAlgorithm bidProcessingAlgorithm;
+        DistributedFeasibilitySolver distributedFeasibilitySolver;
+        double roundTimer;
     }
 
 }

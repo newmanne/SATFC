@@ -207,6 +207,10 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         }
     }
 
+    public void clear() {
+        feasibility.clear();
+    }
+
     @Subscribe
     public void onDomainChanged(DomainChangeEvent domainChangeEvent) {
         log.debug("Domain has been changed. Flushing UNSAT and TIMEOUT results from the cache and updating component graph");

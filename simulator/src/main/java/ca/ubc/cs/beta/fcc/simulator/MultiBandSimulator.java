@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.IStationOrderer;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
 import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.LadderAuctionParameters;
@@ -13,6 +14,7 @@ import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPricesFactory;
+import ca.ubc.cs.beta.fcc.simulator.solver.DistributedFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
@@ -31,6 +33,7 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
+import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import humanize.Humanize;
@@ -41,6 +44,8 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -65,7 +70,7 @@ public class MultiBandSimulator {
     private final LadderAuctionParameters parameters;
     private final IStationManager stationManager;
     private final IConstraintManager constraintManager;
-    private final SimulatorParameters.BidProcessingAlgorithm bidProcessingAlgorithm;
+    private final SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
 
     public MultiBandSimulator(MultiBandSimulatorParameter parameters) {
         this.parameters = parameters.getParameters();
@@ -79,7 +84,7 @@ public class MultiBandSimulator {
         this.stationManager = parameters.getStationManager();
         this.constraintManager = parameters.getConstraintManager();
         this.roundTracker = parameters.getRoundTracker();
-        this.bidProcessingAlgorithm = parameters.getBidProcessingAlgorithm();
+        this.bidProcessingAlgorithmParameters = parameters.getBidProcessingAlgorithmParameters();
         // TODO: calculate the interference compononent manually? (i.e. manual volume calculation)
     }
 
@@ -104,7 +109,11 @@ public class MultiBandSimulator {
         Preconditions.checkState(previousState.getAssignment().equals(ladder.getPreviousAssignment()), "Ladder and previous state do not match on assignments", previousState.getAssignment(), ladder.getPreviousAssignment());
         Preconditions.checkState(StationPackingUtils.weakVerify(stationManager, constraintManager, previousState.getAssignment()), "Round started on an invalid assignment!", previousState.getAssignment());
 
-        log.info("There are {} bidding stations remaining (HB={}), {} provisional winners, and {} frozen stations that are not provisional winners", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.BIDDING).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
+        log.info("There are {} bidding stations remaining (HB={}), {} provisional winners, and {} frozen currently infeasible stations", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.BIDDING).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
+        final int pendingCatchup = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).size();
+        if (pendingCatchup > 0) {
+            log.info("There are {} stations frozen pending catchup", pendingCatchup);
+        }
 
         log.info("Computing vacancies...");
         final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
@@ -196,7 +205,7 @@ public class MultiBandSimulator {
         final List<IStationInfo> stationsToQuery = new ArrayList<>(stationsToQueryOrdering);
 
         // TODO: Can you move these to their own class or something?
-        if (bidProcessingAlgorithm.equals(SimulatorParameters.BidProcessingAlgorithm.FCC)) {
+        if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FCC)) {
             boolean finished = false;
             while (!finished) {
                 finished = true;
@@ -219,49 +228,52 @@ public class MultiBandSimulator {
                     }
                 }
             }
-        } else if (bidProcessingAlgorithm.equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
-            throw new IllegalStateException("Not implemented");
-//            final double baseCutoff = 60.0; // TODO need this parameter here:
-//            final double totalTimeBudget = baseCutoff * stationsToQuery.size();
-//            double dynamicCutoff = 1.0;
-//            while (true) {
-//                // Note: This is a sequential simulation of a parallel algorithm
-//                boolean lastRound = dynamicCutoff == totalTimeBudget;
-//                final Map<IStationInfo, SimulatorResult> stationToResult = new ConcurrentHashMap<>();
-//                // Step 1. Solve all problems with an X cutoff.
-//                for (final IStationInfo station : stationsToQuery) {
-//                    final Band homeBand = station.getHomeBand();
-//                    final SimulatorProblem simulatorProblem = problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE);
-//                    // TODO: You may want to go even higher - isn't the point that you get a time budget?
-//                    simulatorProblem.getSATFCProblem().setCutoff(dynamicCutoff);
-//                    final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(simulatorProblem);
-//                    stationToResult.put(station, homeBandFeasibility);
-//                }
-//                // Step 2: Queue up problems by completion time. Process stations until someone moves. Then reset all non-processed.
-//                final List<Entry<IStationInfo, SimulatorResult>> entries = stationToResult.entrySet().stream().sorted(Comparator.comparingDouble(e -> e.getValue().getSATFCResult().getCputime())).collect(Collectors.toList());
-//                for (Entry<IStationInfo, SimulatorResult> entry : entries) {
-//                    final SimulatorResult result = entry.getValue();
-//                    if (result.getSATFCResult().getResult().isConclusive()) {
-//                        final IStationInfo station = entry.getKey();
-//                        final Band prevBand = ladder.getStationBand(station);
-//                        final Bid bid = stationToBid.get(station);
-//                        processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
-//                        final Band currentBand = ladder.getStationBand(station);
-//                        stationsToQuery.remove(station);
-//                        // Did the station move?
-//                        if (!prevBand.equals(currentBand)) {
-//                            log.debug("Station {} moved bands, emptying queue", station);
-//                            break;
-//                        }
-//                    }
-//                }
-//                if (lastRound) {
-//                    // Everyone timed out
-//                    break;
-//                } else {
-//                    dynamicCutoff = FastMath.min(dynamicCutoff * 2, totalTimeBudget);
-//                }
-//            }
+        } else if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+            final DistributedFeasibilitySolver distributedFeasibilitySolver = bidProcessingAlgorithmParameters.getDistributedFeasibilitySolver();
+            final AtomicBoolean interrupt = new AtomicBoolean(false);
+            Watch watch = Watch.constructAutoStartWatch();
+            double wallTimeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
+            while (watch.getElapsedTime() < wallTimeLimit || stationsToQuery.isEmpty()) {
+                log.info("{} round time remaining. Starting checks for problems with this limit. Queue size is {}", wallTimeLimit - watch.getElapsedTime(), stationsToQuery.size());
+                // TODO: Need to cut off more aggresively here, this would allow you to go overboard....
+                final AtomicInteger unsatCount = new AtomicInteger(0);
+                // Queue up a problem for every station
+                Collections.shuffle(stationsToQuery); // TODO: Think about this ordering
+                for (IStationInfo station : stationsToQuery) {
+                    final Band homeBand = station.getHomeBand();
+                    final Band currentBand = ladder.getStationBand(station);
+                    log.debug("Checking if {}, currently on {}, is feasible on its home band", station, currentBand, homeBand);
+                    final SimulatorProblem simulatorProblem = problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE);
+                    simulatorProblem.getSATFCProblem().setCutoff(wallTimeLimit - watch.getElapsedTime());
+                    distributedFeasibilitySolver.getFeasibility(simulatorProblem, (problem, result) -> {
+                        synchronized (interrupt) {
+                            if (!interrupt.get()) {
+                                final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(result);
+                                log.debug("{}", result.getSATFCResult().getResult());
+                                if (isFeasibleInHomeBand) {
+                                    // Retrieve the bid
+                                    final Bid bid = stationToBid.get(station);
+                                    processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
+                                    if (!currentBand.equals(ladder.getStationBand(station))) {
+                                        log.debug("Station {} moved bands, emptying queue", station);
+                                        interrupt.set(true);
+                                        distributedFeasibilitySolver.killAll();
+                                    }
+                                    stationsToQuery.remove(station);
+                                } else if (result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
+                                    unsatCount.incrementAndGet();
+                                }
+                            }
+                        }
+                    });
+                }
+                distributedFeasibilitySolver.waitForAllSubmitted();
+                if (unsatCount.get() == stationsToQuery.size()) {
+                    // If every station in the list is UNSAT we are done. Otherwise, we have at least one timeout to check.
+                    break;
+                }
+                // TODO: What if a station never gets "served"? - I guess we call that a timeout? Or do we give some sort of final chance?
+            }
         }
 
         // BID STATUS UPDATING
@@ -347,6 +359,7 @@ public class MultiBandSimulator {
                 .benchmarkPrices(newBenchmarkPrices)
                 .participation(participation)
                 .round(roundTracker.getRound())
+                .stage(roundTracker.getStage())
                 .assignment(ladder.getPreviousAssignment())
                 .ladder(ladder)
                 .prices(stationPrices)

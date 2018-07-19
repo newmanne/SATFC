@@ -46,17 +46,15 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                                      double feasibilityVacancyContributionFloor,
                                      int nCores
     ) {
-        this.nCores = nCores;
         forkJoinPool = new ForkJoinPool(nCores);
         sequentialVacancyCalculator = new SequentialVacancyCalculator(participation, constraintManager, feasibilityVacancyContributionFloor);
     }
 
     private final SequentialVacancyCalculator sequentialVacancyCalculator;
-    private final int nCores;
     private final ForkJoinPool forkJoinPool;
 
     /**
-     * @param ladder     - the auction's ladder structure.
+     * @param ladder - the auction's ladder structure.
      * @return a map taking each station and band in the ladder to the station's vacancy on the band.
      */
     @Override

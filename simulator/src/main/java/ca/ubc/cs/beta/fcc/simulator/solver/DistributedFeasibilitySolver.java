@@ -73,7 +73,7 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
             final String answerString = jedis.lpop(replyQueue);
             if (answerString == null) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(250);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -90,12 +90,19 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
             }
             problemCallback.getCallback().onSuccess(problemCallback.getProblem(), SimulatorResult.fromSATFCResult(reply.getResult()));
         }
+        jedis.del(sendQueue + ":INTERRUPT");
     }
 
     @Override
     public void close() throws Exception {
         jedis.lpush(sendQueue, "DIE");
         jedis.close();
+    }
+
+    public void killAll() {
+        // TODO: Probably not this
+        jedis.del(sendQueue);
+        jedis.lpush(sendQueue + ":INTERRUPT", "STOP");
     }
 
     @Data

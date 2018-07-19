@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
 import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
@@ -28,10 +29,7 @@ import com.beust.jcommander.ParametersDelegate;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
+import com.google.common.collect.*;
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
@@ -266,7 +264,7 @@ public class VCGMip {
             Watch watch = Watch.constructAutoStartWatch();
 
             final Set<Integer> participating = Sets.difference(domains.keySet(), nonParticipating);
-            log.info("{} / {} participating stations", participating.size(), domains.size());
+            log.info("{} / {} stations are 'participating'", participating.size(), domains.size());
 
             // Set up the x_{s,c} variables
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
@@ -391,7 +389,9 @@ public class VCGMip {
             log.info("Satisfiability is {}", satisfiability);
             if (assignment != null) {
                 log.info("Verifying solution");
-                if (!StationPackingUtils.weakVerify(stationManager, constraintManager, assignment)) {
+                final HashMap<Integer, Integer> tmpAssignment = new HashMap<>(assignment);
+                assignment.keySet().stream().filter(key -> assignment.get(key) == ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL).forEach(tmpAssignment::remove);
+                if (!StationPackingUtils.weakVerify(stationManager, constraintManager, tmpAssignment)) {
                     throw new IllegalStateException("Could not verify assignment: " + assignment);
                 }
                 log.info("Verified!");

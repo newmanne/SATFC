@@ -24,7 +24,7 @@ public class RoundTracker {
 
     public void incrementStage() {
         stage++;
-        round = 1;
+        round = 0;
     }
 
 }

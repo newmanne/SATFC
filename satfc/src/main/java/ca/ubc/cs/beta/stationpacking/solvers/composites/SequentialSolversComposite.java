@@ -1,21 +1,21 @@
 /**
  * Copyright 2016, Auctionomics, Alexandre Fréchette, Neil Newman, Kevin Leyton-Brown.
- *
+ * <p>
  * This file is part of SATFC.
- *
+ * <p>
  * SATFC is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * SATFC is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with SATFC.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * <p>
  * For questions, contact us at:
  * afrechet@cs.ubc.ca
  */
@@ -39,61 +39,54 @@ import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
  * Composes a list of solvers and executes each one ata time.
  * @author afrechet
  */
-public class SequentialSolversComposite implements ISolver{
+public class SequentialSolversComposite implements ISolver {
 
-	private static Logger log = LoggerFactory.getLogger(SequentialSolversComposite.class);
-	
-	private final List<ISolver> fSolvers;
-	
-	public SequentialSolversComposite(List<ISolver> aSolvers)
-	{
-		fSolvers = aSolvers;
-	}
-	
-	@Override
-	public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion,
-			long aSeed) {
-		
-		Collection<SolverResult> results = new ArrayList<SolverResult>();
-		
-		for(int i=0;i<fSolvers.size();i++)
-		{
-		    if(aTerminationCriterion.hasToStop())
-		    {
-		        log.trace("All time spent.");
-		        break;
-		    }
-		    
-			log.debug("Trying solver {}.",i+1);
-			
-			SolverResult result = fSolvers.get(i).solve(aInstance, aTerminationCriterion, aSeed);
-			results.add(result);
-			
-			if(result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT))
-			{
-				break;
-			}
-		}
-		
-		return SolverHelper.combineResults(results);
-	}
+    private static Logger log = LoggerFactory.getLogger(SequentialSolversComposite.class);
 
-	@Override
-	public void notifyShutdown() {
-		for(ISolver solver : fSolvers)
-		{
-			solver.notifyShutdown();
-		}
-	}
+    private final List<ISolver> fSolvers;
 
-	@Override
-	public void interrupt() {
-		for(ISolver solver : fSolvers)
-		{
-			solver.interrupt();
-		}
-	}
+    public SequentialSolversComposite(List<ISolver> aSolvers) {
+        fSolvers = aSolvers;
+    }
 
+    @Override
+    public SolverResult solve(StationPackingInstance aInstance, ITerminationCriterion aTerminationCriterion,
+                              long aSeed) {
+
+        Collection<SolverResult> results = new ArrayList<SolverResult>();
+
+        for (int i = 0; i < fSolvers.size(); i++) {
+            if (aTerminationCriterion.hasToStop()) {
+                log.trace("All time spent.");
+                break;
+            }
+
+            log.debug("Trying solver {}.", i + 1);
+
+            SolverResult result = fSolvers.get(i).solve(aInstance, aTerminationCriterion, aSeed);
+            results.add(result);
+
+            if (result.getResult().equals(SATResult.SAT) || result.getResult().equals(SATResult.UNSAT)) {
+                break;
+            }
+        }
+
+        return SolverHelper.combineResults(results);
+    }
+
+    @Override
+    public void notifyShutdown() {
+        for (ISolver solver : fSolvers) {
+            solver.notifyShutdown();
+        }
+    }
+
+    @Override
+    public void interrupt() {
+        for (ISolver solver : fSolvers) {
+            solver.interrupt();
+        }
+    }
 
 
 }

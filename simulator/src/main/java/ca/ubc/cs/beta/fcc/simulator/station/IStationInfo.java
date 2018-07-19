@@ -33,11 +33,14 @@ public interface IStationInfo {
     Nationality getNationality();
     Band getHomeBand();
     ImmutableSet<Integer> getDomain();
+    ImmutableSet<Integer> getFullDomain();
+
     default ImmutableSet<Integer> getDomain(Band band) {
         final Set<Integer> domain = getDomain();
         final Set<Integer> bandChannels = BandHelper.toChannels(band);
         return ImmutableSet.copyOf(Sets.intersection(domain, bandChannels));
     }
+
 
     String getCity();
     String getCall();
@@ -51,5 +54,7 @@ public interface IStationInfo {
     default Station toSATFCStation() {
         return new Station(getId());
     }
-
+    void impair();
+    void unimpair();
+    boolean isImpaired();
 }

@@ -73,6 +73,7 @@ public class SaveStateToFile implements IStateSaver {
         Map<Band, Double> offers;
         Map<Band, Double> values;
         CatchupPoint catchupPoint;
+        Boolean impaired;
     }
 
     @Data
@@ -105,10 +106,11 @@ public class SaveStateToFile implements IStateSaver {
         for (IStationInfo s : stationDB.getStations()) {
             final StationState.StationStateBuilder stationState = StationState.builder()
                     .price(state.getPrices().get(s))
-                    .option(BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
+                    .option(s.isImpaired() ? Band.UHF : BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
                     .offers(state.getOffers().getOffers(s))
                     .values(s.getValues())
                     .catchupPoint(state.getCatchupPoints().get(s))
+                    .impaired(s.isImpaired())
                     .participation(state.getParticipation().getParticipation(s));
             if (state.getRound() > 0) {
                 stationState.vacancies(state.getVacancies().row(s))

@@ -27,10 +27,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.*;
 
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.CSVStationDB;
 import ca.ubc.cs.beta.stationpacking.execution.extendedcache.IStationDB;
+import ca.ubc.cs.beta.stationpacking.facade.InterruptibleSATFCResult;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
@@ -127,7 +129,12 @@ public class SATFCFacadeExecutor {
     }
 
     private static void solveProblems(SATFCFacadeParameters parameters, Logger log, SATFCFacade satfc) {
+
+        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+
         IProblemReader problemReader = ProblemGeneratorFactory.createFromParameters(parameters);
+
+
         ICutoffChooser cutoffChooser = CutoffChooserFactory.createFromParameters(parameters);
         IMetricWriter metricWriter = MetricWriterFactory.createFromParameters(parameters);
         SATFCFacadeProblem problem;
@@ -135,7 +142,7 @@ public class SATFCFacadeExecutor {
             final double cutoff = cutoffChooser.getCutoff(problem);
             log.info("Beginning problem {} with cutoff {}", problem.getInstanceName(), cutoff);
             log.info("Solving ...");
-            SATFCResult result = satfc.solve(
+            final InterruptibleSATFCResult interruptibleSATFCResult = satfc.solveInterruptibly(
                     problem.getDomains(),
                     problem.getPreviousAssignment(),
                     cutoff,
@@ -143,6 +150,19 @@ public class SATFCFacadeExecutor {
                     problem.getStationConfigFolder(),
                     problem.getInstanceName()
             );
+            // Submit a job to check Redis every X time and call interrupt
+            ScheduledFuture<?> scheduledFuture = null;
+            if (problemReader instanceof SimulatorProblemReader) {
+                scheduledFuture = executorService.scheduleWithFixedDelay(() -> {
+                    if (((SimulatorProblemReader) problemReader).shouldInterrupt()) {
+                        interruptibleSATFCResult.interrupt();
+                    }
+                }, 0, 100, TimeUnit.MILLISECONDS);
+            }
+            final SATFCResult result = interruptibleSATFCResult.computeResult();
+            if (scheduledFuture != null) {
+                scheduledFuture.cancel(true);
+            }
             log.info("..done!");
             if (!log.isInfoEnabled()) {
                 System.out.println(result.getResult());
@@ -155,6 +175,7 @@ public class SATFCFacadeExecutor {
             metricWriter.writeMetrics();
             SATFCMetrics.clear();
         }
+
         log.info("Finished all of the problems!");
         problemReader.onFinishedAllProblems();
         metricWriter.onFinished();

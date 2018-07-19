@@ -1,8 +1,8 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.stationpacking.base.StationPackingInstance;
 import ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Functions;
@@ -12,16 +12,13 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
@@ -68,6 +65,21 @@ public class StationInfo implements IStationInfo {
         return commercial;
     }
 
+    @Getter
+    private boolean impaired;
+
+    @Override
+    public void impair() {
+        domain = ImmutableSet.of(ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL);
+        impaired = true;
+    }
+
+    @Override
+    public void unimpair() {
+        impaired = false;
+        adjustDomain();
+    }
+
     private int maxChan = StationPackingUtils.UHFmax;
     private int minChan = StationPackingUtils.LVHFmin;
 
@@ -87,12 +99,15 @@ public class StationInfo implements IStationInfo {
         this.commercial = null;
         this.DMA = DMA;
         this.eligible = eligible;
+        this.impaired = false;
     }
 
     private void adjustDomain() {
-        this.domain = fullDomain.stream().filter(c -> c <= maxChan && c >= minChan).collect(GuavaCollectors.toImmutableSet());
-        if (getHomeBand().equals(Band.UHF)) {
-            Preconditions.checkState(!getDomain(Band.UHF).isEmpty(), "UHF band domain emptied!");
+        if (!impaired) {
+            this.domain = fullDomain.stream().filter(c -> c <= maxChan && c >= minChan).collect(GuavaCollectors.toImmutableSet());
+            if (getHomeBand().equals(Band.UHF)) {
+                Preconditions.checkState(!getDomain(Band.UHF).isEmpty(), "UHF band domain emptied!");
+            }
         }
     }
 

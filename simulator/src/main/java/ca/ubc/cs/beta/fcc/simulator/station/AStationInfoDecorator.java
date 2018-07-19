@@ -67,4 +67,23 @@ public abstract class AStationInfoDecorator implements IStationInfo {
         return decorated.isCommercial();
     }
 
+    @Override
+    public void impair() {
+        decorated.impair();
+    }
+
+    @Override
+    public void unimpair() {
+        decorated.unimpair();
+    }
+
+    @Override
+    public boolean isImpaired() {
+        return decorated.isImpaired();
+    }
+
+    @Override
+    public ImmutableSet<Integer> getFullDomain() {
+        return decorated.getFullDomain();
+    }
 }

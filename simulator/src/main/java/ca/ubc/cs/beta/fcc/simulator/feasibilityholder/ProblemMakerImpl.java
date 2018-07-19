@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap;
 
@@ -52,6 +53,10 @@ public class ProblemMakerImpl implements IProblemMaker {
     }
 
     private SimulatorProblem makeProblem(Set<IStationInfo> stations, Band band, SimulatorProblem.SimulatorProblemBuilder builder, String name) {
+        if (band == Band.UHF) {
+            stations = stations.stream().filter(s -> !s.isImpaired()).collect(Collectors.toSet());
+        }
+
         builder.band(band).round(roundTracker.getRound());
         builder.problemNumber(problemNumber++);
         final Map<Integer, Set<Integer>> domains = stations.stream().collect(toImmutableMap(
