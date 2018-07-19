@@ -90,7 +90,7 @@ public class MultiBandSimulator {
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
         roundTracker.incrementRound();
-        log.info("Starting round {}", roundTracker.getRound());
+        log.info("Starting stage {} round {}", roundTracker.getStage(), roundTracker.getRound());
 
         final Map<IStationInfo, Double> stationPrices = new HashMap<>(previousState.getPrices());
 
@@ -165,7 +165,7 @@ public class MultiBandSimulator {
 
                 // Calculate a personal decrement
                 final double personalDecrement = catchupPoint.getBenchmarkPrices().get(Band.OFF) - newBaseClockPrice;
-                Preconditions.checkState(personalDecrement <= decrement);
+                Preconditions.checkState(personalDecrement - decrement <= 10e-3, "Personal decrement for %s is %s which is not <= overall decrement of %s", personalDecrement, station, decrement);
                 personalDecrementsBuilder.put(station, personalDecrement);
                 participation.setParticipation(station, newStatus);
                 log.info("Station {} has caught up. Status switched to {}", station, newStatus);
@@ -184,6 +184,13 @@ public class MultiBandSimulator {
                 actualPrices.setPrice(station, band, SimulatorUtils.benchmarkToActualPrice(station, band, newBenchmarkPrices.getOffers(station)));
             }
         }
+
+        // Persist so they can be used in vacancy calculations. They do not decrease
+        participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).forEach(s -> {
+            for (Band band : ladder.getBands()) {
+                newBenchmarkPrices.setPrice(s, band, oldBenchmarkPrices.getPrice(s, band));
+            }
+        });
 
         log.info("Collecting bids");
         // Collect bids from bidding stations
@@ -353,7 +360,7 @@ public class MultiBandSimulator {
             }
         }
 
-        log.info("Round {} complete", roundTracker.getRound());
+        log.info("Stage {} Round {} complete", roundTracker.getStage(), roundTracker.getRound());
 
         return LadderAuctionState.builder()
                 .benchmarkPrices(newBenchmarkPrices)

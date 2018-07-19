@@ -28,9 +28,6 @@ public class PricesImpl implements IPrices {
 
     public double getPrice(IStationInfo station, Band band) {
         Double price = prices.get(station, band);
-        if (price == null) {
-            log.info(prices.toString());
-        }
         Preconditions.checkNotNull(price, "No price for %s on %s", station, band);
         return price;
     }
@@ -40,4 +37,8 @@ public class PricesImpl implements IPrices {
         return prices.row(station);
     }
 
+    @Override
+    public String toString() {
+        return prices.toString();
+    }
 }
