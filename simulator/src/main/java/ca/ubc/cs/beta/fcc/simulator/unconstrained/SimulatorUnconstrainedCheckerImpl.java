@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.unconstrained;
 
+import ca.ubc.cs.beta.fcc.simulator.DomainChangeEvent;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
@@ -9,6 +10,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.eventbus.Subscribe;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
@@ -18,19 +20,28 @@ import java.util.Set;
 
 /**
  * Created by newmanne on 2016-09-27.
+ * I think this is a bit stronger than what was used in appendix D, which never recalculates A^{c}_{su}
  */
 @Slf4j
 public class SimulatorUnconstrainedCheckerImpl implements ISimulatorUnconstrainedChecker {
 
+    private final IConstraintManager constraintManager;
     private final ParticipationRecord participationRecord;
-    private final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap;
+    private ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighborIndexMap;
 
     // Index 1: s, Index 2: u, Index 3: Maximum number of channels that s can block on u's home band
-    private final ImmutableTable<IStationInfo, IStationInfo, Integer> blockingTable;
+    private ImmutableTable<IStationInfo, IStationInfo, Integer> blockingTable;
+
+    private boolean dirtyBit;
 
     public SimulatorUnconstrainedCheckerImpl(@NonNull IConstraintManager constraintManager, @NonNull ParticipationRecord participationRecord, @NonNull ILadder ladder) {
+        this.constraintManager = constraintManager;
         this.participationRecord = participationRecord;
-        this.bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
+        init(constraintManager, ladder);
+    }
+
+    private void init(@NonNull IConstraintManager constraintManager, @NonNull ILadder ladder) {
+        bandNeighborIndexMap = SimulatorUtils.getBandNeighborIndexMap(ladder, constraintManager);
         final ImmutableTable.Builder<IStationInfo, IStationInfo, Integer> builder = ImmutableTable.builder();
 
         log.info("Filling in unconstrained table for {} stations", participationRecord.getActiveStations().size());
@@ -55,10 +66,15 @@ public class SimulatorUnconstrainedCheckerImpl implements ISimulatorUnconstraine
             }
         }
         blockingTable = builder.build();
+        dirtyBit = false;
     }
 
     @Override
     public boolean isUnconstrained(@NonNull IStationInfo stationInfo, @NonNull ILadder ladder) {
+        if (dirtyBit) {
+            init(constraintManager, ladder);
+        }
+
         // 1) Get the set of stations that could ever wind up in the station's home band
         final Band homeBand = stationInfo.getHomeBand();
         final Set<IStationInfo> possibleStations = new HashSet<>();
@@ -83,5 +99,12 @@ public class SimulatorUnconstrainedCheckerImpl implements ISimulatorUnconstraine
         // 3) If this is less than the number of channels the station has in its home band, the station is unconstrained
         return blocked < stationInfo.getDomain(homeBand).size();
     }
+
+    @Subscribe
+    public void onDomainChanged(DomainChangeEvent event) {
+        dirtyBit = true;
+        // Don't just call init here, because the ParticipationRecord is fragile when stations unimpair
+    }
+
 
 }

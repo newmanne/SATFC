@@ -1,21 +1,20 @@
 package ca.ubc.cs.beta.fcc.simulator.solver;
 
-import ca.ubc.cs.beta.fcc.simulator.Simulator;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
-import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SATFCProblemSpecification;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader.SimulatorMessage;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.RedisUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
-import com.google.common.base.Preconditions;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import redis.clients.jedis.Jedis;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -30,80 +29,117 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
     private final String replyQueue;
 
     private final AtomicLong id;
+    // Used to know whether killAllProblems is necessary or whether things were just solved through decorators
+    private final AtomicBoolean dirtyBit;
+    private long careAboutId;
+    private final int nWorkers;
 
-    public DistributedFeasibilitySolver(Jedis jedis, String sendQueue, String replyQueue) {
+    private final AtomicBoolean externalWakeup;
+
+    public DistributedFeasibilitySolver(Jedis jedis, String sendQueue, String replyQueue, int nWorkers) {
         this.jedis = jedis;
         this.sendQueue = sendQueue;
         this.replyQueue = replyQueue;
+        this.nWorkers = nWorkers;
         callbacks = new ConcurrentHashMap<>();
         id = new AtomicLong();
-        // Empty out the queues
-        jedis.del(replyQueue);
-        jedis.del(sendQueue);
-        jedis.del(RedisUtils.processing(sendQueue));
+        cleanup();
+        externalWakeup = new AtomicBoolean(false);
+        dirtyBit = new AtomicBoolean(false);
     }
 
-    private String makeProblemKey(long id) {
-        return RedisUtils.makeKey(replyQueue, Long.toString(id));
+    private void cleanup() {
+        jedis.del(replyQueue, sendQueue, RedisUtils.processing(sendQueue), RedisUtils.interrupt(sendQueue));
     }
 
     @Override
     public void getFeasibility(SimulatorProblem simulatorProblem, SATFCCallback callback) {
+        // Push a job onto the queue
+        dirtyBit.set(true);
         final long problemID = id.getAndIncrement();
         final String json = JSONUtils.toString(new SimulatorMessage(simulatorProblem.getSATFCProblem(), replyQueue, problemID));
         log.trace("Sending problem {} to queue {}", json, sendQueue);
-        jedis.set(makeProblemKey(problemID), json);
-        jedis.lpush(sendQueue, makeProblemKey(problemID));
+        jedis.lpush(sendQueue, json);
         callbacks.put(problemID, new ProblemCallback(simulatorProblem, callback));
     }
 
     @Override
     public void waitForAllSubmitted() {
+        // TODO: Add a check for stuckness, by remembering how much time?
+        final SimulatorProblemReader.ExponentialBackoffWait waiter = new SimulatorProblemReader.ExponentialBackoffWait();
         if (!callbacks.isEmpty()) {
-            log.info("Waiting for {} callbacks to complete", callbacks.size());
+            log.info("Starting to wait for {} callbacks to complete", callbacks.size());
         }
         final Watch loggingWatch = Watch.constructAutoStartWatch();
-        while (!callbacks.isEmpty()) {
-            if (loggingWatch.getElapsedTime() > 60) {
-                log.info("Waiting for {} callbacks to complete", callbacks.size());
+        while (!externalWakeup.get() && !callbacks.isEmpty()) {
+            if (loggingWatch.getElapsedTime() > 30) {
+                log.info("Still waiting for {} callbacks to complete", callbacks.size());
                 loggingWatch.reset();
                 loggingWatch.start();
             }
             // Poll the reply queue
             final String answerString = jedis.lpop(replyQueue);
             if (answerString == null) {
-                try {
-                    Thread.sleep(250);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                waiter.waitSleep();
                 continue;
             }
+            waiter.reset();
             final SimulatorProblemReader.SATFCSimulatorReply reply = JSONUtils.toObject(answerString, SimulatorProblemReader.SATFCSimulatorReply.class);
-            final String problemKey = makeProblemKey(reply.getId());
-            log.trace("Deleting problem at key {}", problemKey);
-            jedis.del(problemKey);
-            final ProblemCallback problemCallback = callbacks.remove(reply.getId());
-            if (problemCallback == null) {
-                log.debug("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
-                continue;
+            if (reply.getId() >= careAboutId) {
+                final ProblemCallback problemCallback = callbacks.remove(reply.getId());
+                if (problemCallback == null) {
+                    log.debug("Problem callback did not exist for reply {}. Maybe it was duplicated work?", reply.getId());
+                    continue;
+                }
+                problemCallback.getCallback().onSuccess(problemCallback.getProblem(), SimulatorResult.fromSATFCResult(reply.getResult()));
+            } else {
+                log.trace("Discarding result for old problem {} since we no longer care about it", reply.getId());
             }
-            problemCallback.getCallback().onSuccess(problemCallback.getProblem(), SimulatorResult.fromSATFCResult(reply.getResult()));
         }
-        jedis.del(sendQueue + ":INTERRUPT");
+        if (externalWakeup.compareAndSet(true, false)) {
+            // Make sure the slate is clean
+            killAll();
+        }
     }
 
     @Override
     public void close() throws Exception {
-        jedis.lpush(sendQueue, "DIE");
+        jedis.set(RedisUtils.interrupt(sendQueue), "DIE");
         jedis.close();
     }
 
     public void killAll() {
-        // TODO: Probably not this
-        jedis.del(sendQueue);
-        jedis.lpush(sendQueue + ":INTERRUPT", "STOP");
+        if (dirtyBit.compareAndSet(true, false)) {
+            final SimulatorProblemReader.ExponentialBackoffWait waiter = new SimulatorProblemReader.ExponentialBackoffWait();
+            careAboutId = id.get();
+            callbacks.clear();
+            cleanup();
+            final String stopKey = "STOP:" + RandomStringUtils.randomAlphanumeric(10);
+            jedis.set(RedisUtils.interrupt(sendQueue), stopKey);
+            final Watch watch = Watch.constructAutoStartWatch();
+            while (true) {
+                // Wait for all of the NWorkers to acknowledge the stop, then return
+                if (Integer.toString(nWorkers).equals(jedis.get(stopKey))) {
+                    break;
+                }
+                if (watch.getElapsedTime() > 5 * 60) {
+                    throw new IllegalStateException("Waited more than 5 minutes and not every worker has acknowledged a stop!");
+                }
+                waiter.waitSleep();
+            }
+            cleanup();
+            jedis.del(stopKey);
+        }
     }
+
+    public void wakeUp() {
+        externalWakeup.set(true);
+    }
+
+    public void clearWakeUp() {
+        externalWakeup.set(false);
+    }
+
 
     @Data
     public static class ProblemCallback {

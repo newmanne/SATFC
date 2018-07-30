@@ -4,7 +4,6 @@ import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.IStationOrderer;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
 import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
-import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.IModifiableLadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.LadderAuctionParameters;
@@ -43,8 +42,7 @@ import org.apache.commons.math3.util.Precision;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -85,7 +83,6 @@ public class MultiBandSimulator {
         this.constraintManager = parameters.getConstraintManager();
         this.roundTracker = parameters.getRoundTracker();
         this.bidProcessingAlgorithmParameters = parameters.getBidProcessingAlgorithmParameters();
-        // TODO: calculate the interference compononent manually? (i.e. manual volume calculation)
     }
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
@@ -102,7 +99,6 @@ public class MultiBandSimulator {
 
         final Map<IStationInfo, CatchupPoint> catchupPoints = new HashMap<>(previousState.getCatchupPoints());
 
-        // TODO: Why not make these fields? Seems like you just reuse them anyways and could make method calls cleaner
         final IModifiableLadder ladder = previousState.getLadder();
         final ParticipationRecord participation = previousState.getParticipation();
 
@@ -140,7 +136,7 @@ public class MultiBandSimulator {
 
 
         // This is the benchmark price for a UHF station to go off air
-        final double newBaseClockPrice = oldBaseClockPrice - decrement;
+        final double newBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
 
         final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
@@ -153,8 +149,8 @@ public class MultiBandSimulator {
             if (newBaseClockPrice < catchupPoint.getCatchUpPoint()) {
                 // Station has caught up!
                 // If it is feasible in its pre-auction band, it is now bidding
-                // Else, it is Frozen, currently infeasible. Note that this MUST mean it is a VHF station, otherwise it would have been subject to checks
-                final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE));
+                // Else, it is Frozen, currently infeasible. Note that this MUST mean it is a VHF station or it should have been flagged a provisional winner
+                final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.CATCHUP_FEASIBLE));
                 final Participation newStatus;
                 if (SimulatorUtils.isFeasible(homeBandFeasibility)) {
                     newStatus = Participation.BIDDING;
@@ -168,7 +164,7 @@ public class MultiBandSimulator {
                 Preconditions.checkState(personalDecrement - decrement <= 10e-3, "Personal decrement for %s is %s which is not <= overall decrement of %s", personalDecrement, station, decrement);
                 personalDecrementsBuilder.put(station, personalDecrement);
                 participation.setParticipation(station, newStatus);
-                log.info("Station {} has caught up. Status switched to {}", station, newStatus);
+                log.info("Station {}, currently on {}, has caught up. Status switched to {}", station, ladder.getStationBand(station), newStatus);
             }
         }
         final ImmutableMap<IStationInfo, Double> personalDecrements = personalDecrementsBuilder.build();
@@ -236,51 +232,56 @@ public class MultiBandSimulator {
                 }
             }
         } else if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+            final Set<IStationInfo> processed = ConcurrentHashMap.newKeySet();
             final DistributedFeasibilitySolver distributedFeasibilitySolver = bidProcessingAlgorithmParameters.getDistributedFeasibilitySolver();
-            final AtomicBoolean interrupt = new AtomicBoolean(false);
-            Watch watch = Watch.constructAutoStartWatch();
-            double wallTimeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
+            distributedFeasibilitySolver.clearWakeUp();
+            final Watch watch = Watch.constructAutoStartWatch();
+            final double wallTimeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
+            final ScheduledFuture<?> scheduledFuture = bidProcessingAlgorithmParameters.getExecutorService().schedule(() -> {
+                log.info("TIMES UP! Setting wakeup flag...");
+                distributedFeasibilitySolver.wakeUp();
+            }, Math.round(wallTimeLimit), TimeUnit.SECONDS);
             while (watch.getElapsedTime() < wallTimeLimit || stationsToQuery.isEmpty()) {
-                log.info("{} round time remaining. Starting checks for problems with this limit. Queue size is {}", wallTimeLimit - watch.getElapsedTime(), stationsToQuery.size());
-                // TODO: Need to cut off more aggresively here, this would allow you to go overboard....
+                log.debug("{} round time remaining. Starting checks for problems with this limit. Queue size is {}", wallTimeLimit - watch.getElapsedTime(), stationsToQuery.size());
                 final AtomicInteger unsatCount = new AtomicInteger(0);
                 // Queue up a problem for every station
-                Collections.shuffle(stationsToQuery); // TODO: Think about this ordering
-                for (IStationInfo station : stationsToQuery) {
+                for (final IStationInfo station : new ArrayList<>(stationsToQuery)) {
                     final Band homeBand = station.getHomeBand();
                     final Band currentBand = ladder.getStationBand(station);
                     log.debug("Checking if {}, currently on {}, is feasible on its home band", station, currentBand, homeBand);
                     final SimulatorProblem simulatorProblem = problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE);
                     simulatorProblem.getSATFCProblem().setCutoff(wallTimeLimit - watch.getElapsedTime());
-                    distributedFeasibilitySolver.getFeasibility(simulatorProblem, (problem, result) -> {
-                        synchronized (interrupt) {
-                            if (!interrupt.get()) {
-                                final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(result);
-                                log.debug("{}", result.getSATFCResult().getResult());
-                                if (isFeasibleInHomeBand) {
-                                    // Retrieve the bid
-                                    final Bid bid = stationToBid.get(station);
-                                    processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
-                                    if (!currentBand.equals(ladder.getStationBand(station))) {
-                                        log.debug("Station {} moved bands, emptying queue", station);
-                                        interrupt.set(true);
-                                        distributedFeasibilitySolver.killAll();
-                                    }
-                                    stationsToQuery.remove(station);
-                                } else if (result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
-                                    unsatCount.incrementAndGet();
-                                }
+                    // Use solver, and not distributed directly here, so we pass through the decorators...
+                    solver.getFeasibility(simulatorProblem, (problem, result) -> {
+                        processed.add(station);
+                        final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(result);
+                        log.debug("{}", result.getSATFCResult().getResult());
+                        if (isFeasibleInHomeBand) {
+                            // Retrieve the bid
+                            final Bid bid = stationToBid.get(station);
+                            processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
+                            if (!currentBand.equals(ladder.getStationBand(station))) {
+                                log.debug("Station {} moved bands, emptying queue", station);
+                                distributedFeasibilitySolver.killAll();
                             }
+                            stationsToQuery.remove(station);
+                        } else if (result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
+                            unsatCount.incrementAndGet();
                         }
                     });
                 }
                 distributedFeasibilitySolver.waitForAllSubmitted();
                 if (unsatCount.get() == stationsToQuery.size()) {
                     // If every station in the list is UNSAT we are done. Otherwise, we have at least one timeout to check.
+                    log.info("All remaining stations in the queue are verfied UNSAT. Ending the round");
                     break;
                 }
-                // TODO: What if a station never gets "served"? - I guess we call that a timeout? Or do we give some sort of final chance?
+                // Check if a station never got "served". Throw an error if this happens - it's possible with small numbers of workers, but that isn't the regime we care about
+                if (processed.size() != stationsToQueryOrdering.size()) {
+                    throw new IllegalStateException(String.format("Only %d/%d stations had their bids processed", processed.size(), stationsToQueryOrdering.size()));
+                }
             }
+            stopKillSignal(scheduledFuture);
         }
 
         // BID STATUS UPDATING
@@ -379,6 +380,15 @@ public class MultiBandSimulator {
                 .build();
     }
 
+    private void stopKillSignal(ScheduledFuture<?> scheduledFuture) {
+        scheduledFuture.cancel(true);
+        try {
+            scheduledFuture.get();
+        } catch (InterruptedException | ExecutionException | CancellationException e) {
+            // I don't care
+        }
+    }
+
     static void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Double> stationPrices) {
         Preconditions.checkState(Participation.EXITED.contains(exitStatus), "Must be an exit Participation");
         log.info("Station {} (currently on band {}) is exiting, {}", station, ladder.getStationBand(station), exitStatus);
@@ -424,7 +434,7 @@ public class MultiBandSimulator {
         }
         final Band moveBand = resortToFallbackBid ? bid.getFallbackOption() : bid.getPreferredOption();
         if (moveBand.equals(station.getHomeBand())) {
-            log.info("Station {} rejecting offers of {} and moving to exit (value in HB {})", station, prettyPrintOffers(actualPrices.getOffers(station)), Humanize.spellBigNumber(station.getValue()));
+            log.info("{}Station {} rejecting offers of {} and moving to exit (values: )", resortToFallbackBid ? "(FALLBACK) " : "", station, prettyPrintOffers(actualPrices.getOffers(station)), prettyPrintOffers(station.getValues()));
             exitStation(station, Participation.EXITED_VOLUNTARILY, homeBandFeasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, stationPrices);
         } else {
             // If an actual move is taking place
@@ -435,6 +445,5 @@ public class MultiBandSimulator {
             stationPrices.put(station, actualPrices.getPrice(station, moveBand));
         }
     }
-
 
 }

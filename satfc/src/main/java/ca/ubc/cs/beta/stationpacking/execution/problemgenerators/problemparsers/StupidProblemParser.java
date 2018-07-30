@@ -14,6 +14,7 @@ import com.google.common.base.Splitter;
 import lombok.Builder;
 import lombok.Cleanup;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 /**
  * Created by newmanne on 2016-11-16.
  */
+@Slf4j
 public class StupidProblemParser extends ANameToProblem {
 
     private final DataManager dataManager;
@@ -48,6 +50,7 @@ public class StupidProblemParser extends ANameToProblem {
 
     public StupidProblemParser(final DataManager dataManager, final String interferencesFolder, final Connection connection) {
         super(interferencesFolder);
+        log.info("Reading problems from database");
         this.dataManager = dataManager;
         this.connection = connection;
     }

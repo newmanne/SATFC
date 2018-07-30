@@ -37,8 +37,4 @@ public class PricesImpl implements IPrices {
         return prices.row(station);
     }
 
-    @Override
-    public String toString() {
-        return prices.toString();
-    }
 }

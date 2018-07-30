@@ -36,10 +36,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
-import com.google.common.io.Resources;
-import humanize.Humanize;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -50,9 +47,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -174,7 +171,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-UNCONSTRAINED-CHECKER", description = "Type of unconstrained checker")
     private UnconstrainedChecker unconstrainedChecker = UnconstrainedChecker.FCC;
 
-
     @Parameter(names = "-UHF-CACHE", description = "If true, cache problems")
     @Getter
     private boolean UHFCache = true;
@@ -184,7 +180,7 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean lazyUHF = true;
 
     @Getter
-    @Parameter(names = "-REVISIT-TIMEOUTS", description = "If true, revisit timeout results")
+    @Parameter(names = "-REVISIT-TIMEOUTS", description = "If true, revisit (UHF) timeout results. False is how it was used in the auction")
     private boolean revisitTimeouts = false;
 
     @Parameter(names = "-GREEDY-SOLVER-FIRST", description = "If true, always try solving a problem with the greedy solver first")
@@ -208,18 +204,22 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-FIRST-TO-FINISH-ROUND-WALLTIME")
     private Double roundWalltime = 4. * 60 * 60;
 
+    @Getter
+    @Parameter(names = "-FIRST-TO-FINISH-WORKERS")
+    private Integer firstToFinishWorkers;
+
 
     @Parameter(names = "-NOISE-STD", description = "Noise to add to 1/3, 2/3")
     @Getter
     private double noiseStd = 0.05;
 
-    @Parameter(names = "-PARALLELISM", description = "Max threads to run for MIP solving")
+    @Parameter(names = "-MIP-PARALLELISM", description = "Max threads to run for MIP solving")
     @Getter
     private int parallelism = Runtime.getRuntime().availableProcessors();
 
-    @Parameter(names = "-MIP-CUTOFF", description = "Number of seconds to run initial MIP")
+    @Parameter(names = "-MIP-CUTOFF", description = "Number of seconds to run initial MIP. In CPU time unless you change the CPLEX params.")
     @Getter
-    private double mipCutoff = 60 * 60;
+    private double mipCutoff = 60 * 60 * 2;
 
     @Parameter(names = "-STORE-PROBLEMS", description = "Write every problem to disk")
     @Getter
@@ -277,9 +277,11 @@ public class SimulatorParameters extends AbstractOptions {
 
         final BidProcessingAlgorithmParameters.BidProcessingAlgorithmParametersBuilder bidProcessingAlgorithmParametersBuilder = BidProcessingAlgorithmParameters.builder().bidProcessingAlgorithm(getBidProcessingAlgorithm());
         if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH)) {
-            final DistributedFeasibilitySolver distributedFeasibilitySolver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+            Preconditions.checkNotNull(firstToFinishWorkers, "First to finish algorithm requires specifying the number of workers!");
+            final DistributedFeasibilitySolver distributedFeasibilitySolver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue, firstToFinishWorkers);
             bidProcessingAlgorithmParametersBuilder.distributedFeasibilitySolver(distributedFeasibilitySolver);
             bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
+            bidProcessingAlgorithmParametersBuilder.executorService(Executors.newScheduledThreadPool(1));
         }
         bidProcessingAlgorithmParameters = bidProcessingAlgorithmParametersBuilder.build();
 
@@ -403,7 +405,8 @@ public class SimulatorParameters extends AbstractOptions {
                 solver = new LocalFeasibilitySolver(facadeParameters);
                 break;
             case DISTRIBUTED:
-                solver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+                // TODO: This won't work
+                solver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue, 0);
                 break;
             default:
                 throw new IllegalStateException();
@@ -581,6 +584,7 @@ public class SimulatorParameters extends AbstractOptions {
         BidProcessingAlgorithm bidProcessingAlgorithm;
         DistributedFeasibilitySolver distributedFeasibilitySolver;
         double roundTimer;
+        ScheduledExecutorService executorService;
     }
 
 }

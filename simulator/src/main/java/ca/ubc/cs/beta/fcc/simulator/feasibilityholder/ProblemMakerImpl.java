@@ -53,7 +53,7 @@ public class ProblemMakerImpl implements IProblemMaker {
     }
 
     private SimulatorProblem makeProblem(Set<IStationInfo> stations, Band band, SimulatorProblem.SimulatorProblemBuilder builder, String name) {
-        if (band == Band.UHF) {
+        if (band.equals(Band.UHF)) {
             stations = stations.stream().filter(s -> !s.isImpaired()).collect(Collectors.toSet());
         }
 

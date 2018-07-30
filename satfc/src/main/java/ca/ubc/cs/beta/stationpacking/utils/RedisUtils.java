@@ -30,6 +30,7 @@ public class RedisUtils {
 
     public static final String TIMEOUTS_QUEUE = "TIMEOUTS";
     public static final String PROCESSING_QUEUE = "PROCESSING";
+    public static final String INTERRUPT_QUEUE = "INTERRUPT";
     public static final String JOB_QUEUE = "_JOB";
     public static final String JSON_HASH = "_JSON";
     public static final String CNF_INDEX_QUEUE = "CNFIndex";
@@ -41,5 +42,7 @@ public class RedisUtils {
     public static String processing(String arg) {
         return makeKey(arg, PROCESSING_QUEUE);
     }
+
+    public static String interrupt(String arg) { return makeKey(arg, INTERRUPT_QUEUE); }
 
 }

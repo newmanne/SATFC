@@ -70,6 +70,9 @@ public class ClearingTargetOptimizationMIP implements VCGMip.IMIPEncoder {
         cplex.addMinimize(objectiveSum);
     }
 
-
+    @Override
+    public void setParams(IloCplex cplex) throws IloException {
+        cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Balanced);
+    }
 }
 
