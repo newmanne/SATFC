@@ -237,8 +237,9 @@ public class MultiBandSimulator {
             distributedFeasibilitySolver.clearWakeUp();
             final Watch watch = Watch.constructAutoStartWatch();
             final double wallTimeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
+            // TODO: If you wake up because of the time's up flag, you should still count as processed, or else you get an error
             final ScheduledFuture<?> scheduledFuture = bidProcessingAlgorithmParameters.getExecutorService().schedule(() -> {
-                log.info("TIMES UP! Setting wakeup flag...");
+                log.info("TIME'S UP! Setting wakeup flag...");
                 distributedFeasibilitySolver.wakeUp();
             }, Math.round(wallTimeLimit), TimeUnit.SECONDS);
             while (watch.getElapsedTime() < wallTimeLimit || stationsToQuery.isEmpty()) {
@@ -276,10 +277,10 @@ public class MultiBandSimulator {
                     log.info("All remaining stations in the queue are verfied UNSAT. Ending the round");
                     break;
                 }
-                // Check if a station never got "served". Throw an error if this happens - it's possible with small numbers of workers, but that isn't the regime we care about
-                if (processed.size() != stationsToQueryOrdering.size()) {
-                    throw new IllegalStateException(String.format("Only %d/%d stations had their bids processed", processed.size(), stationsToQueryOrdering.size()));
-                }
+            }
+            // Check if a station never got "served". Throw an error if this happens - it's possible with small numbers of workers, but that isn't the regime we care about
+            if (processed.size() != stationsToQueryOrdering.size()) {
+                throw new IllegalStateException(String.format("Only %d/%d stations had their bids processed", processed.size(), stationsToQueryOrdering.size()));
             }
             stopKillSignal(scheduledFuture);
         }
@@ -434,7 +435,7 @@ public class MultiBandSimulator {
         }
         final Band moveBand = resortToFallbackBid ? bid.getFallbackOption() : bid.getPreferredOption();
         if (moveBand.equals(station.getHomeBand())) {
-            log.info("{}Station {} rejecting offers of {} and moving to exit (values: )", resortToFallbackBid ? "(FALLBACK) " : "", station, prettyPrintOffers(actualPrices.getOffers(station)), prettyPrintOffers(station.getValues()));
+            log.info("{}Station {} rejecting offers of {} and moving to exit (values: {})", resortToFallbackBid ? "(FALLBACK) " : "", station, prettyPrintOffers(actualPrices.getOffers(station)), prettyPrintOffers(station.getValues()));
             exitStation(station, Participation.EXITED_VOLUNTARILY, homeBandFeasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, stationPrices);
         } else {
             // If an actual move is taking place
