@@ -118,12 +118,13 @@ public class DistributedFeasibilitySolver extends AFeasibilitySolver {
             jedis.set(RedisUtils.interrupt(sendQueue), stopKey);
             final Watch watch = Watch.constructAutoStartWatch();
             while (true) {
+                String acknowledged = jedis.get(stopKey);
                 // Wait for all of the NWorkers to acknowledge the stop, then return
-                if (Integer.toString(nWorkers).equals(jedis.get(stopKey))) {
+                if (Integer.toString(nWorkers).equals(acknowledged)) {
                     break;
                 }
                 if (watch.getElapsedTime() > 5 * 60) {
-                    throw new IllegalStateException("Waited more than 5 minutes and not every worker has acknowledged a stop!");
+                    throw new IllegalStateException("Waited more than 5 minutes and not every worker has acknowledged a stop! " + acknowledged + "/" + nWorkers + " acked");
                 }
                 waiter.waitSleep();
             }

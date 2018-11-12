@@ -140,7 +140,6 @@ public class ACLibSolver implements ISolver {
             log.error("Command:" + processString);
             log.error("Exception in ACLib solver: ", e);
             if (retryCount < RETRY_COUNT) {
-                // TODO: This will obviously ignore any interrupt signals, but they aren't working now anyways, so oh well.
                 return solve(aInstance, new WalltimeTerminationCriterion(timeCriterion), aSeed, retryCount + 1);
             }
             throw new RuntimeException("Trouble using aclib solver", e);

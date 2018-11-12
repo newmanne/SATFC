@@ -132,7 +132,7 @@ public class MultiBandAuctioneer {
         final Set<IStationInfo> onAirStations = participation.getOnAirStations();
 
         final Set<IStationInfo> onAirUHFStations = onAirStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).collect(toSet());
-        log.info("Finding an initial assignment for the {} initially on-air stations ({} US UHF, {} US VHF)", onAirStations.size(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), nonParticipatingUSStations.stream().filter(s -> !s.getHomeBand().equals(Band.UHF)).count());
+        log.info("Finding an initial assignment for the {} initially on-air stations ({} US UHF, {} US VHF)", onAirStations.size(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), nonParticipatingUSStations.stream().filter(s -> s.getHomeBand().isVHF()).count());
         log.info("Beginning by finding out if any of the {} on-air the UHF stations need to be impaired", onAirStations.stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count());
         final Map<Integer, Integer> assignment = clearingTargetOptimization(stationDB, parameters, onAirUHFStations);
         final Set<IStationInfo> impairingStations = assignment.entrySet().stream().filter(e -> e.getValue() == ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL)
@@ -161,10 +161,10 @@ public class MultiBandAuctioneer {
         final SimulatorResult lvhfSolution = ctSolver.getFeasibilityBlocking(problemMaker.makeProblem(ladder.getBandStations(Band.LVHF), Band.LVHF, ProblemType.INITIAL_PLACEMENT, null));
         previousAssignmentHandler.updatePreviousAssignment(lvhfSolution.getSATFCResult().getWitnessAssignment());
 
-        int clearingTarget = parameters.getMaxChannel();
+        // TODO: I doubt this works for multiple stages
         final ProblemSaverDecorator.ProblemSaverInfo problemSaverInfo = ProblemSaverDecorator.ProblemSaverInfo.builder()
                 .interference(parameters.getConstraintSet())
-                .maxChannel(clearingTarget)
+                .maxChannel(parameters.getMaxChannel())
                 .build();
 
         log.info("Building solver");
@@ -266,17 +266,12 @@ public class MultiBandAuctioneer {
         stateSaver.saveState(stationDB, state);
         timeTrackingDecorator.report();
 
-        final int numberOfStages = 1 + SimulatorUtils.CLEARING_TARGETS.indexOf(parameters.getMaxChannelFinal()) - SimulatorUtils.CLEARING_TARGETS.indexOf(parameters.getMaxChannel());
-        log.info("The auction will proceed for {} stages", numberOfStages);
+        final List<Integer> stages = SimulatorUtils.CLEARING_TARGETS.stream().filter(c -> c >= parameters.getMaxChannel() && c <= parameters.getMaxChannelFinal() && !parameters.getSkipStages().contains(c)).collect(toList());
+        log.info("The auction will proceed for {} stages, with the following max channels: {}", stages.size(), stages);
 
-        while (roundTracker.getStage() <= numberOfStages) {
+        for (int clearingTarget : stages) {
             log.info("Beginning stage {} of the auction", roundTracker.getStage());
             if (roundTracker.getStage() > 1) {
-                final Optional<Integer> nextTarget = SimulatorUtils.getNextTarget(clearingTarget);
-                if (!nextTarget.isPresent()) {
-                    throw new IllegalStateException("Outside the range of the band plan!");
-                }
-                clearingTarget = nextTarget.get();
                 adjustCT(clearingTarget, stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
 
                 if (!impairingStations.isEmpty()) {

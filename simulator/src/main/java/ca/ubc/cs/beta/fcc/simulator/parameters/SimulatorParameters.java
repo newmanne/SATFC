@@ -89,6 +89,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
 
+    @Getter
+    @Parameter(names = "-INFER-VALUES", description = "infer values for stations not in maxcfstick file")
+    private boolean inferValues = true;
+
     // TODO: Use an env var, this only makes sense for you...
     @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
@@ -141,6 +145,11 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-MAX-CHANNEL-FINAL", description = "highest available channel in the last stage")
     private Integer maxChannelFinal = null;
+
+    @Getter
+    @Parameter(names = "-SKIP-STAGES", description = "list of stages to skip")
+    private Set<Integer> skipStages = new HashSet<>();
+
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")

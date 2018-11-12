@@ -207,19 +207,20 @@ public class SimulatorUtils {
             double meanCommercialPricePerPop = dmaToPricePerPopCommercial.values().stream().collect(Collectors.averagingDouble(d -> d));
             double meanNonCommercialPricePerPop = dmaToPricePerPopNonCommercial.values().stream().collect(Collectors.averagingDouble(d -> d));
 
-            // Next, process stations without a model
-            for (IStationInfo station : americanStations) {
-                if (station.getValues() == null) {
-                    final Double meanDMAPrice = station.isCommercial() ? meanPricePerDMACommercial.getOrDefault(station.getDMA(), meanCommercialPricePerPop) : meanPricePerDMANonCommercial.getOrDefault(station.getDMA(), meanNonCommercialPricePerPop);
-                    if ((station.isCommercial() && (meanPricePerDMACommercial.get(station.getDMA()) == null)) || (!station.isCommercial() && meanPricePerDMANonCommercial.get(station.getDMA()) == null)) {
-                        log.debug("Mean DMA not available for DMA {} commercial={}. Using average price nationally", station.getDMA(), station.isCommercial());
+            if (parameters.isInferValues()) {
+                log.info("Inferring values for remaining stations based on mean price per pop in DMA");
+                // Next, process stations without a model
+                for (IStationInfo station : americanStations) {
+                    if (station.getValues() == null) {
+                        final Double meanDMAPrice = station.isCommercial() ? meanPricePerDMACommercial.getOrDefault(station.getDMA(), meanCommercialPricePerPop) : meanPricePerDMANonCommercial.getOrDefault(station.getDMA(), meanNonCommercialPricePerPop);
+                        if ((station.isCommercial() && (meanPricePerDMACommercial.get(station.getDMA()) == null)) || (!station.isCommercial() && meanPricePerDMANonCommercial.get(station.getDMA()) == null)) {
+                            log.debug("Mean DMA not available for DMA {} commercial={}. Using average price nationally", station.getDMA(), station.isCommercial());
+                        }
+                        final Map<Band, Double> valueMap = createValueMap(meanDMAPrice * station.getPopulation(), station, random, parameters.getNoiseStd());
+                        ((StationInfo) station).setValues(valueMap);
                     }
-                    final Map<Band, Double> valueMap = createValueMap(meanDMAPrice * station.getPopulation(), station, random, parameters.getNoiseStd());
-                    ((StationInfo) station).setValues(valueMap);
                 }
             }
-
-
         } else if (parameters.getValueFile() != null) {
             log.info("Reading station values from {}", parameters.getValueFile());
             final Iterable<CSVRecord> records = SimulatorUtils.readCSV(parameters.getValueFile());
