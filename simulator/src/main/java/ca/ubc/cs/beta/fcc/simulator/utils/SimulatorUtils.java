@@ -174,6 +174,7 @@ public class SimulatorUtils {
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
         final Collection<IStationInfo> americanStations = stationDB.getStations(Nationality.US);
         final Set<IStationInfo> removed = new HashSet<>();
+        removed.addAll(americanStations);
 
         if (parameters.getMaxCFStickFile() != null) {
             final ArrayListMultimap<String, Double> dmaToPricePerPopCommercial = ArrayListMultimap.create();
@@ -184,6 +185,10 @@ public class SimulatorUtils {
             // First, process the stations with a value model
             for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet()) {
                 final IStationInfo station = entry.getKey();
+                if (station.getHomeBand().isVHF()) {
+                    log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now!", station);
+                    continue;
+                }
                 double value = entry.getValue().generateValue();
                 if (station.isCommercial()) {
                     dmaToPricePerPopCommercial.put(station.getDMA(), value / station.getPopulation());
@@ -192,6 +197,7 @@ public class SimulatorUtils {
                 }
                 final Map<Band, Double> valueMap = createValueMap(value, station, random, parameters.getNoiseStd());
                 ((StationInfo) station).setValues(valueMap);
+                removed.remove(station);
             }
 
             // Get the mean price per DMA for the stations we do know about
@@ -224,7 +230,6 @@ public class SimulatorUtils {
         } else if (parameters.getValueFile() != null) {
             log.info("Reading station values from {}", parameters.getValueFile());
             final Iterable<CSVRecord> records = SimulatorUtils.readCSV(parameters.getValueFile());
-            removed.addAll(americanStations);
             for (CSVRecord record : records) {
                 final int id = Integer.parseInt(record.get("FacID"));
                 final IStationInfo station = stationDB.getStationById(id);
@@ -258,6 +263,10 @@ public class SimulatorUtils {
             throw new IllegalStateException("No way to assign station values. Must specify value file with -VALUE-FILE");
         }
 
+
+        for (IStationInfo toRemove: removed) {
+            stationDB.removeStation(toRemove.getId());
+        }
 
         final Map<Band, List<IStationInfo>> droppedStationToBand = removed.stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand));
         for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {

@@ -147,7 +147,7 @@ public class SimulatorParameters extends AbstractOptions {
     private Integer maxChannelFinal = null;
 
     @Getter
-    @Parameter(names = "-SKIP-STAGES", description = "list of stages to skip")
+    @Parameter(names = "-SKIP-STAGE", description = "list of stages to skip")
     private Set<Integer> skipStages = new HashSet<>();
 
 
