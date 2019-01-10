@@ -90,6 +90,10 @@ public class SimulatorParameters extends AbstractOptions {
     private int valuesSeed = 1;
 
     @Getter
+    @Parameter(names = "-POP-VALUES", description = "Base valuations on population (public model)")
+    private boolean popValues = false;
+
+    @Getter
     @Parameter(names = "-INFER-VALUES", description = "infer values for stations not in maxcfstick file")
     private boolean inferValues = true;
 
@@ -322,6 +326,7 @@ public class SimulatorParameters extends AbstractOptions {
         final Set<Integer> toRemove = new HashSet<>();
         final Set<IStationInfo> notNeeded = new HashSet<>();
         for (IStationInfo s : stationDB.getStations()) {
+            // note that you have marked some stations in non-mainland USA as always ineligibible on your csv file (Hawaii, Alaska, Virgin Islands, Puerto Rico)
             if (s.getNationality().equals(Nationality.US) && !s.isEligible()) {
                 notNeeded.add(s);
                 toRemove.add(s.getId());
@@ -344,7 +349,6 @@ public class SimulatorParameters extends AbstractOptions {
             log.info("The following {} US stations that were not offered an opening price, meaning they must be Not Needed and can effectively be ignored. Excluding from auction" + System.lineSeparator() + "{}", notNeeded.size(), notNeeded);
         }
         toRemove.forEach(stationDB::removeStation);
-
 
         // Assign volumes
         log.info("Setting volumes");

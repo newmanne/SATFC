@@ -40,6 +40,7 @@ import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
 import ca.ubc.cs.beta.fcc.vcg.VCGMip;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
+import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -333,6 +334,13 @@ public class MultiBandAuctioneer {
             }
 
         }
+
+        final Map<IStationInfo, Double> finalPrices = state.getPrices();
+        final IModifiableLadder finalLadder = state.getLadder();
+        final Set<IStationInfo> winners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
+        final double reverseAuctionCost = winners.stream().mapToDouble(finalPrices::get).sum();
+        final double valueLoss = winners.stream().mapToDouble(s -> s.getValue() - s.getValue(finalLadder.getStationBand(s))).sum();
+        log.info("Final cost of reverse auction {}. Final value loss is {}", reverseAuctionCost, valueLoss);
 
         if (parameters.getBidProcessingAlgorithmParameters().getDistributedFeasibilitySolver() != null) {
             // TODO: Some sort of finally block?

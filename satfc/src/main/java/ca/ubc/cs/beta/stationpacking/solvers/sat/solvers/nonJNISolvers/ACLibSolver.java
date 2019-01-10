@@ -132,7 +132,7 @@ public class ACLibSolver implements ISolver {
                 try {
                     log.error("Solution file {} not in expected format:\nResult\ncputime\nwalltime\n(model)", solutionFile.getCanonicalPath());
                     log.error("File:" + System.lineSeparator() + Files.toString(solutionFile, Charset.defaultCharset()));
-                    log.error("Problem file:" + System.lineSeparator() + Files.toString(problemFile, Charset.defaultCharset()));
+//                    log.error("Problem file:" + System.lineSeparator() + Files.toString(problemFile, Charset.defaultCharset()));
                 } catch (IOException e1) {
                     throw new RuntimeException(e1);
                 }
