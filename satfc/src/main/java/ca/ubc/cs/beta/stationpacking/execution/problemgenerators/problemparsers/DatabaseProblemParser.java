@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  * Created by newmanne on 2016-11-16.
  */
 @Slf4j
-public class StupidProblemParser extends ANameToProblem {
+public class DatabaseProblemParser extends ANameToProblem {
 
     private final DataManager dataManager;
     private final Connection connection;
@@ -48,7 +48,7 @@ public class StupidProblemParser extends ANameToProblem {
 //        private List<Integer> stations;
 //    }
 
-    public StupidProblemParser(final DataManager dataManager, final String interferencesFolder, final Connection connection) {
+    public DatabaseProblemParser(final DataManager dataManager, final String interferencesFolder, final Connection connection) {
         super(interferencesFolder);
         log.info("Reading problems from database");
         this.dataManager = dataManager;

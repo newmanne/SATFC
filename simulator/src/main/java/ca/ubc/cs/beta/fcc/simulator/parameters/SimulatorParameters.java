@@ -86,6 +86,10 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     @Getter
+    @Parameter(names = "-NOT-PARTICIPATING")
+    public List<Integer> notParticipating = new ArrayList<>();
+
+    @Getter
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
 
@@ -437,14 +441,17 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public IParticipationDecider getParticipationDecider(IPrices prices) {
+        IParticipationDecider decider;
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
-                return new OpeningOffPriceHigherThanPrivateValue(prices);
-//            case UNIFORM:
-//                return new UniformParticipationDecider(uniformProbability, prices);
+                decider = new OpeningOffPriceHigherThanPrivateValue(prices);
+                break;
             default:
                 throw new IllegalStateException();
         }
+        final IParticipationDecider currDecider = decider;
+        decider = s -> !getNotParticipating().contains(s.getId()) && currDecider.isParticipating(s);
+        return decider;
     }
 
     public enum ScoringRule {

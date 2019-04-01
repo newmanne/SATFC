@@ -24,9 +24,9 @@ package ca.ubc.cs.beta.stationpacking.execution.problemgenerators;
 import ca.ubc.cs.beta.stationpacking.execution.SimulatorProblemReader;
 import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.CsvToProblem;
+import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.DatabaseProblemParser;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.IProblemParser;
 import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.SrpkToProblem;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.StupidProblemParser;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 
 /**
@@ -39,7 +39,7 @@ public class ProblemGeneratorFactory {
         if (parameters.simulatorWorker && parameters.fRedisParameters.areValid()) {
             reader = new SimulatorProblemReader(parameters.fRedisParameters.getJedis(), parameters.fRedisParameters.fRedisQueue);
         } else {
-            IProblemParser nameToProblem = parameters.databaseParameters.isValid() ? new StupidProblemParser(new DataManager(), parameters.fInterferencesFolder, parameters.databaseParameters.getConnection()) : (parameters.fCsvRoot == null ? new SrpkToProblem(parameters.fInterferencesFolder) : new CsvToProblem(parameters.fInterferencesFolder, parameters.fCsvRoot, parameters.checkForSolution));
+            IProblemParser nameToProblem = parameters.databaseParameters.isValid() ? new DatabaseProblemParser(new DataManager(), parameters.fInterferencesFolder, parameters.databaseParameters.getConnection()) : (parameters.fCsvRoot == null ? new SrpkToProblem(parameters.fInterferencesFolder) : new CsvToProblem(parameters.fInterferencesFolder, parameters.fCsvRoot, parameters.checkForSolution));
             if (parameters.fInstanceParameters.fDataFoldername != null && parameters.fInstanceParameters.getDomains() != null) {
                 reader = new SingleProblemFromCommandLineProblemReader(new SATFCFacadeProblem(
                         parameters.fInstanceParameters.getPackingStationIDs(),

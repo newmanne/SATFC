@@ -35,12 +35,18 @@ public class MIPSaverDecorator extends ASolverDecorator {
         private final int channel;
     }
 
+    @Data
+    public static class MIPEncoderResult {
+        private final IloCplex cplex;
+        private final Map<IloIntVar, StationChannel> decoder;
+    }
+
     @RequiredArgsConstructor
     public static class MIPEncoder {
 
         private final IConstraintManager constraintManager;
 
-        public IloCplex encode(StationPackingInstance aInstance) {
+        public MIPEncoderResult encode(StationPackingInstance aInstance) {
             try {
                 final IloCplex cplex = new IloCplex();
 
@@ -59,7 +65,7 @@ public class MIPSaverDecorator extends ASolverDecorator {
                     while (domainIterator.hasNext()) {
                         final int channel = domainIterator.next();
                         final IloIntVar domainVar = domainVars[i];
-                        domainVar.setName(station + "." + Integer.toString(channel));
+                        domainVar.setName(station + "." + channel);
                         stationVariablesMap.put(channel, domainVar);
                         variablesDecoder.put(domainVar, new StationChannel(station, channel));
                         i++;
@@ -78,7 +84,7 @@ public class MIPSaverDecorator extends ASolverDecorator {
                 //Add dummy objective function.
                 cplex.addMaximize();
                 cplex.setOut(new NullOutputStream());
-                return cplex;
+                return new MIPEncoderResult(cplex, variablesDecoder);
             } catch (IloException e) {
                 throw new RuntimeException("Couldn't encode MIP", e);
             }
@@ -102,7 +108,7 @@ public class MIPSaverDecorator extends ASolverDecorator {
         // Write to file!
         final String filename = aInstance.getName() + ".lp";
         log.info("Saving to {}", filename);
-        final IloCplex cplex = encoder.encode(aInstance);
+        final IloCplex cplex = encoder.encode(aInstance).getCplex();
         try {
             cplex.exportModel(filename);
             cplex.end();

@@ -81,6 +81,7 @@ public class SolverResult implements Serializable {
         UNDERCONSTRAINED,
 		UNSAT_LABELLER,
 		PREVIOUS_ASSIGNMENT,
+		CPLEX,
 		GREEDY,
         PICOSAT,
         PROBSAT,

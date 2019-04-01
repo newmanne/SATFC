@@ -34,7 +34,11 @@ public class ACLibSolver implements ISolver {
     public ACLibSolver(IProblemEncoder encoder, int seedOffset, String wrapperPath, String parameters, String solverName, EncodingCategory encodingCategory) {
         this.encoder = encoder;
         this.seedOffset = seedOffset;
-        this.parameters = parameters;
+        if (parameters != null) {
+            this.parameters = parameters;
+        } else {
+            this.parameters = "";
+        }
         this.solverName = solverName;
         this.wrapperPath = wrapperPath;
         this.encodingCategory = encodingCategory;

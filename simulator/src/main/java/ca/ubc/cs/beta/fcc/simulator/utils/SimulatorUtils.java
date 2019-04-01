@@ -14,10 +14,7 @@ import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Ordering;
+import com.google.common.collect.*;
 import humanize.Humanize;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -178,25 +175,32 @@ public class SimulatorUtils {
         final Set<IStationInfo> removed = new HashSet<>();
         removed.addAll(americanStations);
 
+        // To ensure consistent ordering, process by Band, ID.
+        Comparator<IStationInfo> consistentOrdering = (a, b) -> ComparisonChain.start().compare(a.getHomeBand(), b.getHomeBand()).compare(a.getId(), b.getId()).result();
+        Comparator<Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator>> consistentOrderingEntry = (a, b) -> consistentOrdering.compare(a.getKey(), b.getKey());
+
         if (parameters.isPopValues()) {
+            log.info("Using population-based values");
             final Random random = new Random(parameters.getValuesSeed());
             final LogNormalDistribution stickValuePerMhzPopDistribution = new LogNormalDistribution(-1.4, 0.5);
-            final double stickValuePerMhzPop = stickValuePerMhzPopDistribution.inverseCumulativeProbability(random.nextDouble());
 
-            for (final IStationInfo station : americanStations) {
+            for (final IStationInfo station : americanStations.stream().sorted(consistentOrdering).collect(Collectors.toList())) {
+                final double stickValuePerMhzPop = stickValuePerMhzPopDistribution.inverseCumulativeProbability(random.nextDouble());
                 final double uhfValue = stickValuePerMhzPop * station.getPopulation() * 6; // 6 Mhz licenses
                 final Map<Band, Double> valueMap = createValueMap(uhfValue, station, random, parameters.getNoiseStd());
                 ((StationInfo) station).setValues(valueMap);
                 removed.remove(station);
             }
         } else if (parameters.getMaxCFStickFile() != null) {
+            log.info("Using max(CF, stick)-based values");
+
             final ArrayListMultimap<String, Double> dmaToPricePerPop = ArrayListMultimap.create();
 
             final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
             final Random random = maxCFStickValues.getRandom();
             final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = maxCFStickValues.get();
-            // First, process the stations with a value model
-            for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet()) {
+            // First, process the stations with a value mode (ensure a consistent ordering)
+            for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet().stream().sorted(consistentOrderingEntry).collect(Collectors.toList())) {
                 final IStationInfo station = entry.getKey();
                 if (station.getHomeBand().isVHF()) {
                     log.warn("Value model for non-UHF station {} (maybe reclassified?) Skipping for now!", station);
@@ -219,16 +223,14 @@ public class SimulatorUtils {
             if (parameters.isInferValues()) {
                 log.info("Inferring values for remaining stations based on mean price per pop in DMA");
                 // Next, process stations without a model
-                for (IStationInfo station : americanStations) {
-                    if (station.getValues() == null) {
-                        final double meanDMAPricePerPop = meanPricePerDMA.getOrDefault(station.getDMA(), nationalMeanDMAPricePerPop);
-                        if (meanPricePerDMA.get(station.getDMA()) == null) {
-                            log.debug("Mean DMA not available for DMA {}. Using average price nationally", station.getDMA());
-                        }
-                        final Map<Band, Double> valueMap = createValueMap(meanDMAPricePerPop * station.getPopulation(), station, random, parameters.getNoiseStd());
-                        ((StationInfo) station).setValues(valueMap);
+                americanStations.stream().filter(station -> station.getValues() == null).sorted(consistentOrdering).forEach(station -> {
+                    final double meanDMAPricePerPop = meanPricePerDMA.getOrDefault(station.getDMA(), nationalMeanDMAPricePerPop);
+                    if (meanPricePerDMA.get(station.getDMA()) == null) {
+                        log.debug("Mean DMA not available for DMA {}. Using average price nationally", station.getDMA());
                     }
-                }
+                    final Map<Band, Double> valueMap = createValueMap(meanDMAPricePerPop * station.getPopulation(), station, random, parameters.getNoiseStd());
+                    ((StationInfo) station).setValues(valueMap);
+                });
             }
         } else if (parameters.getValueFile() != null) {
             log.info("Reading station values from {}", parameters.getValueFile());

@@ -86,7 +86,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.experimental.Builder;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.util.Pair;
@@ -251,6 +251,15 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class CPLEXConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new CPLEXSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+        }
+    }
+
 
     @Data
     public static class CommandLineConfig implements ISolverConfig {
@@ -289,7 +298,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         @Override
                         public ACLibSolver.IProblemDecoder encodeToFile(StationPackingInstance instance, File file) throws IOException {
                             final MIPSaverDecorator.MIPEncoder mipEncoder = new MIPSaverDecorator.MIPEncoder(constraintManager);
-                            final IloCplex cplex = mipEncoder.encode(instance);
+                            final IloCplex cplex = mipEncoder.encode(instance).getCplex();
                             final String filename = file.getCanonicalPath();
                             try {
                                 cplex.exportModel(filename);
@@ -644,6 +653,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
     }
 
     @Data
+    public static class UNSATRuntimeConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new UNSATRuntimeDecorator(solverToDecorate);
+        }
+
+    }
+
+    @Data
     public static class GreedyConfig implements ISolverConfig {
 
         @Override
@@ -749,6 +768,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
                         .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
                         .put(SolverType.COMMAND_LINE, CommandLineConfig.class)
+                        .put(SolverType.UNSAT_RUNTIME, UNSATRuntimeConfig.class)
+                        .put(SolverType.CPLEX, CPLEXConfig.class)
                         .build();
 
         @Override

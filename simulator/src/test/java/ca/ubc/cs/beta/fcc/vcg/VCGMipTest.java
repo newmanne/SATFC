@@ -1,15 +1,9 @@
 package ca.ubc.cs.beta.fcc.vcg;
 
 import java.io.*;
-import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.zip.GZIPOutputStream;
 
-import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.stationpacking.execution.Converter;
-import ca.ubc.cs.beta.stationpacking.execution.problemgenerators.problemparsers.StupidProblemParser;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.Cleanup;
@@ -19,7 +13,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.base.Splitter;
@@ -31,19 +24,12 @@ import ca.ubc.cs.beta.fcc.simulator.station.CSVStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.base.Station;
-import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.Constraint;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.ManagerBundle;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
-import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
 
 /**
  * Created by newmanne on 2016-05-26.
@@ -96,7 +82,7 @@ public class VCGMipTest {
 //        while (rs.next()) {
 //            final List<Integer> stations = JSONUtils.getMapper().readValue(rs.getString(1), new TypeReference<List<Integer>>() {});
 //            final Map<Integer, Integer> assignment = JSONUtils.getMapper().readValue(rs.getString(2), new TypeReference<Map<Integer, Integer>>() {});
-//            final StupidProblemParser.SimulatorRedisProblem problem = StupidProblemParser.SimulatorRedisProblem.builder()
+//            final DatabaseProblemParser.SimulatorRedisProblem problem = DatabaseProblemParser.SimulatorRedisProblem.builder()
 //                    .interference("nov2015")
 //                    .maxChannel(36)
 //                    .previousAssignment(assignment)
