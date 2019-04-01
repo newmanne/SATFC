@@ -54,7 +54,6 @@ public class CPLEXSolverDecorator extends ASolverDecorator {
             cplex.setParam(IloCplex.LongParam.RandomSeed, (int) aSeed);
             cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Feasibility);
             cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, 0);
-            cplex.setParameterSet(IloCplex.ParameterSet.);
 //            cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time
             cplex.setParam(IloCplex.IntParam.Threads, 1);
             cplex.solve();
