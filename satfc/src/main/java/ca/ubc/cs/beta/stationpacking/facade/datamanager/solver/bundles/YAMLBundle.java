@@ -256,8 +256,10 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
-            return new CPLEXSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager());
+            return new CPLEXSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), parameterized);
         }
+
+        private boolean parameterized = false;
     }
 
 

@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by newmanne on 2016-06-27.
@@ -34,14 +36,20 @@ import java.util.Set;
 public class CPLEXSolverDecorator extends ASolverDecorator {
 
     private final MIPSaverDecorator.MIPEncoder encoder;
+    private final boolean parameterized;
+    private IloCplex.Aborter aborter;
+    private final Lock lock = new ReentrantLock();
+
 
     /**
      * @param aSolver - decorated ISolver.
      */
     public CPLEXSolverDecorator(@NonNull ISolver aSolver,
-                                @NonNull IConstraintManager constraintManager) {
+                                @NonNull IConstraintManager constraintManager,
+                                boolean parameterized) {
         super(aSolver);
         this.encoder = new MIPSaverDecorator.MIPEncoder(constraintManager);
+        this.parameterized = parameterized;
     }
 
     @Override
@@ -50,13 +58,96 @@ public class CPLEXSolverDecorator extends ASolverDecorator {
         MIPSaverDecorator.MIPEncoderResult encode = encoder.encode(aInstance);
         final IloCplex cplex = encode.getCplex();
         try {
+            aborter = new IloCplex.Aborter();
+            cplex.use(aborter);
             cplex.setParam(IloCplex.DoubleParam.TimeLimit, aTerminationCriterion.getRemainingTime());
             cplex.setParam(IloCplex.LongParam.RandomSeed, (int) aSeed);
             cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Feasibility);
             cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, 0);
-//            cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time
+//            cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time, default is wall
             cplex.setParam(IloCplex.IntParam.Threads, 1);
+
+
+            if (this.parameterized) {
+                // Use the best config we know about
+                cplex.setParam(IloCplex.Param.Barrier.Algorithm, 1);
+                cplex.setParam(IloCplex.Param.Barrier.Crossover, 1);
+                cplex.setParam(IloCplex.Param.Barrier.Limits.Corrections, 16);
+                cplex.setParam(IloCplex.Param.Barrier.Limits.Growth, 2043394461100.1316);
+                cplex.setParam(IloCplex.Param.Barrier.Ordering, 3);
+                cplex.setParam(IloCplex.Param.Barrier.StartAlg, 2);
+                cplex.setParam(IloCplex.Param.Emphasis.Memory, false);
+                cplex.setParam(IloCplex.Param.Emphasis.Numerical, false);
+                cplex.setParam(IloCplex.Param.Feasopt.Mode, 1);
+                cplex.setParam(IloCplex.Param.RootAlgorithm, 6);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.Cliques, 0);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.Covers, 3);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.Disjunctive, 0);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.FlowCovers, 1);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.Gomory, 0);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.GUBCovers, -1);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.Implied, 2);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.MCFCut, 1);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.MIRCut, 1);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.PathCut, 0);
+                cplex.setParam(IloCplex.Param.MIP.Cuts.ZeroHalfCut, 0);
+                cplex.setParam(IloCplex.Param.MIP.Limits.AggForCut, 3);
+                cplex.setParam(IloCplex.Param.MIP.Limits.CutPasses, 64);
+                cplex.setParam(IloCplex.Param.MIP.Limits.CutsFactor, 1.4882278332160317);
+                cplex.setParam(IloCplex.Param.MIP.Limits.GomoryCand, 93);
+                cplex.setParam(IloCplex.Param.MIP.Limits.GomoryPass, 64);
+                cplex.setParam(IloCplex.Param.MIP.Limits.SubMIPNodeLim, 271);
+                cplex.setParam(IloCplex.Param.MIP.OrderType, 1);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Backtrack, .99);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.BBInterval, 8);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Branch, 1);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Dive, 1);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.File, 0);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.FPHeur, 0);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.HeuristicFreq, 10);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.LBHeur, true);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.NodeSelect, 3);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.PresolveNode, -1);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Probe, 2);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.RINSHeur, 10);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Search, 2);
+                // TODO: This parameter has two different names in the ineteractive optimzer!!!! This should correspond to startalgorithm
+//                cplex.setParam(IloCplex.Param.RootAlgorithm, 1);
+                cplex.setParam(IloCplex.Param.NodeAlgorithm, 1);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.VariableSelect, IloCplex.VariableSelect.MinInfeas);
+                cplex.setParam(IloCplex.Param.Network.NetFind, 2);
+                cplex.setParam(IloCplex.Param.Network.Pricing, 2);
+                cplex.setParam(IloCplex.Param.Preprocessing.Aggregator, 16);
+                cplex.setParam(IloCplex.Param.Preprocessing.BoundStrength, -1);
+                cplex.setParam(IloCplex.Param.Preprocessing.CoeffReduce, 1);
+                cplex.setParam(IloCplex.Param.Preprocessing.Dependency, 3);
+                cplex.setParam(IloCplex.Param.Preprocessing.Dual, -1);
+                cplex.setParam(IloCplex.Param.Preprocessing.Fill, 7);
+                cplex.setParam(IloCplex.Param.Preprocessing.Linear, 0);
+                cplex.setParam(IloCplex.Param.Preprocessing.NumPass, 0);
+                cplex.setParam(IloCplex.Param.Preprocessing.Reduce, 1);
+                cplex.setParam(IloCplex.Param.Preprocessing.Relax, 0);
+                cplex.setParam(IloCplex.Param.Preprocessing.RepeatPresolve, 1);
+                cplex.setParam(IloCplex.Param.Preprocessing.Symmetry, -1);
+
+                cplex.setParam(IloCplex.Param.Read.Scale, -1);
+                cplex.setParam(IloCplex.Param.Sifting.Algorithm, 0);
+                cplex.setParam(IloCplex.Param.Simplex.Crash, -1);
+                cplex.setParam(IloCplex.Param.Simplex.DGradient, 4);
+                cplex.setParam(IloCplex.Param.Simplex.Limits.Perturbation, 0);
+                cplex.setParam(IloCplex.Param.Simplex.Limits.Singularity, 39);
+                cplex.setParam(IloCplex.Param.Simplex.Perturbation.Indicator, false);
+                cplex.setParam(IloCplex.Param.Simplex.PGradient, 0);
+                cplex.setParam(IloCplex.Param.Simplex.Pricing, 4);
+                cplex.setParam(IloCplex.Param.Simplex.Refactor, 16);
+                cplex.setParam(IloCplex.Param.Simplex.Tolerances.Markowitz, 0.0073286998524949125);
+                cplex.setParam(IloCplex.Param.MIP.Strategy.Order, true);
+            }
+
             cplex.solve();
+            lock.lock();
+            aborter = null;
+            lock.unlock();
             final IloCplex.Status status = cplex.getStatus();
             if (status.equals(IloCplex.Status.Infeasible)) {
                 return SolverResult.createNonSATResult(SATResult.UNSAT, watch.getElapsedTime(), SolverResult.SolvedBy.CPLEX);
@@ -97,5 +188,14 @@ public class CPLEXSolverDecorator extends ASolverDecorator {
         return assignment;
     }
 
-
+    @Override
+    public void interrupt() {
+        // TODO: Note that this is NOT GOING TO WORK PROPERLY IF YOU USE THE ParallelNoWaitSolverComposite because you might already be on the next problem and abort the wrong thing!
+        lock.lock();
+        if (aborter != null) {
+            aborter.abort();
+        }
+        lock.unlock();
+        super.interrupt();
+    }
 }
