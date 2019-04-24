@@ -4,8 +4,13 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import ca.ubc.cs.beta.fcc.simulator.bidprocessing.StationOrdererImpl;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
+import groovy.mock.interceptor.MockFor;
 import lombok.Cleanup;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
@@ -42,6 +47,12 @@ public class VCGMipTest {
 
     static String INFO_FILE = "/ubc/cs/research/arrow/satfc/simulator/data/station_info_v2.csv";
     static String VOLUMES_FILE = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
+
+    @Test
+    public void orderingTest() throws Exception {
+        final StationOrdererImpl o = new StationOrdererImpl();
+    }
+
 
 
 //    @Test
@@ -257,33 +268,33 @@ public class VCGMipTest {
         return icMap;
     }
 
-    @Test
-    public void t() {
-        final Map<Station, Set<Integer>> domains = stationManager.getDomains();
-        final CSVStationDB stationDB = new CSVStationDB(INFO_FILE, new UnitVolumeCalculator(), stationManager, 52, false);
-        for (final Station s : domains.keySet()) {
-            final Set<Integer> domain = domains.get(s);
-            final Set<Integer> ufh  = domain.stream().filter(c -> c >= 14).collect(Collectors.toSet());
-            if (!ufh.isEmpty()) {
-                int minChan = ufh.stream().mapToInt(c -> c).min().getAsInt();
-                if (minChan > 25) {
-                    System.out.println(s.getID() + ":" + minChan);
-                }
-            }
-        }
-
-        final Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV("/Users/newmanne/research/ic_counts.csv");
-        final Map<Station, Integer> fccCounts = new HashMap<>();
-        for (CSVRecord record : csvRecords) {
-            fccCounts.put(new Station(Integer.parseInt(record.get("FacID"))), Integer.parseInt(record.get("Interference")));
-        }
-        final Map<Station, Integer> counts = icCounts(stationManager.getDomains(), stationDB);
-        log.info("FCC has {} records, we have {}", fccCounts.size(), counts.size());
-
-        final MapDifference<Station, Integer> difference = Maps.difference(counts, fccCounts);
-        log.info("Size difference: {}", difference.entriesDiffering().size());
-        System.out.println("DIFFERENCE:" + difference.entriesDiffering());
-    }
+//    @Test
+//    public void t() {
+//        final Map<Station, Set<Integer>> domains = stationManager.getDomains();
+//        final CSVStationDB stationDB = new CSVStationDB(INFO_FILE, new UnitVolumeCalculator(), stationManager, 52, false);
+//        for (final Station s : domains.keySet()) {
+//            final Set<Integer> domain = domains.get(s);
+//            final Set<Integer> ufh  = domain.stream().filter(c -> c >= 14).collect(Collectors.toSet());
+//            if (!ufh.isEmpty()) {
+//                int minChan = ufh.stream().mapToInt(c -> c).min().getAsInt();
+//                if (minChan > 25) {
+//                    System.out.println(s.getID() + ":" + minChan);
+//                }
+//            }
+//        }
+//
+//        final Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV("/Users/newmanne/research/ic_counts.csv");
+//        final Map<Station, Integer> fccCounts = new HashMap<>();
+//        for (CSVRecord record : csvRecords) {
+//            fccCounts.put(new Station(Integer.parseInt(record.get("FacID"))), Integer.parseInt(record.get("Interference")));
+//        }
+//        final Map<Station, Integer> counts = icCounts(stationManager.getDomains(), stationDB);
+//        log.info("FCC has {} records, we have {}", fccCounts.size(), counts.size());
+//
+//        final MapDifference<Station, Integer> difference = Maps.difference(counts, fccCounts);
+//        log.info("Size difference: {}", difference.entriesDiffering().size());
+//        System.out.println("DIFFERENCE:" + difference.entriesDiffering());
+//    }
 
 //    public class FCCVolumeCalculator {
 //

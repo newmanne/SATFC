@@ -209,7 +209,7 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean greedyOnly = false;
 
     public enum BidProcessingAlgorithm {
-        FCC, FIRST_TO_FINISH
+        FCC, FIRST_TO_FINISH, FIRST_TO_FINISH_SINGLE_PROGRAM
     }
 
     @Getter
@@ -219,7 +219,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-FIRST-TO-FINISH-ROUND-WALLTIME")
-    private Double roundWalltime = 4. * 60 * 60;
+    private Double roundWalltime = 1. * 60 * 60;
 
     @Getter
     @Parameter(names = "-FIRST-TO-FINISH-WORKERS")
@@ -293,13 +293,16 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
         final BidProcessingAlgorithmParameters.BidProcessingAlgorithmParametersBuilder bidProcessingAlgorithmParametersBuilder = BidProcessingAlgorithmParameters.builder().bidProcessingAlgorithm(getBidProcessingAlgorithm());
-        if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+        if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH_SINGLE_PROGRAM)) {
+            bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
+        } else if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH)) {
             Preconditions.checkNotNull(firstToFinishWorkers, "First to finish algorithm requires specifying the number of workers!");
             final DistributedFeasibilitySolver distributedFeasibilitySolver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue, firstToFinishWorkers);
             bidProcessingAlgorithmParametersBuilder.distributedFeasibilitySolver(distributedFeasibilitySolver);
             bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
             bidProcessingAlgorithmParametersBuilder.executorService(Executors.newScheduledThreadPool(1));
         }
+        log.info("Using {} bid processing algorithm", getBidProcessingAlgorithm());
         bidProcessingAlgorithmParameters = bidProcessingAlgorithmParametersBuilder.build();
 
 

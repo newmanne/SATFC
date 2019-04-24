@@ -19,7 +19,7 @@ import java.util.*;
 public class StationOrdererImpl implements IStationOrderer {
 
     /**
-     * Sorts the stations in query order, first by off air compensation (descending) then by their priorities (pseduo-random).
+     * Sorts the stations in query order, first by the volume-weighted difference in price offers (descending) then by their priorities (pseduo-random).
      */
     @Override
     public ImmutableList<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder, Map<IStationInfo, Double> previousPrices) {
@@ -27,7 +27,7 @@ public class StationOrdererImpl implements IStationOrderer {
         final List<IStationInfo> priorities = new ArrayList<>(stations);
         Collections.shuffle(priorities, RandomUtils.getRandom());
 
-        final Ordering<IStationInfo> primary = Ordering.from(Comparator.comparingDouble(s -> (prices.getPrice(s, ladder.getStationBand(s)) - previousPrices.get(s)) /s.getVolume()));
+        final Ordering<IStationInfo> primary = Ordering.from(Comparator.comparingDouble(s -> (prices.getPrice(s, ladder.getStationBand(s)) - previousPrices.get(s)) / s.getVolume()));
         final Ordering<IStationInfo> secondary = Ordering.explicit(priorities);
         final Ordering<IStationInfo> compound = primary.compound(secondary);
         return ImmutableList.copyOf(compound.sortedCopy(stations));

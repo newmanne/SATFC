@@ -111,11 +111,24 @@ public class MultiBandSimulator {
             log.info("There are {} stations frozen pending catchup", pendingCatchup);
         }
 
-        log.info("Computing vacancies...");
-        final ImmutableTable<IStationInfo, Band, Double> vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
+        final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients;
+        final ImmutableTable<IStationInfo, Band, Double> vacancies;
+        if (ladder.getAirBands().stream().anyMatch(Band::isVHF)) {
+            log.info("Computing vacancies...");
+            vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
 
-        log.info("Calculating reduction coefficients...");
-        final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients = stepReductionCoefficientCalculator.computeStepReductionCoefficients(vacancies, ladder);
+            log.info("Calculating reduction coefficients...");
+            reductionCoefficients = stepReductionCoefficientCalculator.computeStepReductionCoefficients(vacancies, ladder);
+        } else {
+            // No concept of vacancy in a UHF-only auction
+            vacancies = ImmutableTable.<IStationInfo, Band, Double>builder().build();
+            final ImmutableTable.Builder<IStationInfo, Band, Double> builder = ImmutableTable.builder();
+            for (IStationInfo station : participation.getMatching(Participation.ACTIVE)) {
+                builder.put(station, Band.OFF, 1.0);
+                builder.put(station, Band.UHF, 0.0);
+            }
+            reductionCoefficients = builder.build();
+        }
 
         log.info("Calculating new benchmark prices...");
         // Either 5% of previous value or 1% of starting value
@@ -204,6 +217,7 @@ public class MultiBandSimulator {
         }
 
         log.info("Processing bids");
+        // TODO: You may want to play with the orderer for the first-to-finish algorithm, because in practice without N (stations) number of CPUs, it will matter a TON!
         final ImmutableList<IStationInfo> stationsToQueryOrdering = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder, previousState.getPrices());
         final List<IStationInfo> stationsToQuery = new ArrayList<>(stationsToQueryOrdering);
 
@@ -231,6 +245,76 @@ public class MultiBandSimulator {
                     }
                 }
             }
+        } else if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH_SINGLE_PROGRAM)) {
+            // TODO: This is very much UHF-only for now
+            // TODO: THINK ABOUT THE CACHE!!!
+            final double timeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
+            double currentCutoff = 1;
+            double elapsedTime = 0;
+            boolean finished = false;
+            while (!finished) {
+                final Map<IStationInfo, SimulatorResult> results = new HashMap<>();
+                for (int i = 0; i < stationsToQuery.size(); i++) {
+                    final IStationInfo station = stationsToQuery.get(i);
+                    final Band homeBand = station.getHomeBand();
+                    final Band currentBand = ladder.getStationBand(station);
+                    log.debug("Checking if {}, currently on {}, is feasible on its home band", station, currentBand, homeBand);
+                    final SimulatorProblem simulatorProblem = problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE);
+                    simulatorProblem.getSATFCProblem().setCutoff(currentCutoff);
+                    final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(simulatorProblem);
+                    if (homeBandFeasibility.getSATFCResult().getResult().equals(SATResult.SAT) &&
+                            stationToBid.get(station).getPreferredOption().equals(Band.OFF) &&
+                            !homeBandFeasibility.isCached()) {
+                        // In a UHF-only auction, if a station exits, this will trigger the break. So just find the first.
+                        currentCutoff = Math.min(homeBandFeasibility.getSATFCResult().getRuntime(), currentCutoff);
+                        // Prevent it from being 0
+                        currentCutoff = Math.max(currentCutoff, 0.01);
+                        log.debug("Decreasing round cutoff to {}", currentCutoff);
+                    }
+                    results.put(station, homeBandFeasibility);
+                }
+                // Sort the results in order of SAT completion time
+                final List<Entry<IStationInfo, SimulatorResult>> entryList = results.entrySet().stream()
+                        .filter(x -> x.getValue().getSATFCResult().getResult().equals(SATResult.SAT))
+                        .sorted(Comparator.comparingDouble(x -> x.getValue().getSATFCResult().getRuntime()))
+                        .collect(Collectors.toList());
+
+                for (final Entry<IStationInfo, SimulatorResult> entry : entryList) {
+                    final SimulatorResult result = entry.getValue();
+                    final IStationInfo station = entry.getKey();
+                    final Bid bid = stationToBid.get(station);
+                    processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
+                    stationsToQuery.remove(station);
+                    // TODO: In the VHF case, you need to do more work here!
+                    if (participation.getParticipation(station).equals(Participation.EXITED_VOLUNTARILY)) {
+                        // Need to "restart" all checks, so add to the elapsed time
+                        elapsedTime += result.getSATFCResult().getRuntime();
+                        break;
+                    }
+                }
+
+                // TODO: Time tracking code is complicated :(
+                // If you exit, you force people to restart, so add that time for sure.
+                // Otherwise, add the "last" time, either when you empty the queue or run out of time
+                // Be careful not to double count the case where the last guy exits
+
+                if (stationsToQuery.isEmpty()) {
+                    log.info("Round has completed with all checks successful after {}", elapsedTime);
+                    finished = true;
+                } else {
+                    // double the cutoff
+                    // Can't this leave you with a small pocket of useless time? No, because no time "elapses"
+                    final double nextCutoff = Math.max(1, Math.min(currentCutoff * 2, timeLimit - elapsedTime));
+                    if (nextCutoff <= 0 || nextCutoff <= currentCutoff) {
+                        // truly done
+                        log.info("Round has expired after the time limit of {}. {} stations remain indeterminate.", elapsedTime, results.values().stream().filter(x -> !x.getSATFCResult().getResult().isConclusive()).count());
+                        finished = true;
+                    } else {
+                        log.info("Increasing cutoff for the round to {}", nextCutoff);
+                        currentCutoff = nextCutoff;
+                    }
+                }
+            }
         } else if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
             final Set<IStationInfo> processed = ConcurrentHashMap.newKeySet();
             final DistributedFeasibilitySolver distributedFeasibilitySolver = bidProcessingAlgorithmParameters.getDistributedFeasibilitySolver();
@@ -242,7 +326,7 @@ public class MultiBandSimulator {
                 log.info("TIME'S UP! Setting wakeup flag...");
                 distributedFeasibilitySolver.wakeUp();
             }, Math.round(wallTimeLimit), TimeUnit.SECONDS);
-            while (watch.getElapsedTime() < wallTimeLimit || stationsToQuery.isEmpty()) {
+            while (watch.getElapsedTime() < wallTimeLimit || !stationsToQuery.isEmpty()) {
                 log.debug("{} round time remaining. Starting checks for problems with this limit. Queue size is {}", wallTimeLimit - watch.getElapsedTime(), stationsToQuery.size());
                 final AtomicInteger unsatCount = new AtomicInteger(0);
                 // Queue up a problem for every station
@@ -254,20 +338,26 @@ public class MultiBandSimulator {
                     simulatorProblem.getSATFCProblem().setCutoff(wallTimeLimit - watch.getElapsedTime());
                     // Use solver, and not distributed directly here, so we pass through the decorators...
                     solver.getFeasibility(simulatorProblem, (problem, result) -> {
-                        processed.add(station);
-                        final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(result);
-                        log.debug("{}", result.getSATFCResult().getResult());
-                        if (isFeasibleInHomeBand) {
-                            // Retrieve the bid
-                            final Bid bid = stationToBid.get(station);
-                            processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
-                            if (!currentBand.equals(ladder.getStationBand(station))) {
-                                log.debug("Station {} moved bands, emptying queue", station);
-                                distributedFeasibilitySolver.killAll();
+                        synchronized (this) {
+                            // TODO:S
+//                            if shouldReset
+//                                    leave
+
+                            processed.add(station);
+                            final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(result);
+                            log.debug("{}", result.getSATFCResult().getResult());
+                            if (isFeasibleInHomeBand) {
+                                // Retrieve the bid
+                                final Bid bid = stationToBid.get(station);
+                                processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
+                                if (!currentBand.equals(ladder.getStationBand(station))) {
+                                    log.debug("Station {} moved bands, emptying queue", station);
+                                    distributedFeasibilitySolver.killAll();
+                                }
+                                stationsToQuery.remove(station);
+                            } else if (result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
+                                unsatCount.incrementAndGet();
                             }
-                            stationsToQuery.remove(station);
-                        } else if (result.getSATFCResult().getResult().equals(SATResult.UNSAT)) {
-                            unsatCount.incrementAndGet();
                         }
                     });
                 }
@@ -352,7 +442,7 @@ public class MultiBandSimulator {
                     // note we can't use the previous assignment from the feasiblility result earlier in case more than one station exits in the same round, but we are guarenteed to be able to greedily add them to the current assignment
                     if (unconstrainedChecker.isUnconstrained(station, ladder)) {
                         final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
-                        Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly!");
+                        Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly! Result %s", feasibility.getSATFCResult().getResult());
                         exitStation(station, Participation.EXITED_NOT_NEEDED, feasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, stationPrices);
                     }
                 }
