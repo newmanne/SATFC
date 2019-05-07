@@ -101,10 +101,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-INFER-VALUES", description = "infer values for stations not in maxcfstick file")
     private boolean inferValues = true;
 
-    // TODO: Use an env var, this only makes sense for you...
+    // This file is private and cannot be included in the repo
     @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
-    private String maxCFStickFile = "/ubc/cs/research/arrow/satfc/simulator/data/valuations.csv";
+    private String maxCFStickFile = System.getenv("SATFC_VALUE_FILE");
 
     @Getter
     @Parameter(names = "-VALUE-FILE", description = "CSV file with station value in each band for each American station (FacID, UHFValue, HVHFValue, LVHFValue)")

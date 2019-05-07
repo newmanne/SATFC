@@ -1,5 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.utils;
 
+import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
@@ -285,6 +286,16 @@ public class SimulatorUtils {
                 .map(Map.Entry::getValue).collect(Collectors.toList());
         if (!Ordering.natural().isStrictlyOrdered(valuesSortedByBand)) {
             throw new IllegalStateException(String.format("Station %s does not value its bands UHF > HVHF > LVHF > OFF. This can lead to strange behaviour and is probably a mistake. %s", id, valueMap.toString()));
+        }
+    }
+
+    public static void adjustCTSimple(int ct, IStationDB.IModifiableStationDB stationDB) {
+        // "Apply" the new clearing target to anything that was maintaining max channel state
+        // WARNING: This can lead to a lot of strange bugs if something queries a station's domain and stores it before CT is finalized...
+        log.info("Setting max channel to {}", ct);
+        BandHelper.setUHFChannels(ct);
+        for (IStationInfo s : stationDB.getStations()) {
+            ((StationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
         }
     }
 

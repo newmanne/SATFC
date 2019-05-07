@@ -100,12 +100,7 @@ publishing {
 }
 
 
-//createScript(project,
-//             'ca.ubc.cs.beta.fcc.vcg.VCGMip',
-//             'VCG',
-//             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
-//createScript(project,
-//        'ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer',
-//        'MutliBandSimulator',
-//        ['-Djava.library.path=${CPLEX_DIR}', '-Xmx16g'])
-
+createScript(project,
+             'ca.ubc.cs.beta.fcc.vcg.VCGMip',
+             'VCG',
+             ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])

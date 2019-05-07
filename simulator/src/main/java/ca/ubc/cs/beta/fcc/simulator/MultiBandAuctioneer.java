@@ -30,17 +30,14 @@ import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
 import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
-import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.ParallelVacancyCalculator;
 import ca.ubc.cs.beta.fcc.vcg.VCGMip;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCFacadeBuilder;
-import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -401,18 +398,8 @@ public class MultiBandAuctioneer {
     }
 
     public static void adjustCT(int ct, IStationDB.IModifiableStationDB stationDB, EventBus eventBus, ILadder ladder, IConstraintManager constraintManager) {
-        adjustCTSimple(ct, stationDB);
+        SimulatorUtils.adjustCTSimple(ct, stationDB);
         eventBus.post(new DomainChangeEvent(ladder, constraintManager));
-    }
-
-    public static void adjustCTSimple(int ct, IStationDB.IModifiableStationDB stationDB) {
-        // "Apply" the new clearing target to anything that was maintaining max channel state
-        // WARNING: This can lead to a lot of strange bugs if something queries a station's domain and stores it before CT is finalized...
-        log.info("Setting max channel to {}", ct);
-        BandHelper.setUHFChannels(ct);
-        for (IStationInfo s : stationDB.getStations()) {
-            ((StationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
-        }
     }
 
     public static Map<Integer, Integer> clearingTargetOptimization(IStationDB stationDB, SimulatorParameters parameters, Set<IStationInfo> possibleToImpair) {
@@ -434,7 +421,7 @@ public class MultiBandAuctioneer {
                     );
             domains.putAll(otherDomains);
             actuallyImpaired.stream().forEach(IStationInfo::impair);
-            final VCGMip.MIPResult phaseOneResult = mipMaker.solve(domains, domains.keySet(), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null, startingAssignment);
+            final VCGMip.MIPResult phaseOneResult = mipMaker.solve(domains, domains.keySet(), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null, startingAssignment, false);
             if (currentSolution == null) {
                 abortIfNecessary(phaseOneResult);
             }
@@ -448,7 +435,7 @@ public class MultiBandAuctioneer {
                 log.info("{} stations will impair. Now finding best set (by minimizing pop of impairing stations)", nImpairingStations);
                 final ClearingTargetOptimizationMIP clearingTargetOptimizationMIPPhaseTwo = new ClearingTargetOptimizationMIP(nImpairingStations);
                 final VCGMip.MIPMaker mipMakerPhaseTwo = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIPPhaseTwo);
-                final VCGMip.MIPResult phaseTwoResult = mipMakerPhaseTwo.solve(domains, domains.keySet(), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null, phaseOneResult.getAssignment());
+                final VCGMip.MIPResult phaseTwoResult = mipMakerPhaseTwo.solve(domains, domains.keySet(), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null, phaseOneResult.getAssignment(), false);
                 if (currentSolution != null) {
                     abortIfNecessary(phaseTwoResult);
                 }

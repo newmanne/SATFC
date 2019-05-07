@@ -3,7 +3,6 @@ package ca.ubc.cs.beta.fcc.vcg;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
 import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
@@ -66,17 +65,11 @@ public class VCGMip {
         @Parameter(names = "-VCG-PACKING")
         List<Integer> ids = new ArrayList<>();
 
-        @Parameter(names = "-NOT-PARTICIPATING")
-        List<Integer> notParticipating = new ArrayList<>();
-
         @Parameter(names = "-O", required = true)
         String outputFile;
 
         @Parameter(names = "-MIP-TYPE")
         MIPType mipType = MIPType.VCG;
-
-        @Parameter(names = "-CPLEX-THREADS")
-        int nThreads = Runtime.getRuntime().availableProcessors();
 
         // When to drop stations due to city requirement. After dropping stations with no valuations / domain in CT, or before?
         // Dropping after leads to fewer stations overall (since graph is less connected)
@@ -104,7 +97,7 @@ public class VCGMip {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
         SimulatorUtils.assignValues(parameters);
-        MultiBandAuctioneer.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
+        SimulatorUtils.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
         if (q.cityDropAfter && parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
@@ -122,10 +115,10 @@ public class VCGMip {
             throw new IllegalStateException();
         }
 
-        final Set<Integer> notParticipating = new HashSet<>(q.notParticipating);
+        final Set<Integer> notParticipating = new HashSet<>(parameters.getNotParticipating());
         notParticipating.addAll(stationDB.getStations(Nationality.CA).stream().map(IStationInfo::getId).collect(Collectors.toSet()));
         final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager, encoder);
-        final MIPResult mipResult = mipMaker.solve(domains, notParticipating, parameters.getCutoff(), (int) parameters.getSeed(), q.nThreads, true, 0., new HashMap<>());
+        final MIPResult mipResult = mipMaker.solve(domains, notParticipating, parameters.getCutoff(), (int) parameters.getSeed(), parameters.getParallelism(), true, 0., new HashMap<>(), true);
 
         if (q.mipType.equals(MIPType.VCG)) {
             final double computedValue = mipResult.getAssignment().entrySet().stream()
@@ -223,6 +216,14 @@ public class VCGMip {
             }
             cplex.addMaximize(objectiveSum);
         }
+
+        @Override
+        public void setParams(IloCplex cplex) throws IloException {
+            //f'set mip limits treememory {memlimit}', 'set mip strategy file 2', 'set mip strategy variableselect 3
+            // Commands to save memory
+            cplex.setParam(IloCplex.Param.MIP.Strategy.VariableSelect, 3);
+            cplex.setParam(IloCplex.IntParam.NodeFileInd, 2);
+        }
     }
 
     public interface IMIPEncoder {
@@ -257,10 +258,10 @@ public class VCGMip {
         }
 
         public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed, int nThreads) throws IloException {
-            return solve(domains, ImmutableSet.of(), cutoff, seed, nThreads, true, 0., new HashMap<>());
+            return solve(domains, ImmutableSet.of(), cutoff, seed, nThreads, true, 0., new HashMap<>(), false);
         }
 
-        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed, int nThreads, boolean writeToDisk, Double tol, Map<Integer, Integer> startingAssignment) throws IloException {
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed, int nThreads, boolean writeToDisk, Double tol, Map<Integer, Integer> startingAssignment, boolean cplexLog) throws IloException {
             this.varLookup = HashBasedTable.create();
             this.variablesDecoder = new HashMap<>();
             this.cplex = new IloCplex();
@@ -332,8 +333,10 @@ public class VCGMip {
             log.info("MIP has {} variables.", cplex.getNcols());
             log.info("MIP has {} constraints.", cplex.getNrows());
 
-            // This turns off CPLEX logging.
-            cplex.setOut(new LoggingOutputStream(LoggerFactory.getLogger("CPLEX"), LoggingOutputStream.LogLevel.INFO));
+            if (!cplexLog) {
+                // This turns off CPLEX logging.
+                cplex.setOut(new LoggingOutputStream(LoggerFactory.getLogger("CPLEX"), LoggingOutputStream.LogLevel.INFO));
+            }
 
             //Set CPLEX's parameters.
             try {
