@@ -27,10 +27,10 @@ allprojects {
     repositories {
         //EARG maven repo.
         maven {
-            url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/releases/'
+            url 'https://bitbucket.org/newmanne/maven-repo/raw/master/releases/'
         }
         maven {
-            url 'https://bitbucket.org/EARG-builder/maven-repo/raw/master/snapshots/'
+            url 'https://bitbucket.org/newmanne/maven-repo/raw/master/snapshots/'
         }
         mavenLocal()
         mavenCentral()
