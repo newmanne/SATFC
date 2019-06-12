@@ -9,7 +9,11 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.math.util.FastMath;
+import org.apache.commons.math.util.MathUtils;
+import org.apache.commons.math3.distribution.LogNormalDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.random.JDKRandomGenerator;
+import org.apache.commons.math3.random.RandomGenerator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,18 +36,14 @@ public class MaxCFStickValues {
     final String MEAN_CF_MULTIPLES = "MeanCFMultiples";
     final String MEAN_LOG_STICK = "MeanLogStick";
 
-    @Getter
-    private final Random random;
-
     private Map<IStationInfo, IValueGenerator> stationToGenerator;
 
     public Map<IStationInfo, IValueGenerator> get() {
         return stationToGenerator;
     }
 
-    public MaxCFStickValues(String csvFile, IStationDB.IModifiableStationDB stationDB, int valuesSeed) {
+    public MaxCFStickValues(RandomGenerator random, String csvFile, IStationDB.IModifiableStationDB stationDB, int valuesSeed) {
         log.info("Reading valuations from {}", csvFile);
-        this.random = new Random(valuesSeed);
         stationToGenerator = new HashMap<>();
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(csvFile);
         for (CSVRecord record : records) {
@@ -72,33 +72,34 @@ public class MaxCFStickValues {
 
         NormalDistribution cashFlow;
         NormalDistribution cashFlowMultiple;
-        NormalDistribution logStick;
+        LogNormalDistribution stick;
 
-        Random random;
+        RandomGenerator random;
 
         IStationInfo stationInfo;
 
-        public ValueGenerator(Random random, @NonNull IStationInfo stationInfo, double meanCF, double meanCFMultiple, double meanLogStick) {
-            cashFlow = new NormalDistribution(meanCF, STD_CASH_FLOW);
-            cashFlowMultiple = new NormalDistribution(meanCFMultiple, STD_CASH_FLOW_MULTIPLE);
-            logStick = new NormalDistribution(meanLogStick, STD_LOG_STICK);
+        public ValueGenerator(RandomGenerator random, @NonNull IStationInfo stationInfo, double meanCF, double meanCFMultiple, double meanLogStick) {
+            cashFlow = new NormalDistribution(random, meanCF, STD_CASH_FLOW);
+            cashFlowMultiple = new NormalDistribution(random, meanCFMultiple, STD_CASH_FLOW_MULTIPLE);
+            stick = new LogNormalDistribution(random, meanLogStick, STD_LOG_STICK);
             this.random = random;
             this.stationInfo = stationInfo;
         }
 
         @Override
         public double generateValue() {
-            final double cf = cashFlow.inverseCumulativeProbability(random.nextDouble());
-            final double cfMultiple = cashFlowMultiple.inverseCumulativeProbability(random.nextDouble());
+            final double cf = cashFlow.sample();
+            final double cfMultiple = cashFlowMultiple.sample();
             final double cfVal = cf * cfMultiple;
             Preconditions.checkState(cfMultiple > 0 || cf > 0, "Neither CF nor CF multiple was positive!");
 
-            final double logStickVal = logStick.inverseCumulativeProbability(random.nextDouble());
+            final double stickSample = stick.sample();
 
             final int pop = stationInfo.getPopulation();
-            final double stickVal = (FastMath.exp(logStickVal) * 6 * pop) / 1e6;
+            final double stickVal = (stickSample * 6 * pop) / 1e6;
 
-            return Math.max(cfVal, stickVal) * 1e6;
+            double val = Math.max(cfVal, stickVal) * 1e6;
+            return MathUtils.round(val, -3);
         }
 
     }

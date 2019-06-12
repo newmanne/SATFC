@@ -247,7 +247,6 @@ public class MultiBandSimulator {
             }
         } else if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH_SINGLE_PROGRAM)) {
             // TODO: This is very much UHF-only for now
-            // TODO: THINK ABOUT THE CACHE!!!
             final double timeLimit = bidProcessingAlgorithmParameters.getRoundTimer();
             double currentCutoff = 1;
             double elapsedTime = 0;
@@ -262,13 +261,14 @@ public class MultiBandSimulator {
                     final SimulatorProblem simulatorProblem = problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE);
                     simulatorProblem.getSATFCProblem().setCutoff(currentCutoff);
                     final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(simulatorProblem);
+                    // TODO: In VHF case this condition might need to be different
                     if (homeBandFeasibility.getSATFCResult().getResult().equals(SATResult.SAT) &&
                             stationToBid.get(station).getPreferredOption().equals(Band.OFF) &&
                             !homeBandFeasibility.isCached()) {
                         // In a UHF-only auction, if a station exits, this will trigger the break. So just find the first.
                         currentCutoff = Math.min(homeBandFeasibility.getSATFCResult().getRuntime(), currentCutoff);
-                        // Prevent it from being 0
-                        currentCutoff = Math.max(currentCutoff, 0.01);
+                        // Prevent it from being 0. SATFC seems to have trouble with really small cutoffs (was previously trying 0.01 s and having troubles)
+                        currentCutoff = Math.max(currentCutoff, 1);
                         log.debug("Decreasing round cutoff to {}", currentCutoff);
                     }
                     results.put(station, homeBandFeasibility);

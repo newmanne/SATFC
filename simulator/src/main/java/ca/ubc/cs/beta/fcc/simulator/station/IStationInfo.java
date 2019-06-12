@@ -31,6 +31,12 @@ public interface IStationInfo {
         return getValues().get(band);
     }
 
+    ImmutableSet<String> nonMainlandDMAs = ImmutableSet.of("Honolulu, HI", "Virgin Islands", "Anchorage, AK", "Fairbanks, AK", "Juneau, AK", "Puerto Rico");
+
+    default boolean isMainland() {
+        return !nonMainlandDMAs.contains(getDMA());
+    }
+
     default double getValue() {
         return getValue(getHomeBand());
     }

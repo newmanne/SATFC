@@ -96,7 +96,7 @@ public class CPLEXSolverDecorator extends ASolverDecorator {
                 cplex.setParam(IloCplex.Param.MIP.Limits.CutsFactor, 1.4882278332160317);
                 cplex.setParam(IloCplex.Param.MIP.Limits.GomoryCand, 93);
                 cplex.setParam(IloCplex.Param.MIP.Limits.GomoryPass, 64);
-                cplex.setParam(IloCplex.Param.MIP.Limits.SubMIPNodeLim, 271);
+//                cplex.setParam(IloCplex.Param.MIP.Limits.SubMIPNodeLim, 271);
                 cplex.setParam(IloCplex.Param.MIP.OrderType, 1);
                 cplex.setParam(IloCplex.Param.MIP.Strategy.Backtrack, .99);
                 cplex.setParam(IloCplex.Param.MIP.Strategy.BBInterval, 8);
