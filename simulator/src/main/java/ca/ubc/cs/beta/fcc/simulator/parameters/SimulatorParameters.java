@@ -250,6 +250,9 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean storeProblems = false;
 
+    @Parameter(names = "-FORWARD-AUCTION-AMOUNTS", description = "A list of forward auction amounts, used as a termination condition")
+    @Getter
+    private List<Integer> forwardAuctionAmounts = new ArrayList<>();
 
     @Getter
     private BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
@@ -340,8 +343,9 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
         stationDB = new CSVStationDB(getInfoFile(), getStationManager());
-
         historicData = new HistoricData(stationDB);
+        // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations
+        SimulatorUtils.assignValues(this);
 
 //        // TOOD:
 //        Map<Station, Integer> stationIntegerMap = icCounts(getStationManager().getDomains(), stationDB, getConstraintManager());
@@ -370,7 +374,7 @@ public class SimulatorParameters extends AbstractOptions {
                 log.info("Station {} is a Canadian station and ignore Canada flag is set to true", s);
                 toRemove.add(s.getId());
             } else if ((isUhfOnly() || !isIncludeVHFBands()) && s.getDomain(Band.UHF).isEmpty()) {
-                log.info("Station {} has no domain in UHF, skipping due to flag", s);
+                log.info("Station {} has no domain in UHF, removing due to flag", s);
                 toRemove.add(s.getId());
             } else if (!isIncludeVHFBands()) {
                 // Remove the VHF bands of UHF stations if we are doing a UHF-only auction

@@ -15,16 +15,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class OpeningOffPriceHigherThanPrivateValue implements IParticipationDecider {
 
-    private final IPrices prices;
+    private final IPrices<Long> prices;
 
-    public OpeningOffPriceHigherThanPrivateValue(IPrices prices) {
+    public OpeningOffPriceHigherThanPrivateValue(IPrices<Long> prices) {
         this.prices = prices;
     }
 
     @Override
     public boolean isParticipating(IStationInfo s) {
-        final double value = s.getValue();
-        final double offOffer = prices.getPrice(s, Band.OFF);
+        final long value = s.getValue();
+        final long offOffer = prices.getPrice(s, Band.OFF);
         final boolean participating = offOffer > value;
         if (!participating) {
             log.info("Station {} is not participating as its value {} is higher than it's opening price of {}", s, Humanize.spellBigNumber(s.getValue()), Humanize.spellBigNumber(prices.getPrice(s, Band.OFF)));

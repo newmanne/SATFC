@@ -56,7 +56,7 @@ public class StationInfo implements IStationInfo {
     private Integer volume;
     @Getter
     @Setter
-    private Map<Band, Double> values;
+    private Map<Band, Long> values;
 
     @Setter
     private Boolean commercial;
@@ -121,13 +121,13 @@ public class StationInfo implements IStationInfo {
         adjustDomain();
     }
 
-    private double getUtility(Band band, double payment) {
+    private long getUtility(Band band, long payment) {
         return getValue(band) + payment;
     }
 
-    public Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand) {
+    public Bid queryPreferredBand(Map<Band, Long> offers, Band currentBand) {
         Preconditions.checkState(offers.get(homeBand) == 0, "Station being offered compensation for exiting!");
-        final Map<Band, Double> utilityOffers = offers.entrySet().stream().collect(toImmutableMap(Map.Entry::getKey, s -> getUtility(s.getKey(), s.getValue())));
+        final Map<Band, Long> utilityOffers = offers.entrySet().stream().collect(toImmutableMap(Map.Entry::getKey, s -> getUtility(s.getKey(), s.getValue())));
         final Ordering<Band> primaryOrder = Ordering.natural().onResultOf(Functions.forMap(utilityOffers));
         final Ordering<Band> compound = primaryOrder.compound(Comparator.comparingInt(Band::ordinal));
         final ArrayList<Band> bestOffers = Lists.newArrayList(ImmutableSortedMap.copyOf(offers, compound).descendingKeySet());

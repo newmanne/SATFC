@@ -22,7 +22,7 @@ public class WCNF extends CNF {
         for (Clause aClause : clauses) {
             ArrayList<String> aLitteralStrings = new ArrayList<String>();
 
-            for (Literal aLitteral : aClause) {
+            for (Literal aLitteral : aClause.getLiterals()) {
                 if (aLitteral.getVariable() <= 0) {
                     throw new IllegalArgumentException("Cannot transform to DIMACS a CNF that has a litteral with variable value <= 0 (clause: " + aClause.toString() + ").");
                 } else if (aLitteral.getVariable() > aMaxVariable) {

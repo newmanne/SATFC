@@ -24,20 +24,20 @@ import java.util.Map;
 @NoArgsConstructor
 public class LadderAuctionState {
 
-    private IPrices benchmarkPrices;
+    private IPrices<Double> benchmarkPrices;
     private ParticipationRecord participation;
     private int round;
     private int stage;
     private Map<Integer, Integer> assignment;
     private IModifiableLadder ladder;
 
-    private IPrices offers;
+    private IPrices<Long> offers;
     private ImmutableTable<IStationInfo, Band, Double> vacancies;
     private ImmutableTable<IStationInfo, Band, Double> reductionCoefficients;
     private List<IStationInfo> bidProcessingOrder;
 
     // The current compensation of every station
-    private Map<IStationInfo, Double> prices;
+    private Map<IStationInfo, Long> prices;
 
     // The current catchup point of each station
     private Map<IStationInfo, CatchupPoint> catchupPoints;
@@ -45,5 +45,16 @@ public class LadderAuctionState {
     // UHF to off benchmark
     private double baseClockPrice;
 
+//    // Should the state early terminate
+//    private boolean earlyTerminate;
+
+    private long biddingCompensation;
+    private long currentlyInfeasibleCompensation;
+    private long pendingCatchupCompensation;
+    private long provisionallyWinningCompensation;
+
+    public long totalCompensation() {
+        return biddingCompensation + currentlyInfeasibleCompensation + pendingCatchupCompensation + provisionallyWinningCompensation;
+    }
 
 }

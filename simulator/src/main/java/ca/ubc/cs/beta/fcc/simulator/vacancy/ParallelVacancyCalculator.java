@@ -119,7 +119,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 final Band band,
                 final ILadder ladder,
                 final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods,
-                final IPrices previousBenchmarkPrices) {
+                final IPrices<Double> previousBenchmarkPrices) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
             log.trace("Calculating vacancy for station {} on band {}.", station, band);
 

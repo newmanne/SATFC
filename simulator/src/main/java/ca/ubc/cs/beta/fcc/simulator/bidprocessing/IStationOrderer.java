@@ -14,6 +14,6 @@ import java.util.Map;
  */
 public interface IStationOrderer {
 
-    ImmutableList<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder, Map<IStationInfo, Double> previousPrices);
+    ImmutableList<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices<Long> prices, ILadder ladder, Map<IStationInfo, Long> previousPrices);
 
 }

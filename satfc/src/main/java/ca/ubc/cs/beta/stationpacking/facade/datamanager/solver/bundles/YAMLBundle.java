@@ -540,13 +540,14 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 solverFactories.add(aSolver -> concat(configPath, context));
             }
             if (wait) {
-                return new ParallelSolverComposite(solverFactories.size(), solverFactories);
+                return new ParallelSolverComposite(solverFactories.size(), solverFactories, stableAssignments);
             } else {
                 return new ParallelNoWaitSolverComposite(solverFactories.size(), solverFactories);
             }
         }
 
         private boolean wait = false;
+        private boolean stableAssignments = false;
         private List<List<ISolverConfig>> configs;
 
     }

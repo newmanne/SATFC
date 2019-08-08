@@ -44,14 +44,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
+import humanize.Humanize;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
+import jnr.ffi.annotations.In;
 import lombok.Cleanup;
 import lombok.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.*;
 
@@ -86,8 +89,6 @@ public class MultiBandAuctioneer {
         log.info("Reading station info from file");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
 
-        SimulatorUtils.assignValues(parameters);
-
         adjustCT(parameters.getMaxChannel(), stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
         if (parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), stationDB, parameters.getConstraintManager()).function();
@@ -96,8 +97,8 @@ public class MultiBandAuctioneer {
         // Initialize opening benchmarkPrices
         log.info("Setting opening prices");
         final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
-        final IPrices actualPrices = setOpeningPrices.getActualPrices();
-        final IPrices benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
+        final IPrices<Long> actualPrices = setOpeningPrices.getActualPrices();
+        final IPrices<Double> benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
 
         log.info("Figuring out participation");
         // Figure out participation
@@ -152,8 +153,7 @@ public class MultiBandAuctioneer {
 
         // Get an initial VHF assignment
         // Use a fresh solver here so we don't crash on greedy-only runs
-        @Cleanup
-        final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
+        @Cleanup final IFeasibilitySolver ctSolver = new LocalFeasibilitySolver(new SATFCFacadeBuilder().build());
         final SimulatorResult hvhfSolution = ctSolver.getFeasibilityBlocking(problemMaker.makeProblem(ladder.getBandStations(Band.HVHF), Band.HVHF, ProblemType.INITIAL_PLACEMENT, null));
         previousAssignmentHandler.updatePreviousAssignment(hvhfSolution.getSATFCResult().getWitnessAssignment());
         final SimulatorResult lvhfSolution = ctSolver.getFeasibilityBlocking(problemMaker.makeProblem(ladder.getBandStations(Band.LVHF), Band.LVHF, ProblemType.INITIAL_PLACEMENT, null));
@@ -207,16 +207,15 @@ public class MultiBandAuctioneer {
         tmp = timeTrackingDecorator;
         parameters.getEventBus().register(tmp);
 
-        @Cleanup
-        final IFeasibilitySolver solver = tmp;
+        @Cleanup final IFeasibilitySolver solver = tmp;
 
 
-        final Map<IStationInfo, Double> initialCompensations = new HashMap<>();
+        final Map<IStationInfo, Long> initialCompensations = new HashMap<>();
         for (IStationInfo s : ladder.getStations()) {
             if (Participation.NON_ZERO_PRICES.contains(participation.getParticipation(s))) {
                 initialCompensations.put(s, actualPrices.getPrice(s, ladder.getStationBand(s)));
             } else {
-                initialCompensations.put(s, 0.);
+                initialCompensations.put(s, 0L);
             }
         }
 
@@ -231,6 +230,7 @@ public class MultiBandAuctioneer {
                 .baseClockPrice(parameters.getOpeningBenchmarkPrices().get(Band.OFF))
                 .offers(actualPrices)
                 .catchupPoints(new HashMap<>())
+//                .earlyTerminate(false)
                 .build();
 
         final IVacancyCalculator vacancyCalculator = new ParallelVacancyCalculator(
@@ -256,6 +256,7 @@ public class MultiBandAuctioneer {
                         .stationManager(parameters.getStationManager())
                         .roundTracker(roundTracker)
                         .bidProcessingAlgorithmParameters(parameters.getBidProcessingAlgorithmParameters())
+                        .forwardAuctionAmounts(parameters.getForwardAuctionAmounts())
                         .build()
         );
 
@@ -267,8 +268,15 @@ public class MultiBandAuctioneer {
         final List<Integer> stages = SimulatorUtils.CLEARING_TARGETS.stream().filter(c -> c >= parameters.getMaxChannel() && c <= parameters.getMaxChannelFinal() && !parameters.getSkipStages().contains(c)).collect(toList());
         log.info("The auction will proceed for {} stages, with the following max channels: {}", stages.size(), stages);
 
+
         for (int clearingTarget : stages) {
             log.info("Beginning stage {} of the auction", roundTracker.getStage());
+
+            if (parameters.getForwardAuctionAmounts().size() >= roundTracker.getStage()) {
+                final int forwardAuctionAmount = parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1);
+                log.info("Early termination for this stage will occur at a provisional cost of {}", Humanize.spellBigNumber(forwardAuctionAmount));
+            }
+
             if (roundTracker.getStage() > 1) {
                 adjustCT(clearingTarget, stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
 
@@ -282,7 +290,7 @@ public class MultiBandAuctioneer {
                 final ParticipationRecord endOfStageParticipation = state.getParticipation();
 
                 final Set<IStationInfo> checkUnconstrained = new HashSet<>();
-                for (final IStationInfo station : provisionalWinners.stream().sorted(Comparator.comparingInt(s -> -s.getHomeBand().ordinal())).collect(toSet())) {
+                for (final IStationInfo station : provisionalWinners.stream().sorted(Comparator.comparingInt(s -> -s.getHomeBand().ordinal())).collect(Collectors.toList())) {
                     final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.BETWEEN_STAGE_HOME_BAND_FEASIBLE));
                     if (SimulatorUtils.isFeasible(homeBandFeasibility)) {
                         endOfStageParticipation.setParticipation(station, Participation.FROZEN_PENDING_CATCH_UP);
@@ -303,24 +311,30 @@ public class MultiBandAuctioneer {
                     }
                 }
 
-                for (final IStationInfo station : checkUnconstrained) {
-                    if (unconstrainedChecker.isUnconstrained(station, ladder)) {
-                        final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
-                        Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly!");
-                        MultiBandSimulator.exitStation(station, Participation.EXITED_NOT_NEEDED, feasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, state.getPrices());
+                if (roundTracker.getStage() > parameters.getForwardAuctionAmounts().size()) {
+                    // Don't remove unconstrained stations if we're going to possibly early terminate
+                    for (final IStationInfo station : checkUnconstrained) {
+                        if (unconstrainedChecker.isUnconstrained(station, ladder)) {
+                            final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
+                            Preconditions.checkState(SimulatorUtils.isFeasible(feasibility), "NOT NEEDED station couldn't exit feasibly!");
+                            MultiBandSimulator.exitStation(station, Participation.EXITED_NOT_NEEDED, feasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, state.getPrices());
+                        }
                     }
                 }
 
                 final Map<IStationInfo, CatchupPoint> catchupPoints = state.getCatchupPoints();
-                final double maxCatchupPoint = provisionalWinners.stream().filter(s -> endOfStageParticipation.getParticipation(s).equals(Participation.FROZEN_PENDING_CATCH_UP)).mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max().getAsDouble();
-                state.setBaseClockPrice(maxCatchupPoint);
-                log.info("Base clock price is set to {}", maxCatchupPoint);
+                if (endOfStageParticipation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).size() > 0) {
+                    final double maxCatchupPoint = endOfStageParticipation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).stream().mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max().getAsDouble();
+                    state.setBaseClockPrice(maxCatchupPoint);
+                    log.info("Base clock price is reset to {}", maxCatchupPoint);
+                }
             }
 
             while (true) {
                 state = simulator.executeRound(state);
                 timeTrackingDecorator.report();
                 stateSaver.saveState(stationDB, state);
+
                 // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
                 if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
                     log.info("All stations are inactive. Ending stage");
@@ -328,11 +342,12 @@ public class MultiBandAuctioneer {
                     roundTracker.incrementStage();
                     break;
                 }
+
             }
 
         }
 
-        final Map<IStationInfo, Double> finalPrices = state.getPrices();
+        final Map<IStationInfo, Long> finalPrices = state.getPrices();
         final IModifiableLadder finalLadder = state.getLadder();
         final Set<IStationInfo> winners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
         final double reverseAuctionCost = winners.stream().mapToDouble(finalPrices::get).sum();
@@ -372,13 +387,14 @@ public class MultiBandAuctioneer {
 
     @Value
     public static class OpeningPrices {
-        private final IPrices benchmarkPrices;
-        private final IPrices actualPrices;
+        private final IPrices<Double> benchmarkPrices;
+        private final IPrices<Long> actualPrices;
     }
 
     public static OpeningPrices setOpeningPrices(MultiBandSimulatorParameters parameters) {
-        final IPrices benchmarkPrices = new PricesImpl();
-        final IPrices actualPrices = new PricesImpl();
+        final IPrices<Double> benchmarkPrices = new PricesImpl<>();
+        final IPrices<Long> actualPrices = new PricesImpl<>();
+
         final Map<Band, Double> openingPricesPerUnitVolume = parameters.getOpeningBenchmarkPrices();
         final IStationDB stationDB = parameters.getStationDB();
 
@@ -416,8 +432,8 @@ public class MultiBandAuctioneer {
             actuallyImpaired.stream().forEach(IStationInfo::unimpair);
             final Map<Integer, Set<Integer>> domains = possibleToImpair
                     .stream().collect(toMap(
-                                    IStationInfo::getId,
-                                    s -> Sets.union(s.getDomain(s.getHomeBand()), ImmutableSet.of(ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL)))
+                            IStationInfo::getId,
+                            s -> Sets.union(s.getDomain(s.getHomeBand()), ImmutableSet.of(ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL)))
                     );
             domains.putAll(otherDomains);
             actuallyImpaired.stream().forEach(IStationInfo::impair);

@@ -24,9 +24,9 @@ public interface IStationInfo {
 
     Integer getVolume();
 
-    Map<Band, Double> getValues();
+    Map<Band, Long> getValues();
 
-    default double getValue(Band band) {
+    default long getValue(Band band) {
         Preconditions.checkState(getValues().containsKey(band), "Station %s has no value for band %s", getId(), band);
         return getValues().get(band);
     }
@@ -37,7 +37,7 @@ public interface IStationInfo {
         return !nonMainlandDMAs.contains(getDMA());
     }
 
-    default double getValue() {
+    default long getValue() {
         return getValue(getHomeBand());
     }
 
@@ -68,7 +68,7 @@ public interface IStationInfo {
 
     int getPopulation();
 
-    Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand);
+    Bid queryPreferredBand(Map<Band, Long> offers, Band currentBand);
 
     Boolean isCommercial();
 

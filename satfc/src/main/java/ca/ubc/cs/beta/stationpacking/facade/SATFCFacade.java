@@ -358,6 +358,7 @@ public class SATFCFacade implements AutoCloseable {
             //Get solver
             final ISolver solver = bundle.getSolver(instance);
 
+
             /*
              * Logging problem info
              */

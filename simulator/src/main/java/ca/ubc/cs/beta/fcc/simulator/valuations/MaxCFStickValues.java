@@ -98,8 +98,13 @@ public class MaxCFStickValues {
             final int pop = stationInfo.getPopulation();
             final double stickVal = (stickSample * 6 * pop) / 1e6;
 
-            double val = Math.max(cfVal, stickVal) * 1e6;
-            return MathUtils.round(val, -3);
+            if (cfVal > stickVal) {
+                log.debug("CF wins for {}", stationInfo);
+            } else {
+                log.debug("Stick wins {}", stationInfo);
+            }
+
+            return Math.max(cfVal, stickVal) * 1e6;
         }
 
     }

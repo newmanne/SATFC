@@ -59,6 +59,13 @@ public class SaveStateToFile implements IStateSaver {
         int nProblems;
         int greedySolved;
         UHFCacheState uhfCacheState;
+
+
+        long biddingCompensation;
+        long currentlyInfeasibleCompensation;
+        long pendingCatchUpCompensation;
+        long provisionallyWinningCompensation;
+        long totalCompensation;
     }
 
     @AllArgsConstructor
@@ -72,8 +79,8 @@ public class SaveStateToFile implements IStateSaver {
         Band option;
         Map<Band, Double> vacancies;
         Map<Band, Double> reductionCoefficients;
-        Map<Band, Double> offers;
-        Map<Band, Double> values;
+        Map<Band, Long> offers;
+        Map<Band, Long> values;
         CatchupPoint catchupPoint;
         Boolean impaired;
     }
@@ -125,6 +132,11 @@ public class SaveStateToFile implements IStateSaver {
                 .state(stateByStation)
                 .stage(state.getStage())
                 .round(state.getRound())
+                .biddingCompensation(state.getBiddingCompensation())
+                .currentlyInfeasibleCompensation(state.getCurrentlyInfeasibleCompensation())
+                .pendingCatchUpCompensation(state.getPendingCatchupCompensation())
+                .provisionallyWinningCompensation(state.getProvisionallyWinningCompensation())
+                .totalCompensation(state.totalCompensation())
                 .exitOrder(exitOrder);
         if (state.getRound() > 0) {
             stateFile.bidProcessingOrder(state.getBidProcessingOrder().stream().map(IStationInfo::getId).collect(Collectors.toList()));

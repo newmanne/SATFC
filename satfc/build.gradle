@@ -75,6 +75,7 @@ dependencies {
 
     // Database
     compile group: 'mysql', name: 'mysql-connector-java', version: '6.0.5'
+    compile group: 'com.j256.ormlite', name: 'ormlite-core', version: '5.1'
 
     // Test dependencies.
     testCompile 'junit:junit:4.11'

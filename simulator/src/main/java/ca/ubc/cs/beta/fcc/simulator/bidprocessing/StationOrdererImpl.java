@@ -22,7 +22,7 @@ public class StationOrdererImpl implements IStationOrderer {
      * Sorts the stations in query order, first by the volume-weighted difference in price offers (descending) then by their priorities (pseduo-random).
      */
     @Override
-    public ImmutableList<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices prices, ILadder ladder, Map<IStationInfo, Double> previousPrices) {
+    public ImmutableList<IStationInfo> getQueryOrder(Collection<IStationInfo> stations, IPrices<Long> prices, ILadder ladder, Map<IStationInfo, Long> previousPrices) {
         // Pseudo-random numbers for tie-breaking in this round
         final List<IStationInfo> priorities = new ArrayList<>(stations);
         Collections.shuffle(priorities, RandomUtils.getRandom());

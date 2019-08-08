@@ -28,7 +28,7 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     }
 
     @Override
-    public Map<Band, Double> getValues() {
+    public Map<Band, Long> getValues() {
         return decorated.getValues();
     }
 
@@ -43,7 +43,7 @@ public abstract class AStationInfoDecorator implements IStationInfo {
     }
 
     @Override
-    public Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand) {
+    public Bid queryPreferredBand(Map<Band, Long> offers, Band currentBand) {
         return decorated.queryPreferredBand(offers, currentBand);
     }
 

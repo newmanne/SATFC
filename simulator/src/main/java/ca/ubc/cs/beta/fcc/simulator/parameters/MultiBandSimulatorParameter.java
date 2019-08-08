@@ -12,6 +12,8 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Created by newmanne on 2016-10-02.
  */
@@ -29,5 +31,6 @@ public class MultiBandSimulatorParameter {
     private IConstraintManager constraintManager;
     private RoundTracker roundTracker;
     private SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
+    private List<Integer> forwardAuctionAmounts;
 
 }
