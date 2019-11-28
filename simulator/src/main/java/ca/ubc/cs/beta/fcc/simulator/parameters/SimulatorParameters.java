@@ -22,6 +22,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -42,6 +43,8 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.io.Files;
 import lombok.*;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.math3.random.JDKRandomGenerator;
+import org.apache.commons.math3.random.RandomGenerator;
 import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
@@ -113,6 +116,13 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
     private String maxCFStickFile = System.getenv("SATFC_VALUE_FILE");
 
+    @Parameter(names = "-POP-VALUE-FILE", description = "population value file")
+    private String popValueFile;
+
+    public String getPopValueFile() {
+        return popValueFile != null ? popValueFile : getInternalFile("popValues.csv");
+    }
+
     @Getter
     @Parameter(names = "-VALUE-FILE", description = "CSV file with station value in each band for each American station (FacID, UHFValue, HVHFValue, LVHFValue)")
     private String valueFile;
@@ -124,11 +134,9 @@ public class SimulatorParameters extends AbstractOptions {
         return commercialFile != null ? commercialFile : getInternalFile("commercial.csv");
     }
 
-
     @Getter
     @Parameter(names = "-STARTING-ASSIGNMENT-FILE", description = "CSV file with columns Ch, FacID specifying a starting assignment for non-participating stations")
     private String startingAssignmentFile;
-
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -173,7 +181,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
     private boolean restore = false;
-
 
     @Getter
     @Parameter(names = "-START-CITY", description = "City to start from")
@@ -250,9 +257,16 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean storeProblems = false;
 
-    @Parameter(names = "-FORWARD-AUCTION-AMOUNTS", description = "A list of forward auction amounts, used as a termination condition")
+    @Parameter(names = "-FORWARD-AUCTION-AMOUNTS", description = "A list of forward auction amounts, used as a termination condition. In units of billions")
+    private List<Double> forwardAuctionAmounts = new ArrayList<>();
+
+    public List<Long> getForwardAuctionAmounts() {
+        return forwardAuctionAmounts.stream().map(x -> (long) (x * 1e9)).collect(Collectors.toList());
+    }
+
+    @Parameter(names = "-EARLY-STOPPING", description = "Should early stopping be used?")
     @Getter
-    private List<Integer> forwardAuctionAmounts = new ArrayList<>();
+    private boolean earlyStopping = false;
 
     @Getter
     private BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
@@ -263,6 +277,12 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     private HistoricData historicData;
+
+    @Getter
+    private PopValueModel popValueModel;
+
+    @Getter
+    private RandomGenerator valuesGenerator;
 
     public String getInteferenceFolder() {
         return facadeParameters.fInterferencesFolder != null ? facadeParameters.fInterferencesFolder : getInternalFile("interference_data");
@@ -344,6 +364,15 @@ public class SimulatorParameters extends AbstractOptions {
 
         stationDB = new CSVStationDB(getInfoFile(), getStationManager());
         historicData = new HistoricData(stationDB);
+
+        valuesGenerator = new JDKRandomGenerator();
+        valuesGenerator.setSeed(getValuesSeed());
+
+        if (popValues && getPopValueFile() != null) {
+            log.info("Initializing pop value model with {}", getPopValueFile());
+            popValueModel = new PopValueModel(valuesGenerator, stationDB, getPopValueFile());
+        }
+
         // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations
         SimulatorUtils.assignValues(this);
 
@@ -380,14 +409,18 @@ public class SimulatorParameters extends AbstractOptions {
                 // Remove the VHF bands of UHF stations if we are doing a UHF-only auction
                 ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
             }
-//            if (city != null && nLinks >= 0) {
-//                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
-//            }
         }
+
         if (!notNeeded.isEmpty()) {
             log.info("The following {} US stations were not offered an opening price, meaning they must be Not Needed and can effectively be ignored. Excluding from auction" + System.lineSeparator() + "{}", notNeeded.size(), notNeeded);
         }
         toRemove.forEach(stationDB::removeStation);
+        // WARNING: Understand that clearing target has not been set yet, so this will be using the full constraint graph (I think)
+        if (city != null && nLinks >= 0) {
+            log.info("City and links");
+            new CityAndLinks(city, nLinks, getStationDB(), getConstraintManager()).function();
+        }
+
 
         // Assign volumes
         log.info("Setting volumes");
@@ -473,7 +506,8 @@ public class SimulatorParameters extends AbstractOptions {
     public enum ParticipationModel {
         PRICE_HIGHER_THAN_VALUE,
         UNIFORM,
-        HISTORICAL_DATA
+        HISTORICAL_DATA,
+        COIN_FLIP
     }
 
     public IParticipationDecider getParticipationDecider(IPrices prices) {
@@ -481,6 +515,18 @@ public class SimulatorParameters extends AbstractOptions {
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
                 decider = new OpeningOffPriceHigherThanPrivateValue(prices);
+                break;
+            case COIN_FLIP:
+                final IParticipationDecider tmp = new OpeningOffPriceHigherThanPrivateValue(prices);
+                final PopValueModel popValueModel = getPopValueModel();
+                Preconditions.checkNotNull(popValueModel, "Trying to use pop value model but null!");
+                decider = s -> {
+                    if (tmp.isParticipating(s)) {
+                        return popValueModel.coinFlip(s);
+                    } else {
+                        return false;
+                    }
+                };
                 break;
             case HISTORICAL_DATA:
                 decider = s -> {
@@ -511,7 +557,6 @@ public class SimulatorParameters extends AbstractOptions {
 
     }
 
-    // TODO: Hard to ratify this with endogenous clearing targets...
     @RequiredArgsConstructor
     public static class CityAndLinks {
 

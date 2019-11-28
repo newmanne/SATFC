@@ -31,6 +31,7 @@ public class MultiBandSimulatorParameter {
     private IConstraintManager constraintManager;
     private RoundTracker roundTracker;
     private SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
-    private List<Integer> forwardAuctionAmounts;
+    private List<Long> forwardAuctionAmounts;
+    private boolean isEarlyStopping;
 
 }

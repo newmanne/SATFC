@@ -39,6 +39,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.util.MathUtils;
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,7 +210,7 @@ public class VCGMip {
                     IloIntVar var = domainVars[i];
                     int chan = variablesDecoder.get(var).getChannel();
                     final Band band = BandHelper.toBand(chan);
-                    final double value = stationDB.getStationById(station).getValues().get(band);
+                    final long value = stationDB.getStationById(station).getValues().get(band) / 1000; // Smaller numbers could be easier to work with
                     values[i] = value;
                 }
                 objectiveSum.addTerms(values, domainVars);

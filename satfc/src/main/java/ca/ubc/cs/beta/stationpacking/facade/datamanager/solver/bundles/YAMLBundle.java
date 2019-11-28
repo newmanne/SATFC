@@ -521,8 +521,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                     context.getManagerBundle().getConstraintManager());
         }
 
-        ;
-
 
         private ISolverConfig solverConfig;
         private IStationPackingConfigurationStrategyConfig strategy;

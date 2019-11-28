@@ -69,7 +69,8 @@ public class MultiBandSimulator {
     private final IStationManager stationManager;
     private final IConstraintManager constraintManager;
     private final SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
-    private final List<Integer> forwardAuctionAmounts;
+    private final List<Long> forwardAuctionAmounts;
+    private final boolean earlyStopping;
 
     public MultiBandSimulator(MultiBandSimulatorParameter parameters) {
         this.parameters = parameters.getParameters();
@@ -85,6 +86,7 @@ public class MultiBandSimulator {
         this.roundTracker = parameters.getRoundTracker();
         this.bidProcessingAlgorithmParameters = parameters.getBidProcessingAlgorithmParameters();
         this.forwardAuctionAmounts = parameters.getForwardAuctionAmounts();
+        this.earlyStopping = parameters.isEarlyStopping();
     }
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
@@ -105,10 +107,16 @@ public class MultiBandSimulator {
         final IModifiableLadder ladder = previousState.getLadder();
         final ParticipationRecord participation = previousState.getParticipation();
 
-        final boolean earlyTerminationPossible = forwardAuctionAmounts.size() >= roundTracker.getStage() && ladder.getAirBands().stream().noneMatch(Band::isVHF);
+        final boolean earlyTerminationPossible = earlyStopping && forwardAuctionAmounts.size() >= roundTracker.getStage() && ladder.getAirBands().stream().noneMatch(Band::isVHF);
 
         Preconditions.checkState(previousState.getAssignment().equals(ladder.getPreviousAssignment()), "Ladder and previous state do not match on assignments", previousState.getAssignment(), ladder.getPreviousAssignment());
         Preconditions.checkState(StationPackingUtils.weakVerify(stationManager, constraintManager, previousState.getAssignment()), "Round started on an invalid assignment!", previousState.getAssignment());
+
+        // Start of a new stage. Stations may have unfrozen, what is the new provisional cost?
+        if (roundTracker.getStage() > 1 && roundTracker.getRound() == 1) {
+            final long provisionalCost = provisionalCost(stationPrices, participation);
+            log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
+        }
 
         log.info("There are {} bidding stations remaining (HB={}), {} provisional winners, and {} frozen currently infeasible stations", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.BIDDING).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
         final int pendingCatchup = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).size();
@@ -257,13 +265,18 @@ public class MultiBandSimulator {
                         processBid(bid, station, homeBandFeasibility, ladder, stationPrices, actualPrices, participation);
                         stationsToQuery.remove(i);
                         break; // start a new processing loop
-                    } else if (earlyTerminationPossible) {
-                        if (willBeFrozen.add(station)) {
-                            runningProvisionalCost += stationPrices.get(station);
-                            if (runningProvisionalCost > forwardAuctionAmounts.get(roundTracker.getStage() - 1)) {
-                                log.info("Clearing costs are {} exceeding forward auction costs of {}, terminating the bid processing", runningProvisionalCost, forwardAuctionAmounts.get(roundTracker.getStage() - 1));
-                                earlyTermination = true;
-                                break;
+                    } else {
+                        if (ladder.getAirBands().stream().noneMatch(Band::isVHF)) {
+                            if (willBeFrozen.add(station)) {
+                                log.info("Station {} will become a provisional winner at the end of this round for {}", station, Humanize.spellBigNumber(stationPrices.get(station)));
+                                if (earlyTerminationPossible) {
+                                    runningProvisionalCost += stationPrices.get(station);
+                                    if (runningProvisionalCost > forwardAuctionAmounts.get(roundTracker.getStage() - 1)) {
+                                        log.info("Clearing costs are {} exceeding forward auction costs of {}, terminating the bid processing", runningProvisionalCost, forwardAuctionAmounts.get(roundTracker.getStage() - 1));
+                                        earlyTermination = true;
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
@@ -333,10 +346,10 @@ public class MultiBandSimulator {
                     final double nextCutoff = Math.max(1, Math.min(currentCutoff * 2, timeLimit - elapsedTime));
                     if (nextCutoff <= 0 || nextCutoff <= currentCutoff) {
                         // truly done
-                        log.info("Round has expired after the time limit of {}. {} stations remain indeterminate.", elapsedTime, results.values().stream().filter(x -> !x.getSATFCResult().getResult().isConclusive()).count());
+                        log.info("Round has expired after the time limit of {}. {} stations remain indeterminate.", timeLimit, results.values().stream().filter(x -> !x.getSATFCResult().getResult().isConclusive()).count());
                         finished = true;
                     } else {
-                        log.info("Increasing cutoff for the round to {}", nextCutoff);
+                        log.info("Increasing cutoff for the round from {} to {}", currentCutoff, nextCutoff);
                         currentCutoff = nextCutoff;
                     }
                 }
@@ -434,8 +447,10 @@ public class MultiBandSimulator {
 
         log.info("Stage {} Round {} complete", roundTracker.getStage(), roundTracker.getRound());
 
-        final long provisionalCost = provisionalCost(stationPrices, participation);
-        log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
+        if (!earlyTermination) {
+            final long provisionalCost = provisionalCost(stationPrices, participation);
+            log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
+        }
 
         return LadderAuctionState.builder()
                 .benchmarkPrices(newBenchmarkPrices)
@@ -451,6 +466,7 @@ public class MultiBandSimulator {
                 .offers(actualPrices)
                 .bidProcessingOrder(stationsToQueryOrdering)
                 .catchupPoints(catchupPoints)
+                .earlyStopped(earlyTermination)
                 .biddingCompensation((long) participation.getMatching(Participation.BIDDING).stream().mapToDouble(stationPrices::get).sum())
                 .provisionallyWinningCompensation((long) participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).stream().mapToDouble(stationPrices::get).sum())
                 .pendingCatchupCompensation((long) participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).stream().mapToDouble(stationPrices::get).sum())

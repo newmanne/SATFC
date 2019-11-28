@@ -53,6 +53,8 @@ public class LadderAuctionState {
     private long pendingCatchupCompensation;
     private long provisionallyWinningCompensation;
 
+    private boolean earlyStopped;
+
     public long totalCompensation() {
         return biddingCompensation + currentlyInfeasibleCompensation + pendingCatchupCompensation + provisionallyWinningCompensation;
     }

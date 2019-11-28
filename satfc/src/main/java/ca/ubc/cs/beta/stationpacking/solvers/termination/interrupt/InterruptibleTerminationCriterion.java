@@ -21,6 +21,8 @@
  */
 package ca.ubc.cs.beta.stationpacking.solvers.termination.interrupt;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import ca.ubc.cs.beta.stationpacking.solvers.termination.ITerminationCriterion;
@@ -36,13 +38,11 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
 
     private final ITerminationCriterion decoratedCriterion;
     private final AtomicBoolean interrupt;
-    private final AtomicBoolean delayedInterrupt;
 
 
     public InterruptibleTerminationCriterion(ITerminationCriterion decoratedCriterion) {
         this.decoratedCriterion = decoratedCriterion;
         this.interrupt = new AtomicBoolean(false);
-        this.delayedInterrupt = new AtomicBoolean(false);
     }
 
     public InterruptibleTerminationCriterion() {
@@ -68,18 +68,5 @@ public class InterruptibleTerminationCriterion implements ITerminationCriterion.
         return interrupt.compareAndSet(false, true);
     }
 
-    public boolean delayedInterrupt() {
-        boolean retval = delayedInterrupt.compareAndSet(false, true);
-        if (retval) {
-            try {
-                log.info("Going to slumber");
-                Thread.sleep(1000);
-                log.info("Up from slumber");
-            } catch (InterruptedException ignored) {
-            }
-            interrupt.set(true);
-        }
-        return retval;
-    }
 
 }

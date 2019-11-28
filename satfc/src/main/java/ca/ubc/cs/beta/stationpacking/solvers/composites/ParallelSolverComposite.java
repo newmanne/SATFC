@@ -24,8 +24,11 @@ package ca.ubc.cs.beta.stationpacking.solvers.composites;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import ca.ubc.cs.beta.stationpacking.base.Station;
@@ -45,17 +48,22 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ParallelSolverComposite implements ISolver {
 
-    List<ISolver> solvers;
+    private final List<ISolver> solvers;
     private final ForkJoinPool forkJoinPool;
 
     // Goal is to ensure you get the same assignment every single time, at the cost of performance
     private final boolean stableAssignments;
+    private final Map<ISolver, Integer> priorities;
 
     public ParallelSolverComposite(int threadPoolSize, List<ISolverFactory> solvers, boolean stableAssignments) {
         this.stableAssignments = stableAssignments;
         this.solvers = solvers.stream().map(ISolverFactory::create).collect(Collectors.toList());
         log.debug("Creating a fork join pool with {} threads", threadPoolSize);
         forkJoinPool = new ForkJoinPool(threadPoolSize);
+        priorities = new HashMap<>();
+        for (int i = 0; i < solvers.size(); i++) {
+            priorities.put(this.solvers.get(i), i);
+        }
     }
 
     @Override
@@ -63,15 +71,18 @@ public class ParallelSolverComposite implements ISolver {
         Watch watch = Watch.constructAutoStartWatch();
         // Swap out the termination criterion to one that can be interrupted
         final InterruptibleTerminationCriterion interruptibleCriterion = new InterruptibleTerminationCriterion(aTerminationCriterion);
+        log.trace("NEW PROBLEM");
         try {
             final SolverResult endResult = forkJoinPool.submit(() -> {
                 return solvers.parallelStream()
                         .map(solver -> {
+                            final int priority = priorities.get(solver);
                             final SolverResult solve = solver.solve(aInstance, interruptibleCriterion, aSeed);
-                            log.trace("Returned from solver");
-                            // Interrupt only if the result is conclusive
-                            if (solve.getResult().isConclusive() && (stableAssignments ? interruptibleCriterion.delayedInterrupt() : interruptibleCriterion.interrupt())) {
-                                log.debug("Found a conclusive result {}, interrupting other concurrent solvers", solve);
+                            log.trace("Returned from solver. Solver {} has returned with result {}, {}", priority, solve.getResult(), solve.getRuntime());
+
+                            // Interrupt only if the result is conclusive. If we are worried about stable assignments, notice that it's always safe to interrupt with an UNSAT proof as well as if solver 0 finds a SAT proof.
+                            if (solve.getResult().isConclusive() && (solve.getResult().equals(SATResult.UNSAT) || priority == 0 || !stableAssignments) && interruptibleCriterion.interrupt()) {
+                                log.trace("Solver {} Found a conclusive result {}, interrupting other concurrent solvers", priority, solve.getResult());
                                 solvers.forEach(ISolver::interrupt);
                             }
                             return solve;

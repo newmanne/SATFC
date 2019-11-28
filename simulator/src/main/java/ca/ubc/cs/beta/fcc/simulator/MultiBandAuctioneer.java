@@ -49,6 +49,7 @@ import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import jnr.ffi.annotations.In;
 import lombok.Cleanup;
+import lombok.Data;
 import lombok.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -229,6 +230,7 @@ public class MultiBandAuctioneer {
                 .prices(initialCompensations)
                 .baseClockPrice(parameters.getOpeningBenchmarkPrices().get(Band.OFF))
                 .offers(actualPrices)
+                .earlyStopped(false)
                 .catchupPoints(new HashMap<>())
 //                .earlyTerminate(false)
                 .build();
@@ -257,23 +259,26 @@ public class MultiBandAuctioneer {
                         .roundTracker(roundTracker)
                         .bidProcessingAlgorithmParameters(parameters.getBidProcessingAlgorithmParameters())
                         .forwardAuctionAmounts(parameters.getForwardAuctionAmounts())
+                        .isEarlyStopping(parameters.isEarlyStopping())
                         .build()
         );
 
         log.info("Starting simulation!");
 
-        stateSaver.saveState(stationDB, state);
-        timeTrackingDecorator.report();
 
         final List<Integer> stages = SimulatorUtils.CLEARING_TARGETS.stream().filter(c -> c >= parameters.getMaxChannel() && c <= parameters.getMaxChannelFinal() && !parameters.getSkipStages().contains(c)).collect(toList());
         log.info("The auction will proceed for {} stages, with the following max channels: {}", stages.size(), stages);
+        if (parameters.getForwardAuctionAmounts().size() > 0) {
+            log.info("Forward auction amounts are provided: {}", parameters.getForwardAuctionAmounts().stream().map(Humanize::spellBigNumber).collect(Collectors.toList()));
+        }
 
-
+        boolean auctionSuccessful = true;
         for (int clearingTarget : stages) {
             log.info("Beginning stage {} of the auction", roundTracker.getStage());
+            state.setEarlyStopped(false);
 
             if (parameters.getForwardAuctionAmounts().size() >= roundTracker.getStage()) {
-                final int forwardAuctionAmount = parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1);
+                final long forwardAuctionAmount = parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1);
                 log.info("Early termination for this stage will occur at a provisional cost of {}", Humanize.spellBigNumber(forwardAuctionAmount));
             }
 
@@ -289,6 +294,7 @@ public class MultiBandAuctioneer {
                 final Set<IStationInfo> provisionalWinners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
                 final ParticipationRecord endOfStageParticipation = state.getParticipation();
 
+                log.info("Checking whether provisional winners are still provisional winners, or are now frozen pending catchup");
                 final Set<IStationInfo> checkUnconstrained = new HashSet<>();
                 for (final IStationInfo station : provisionalWinners.stream().sorted(Comparator.comparingInt(s -> -s.getHomeBand().ordinal())).collect(Collectors.toList())) {
                     final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.BETWEEN_STAGE_HOME_BAND_FEASIBLE));
@@ -311,8 +317,8 @@ public class MultiBandAuctioneer {
                     }
                 }
 
-                if (roundTracker.getStage() > parameters.getForwardAuctionAmounts().size()) {
-                    // Don't remove unconstrained stations if we're going to possibly early terminate
+                if (!parameters.isEarlyStopping()) {
+                    // Don't remove unconstrained stations if we're going to possibly early terminate. They could still be useful!
                     for (final IStationInfo station : checkUnconstrained) {
                         if (unconstrainedChecker.isUnconstrained(station, ladder)) {
                             final SimulatorResult feasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, station.getHomeBand(), ProblemType.NOT_NEEDED_UPDATE));
@@ -329,30 +335,51 @@ public class MultiBandAuctioneer {
                     log.info("Base clock price is reset to {}", maxCatchupPoint);
                 }
             }
+            stateSaver.saveState(stationDB, state);
+            timeTrackingDecorator.report();
 
             while (true) {
                 state = simulator.executeRound(state);
                 timeTrackingDecorator.report();
                 stateSaver.saveState(stationDB, state);
 
+                if (state.isEarlyStopped()) {
+                    log.info("Early termination of stage");
+                    break;
+                }
+
                 // If, after processing the bids from a round, every participating station has either exited or become provisionally winning, the stage ends
                 if (state.getParticipation().getMatching(Participation.INACTIVE).equals(state.getLadder().getStations())) {
                     log.info("All stations are inactive. Ending stage");
                     log.info("Provisional winner counts (home band): {}", state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).stream().collect(groupingBy(IStationInfo::getHomeBand, counting())));
-                    roundTracker.incrementStage();
                     break;
                 }
-
             }
 
+            if (!state.isEarlyStopped() && parameters.getForwardAuctionAmounts().size() >= roundTracker.getStage()) {
+                AuctionResult temp = getAuctionResult(state);
+                long forwardAuctionCost = parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1);
+                log.info("The forward auction was willing to pay {} and the clearing cost was {}", Humanize.spellBigNumber(parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1)), Humanize.spellBigNumber(temp.getCost()));
+                if (temp.getCost() <= forwardAuctionCost) {
+                    log.info("Therefore, ending auction");
+                    break;
+                } else {
+                    log.info("Failed final stage rule");
+                    if (clearingTarget == stages.get(stages.size() - 1)) {
+                        auctionSuccessful = false;
+                        log.info("This was the final stage! The auction was not successful and no spectrum will be cleared");
+                    } else {
+                        log.info("Moving to next stage");
+                    }
+                }
+            }
+            roundTracker.incrementStage();
         }
 
-        final Map<IStationInfo, Long> finalPrices = state.getPrices();
-        final IModifiableLadder finalLadder = state.getLadder();
-        final Set<IStationInfo> winners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
-        final double reverseAuctionCost = winners.stream().mapToDouble(finalPrices::get).sum();
-        final double valueLoss = winners.stream().mapToDouble(s -> s.getValue() - s.getValue(finalLadder.getStationBand(s))).sum();
-        log.info("Final cost of reverse auction {}. Final value loss is {}", reverseAuctionCost, valueLoss);
+        if (auctionSuccessful) {
+            AuctionResult auctionResult = getAuctionResult(state);
+            log.info("Final cost of reverse auction {}. Final value loss is {}", auctionResult.getCost(), auctionResult.getValueLoss());
+        }
 
         if (parameters.getBidProcessingAlgorithmParameters().getDistributedFeasibilitySolver() != null) {
             // TODO: Some sort of finally block?
@@ -361,6 +388,21 @@ public class MultiBandAuctioneer {
         }
         log.info("Ending simulation");
         log.info("Finished. Goodbye :)");
+    }
+
+    public static AuctionResult getAuctionResult(LadderAuctionState state) {
+        final Map<IStationInfo, Long> finalPrices = state.getPrices();
+        final IModifiableLadder finalLadder = state.getLadder();
+        final Set<IStationInfo> winners = state.getParticipation().getMatching(Participation.FROZEN_PROVISIONALLY_WINNING);
+        final long reverseAuctionCost = winners.stream().mapToLong(finalPrices::get).sum();
+        final long valueLoss = winners.stream().mapToLong(s -> s.getValue() - s.getValue(finalLadder.getStationBand(s))).sum();
+        return new AuctionResult(reverseAuctionCost, valueLoss);
+    }
+
+    @Data
+    public static class AuctionResult {
+        final long cost;
+        final long valueLoss;
     }
 
     private static void betweenStageClearingTargetOptimization(MultiBandSimulatorParameters parameters, IPreviousAssignmentHandler previousAssignmentHandler, IModifiableLadder ladder, IStationDB.IModifiableStationDB stationDB, UHFCachingFeasibilitySolverDecorator uhfCache, Set<IStationInfo> impairingStations) {

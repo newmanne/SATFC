@@ -45,7 +45,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 @Slf4j
 public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDecorator {
 
-    final private static ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE);
+    final private static ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE, ProblemType.BETWEEN_STAGE_HOME_BAND_FEASIBLE, ProblemType.CATCHUP_FEASIBLE);
 
     @Data
     public static class UHFCacheEntry {
@@ -96,7 +96,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         final Map<Station, IStationInfo> stationToInfo = ladder.getStations().stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, Function.identity()));
         final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
         final ConnectivityInspector<IStationInfo, DefaultEdge> connectivityInspector = new ConnectivityInspector<>(constraintGraph);
-        final Set<Set<IStationInfo>> connectedComponents = connectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+        final Set<Set<IStationInfo>> connectedComponents = new HashSet<>(connectivityInspector.connectedSets());
         stationToComponent = ladder.getStations().stream().collect(toImmutableMap(Function.identity(), s -> connectedComponents.stream().filter(component -> component.contains(s)).findFirst().get()));
         greedyFlaggingDecorator.init(ladder);
     }
