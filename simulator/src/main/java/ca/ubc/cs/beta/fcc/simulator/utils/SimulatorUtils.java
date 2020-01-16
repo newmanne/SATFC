@@ -232,6 +232,19 @@ public class SimulatorUtils {
                 stationsRemainingWithoutValues.remove(station);
                 log.info("Value of {} for {} in most valued band", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
             }
+        } else if (parameters.isPopValues()) {
+            if (historic) {
+                throw new RuntimeException("Not implemented!");
+            }
+            log.info("Using population model values");
+            final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = parameters.getPopValueModel().get();
+            for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet().stream().sorted(consistentOrderingEntry).collect(Collectors.toList())) {
+                final IStationInfo station = entry.getKey();
+                final double value = entry.getValue().generateValue();
+                final Map<Band, Long> valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd());
+                ((StationInfo) station).setValues(valueMap);
+                stationsRemainingWithoutValues.remove(station);
+            }
         } else {
             // TODO: Better way to sample these...
 //            final List<List<Object>> values = new ArrayList<>();
@@ -242,14 +255,9 @@ public class SimulatorUtils {
             final Map<String, DescriptiveStatistics> dmaToUHFPricePerPop = new HashMap<>();
             final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator;
 
-            if (parameters.isPopValues()) {
-                log.info("Using population model values");
-                stationToGenerator = parameters.getPopValueModel().get();
-            } else {
-                log.info("Using max(CF, stick)-based values");
-                final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getValuesGenerator(), parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
-                stationToGenerator = maxCFStickValues.get();
-            }
+            log.info("Using max(CF, stick)-based values");
+            final MaxCFStickValues maxCFStickValues = new MaxCFStickValues(parameters.getValuesGenerator(), parameters.getMaxCFStickFile(), stationDB, parameters.getValuesSeed());
+            stationToGenerator = maxCFStickValues.get();
 
 
             // First, process the stations with a value mode (ensure a consistent ordering)

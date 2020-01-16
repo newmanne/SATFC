@@ -126,7 +126,7 @@ public class VCGMip {
                     .filter(e -> !notParticipating.contains(e.getKey()))
                     .mapToDouble(e -> stationDB.getStationById(e.getKey()).getValues().get(BandHelper.toBand(e.getValue())))
                     .sum();
-            final double obj = mipResult.getObjectiveValue();
+            final double obj = mipResult.getObjectiveValue() * 1e3;
             if (computedValue != obj) {
                 log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
             } else {

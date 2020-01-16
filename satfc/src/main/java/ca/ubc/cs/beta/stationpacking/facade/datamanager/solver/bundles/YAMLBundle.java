@@ -318,6 +318,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                                             continue;
                                         }
                                         final List<String> splits = Splitter.on(" ").splitToList(line);
+                                        // TODO: Experiencing problem here with very small values
                                         final long value = Long.parseLong(splits.get(1));
                                         if (value == 1) {
                                             final String varName = Splitter.on('#').splitToList(splits.get(0)).get(0).substring(1);

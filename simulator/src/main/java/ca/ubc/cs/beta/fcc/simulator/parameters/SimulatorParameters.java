@@ -23,6 +23,7 @@ import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel;
+import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel2;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -279,7 +280,7 @@ public class SimulatorParameters extends AbstractOptions {
     private HistoricData historicData;
 
     @Getter
-    private PopValueModel popValueModel;
+    private PopValueModel2 popValueModel;
 
     @Getter
     private RandomGenerator valuesGenerator;
@@ -368,9 +369,9 @@ public class SimulatorParameters extends AbstractOptions {
         valuesGenerator = new JDKRandomGenerator();
         valuesGenerator.setSeed(getValuesSeed());
 
-        if (popValues && getPopValueFile() != null) {
-            log.info("Initializing pop value model with {}", getPopValueFile());
-            popValueModel = new PopValueModel(valuesGenerator, stationDB, getPopValueFile());
+        if (popValues) {
+//            log.info("Initializing pop value model with {}", getPopValueFile());
+            popValueModel = new PopValueModel2(valuesGenerator, stationDB);
         }
 
         // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations
@@ -516,18 +517,18 @@ public class SimulatorParameters extends AbstractOptions {
             case PRICE_HIGHER_THAN_VALUE:
                 decider = new OpeningOffPriceHigherThanPrivateValue(prices);
                 break;
-            case COIN_FLIP:
-                final IParticipationDecider tmp = new OpeningOffPriceHigherThanPrivateValue(prices);
-                final PopValueModel popValueModel = getPopValueModel();
-                Preconditions.checkNotNull(popValueModel, "Trying to use pop value model but null!");
-                decider = s -> {
-                    if (tmp.isParticipating(s)) {
-                        return popValueModel.coinFlip(s);
-                    } else {
-                        return false;
-                    }
-                };
-                break;
+//            case COIN_FLIP:
+//                final IParticipationDecider tmp = new OpeningOffPriceHigherThanPrivateValue(prices);
+//                final PopValueModel popValueModel = getPopValueModel();
+//                Preconditions.checkNotNull(popValueModel, "Trying to use pop value model but null!");
+//                decider = s -> {
+//                    if (tmp.isParticipating(s)) {
+//                        return popValueModel.coinFlip(s);
+//                    } else {
+//                        return false;
+//                    }
+//                };
+//                break;
             case HISTORICAL_DATA:
                 decider = s -> {
                     boolean retval = historicData.getHistoricalStations().contains(s);
