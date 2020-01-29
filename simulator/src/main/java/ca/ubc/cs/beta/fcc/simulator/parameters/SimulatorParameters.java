@@ -225,7 +225,7 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean greedyOnly = false;
 
     public enum BidProcessingAlgorithm {
-        FCC, FIRST_TO_FINISH, FIRST_TO_FINISH_SINGLE_PROGRAM
+        FCC, FIRST_TO_FINISH, FIRST_TO_FINISH_SINGLE_PROGRAM, NO_PRICE_DROPS_FOR_TIMEOUTS
     }
 
     @Getter

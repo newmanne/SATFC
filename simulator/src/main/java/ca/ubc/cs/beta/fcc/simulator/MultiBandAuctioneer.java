@@ -260,6 +260,7 @@ public class MultiBandAuctioneer {
                         .bidProcessingAlgorithmParameters(parameters.getBidProcessingAlgorithmParameters())
                         .forwardAuctionAmounts(parameters.getForwardAuctionAmounts())
                         .isEarlyStopping(parameters.isEarlyStopping())
+                        .eventBus(parameters.getEventBus())
                         .build()
         );
 

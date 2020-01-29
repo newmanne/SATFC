@@ -1,9 +1,11 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
+import ca.ubc.cs.beta.fcc.simulator.BidProcessingFinishedEvent;
 import ca.ubc.cs.beta.fcc.simulator.DomainChangeEvent;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
+import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
@@ -244,6 +246,14 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                 .wastedProblemWallTime(wastedTimeTracker.getWalltime().get())
                 .build();
         reportStateEvent.getBuilder().uhfCacheState(uhfCacheState);
+    }
+
+    @Subscribe
+    public void onBidProcessingFinishedEvent(BidProcessingFinishedEvent event) {
+        if (event.getParameters().getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+            log.info("Flushing inconclusive results from cache");
+            feasibility.entrySet().removeIf(entry -> !entry.getValue().getResult().getSATFCResult().getResult().isConclusive());
+        }
     }
 
 }

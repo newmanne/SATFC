@@ -35,6 +35,7 @@ import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
+import com.google.common.eventbus.EventBus;
 import humanize.Humanize;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.Precision;
@@ -71,6 +72,9 @@ public class MultiBandSimulator {
     private final SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
     private final List<Long> forwardAuctionAmounts;
     private final boolean earlyStopping;
+    private final EventBus eventBus;
+
+    private final SATFCResult FAKE_UNSAT_RESULT = new SATFCResult(SATResult.UNSAT, 0., 0., ImmutableMap.of());
 
     public MultiBandSimulator(MultiBandSimulatorParameter parameters) {
         this.parameters = parameters.getParameters();
@@ -87,6 +91,7 @@ public class MultiBandSimulator {
         this.bidProcessingAlgorithmParameters = parameters.getBidProcessingAlgorithmParameters();
         this.forwardAuctionAmounts = parameters.getForwardAuctionAmounts();
         this.earlyStopping = parameters.isEarlyStopping();
+        this.eventBus = parameters.getEventBus();
     }
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
@@ -240,12 +245,12 @@ public class MultiBandSimulator {
         final List<IStationInfo> stationsToQuery = new ArrayList<>(stationsToQueryOrdering);
 
         // TODO: Can you move these to their own class or something?
-
-
         boolean earlyTermination = false;
         long runningProvisionalCost = provisionalCost(stationPrices, participation);
         final Set<IStationInfo> willBeFrozen = new HashSet<>();
-        if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FCC)) {
+        // When using a BP algorithm that doesn't freeze timeouts, track these stations
+        final Set<IStationInfo> timeoutStations = new HashSet<>();
+        if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FCC) || bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
             boolean finished = false;
             while (!finished) {
                 finished = true;
@@ -256,6 +261,11 @@ public class MultiBandSimulator {
                     final Band currentBand = ladder.getStationBand(station);
                     log.debug("Checking if {}, currently on {}, is feasible on its home band {}", station, currentBand, homeBand);
                     final SimulatorResult homeBandFeasibility = solver.getFeasibilityBlocking(problemMaker.makeProblem(station, homeBand, ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE));
+
+                    if (!homeBandFeasibility.getSATFCResult().getResult().isConclusive()) {
+                        timeoutStations.add(station);
+                    }
+
                     final boolean isFeasibleInHomeBand = SimulatorUtils.isFeasible(homeBandFeasibility);
                     log.debug("{}", homeBandFeasibility.getSATFCResult().getResult());
                     if (isFeasibleInHomeBand) {
@@ -268,7 +278,9 @@ public class MultiBandSimulator {
                     } else {
                         if (ladder.getAirBands().stream().noneMatch(Band::isVHF)) {
                             if (willBeFrozen.add(station)) {
-                                log.info("Station {} will become a provisional winner at the end of this round for {}", station, Humanize.spellBigNumber(stationPrices.get(station)));
+                                if (homeBandFeasibility.getSATFCResult().getResult().isConclusive() || !bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+                                    log.info("Station {} will become a provisional winner at the end of this round for {}", station, Humanize.spellBigNumber(stationPrices.get(station)));
+                                }
                                 if (earlyTerminationPossible) {
                                     runningProvisionalCost += stationPrices.get(station);
                                     if (runningProvisionalCost > forwardAuctionAmounts.get(roundTracker.getStage() - 1)) {
@@ -292,8 +304,7 @@ public class MultiBandSimulator {
             boolean finished = false;
             while (!finished) {
                 final Map<IStationInfo, SimulatorResult> results = new HashMap<>();
-                for (int i = 0; i < stationsToQuery.size(); i++) {
-                    final IStationInfo station = stationsToQuery.get(i);
+                for (final IStationInfo station : stationsToQuery) {
                     final Band homeBand = station.getHomeBand();
                     final Band currentBand = ladder.getStationBand(station);
                     log.debug("Checking if {}, currently on {}, is feasible on its home band, {}", station, currentBand, homeBand);
@@ -354,22 +365,33 @@ public class MultiBandSimulator {
                     }
                 }
             }
+        } else {
+            throw new IllegalStateException("Unknown bid processing algorithm " + bidProcessingAlgorithmParameters.getBidProcessingAlgorithm());
         }
 
+        if (!timeoutStations.isEmpty()) {
+            log.info("There are {} stations who timed out during bid processing", timeoutStations.size());
+            eventBus.post(new BidProcessingFinishedEvent(bidProcessingAlgorithmParameters));
+        }
 
         final Map<IStationInfo, SATFCResult> stationToFeasibleInHomeBand = new ConcurrentHashMap<>();
         // BID STATUS UPDATING
         log.info("Bid status updating: checking feasibility of stations in home bands");
         if (earlyTermination) {
+            // The auction is going to early terminate
             // All active stations become "fake" PW together
             for (IStationInfo station : participation.getActiveStations()) {
-                stationToFeasibleInHomeBand.put(station, new SATFCResult(SATResult.UNSAT, 0., 0., ImmutableMap.of()));
+                stationToFeasibleInHomeBand.put(station, FAKE_UNSAT_RESULT);
             }
         } else {
             // For every active station, check whether the station is feasible in its pre-auction band
             for (IStationInfo station : stationsToQuery) {
-                // If you are still in this queue, you are frozen. This won't go in the cache (For early termination purposes)
-                stationToFeasibleInHomeBand.put(station, new SATFCResult(SATResult.UNSAT, 0., 0., ImmutableMap.of()));
+                // If you are still in this queue, you are frozen unless the NPDFT alg is used
+                if (timeoutStations.contains(station) && bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+                    continue;
+                }
+
+                stationToFeasibleInHomeBand.put(station, FAKE_UNSAT_RESULT);
             }
             for (final IStationInfo stationInfo : participation.getActiveStations()) {
                 if (!stationToFeasibleInHomeBand.containsKey(stationInfo)) {
@@ -384,6 +406,18 @@ public class MultiBandSimulator {
             solver.waitForAllSubmitted();
         }
 
+        log.info("There are {} stations with timeout results after bid status updating", stationToFeasibleInHomeBand.values().stream().filter(v -> !v.getResult().isConclusive()).count());
+
+
+        // What if EVERYONE left is a timeout and you are running the no price drop for timeout alg? Then you just want to end the auction
+        if (bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+            if (stationToFeasibleInHomeBand.values().stream().allMatch(v -> v.getResult().equals(SATResult.TIMEOUT))) {
+                log.info("Only timeouts remain, ending auction");
+                for (IStationInfo s : new HashSet<>(stationToFeasibleInHomeBand.keySet())) {
+                    stationToFeasibleInHomeBand.put(s, FAKE_UNSAT_RESULT);
+                }
+            }
+        }
 
         log.info("Checking for provisional winners");
         final Map<Band, List<Entry<IStationInfo, SATFCResult>>> bandListMap = stationToFeasibleInHomeBand.entrySet().stream().collect(Collectors.groupingBy(entry -> entry.getKey().getHomeBand()));
@@ -393,6 +427,12 @@ public class MultiBandSimulator {
             final List<Entry<IStationInfo, SATFCResult>> bandList = bandListMap.get(band);
             for (Entry<IStationInfo, SATFCResult> entry : bandList) {
                 final IStationInfo station = entry.getKey();
+
+                if (!entry.getValue().getResult().isConclusive() && bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+                    // Don't let them become PW
+                    continue;
+                }
+
                 final boolean feasibleInHomeBand = SimulatorUtils.isFeasible(entry.getValue());
                 final Participation bidStatus = participation.getParticipation(station);
                 if (!feasibleInHomeBand && !bidStatus.equals(Participation.FROZEN_PROVISIONALLY_WINNING)) {
@@ -438,12 +478,12 @@ public class MultiBandSimulator {
                         }
                     }
                     if (participation.isActive(station)) {
-                        participation.setParticipation(station, feasibleInHomeBand ? Participation.BIDDING : Participation.FROZEN_CURRENTLY_INFEASIBLE);
+                        boolean limbo = !entry.getValue().getResult().isConclusive() && bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS);
+                        participation.setParticipation(station, feasibleInHomeBand || limbo ? Participation.BIDDING : Participation.FROZEN_CURRENTLY_INFEASIBLE);
                     }
                 }
             }
         }
-
 
         log.info("Stage {} Round {} complete", roundTracker.getStage(), roundTracker.getRound());
 

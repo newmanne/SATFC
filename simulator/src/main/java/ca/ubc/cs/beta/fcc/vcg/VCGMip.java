@@ -211,6 +211,7 @@ public class VCGMip {
                     int chan = variablesDecoder.get(var).getChannel();
                     final Band band = BandHelper.toBand(chan);
                     final long value = stationDB.getStationById(station).getValues().get(band) / 1000; // Smaller numbers could be easier to work with
+                    log.info("Value: {}, orig: {}", value, stationDB.getStationById(station).getValues().get(band));
                     values[i] = value;
                 }
                 objectiveSum.addTerms(values, domainVars);
@@ -450,10 +451,12 @@ public class VCGMip {
         private Map<Integer, Integer> getAssignment() throws IloException {
             double eps = cplex.getParam(IloCplex.DoubleParam.EpInt);
             final Map<Integer, Integer> assignment = new HashMap<>();
+            double varSum = 0;
             for (Map.Entry<IloIntVar, StationChannel> entryDecoder : variablesDecoder.entrySet()) {
                 final IloIntVar variable = entryDecoder.getKey();
                 try {
                     log.debug("{} = {}", variable.getName(), cplex.getValue(variable));
+                    varSum += cplex.getValue(variable);
                     if (MathUtils.equals(cplex.getValue(variable), 1, eps)) {
                         final StationChannel stationChannelPair = entryDecoder.getValue();
                         final Integer station = stationChannelPair.getStation();
@@ -467,6 +470,7 @@ public class VCGMip {
                     throw new IllegalStateException("Could not get MIP value assignment for variable " + variable + " (" + e.getMessage() + ").");
                 }
             }
+            log.info("Varsum is {}, assignment contains {} stations", varSum, assignment.size());
             return assignment;
         }
 
