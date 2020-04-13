@@ -52,7 +52,7 @@ public class PopValueModel {
             if (station != null) {
                 // It is possible to be null here when Ulrich provides a value for a station that was not offered an opening price and is therefore not eligible
                 final MaxCFStickValues.IValueGenerator valueGenerator = () -> {
-                    return station.getPopulation() * valuePerPop * dma_factor * new LogNormalDistribution(random, 0, noise).sample();
+                    return (long) (station.getPopulation() * valuePerPop * dma_factor * new LogNormalDistribution(random, 0, noise).sample());
                 };
                 stationToGenerator.put(station, valueGenerator);
             }

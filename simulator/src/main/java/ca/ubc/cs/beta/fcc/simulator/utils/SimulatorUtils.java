@@ -4,10 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
-import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
-import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
-import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
-import ca.ubc.cs.beta.fcc.simulator.station.StationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.*;
 import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -143,7 +140,11 @@ public class SimulatorUtils {
         Preconditions.checkArgument(UHFPrice >= 0, "Negative UHF Price! %s", UHFPrice);
         Preconditions.checkArgument(station.getPopulation() > 0, "Zero population station! %s", station);
 
-        UHFPrice = (long) MathUtils.round(UHFPrice, -3);
+        UHFPrice = toNearestThousand((long) MathUtils.round(UHFPrice, -3));
+        if (UHFPrice % 1000 != 0) {
+            throw new IllegalStateException("Value is not a clean multiple of 1000");
+        }
+
         if (UHFPrice < 3000) {
             log.warn("UHF Price for {} rounds to {} in the nearest thousandth. Hard for this value model to work that way because of the 2/3, 1/3... Also suspiciously low. Changing to 3k", station, UHFPrice);
             UHFPrice = 3000;
@@ -181,9 +182,16 @@ public class SimulatorUtils {
         return valueMap;
     }
 
+    private static long toNearestThousand(long unrounded) {
+        return (unrounded + 500) / 1000 * 1000;
+    }
+
+
     private static long noisyValue(double UHFPrice, RandomGenerator random, double frac, double noiseStd) {
         double noise = random.nextGaussian() * noiseStd + 1;
-        return (long) MathUtils.round(UHFPrice * frac * noise, -3);
+        long longValue = (long) MathUtils.round(UHFPrice * frac * noise, -3);
+        // stupid floating point means this might not actually be rounded properly
+        return toNearestThousand(longValue);
     }
 
     public static void assignValues(SimulatorParameters parameters) {
@@ -213,7 +221,7 @@ public class SimulatorUtils {
 
                 final Map<Band, Long> valueMap = new HashMap<>();
                 valueMap.put(Band.OFF, 0L); // Do this explicitly to not have any floating point nonsense
-                ((StationInfo) station).setValues(valueMap);
+                ((IModifiableStationInfo) station).setValues(valueMap);
                 if (station.getHomeBand().isAboveOrEqualTo(Band.UHF)) {
                     Preconditions.checkNotNull(UHFValueString, "UHF value cannot be null for station %s", station);
                     valueMap.put(Band.UHF, Long.parseLong(UHFValueString));
@@ -233,16 +241,20 @@ public class SimulatorUtils {
                 log.info("Value of {} for {} in most valued band", Humanize.spellBigNumber(valueMap.values().stream().max(Double::compare).get()), id);
             }
         } else if (parameters.isPopValues()) {
-            if (historic) {
-                throw new RuntimeException("Not implemented!");
-            }
             log.info("Using population model values");
             final Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator = parameters.getPopValueModel().get();
             for (final Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator> entry : stationToGenerator.entrySet().stream().sorted(consistentOrderingEntry).collect(Collectors.toList())) {
                 final IStationInfo station = entry.getKey();
-                final double value = entry.getValue().generateValue();
-                final Map<Band, Long> valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd());
-                ((StationInfo) station).setValues(valueMap);
+                double value;
+                Map<Band, Long> valueMap;
+                do {
+                    value = entry.getValue().generateValue();
+                    valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd());
+                } while (historic &&
+                        parameters.getHistoricData().getHistoricalStations().contains(station) &&
+                        valueMap.get(station.getHomeBand()) > parameters.getHistoricData().getHistoricalOpeningPrices().get(station.getId()));
+
+                ((IModifiableStationInfo) station).setValues(valueMap);
                 stationsRemainingWithoutValues.remove(station);
             }
         } else {
@@ -268,7 +280,7 @@ public class SimulatorUtils {
                     continue;
                 }
 
-                double value;
+                long value;
                 do {
                     value = entry.getValue().generateValue();
                 } while ((value < 0) ||
@@ -278,8 +290,8 @@ public class SimulatorUtils {
 
                 dmaToUHFPricePerPop.putIfAbsent(station.getDMA(), new DescriptiveStatistics());
                 dmaToUHFPricePerPop.get(station.getDMA()).addValue(FastMath.log(value / station.getPopulation()));
-                final Map<Band, Long> valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd());
-                ((StationInfo) station).setValues(valueMap);
+                final Map<Band, Long> valueMap = createValueMap(value, station, random, parameters.getNoiseStd());
+                ((IModifiableStationInfo) station).setValues(valueMap);
                 stationsRemainingWithoutValues.remove(station);
             }
 
@@ -316,7 +328,7 @@ public class SimulatorUtils {
                     } while (historic &&
                             parameters.getHistoricData().getHistoricalStations().contains(station) &&
                             valueMap.get(station.getHomeBand()) > pOpenHistoric);
-                    ((StationInfo) station).setValues(valueMap);
+                    ((IModifiableStationInfo) station).setValues(valueMap);
                     stationsRemainingWithoutValues.remove(station);
                 }
                 log.info("Not enough info available for {} DMAs. Used national data for {} stations (which may yet be removed)", noDataDma.size(), nationalCount);
@@ -346,6 +358,7 @@ public class SimulatorUtils {
         for (IStationInfo toRemove : stationsRemainingWithoutValues) {
             stationDB.removeStation(toRemove.getId());
         }
+
 
         final Map<Band, List<IStationInfo>> droppedStationToBand = stationsRemainingWithoutValues.stream().collect(groupingBy(IStationInfo::getHomeBand));
         for (Map.Entry<Band, List<IStationInfo>> entry : droppedStationToBand.entrySet()) {
@@ -386,7 +399,7 @@ public class SimulatorUtils {
         log.info("Setting max channel to {}", ct);
         BandHelper.setUHFChannels(ct);
         for (IStationInfo s : stationDB.getStations()) {
-            ((StationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
+            ((IModifiableStationInfo) s).setMaxChannel(s.getNationality().equals(Nationality.CA) ? ct - 1 : ct);
         }
     }
 

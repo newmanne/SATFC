@@ -27,7 +27,7 @@ public class MaxCFStickValues {
 
     public interface IValueGenerator {
 
-        double generateValue();
+        long generateValue();
 
     }
 
@@ -87,7 +87,7 @@ public class MaxCFStickValues {
         }
 
         @Override
-        public double generateValue() {
+        public long generateValue() {
             final double cf = cashFlow.sample();
             final double cfMultiple = cashFlowMultiple.sample();
             final double cfVal = cf * cfMultiple;
@@ -104,7 +104,7 @@ public class MaxCFStickValues {
                 log.debug("Stick wins {}", stationInfo);
             }
 
-            return Math.max(cfVal, stickVal) * 1e6;
+            return (long) (Math.max(cfVal, stickVal) * 1e6);
         }
 
     }

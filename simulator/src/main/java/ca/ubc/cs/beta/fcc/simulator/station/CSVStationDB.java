@@ -1,6 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
-import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
+import ca.ubc.cs.beta.fcc.simulator.station.decorators.WithholdingStationDecorator;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
@@ -9,14 +9,10 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -28,11 +24,23 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
     private final Map<Integer, IStationInfo> data;
 
     public CSVStationDB(String infoFile, IStationManager stationManager) {
+        this(infoFile, stationManager, null);
+    }
+
+    public CSVStationDB(String infoFile, IStationManager stationManager, String withholdingStationsFile) {
+        final Set<Integer> withholdingStations = new HashSet<>();
+        if (withholdingStationsFile != null) {
+            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(withholdingStationsFile);
+            for (CSVRecord record : csvRecords) {
+                withholdingStations.add(Integer.parseInt(record.get("FacID")));
+            }
+        }
+
         data = new HashMap<>();
         log.info("Reading station info from {}", infoFile);
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
-            IStationInfo stationInfo;
+            IModifiableStationInfo stationInfo;
             final int id = Integer.parseInt(record.get("FacID"));
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
             final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getDomain(new Station(id)));
@@ -49,6 +57,11 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
                 final Band band = BandHelper.toBand(channel);
                 stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop, DMA, eligible);
             }
+
+            if (withholdingStations.contains(stationInfo.getId())) {
+                stationInfo = new WithholdingStationDecorator(stationInfo);
+            }
+
             data.put(id, stationInfo);
         }
         log.info("Finished reading stations");

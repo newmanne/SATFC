@@ -187,6 +187,11 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-START-CITY", description = "City to start from")
     private String city;
     @Getter
+    @Parameter(names = "-START-DMA", description = "DMA to start from")
+    private String dma;
+
+
+    @Getter
     @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
     private int nLinks = 0;
 
@@ -268,6 +273,14 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-EARLY-STOPPING", description = "Should early stopping be used?")
     @Getter
     private boolean earlyStopping = false;
+
+    @Parameter(names = "-WITHHOLDING-STATIONS-FILE", description = "File listing stations to be withheld")
+    @Getter
+    private String withholdingStationsFile;
+
+    @Parameter(names = "-STATIONS-TO-USE-FILE", description = "File listing stations that exist in the world")
+    @Getter
+    private String stationsToUseFile;
 
     @Getter
     private BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
@@ -363,7 +376,7 @@ public class SimulatorParameters extends AbstractOptions {
             throw new RuntimeException(e);
         }
 
-        stationDB = new CSVStationDB(getInfoFile(), getStationManager());
+        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), getWithholdingStationsFile());
         historicData = new HistoricData(stationDB);
 
         valuesGenerator = new JDKRandomGenerator();
@@ -408,7 +421,7 @@ public class SimulatorParameters extends AbstractOptions {
                 toRemove.add(s.getId());
             } else if (!isIncludeVHFBands()) {
                 // Remove the VHF bands of UHF stations if we are doing a UHF-only auction
-                ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
+                ((IModifiableStationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
             }
         }
 
@@ -419,9 +432,8 @@ public class SimulatorParameters extends AbstractOptions {
         // WARNING: Understand that clearing target has not been set yet, so this will be using the full constraint graph (I think)
         if (city != null && nLinks >= 0) {
             log.info("City and links");
-            new CityAndLinks(city, nLinks, getStationDB(), getConstraintManager()).function();
+            new CityAndLinks(city, dma, nLinks, getStationDB(), getConstraintManager()).function();
         }
-
 
         // Assign volumes
         log.info("Setting volumes");
@@ -431,7 +443,7 @@ public class SimulatorParameters extends AbstractOptions {
         final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);
         for (IStationInfo stationInfo : americanStations) {
             int volume = volumes.get(stationInfo.getId());
-            ((StationInfo) stationInfo).setVolume(volume);
+            ((IModifiableStationInfo) stationInfo).setVolume(volume);
         }
 
         // Set stations as commercial or non-commercial
@@ -439,7 +451,7 @@ public class SimulatorParameters extends AbstractOptions {
         final Map<Integer, Boolean> commercialStatus = commercialReader.getCommercialStatus(americanStations);
         for (IStationInfo stationInfo : americanStations) {
             boolean commercial = commercialStatus.get(stationInfo.getId());
-            ((StationInfo) stationInfo).setCommercial(commercial);
+            ((IModifiableStationInfo) stationInfo).setCommercial(commercial);
         }
     }
 
@@ -531,13 +543,13 @@ public class SimulatorParameters extends AbstractOptions {
 //                break;
             case HISTORICAL_DATA:
                 decider = s -> {
-                    boolean retval = historicData.getHistoricalStations().contains(s);
-                    if (retval) {
+                    boolean historicallyParticipated = historicData.getHistoricalStations().contains(s);
+                    if (historicallyParticipated) {
                         if (!new OpeningOffPriceHigherThanPrivateValue(prices).isParticipating(s)) {
                             throw new IllegalStateException("Station historically participated but value is not high enough!");
                         }
                     }
-                    return retval;
+                    return historicallyParticipated;
                 };
                 break;
             default:
@@ -561,13 +573,23 @@ public class SimulatorParameters extends AbstractOptions {
     @RequiredArgsConstructor
     public static class CityAndLinks {
 
-        @NonNull
         private final String city;
+        private final String dma;
         private final int links;
         private final IStationDB.IModifiableStationDB stationDB;
         private final IConstraintManager constraintManager;
 
+        public CityAndLinks(String city, int links, IStationDB.IModifiableStationDB stationDB, IConstraintManager constraintManager) {
+            this.city = city;
+            this.links = links;
+            this.stationDB = stationDB;
+            this.constraintManager = constraintManager;
+            this.dma = null;
+        }
+
         public void function() {
+            Preconditions.checkState(city != null || dma != null);
+
             // Step 1: Construct the interference graph based on stations in the DB and their domains
             final Map<Station, Set<Integer>> domains = stationDB.getStations()
                     .stream()
@@ -576,7 +598,8 @@ public class SimulatorParameters extends AbstractOptions {
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
 
             final Set<Station> cityStations = domains.keySet().stream()
-                    .filter(s -> stationDB.getStationById(s.getID()).getCity().equals(city))
+                    .filter(s -> city == null || stationDB.getStationById(s.getID()).getCity().equals(city))
+                    .filter(s -> dma == null || stationDB.getStationById(s.getID()).getCity().equals(dma))
                     .collect(Collectors.toSet());
 
             log.info("Found {} stations in city {}", cityStations.size(), city);

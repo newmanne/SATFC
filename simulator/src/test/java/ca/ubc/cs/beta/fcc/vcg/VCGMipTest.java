@@ -51,6 +51,12 @@ public class VCGMipTest {
     static String INFO_FILE = "/ubc/cs/research/arrow/satfc/simulator/data/station_info_v2.csv";
     static String VOLUMES_FILE = "/ubc/cs/research/arrow/satfc/simulator/data/volumes.csv";
 
+
+    @Test
+    public void t() throws Exception {
+        System.out.println("HELLO")
+    }
+
     @Test
     public void orderingTest() throws Exception {
         final StationOrdererImpl o = new StationOrdererImpl();

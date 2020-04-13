@@ -36,7 +36,7 @@ public class PopValueModel2 {
         this.random = random;
         stationToGenerator = new HashMap<>();
         for (IStationInfo station : stationDB.getStations(Nationality.US)) {
-            final MaxCFStickValues.IValueGenerator valueGenerator = () -> station.getPopulation() * sample();
+            final MaxCFStickValues.IValueGenerator valueGenerator = () -> (long) (station.getPopulation() * sample());
             stationToGenerator.put(station, valueGenerator);
         }
     }

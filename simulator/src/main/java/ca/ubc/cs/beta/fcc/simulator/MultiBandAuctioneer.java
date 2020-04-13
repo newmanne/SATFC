@@ -51,6 +51,7 @@ import jnr.ffi.annotations.In;
 import lombok.Cleanup;
 import lombok.Data;
 import lombok.Value;
+import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +94,12 @@ public class MultiBandAuctioneer {
         adjustCT(parameters.getMaxChannel(), stationDB, parameters.getEventBus(), ladder, parameters.getConstraintManager());
         if (parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), stationDB, parameters.getConstraintManager()).function();
+        }
+        if (parameters.getStationsToUseFile() != null) {
+            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(parameters.getStationsToUseFile());
+            for (CSVRecord record : csvRecords) {
+                stationDB.removeStation(Integer.parseInt(record.get("FacID")));
+            }
         }
 
         // Initialize opening benchmarkPrices

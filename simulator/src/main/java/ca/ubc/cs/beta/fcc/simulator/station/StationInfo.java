@@ -26,7 +26,7 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
  * Created by newmanne on 2016-05-20.
  */ // Class to store attributes of a station that do not change during the course of the simulation
 @Slf4j
-public class StationInfo implements IStationInfo {
+public class StationInfo implements IModifiableStationInfo {
 
     @Getter
     private final int id;
