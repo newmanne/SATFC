@@ -15,7 +15,7 @@ import java.util.Map;
 public class MultiBandSimulatorParameters extends SimulatorParameters {
 
     @Getter
-    @Parameter(names = "-R1", description = "Decrement by R1 * old price")
+    @Parameter(names = "-R1", description = "Decrement by R1 * base clock")
     private double r1 = 0.05;
 
     @Getter

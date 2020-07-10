@@ -1,15 +1,18 @@
 package ca.ubc.cs.beta.fcc.simulator.state;
 
+import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
 import ca.ubc.cs.beta.fcc.simulator.participation.Participation;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
+import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.stationpacking.solvers.base.SATResult;
 import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import lombok.AllArgsConstructor;
@@ -39,6 +42,7 @@ public class SaveStateToFile implements IStateSaver {
     @NoArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class StateFile {
+        int stage;
         int round;
         Map<Integer, Integer> assignment;
         Map<Integer, StationState> state;
@@ -55,6 +59,13 @@ public class SaveStateToFile implements IStateSaver {
         int nProblems;
         int greedySolved;
         UHFCacheState uhfCacheState;
+
+
+        long biddingCompensation;
+        long currentlyInfeasibleCompensation;
+        long pendingCatchUpCompensation;
+        long provisionallyWinningCompensation;
+        long totalCompensation;
     }
 
     @AllArgsConstructor
@@ -68,8 +79,10 @@ public class SaveStateToFile implements IStateSaver {
         Band option;
         Map<Band, Double> vacancies;
         Map<Band, Double> reductionCoefficients;
-        Map<Band, Double> offers;
-        Map<Band, Double> values;
+        Map<Band, Long> offers;
+        Map<Band, Long> values;
+        CatchupPoint catchupPoint;
+        Boolean impaired;
     }
 
     @Data
@@ -97,25 +110,33 @@ public class SaveStateToFile implements IStateSaver {
 
     @Override
     public void saveState(IStationDB stationDB, LadderAuctionState state) {
-        final String fileName = folder + File.separator + "state_" + state.getRound() + ".json";
+        final String fileName = folder + File.separator + "stage_" + state.getStage() + "_round_" + state.getRound() + ".json";
         final Map<Integer, StationState> stateByStation = new HashMap<>();
         for (IStationInfo s : stationDB.getStations()) {
             final StationState.StationStateBuilder stationState = StationState.builder()
                     .price(state.getPrices().get(s))
-                    .option(BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
+                    .option(s.isImpaired() ? Band.UHF : BandHelper.toBand(state.getAssignment().getOrDefault(s.getId(), 0)))
                     .offers(state.getOffers().getOffers(s))
                     .values(s.getValues())
+                    .catchupPoint(state.getCatchupPoints().get(s))
+                    .impaired(s.isImpaired())
                     .participation(state.getParticipation().getParticipation(s));
             if (state.getRound() > 0) {
                 stationState.vacancies(state.getVacancies().row(s))
-                            .reductionCoefficients(state.getReductionCoefficients().row(s));
+                        .reductionCoefficients(state.getReductionCoefficients().row(s));
             }
             stateByStation.put(s.getId(), stationState.build());
         }
         final StateFile.StateFileBuilder stateFile = StateFile.builder()
                 .assignment(state.getAssignment())
                 .state(stateByStation)
+                .stage(state.getStage())
                 .round(state.getRound())
+                .biddingCompensation(state.getBiddingCompensation())
+                .currentlyInfeasibleCompensation(state.getCurrentlyInfeasibleCompensation())
+                .pendingCatchUpCompensation(state.getPendingCatchupCompensation())
+                .provisionallyWinningCompensation(state.getProvisionallyWinningCompensation())
+                .totalCompensation(state.totalCompensation())
                 .exitOrder(exitOrder);
         if (state.getRound() > 0) {
             stateFile.bidProcessingOrder(state.getBidProcessingOrder().stream().map(IStationInfo::getId).collect(Collectors.toList()));

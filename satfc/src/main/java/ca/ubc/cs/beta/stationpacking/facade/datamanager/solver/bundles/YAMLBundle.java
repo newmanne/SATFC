@@ -86,7 +86,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.experimental.Builder;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.util.Pair;
@@ -251,6 +251,17 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
 
     }
 
+    @Data
+    public static class CPLEXConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new CPLEXSolverDecorator(solverToDecorate, context.getManagerBundle().getConstraintManager(), parameterized);
+        }
+
+        private boolean parameterized = false;
+    }
+
 
     @Data
     public static class CommandLineConfig implements ISolverConfig {
@@ -289,7 +300,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         @Override
                         public ACLibSolver.IProblemDecoder encodeToFile(StationPackingInstance instance, File file) throws IOException {
                             final MIPSaverDecorator.MIPEncoder mipEncoder = new MIPSaverDecorator.MIPEncoder(constraintManager);
-                            final IloCplex cplex = mipEncoder.encode(instance);
+                            final IloCplex cplex = mipEncoder.encode(instance).getCplex();
                             final String filename = file.getCanonicalPath();
                             try {
                                 cplex.exportModel(filename);
@@ -307,6 +318,7 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                                             continue;
                                         }
                                         final List<String> splits = Splitter.on(" ").splitToList(line);
+                                        // TODO: Experiencing problem here with very small values
                                         final long value = Long.parseLong(splits.get(1));
                                         if (value == 1) {
                                             final String varName = Splitter.on('#').splitToList(splits.get(0)).get(0).substring(1);
@@ -510,8 +522,6 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                     context.getManagerBundle().getConstraintManager());
         }
 
-        ;
-
 
         private ISolverConfig solverConfig;
         private IStationPackingConfigurationStrategyConfig strategy;
@@ -529,13 +539,14 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                 solverFactories.add(aSolver -> concat(configPath, context));
             }
             if (wait) {
-                return new ParallelSolverComposite(solverFactories.size(), solverFactories);
+                return new ParallelSolverComposite(solverFactories.size(), solverFactories, stableAssignments);
             } else {
                 return new ParallelNoWaitSolverComposite(solverFactories.size(), solverFactories);
             }
         }
 
         private boolean wait = false;
+        private boolean stableAssignments = false;
         private List<List<ISolverConfig>> configs;
 
     }
@@ -639,6 +650,16 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
         @Override
         public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
             return new UNSATLabeller(solverToDecorate);
+        }
+
+    }
+
+    @Data
+    public static class UNSATRuntimeConfig implements ISolverConfig {
+
+        @Override
+        public ISolver createSolver(SATFCContext context, ISolver solverToDecorate) {
+            return new UNSATRuntimeDecorator(solverToDecorate);
         }
 
     }
@@ -749,6 +770,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                         .put(SolverType.MIP_SAVER, MIPSaverSolverConfig.class)
                         .put(SolverType.ASP_SAVER, ASPSaverConfig.class)
                         .put(SolverType.COMMAND_LINE, CommandLineConfig.class)
+                        .put(SolverType.UNSAT_RUNTIME, UNSATRuntimeConfig.class)
+                        .put(SolverType.CPLEX, CPLEXConfig.class)
                         .build();
 
         @Override

@@ -77,6 +77,10 @@ public class SATFCFacadeParameters extends AbstractOptions implements AutoClosea
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-INTERFERENCES-FOLDER", description = "folder containing all the other interference folders")
     public String fInterferencesFolder = System.getenv("SATFC_INTERFERENCE");
+
+
+
+
     @UsageTextField(level = OptionLevel.DEVELOPER)
     @Parameter(names = "-CUTOFF-FILE", description = "file listing each instance and the corresponding cutoff")
     public String fCutoffFile;

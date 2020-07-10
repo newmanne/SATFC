@@ -14,15 +14,15 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 /**
  * Created by newmanne on 2016-06-15.
  */
-public interface IPrices {
+public interface IPrices<T> {
 
-    void setPrice(IStationInfo station, Band band, double price);
+    void setPrice(IStationInfo station, Band band, T price);
 
-    double getPrice(IStationInfo station, Band band);
+    T getPrice(IStationInfo station, Band band);
 
-    Map<Band, Double> getOffers(IStationInfo station);
+    Map<Band, T> getOffers(IStationInfo station);
 
-    default ImmutableMap<Band, Double> getPrices(IStationInfo station, Collection<Band> bands) {
+    default ImmutableMap<Band, T> getPrices(IStationInfo station, Collection<Band> bands) {
         return bands.stream().collect(toImmutableMap(band -> band, band -> getPrice(station, band)));
     }
 

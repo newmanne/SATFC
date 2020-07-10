@@ -4,6 +4,7 @@ package ca.ubc.cs.beta.fcc.simulator.utils;
  * Created by newmanne on 2016-07-29.
  */
 
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -69,7 +70,7 @@ public class BandHelper {
         if (aChannel == 0) {
             return Band.OFF;
         } else if (aChannel >= 14) {
-            Preconditions.checkState(StationPackingUtils.UHF_CHANNELS.contains(aChannel), "Channel %s not in UHF", aChannel);
+            Preconditions.checkState(aChannel == ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL || StationPackingUtils.UHF_CHANNELS.contains(aChannel), "Channel %s not in UHF", aChannel);
             return Band.UHF;
         } else if (StationPackingUtils.HVHF_CHANNELS.contains(aChannel)) {
             return Band.HVHF;
@@ -79,10 +80,11 @@ public class BandHelper {
         }
     }
 
-        /**
-         * Set the UHF channels by providing a highest available UHF channel. All UHF channels will then be between 14 and the provided highest channel.
-         * @param aHighestChannel - the highest available UHF channel.
-         */
+    /**
+     * Set the UHF channels by providing a highest available UHF channel. All UHF channels will then be between 14 and the provided highest channel.
+     *
+     * @param aHighestChannel - the highest available UHF channel.
+     */
 
     public static void setUHFChannels(int aHighestChannel) {
         Preconditions.checkArgument(aHighestChannel >= 14, "Channel %s is not in UHF, must be >= 14", aHighestChannel);

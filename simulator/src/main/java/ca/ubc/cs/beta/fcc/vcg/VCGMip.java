@@ -3,7 +3,7 @@ package ca.ubc.cs.beta.fcc.vcg;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.aeatk.misc.options.UsageTextField;
 import ca.ubc.cs.beta.aeatk.options.AbstractOptions;
-import ca.ubc.cs.beta.fcc.simulator.MultiBandAuctioneer;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
 import ca.ubc.cs.beta.fcc.simulator.parameters.MultiBandSimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
@@ -28,10 +28,7 @@ import com.beust.jcommander.ParametersDelegate;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
+import com.google.common.collect.*;
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
@@ -42,6 +39,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.util.MathUtils;
+import org.apache.commons.math3.random.RandomGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,17 +66,11 @@ public class VCGMip {
         @Parameter(names = "-VCG-PACKING")
         List<Integer> ids = new ArrayList<>();
 
-        @Parameter(names = "-NOT-PARTICIPATING")
-        List<Integer> notParticipating = new ArrayList<>();
-
         @Parameter(names = "-O", required = true)
         String outputFile;
 
         @Parameter(names = "-MIP-TYPE")
         MIPType mipType = MIPType.VCG;
-
-        @Parameter(names = "-CPLEX-THREADS")
-        int nThreads = Runtime.getRuntime().availableProcessors();
 
         // When to drop stations due to city requirement. After dropping stations with no valuations / domain in CT, or before?
         // Dropping after leads to fewer stations overall (since graph is less connected)
@@ -106,7 +98,7 @@ public class VCGMip {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
         SimulatorUtils.assignValues(parameters);
-        MultiBandAuctioneer.adjustCT(parameters.getMaxChannel(), parameters.getStationDB());
+        SimulatorUtils.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
         if (q.cityDropAfter && parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
@@ -124,17 +116,17 @@ public class VCGMip {
             throw new IllegalStateException();
         }
 
-        final Set<Integer> notParticipating = new HashSet<>(q.notParticipating);
+        final Set<Integer> notParticipating = new HashSet<>(parameters.getNotParticipating());
         notParticipating.addAll(stationDB.getStations(Nationality.CA).stream().map(IStationInfo::getId).collect(Collectors.toSet()));
         final MIPMaker mipMaker = new MIPMaker(stationDB, parameters.getStationManager(), constraintManager, encoder);
-        final MIPResult mipResult = mipMaker.solve(domains, notParticipating, parameters.getCutoff(), (int) parameters.getSeed(), q.nThreads);
+        final MIPResult mipResult = mipMaker.solve(domains, notParticipating, parameters.getCutoff(), (int) parameters.getSeed(), parameters.getParallelism(), true, 0., new HashMap<>(), true);
 
         if (q.mipType.equals(MIPType.VCG)) {
             final double computedValue = mipResult.getAssignment().entrySet().stream()
                     .filter(e -> !notParticipating.contains(e.getKey()))
                     .mapToDouble(e -> stationDB.getStationById(e.getKey()).getValues().get(BandHelper.toBand(e.getValue())))
                     .sum();
-            final double obj = mipResult.getObjectiveValue();
+            final double obj = mipResult.getObjectiveValue() * 1e3;
             if (computedValue != obj) {
                 log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
             } else {
@@ -149,7 +141,7 @@ public class VCGMip {
     @Data
     @Builder
     public static class MIPResult {
-        private double objectiveValue;
+        private Double objectiveValue;
         private Map<Integer, Integer> assignment;
         @JsonSerialize(using = ToStringSerializer.class)
         private IloCplex.Status status;
@@ -218,12 +210,21 @@ public class VCGMip {
                     IloIntVar var = domainVars[i];
                     int chan = variablesDecoder.get(var).getChannel();
                     final Band band = BandHelper.toBand(chan);
-                    final double value = stationDB.getStationById(station).getValues().get(band);
+                    final long value = stationDB.getStationById(station).getValues().get(band) / 1000; // Smaller numbers could be easier to work with
+                    log.info("Value: {}, orig: {}", value, stationDB.getStationById(station).getValues().get(band));
                     values[i] = value;
                 }
                 objectiveSum.addTerms(values, domainVars);
             }
             cplex.addMaximize(objectiveSum);
+        }
+
+        @Override
+        public void setParams(IloCplex cplex) throws IloException {
+            //f'set mip limits treememory {memlimit}', 'set mip strategy file 2', 'set mip strategy variableselect 3
+            // Commands to save memory
+            cplex.setParam(IloCplex.Param.MIP.Strategy.VariableSelect, 3);
+            cplex.setParam(IloCplex.IntParam.NodeFileInd, 2);
         }
     }
 
@@ -231,6 +232,10 @@ public class VCGMip {
 
         void encode(Map<Integer, Set<Integer>> domains, Set<Integer> participating, Set<Integer> nonParticipating, IStationDB stationDB, Table<Integer, Integer, IloIntVar> varLookup, Map<IloIntVar, StationChannel> variablesDecoder, IConstraintManager constraintManager, IloCplex cplex) throws IloException;
 
+        default void setParams(IloCplex cplex) throws IloException {
+        }
+
+        ;
     }
 
     @Slf4j
@@ -255,10 +260,10 @@ public class VCGMip {
         }
 
         public MIPResult solve(Map<Integer, Set<Integer>> domains, double cutoff, long seed, int nThreads) throws IloException {
-            return solve(domains, ImmutableSet.of(), cutoff, seed, nThreads);
+            return solve(domains, ImmutableSet.of(), cutoff, seed, nThreads, true, 0., new HashMap<>(), false);
         }
 
-        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed, int nThreads) throws IloException {
+        public MIPResult solve(Map<Integer, Set<Integer>> domains, Set<Integer> nonParticipating, double cutoff, long seed, int nThreads, boolean writeToDisk, Double tol, Map<Integer, Integer> startingAssignment, boolean cplexLog) throws IloException {
             this.varLookup = HashBasedTable.create();
             this.variablesDecoder = new HashMap<>();
             this.cplex = new IloCplex();
@@ -266,7 +271,7 @@ public class VCGMip {
             Watch watch = Watch.constructAutoStartWatch();
 
             final Set<Integer> participating = Sets.difference(domains.keySet(), nonParticipating);
-            log.info("{} / {} participating stations", participating.size(), domains.size());
+            log.info("{} / {} stations can optionally not be assigned to a channel (be put OFF). The remaining {}/{} stations must be assigned a channel.", participating.size(), domains.size(), domains.size() - participating.size(), domains.size());
 
             // Set up the x_{s,c} variables
             for (final Map.Entry<Integer, Set<Integer>> domainsEntry : domains.entrySet()) {
@@ -309,30 +314,54 @@ public class VCGMip {
             // Do the rest of the encoding!
             encoder.encode(domains, participating, nonParticipating, stationDB, varLookup, variablesDecoder, constraintManager, cplex);
 
+            // (Optionally) add a feasible solution
+            if (startingAssignment != null && !startingAssignment.isEmpty()) {
+                log.info("Using a MIP start from previous assignment");
+                double[] mipStartValues = new double[variablesDecoder.size()];
+                IloIntVar[] mipStartVariables = new IloIntVar[variablesDecoder.size()];
+                int i = 0;
+                for (Map.Entry<IloIntVar, StationChannel> entry : variablesDecoder.entrySet()) {
+                    mipStartVariables[i] = entry.getKey();
+                    final Integer assignedChannel = startingAssignment.get(entry.getValue().getStation());
+                    if (assignedChannel != null && assignedChannel == entry.getValue().getChannel()) {
+                        mipStartValues[i] = 1.;
+                    }
+                    i++;
+                }
+                cplex.addMIPStart(mipStartVariables, mipStartValues);
+            }
+
             log.info("Encoding MIP took {} s.", watch.getElapsedTime());
             log.info("MIP has {} variables.", cplex.getNcols());
             log.info("MIP has {} constraints.", cplex.getNrows());
 
-            // This turns off CPLEX logging.
-            cplex.setOut(new LoggingOutputStream(LoggerFactory.getLogger("CPLEX"), LoggingOutputStream.LogLevel.INFO));
+            if (!cplexLog) {
+                // This turns off CPLEX logging.
+                cplex.setOut(new LoggingOutputStream(LoggerFactory.getLogger("CPLEX"), LoggingOutputStream.LogLevel.INFO));
+            }
 
             //Set CPLEX's parameters.
             try {
                 cplex.setParam(IloCplex.DoubleParam.TimeLimit, cutoff);
                 cplex.setParam(IloCplex.LongParam.RandomSeed, (int) seed);
                 cplex.setParam(IloCplex.IntParam.MIPEmphasis, IloCplex.MIPEmphasis.Optimality);
-                cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, 0);
+                if (tol != null) {
+                    cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, tol);
+                }
                 cplex.setParam(IloCplex.Param.ClockType, 1); // CPU Time
                 cplex.setParam(IloCplex.IntParam.Threads, nThreads);
+                encoder.setParams(cplex);
             } catch (IloException e) {
                 log.error("Could not set CPLEX's parameters to the desired values", e);
                 throw new IllegalStateException("Could not set CPLEX's parameters to the desired values (" + e.getMessage() + ").");
             }
 
+
             watch.reset();
             watch.start();
             //Solve the MIP.
             final boolean feasible;
+            final double cplexTimeStart = cplex.getCplexTime();
             try {
                 feasible = cplex.solve();
             } catch (IloException e) {
@@ -341,17 +370,24 @@ public class VCGMip {
                 throw new IllegalStateException("CPLEX could not solve the MIP (" + e.getMessage() + ").");
             }
 
-            cplex.exportModel("model.lp");
+            if (writeToDisk) {
+                cplex.exportModel("model.lp");
+            }
 
             //Gather output
             final SATResult satisfiability;
             final double runtime = watch.getElapsedTime();
-            log.info("Runtime was {}", runtime);
+            log.info("Runtime (wall) was {}", runtime);
             final Map<Integer, Integer> assignment;
 
             final IloCplex.Status status = cplex.getStatus();
-            final double objValue = cplex.getObjValue();
-            log.info("CPLEX status: {}. Objective: {}", status, objValue);
+            log.info("CPLEX status: {}", status);
+
+            Double objValue = null;
+            if (status.equals(IloCplex.Status.Optimal) || status.equals(IloCplex.Status.Feasible)) {
+                objValue = cplex.getObjValue();
+                log.info("CPLEX objective: {}", objValue);
+            }
 
             if (status.equals(IloCplex.Status.Optimal)) {
                 if (feasible) {
@@ -361,6 +397,7 @@ public class VCGMip {
                     satisfiability = SATResult.UNSAT;
                     assignment = null;
                 }
+
             } else if (status.equals(IloCplex.Status.Feasible)) {
                 satisfiability = SATResult.SAT;
                 //Parse the assignment.
@@ -381,15 +418,22 @@ public class VCGMip {
             log.info("Satisfiability is {}", satisfiability);
             if (assignment != null) {
                 log.info("Verifying solution");
-                StationPackingUtils.weakVerify(stationManager, constraintManager, assignment);
+                final HashMap<Integer, Integer> tmpAssignment = new HashMap<>(assignment);
+                assignment.keySet().stream().filter(key -> assignment.get(key) == ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL).forEach(tmpAssignment::remove);
+                if (!StationPackingUtils.weakVerify(stationManager, constraintManager, tmpAssignment)) {
+                    throw new IllegalStateException("Could not verify assignment: " + assignment);
+                }
                 log.info("Verified!");
-                log.info("Assignment is {}", assignment);
+                log.debug("Assignment is {}", assignment);
                 log.info("Assignment contains {} stations on air", assignment.size());
             }
 
-            cplex.writeSolution("solution.lp");
+            if (writeToDisk) {
+                cplex.writeSolution("solution.lp");
+            }
 
-            final double cpuTime = cplex.getCplexTime();
+            final double cpuTime = cplex.getCplexTime() - cplexTimeStart;
+            log.info("CPLEX CPU time: {}", cpuTime);
 
             //Wrap up.
             cplex.end();
@@ -407,10 +451,12 @@ public class VCGMip {
         private Map<Integer, Integer> getAssignment() throws IloException {
             double eps = cplex.getParam(IloCplex.DoubleParam.EpInt);
             final Map<Integer, Integer> assignment = new HashMap<>();
+            double varSum = 0;
             for (Map.Entry<IloIntVar, StationChannel> entryDecoder : variablesDecoder.entrySet()) {
                 final IloIntVar variable = entryDecoder.getKey();
                 try {
-                    log.info("{} = {}", variable.getName(), cplex.getValue(variable));
+                    log.debug("{} = {}", variable.getName(), cplex.getValue(variable));
+                    varSum += cplex.getValue(variable);
                     if (MathUtils.equals(cplex.getValue(variable), 1, eps)) {
                         final StationChannel stationChannelPair = entryDecoder.getValue();
                         final Integer station = stationChannelPair.getStation();
@@ -424,6 +470,7 @@ public class VCGMip {
                     throw new IllegalStateException("Could not get MIP value assignment for variable " + variable + " (" + e.getMessage() + ").");
                 }
             }
+            log.info("Varsum is {}, assignment contains {} stations", varSum, assignment.size());
             return assignment;
         }
 

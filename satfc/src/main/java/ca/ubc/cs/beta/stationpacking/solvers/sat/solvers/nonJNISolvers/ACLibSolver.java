@@ -34,7 +34,11 @@ public class ACLibSolver implements ISolver {
     public ACLibSolver(IProblemEncoder encoder, int seedOffset, String wrapperPath, String parameters, String solverName, EncodingCategory encodingCategory) {
         this.encoder = encoder;
         this.seedOffset = seedOffset;
-        this.parameters = parameters;
+        if (parameters != null) {
+            this.parameters = parameters;
+        } else {
+            this.parameters = "";
+        }
         this.solverName = solverName;
         this.wrapperPath = wrapperPath;
         this.encodingCategory = encodingCategory;
@@ -132,7 +136,7 @@ public class ACLibSolver implements ISolver {
                 try {
                     log.error("Solution file {} not in expected format:\nResult\ncputime\nwalltime\n(model)", solutionFile.getCanonicalPath());
                     log.error("File:" + System.lineSeparator() + Files.toString(solutionFile, Charset.defaultCharset()));
-                    log.error("Problem file:" + System.lineSeparator() + Files.toString(problemFile, Charset.defaultCharset()));
+//                    log.error("Problem file:" + System.lineSeparator() + Files.toString(problemFile, Charset.defaultCharset()));
                 } catch (IOException e1) {
                     throw new RuntimeException(e1);
                 }
@@ -140,7 +144,6 @@ public class ACLibSolver implements ISolver {
             log.error("Command:" + processString);
             log.error("Exception in ACLib solver: ", e);
             if (retryCount < RETRY_COUNT) {
-                // TODO: This will obviously ignore any interrupt signals, but they aren't working now anyways, so oh well.
                 return solve(aInstance, new WalltimeTerminationCriterion(timeCriterion), aSeed, retryCount + 1);
             }
             throw new RuntimeException("Trouble using aclib solver", e);

@@ -155,7 +155,6 @@ public class SATEncoder implements ISATEncoder {
             //A station must be on at least one channel,
             Clause aStationValidAssignmentBaseClause = new Clause();
             for (Integer aChannel : aStationInstanceDomain) {
-
                 aStationValidAssignmentBaseClause.add(new Literal(bijection.map(SATEncoderUtils.SzudzikElegantPairing(aStation.getID(), aChannel)), true));
             }
             aCNF.add(aStationValidAssignmentBaseClause);

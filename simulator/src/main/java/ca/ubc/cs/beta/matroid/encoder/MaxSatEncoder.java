@@ -52,7 +52,7 @@ public class MaxSatEncoder extends SATEncoder {
 
             // Or, for this particular channel, everything interferes with you
             for (Integer channel : domain) {
-                final Clause stationChannelClause = new Clause(atLeastOneDomainClause);
+                final Clause stationChannelClause = new Clause(atLeastOneDomainClause.getLiterals());
                 final Map<Station, Set<Integer>> domainsCopy = new HashMap<>(instance.getDomains());
                 domainsCopy.put(s, ImmutableSet.of(channel));
                 for (Constraint constraint : constraintManager.getAllRelevantConstraints(domainsCopy)) {

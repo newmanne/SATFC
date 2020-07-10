@@ -1,8 +1,11 @@
 package ca.ubc.cs.beta.fcc.simulator.solver.decorator;
 
+import ca.ubc.cs.beta.fcc.simulator.BidProcessingFinishedEvent;
+import ca.ubc.cs.beta.fcc.simulator.DomainChangeEvent;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
 import ca.ubc.cs.beta.fcc.simulator.ladder.LadderEventOnMoveDecorator;
+import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
 import ca.ubc.cs.beta.fcc.simulator.participation.ParticipationRecord;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
@@ -44,18 +47,20 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableMap
 @Slf4j
 public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDecorator {
 
-    final private static ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE);
+    final private static ImmutableSet<ProblemType> CACHEABLE_PROBLEMS = ImmutableSet.of(ProblemType.BID_PROCESSING_HOME_BAND_FEASIBLE, ProblemType.BID_PROCESSING_MOVE_FEASIBLE, ProblemType.BID_STATUS_UPDATING_HOME_BAND_FEASIBLE, ProblemType.BETWEEN_STAGE_HOME_BAND_FEASIBLE, ProblemType.CATCHUP_FEASIBLE);
 
     @Data
     public static class UHFCacheEntry {
 
-        public UHFCacheEntry(SimulatorResult result) {
+        public UHFCacheEntry(SimulatorProblem problem, SimulatorResult result) {
             this.result = result;
             this.hitCount = 0;
+            this.cutoff = problem.getSATFCProblem().getCutoff();
         }
 
-        private SimulatorResult result;
+        private final SimulatorResult result;
         private int hitCount;
+        private final double cutoff;
 
     }
 
@@ -93,7 +98,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         final Map<Station, IStationInfo> stationToInfo = ladder.getStations().stream().collect(Collectors.toMap(IStationInfo::toSATFCStation, Function.identity()));
         final SimpleGraph<IStationInfo, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager, stationToInfo);
         final ConnectivityInspector<IStationInfo, DefaultEdge> connectivityInspector = new ConnectivityInspector<>(constraintGraph);
-        final Set<Set<IStationInfo>> connectedComponents = connectivityInspector.connectedSets().stream().collect(Collectors.toSet());
+        final Set<Set<IStationInfo>> connectedComponents = new HashSet<>(connectivityInspector.connectedSets());
         stationToComponent = ladder.getStations().stream().collect(toImmutableMap(Function.identity(), s -> connectedComponents.stream().filter(component -> component.contains(s)).findFirst().get()));
         greedyFlaggingDecorator.init(ladder);
     }
@@ -109,30 +114,42 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
             final UHFCacheEntry cacheEntry = feasibility.get(addedStation);
             if (lazy && cacheEntry == null) {
                 log.trace("Lazy and problem not in cache... Have to add it");
-                super.getFeasibility(problem, (p, r) -> {
-                    feasibility.put(addedStation, new UHFCacheEntry(r));
-                    callback.onSuccess(p, r);
-                });
+                solveProblemAndUpdateCache(problem, callback, addedStation);
             } else {
                 Preconditions.checkNotNull(cacheEntry, "Could not find a result in the UHF station cache for station %s", addedStation);
                 SimulatorResult result = cacheEntry.getResult();
-                // Accounting: if this is our first time seeing the cache entry, charge the time it took to compute it. Otherwise, charge the lookup time.
-                if (lazy || cacheEntry.getHitCount() > 0) {
-                    // valid code, unsupported in intellij lombok plugin
-                    result = result.toBuilder().cached(true).build();
+
+                // If you have a TIMEOUT result in the cache, but this time around, we are giving a larger time budget, then do NOT use the cached result!!!
+                if (result.getSATFCResult().getResult().equals(SATResult.TIMEOUT) &&
+                        problem.getSATFCProblem().getCutoff() > cacheEntry.getCutoff()) {
+                    log.trace("Revising cache entry in light of more time offered for problem");
+                    solveProblemAndUpdateCache(problem, callback, addedStation);
+                } else {
+                    // Accounting: if this is our first time seeing the cache entry, charge the time it took to compute it. Otherwise, charge the lookup time.
+                    if (lazy || cacheEntry.getHitCount() > 0) {
+                        // valid code, unsupported in intellij lombok plugin
+                        result = result.toBuilder().cached(true).build();
+                    }
+                    // We want to know if a greedy solver COULD have solved the initial problem (it won't get there due to decorator ordering)
+                    if (greedyFlaggingDecorator.getFeasibilityBlocking(problem).isGreedySolved()) {
+                        result = result.toBuilder().greedySolved(true).build();
+                    }
+                    cacheEntry.setHitCount(cacheEntry.getHitCount() + 1);
+                    log.trace("Successful cache hit for {}", problem.getSATFCProblem().getName());
+                    callback.onSuccess(problem, result);
                 }
-                // We want to know if a greedy solver COULD have solved the initial problem (it won't get there due to decorator ordering)
-                if (greedyFlaggingDecorator.getFeasibilityBlocking(problem).isGreedySolved()) {
-                    result = result.toBuilder().greedySolved(true).build();
-                }
-                cacheEntry.setHitCount(cacheEntry.getHitCount() + 1);
-                log.trace("Successful cache hit for {}", problem.getSATFCProblem().getName());
-                callback.onSuccess(problem, result);
             }
         } else {
             log.trace("Not a UHF home band or move feasibility problem, skipping cache");
             super.getFeasibility(problem, callback);
         }
+    }
+
+    private void solveProblemAndUpdateCache(SimulatorProblem problem, SATFCCallback callback, IStationInfo addedStation) {
+        super.getFeasibility(problem, (p, r) -> {
+            feasibility.put(addedStation, new UHFCacheEntry(p, r));
+            callback.onSuccess(p, r);
+        });
     }
 
     public void rebuildCache() {
@@ -145,7 +162,7 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
             decorated.getFeasibility(problemMaker.makeProblem(s, Band.UHF, ProblemType.UHF_CACHE_PREFILL), new SATFCCallback() {
                 @Override
                 public void onSuccess(SimulatorProblem problem, SimulatorResult result) {
-                    feasibility.put(s, new UHFCacheEntry(result));
+                    feasibility.put(s, new UHFCacheEntry(problem, result));
                 }
             });
         }
@@ -192,6 +209,22 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
         }
     }
 
+    public void clear() {
+        feasibility.clear();
+    }
+
+    @Subscribe
+    public void onDomainChanged(DomainChangeEvent domainChangeEvent) {
+        log.debug("Domain has been changed. Flushing UNSAT and TIMEOUT results from the cache and updating component graph");
+        init(domainChangeEvent.getLadder(), domainChangeEvent.getConstraintManager());
+        final Set<IStationInfo> keysToRemove = feasibility.entrySet().stream()
+                .filter(entry -> !entry.getValue().getResult().getSATFCResult().getResult().equals(SATResult.SAT))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        feasibility.keySet().removeAll(keysToRemove);
+    }
+
+
     /**
      * If a station moves into UHF, we need to clear all of our results and recompute them
      */
@@ -213,6 +246,14 @@ public class UHFCachingFeasibilitySolverDecorator extends AFeasibilitySolverDeco
                 .wastedProblemWallTime(wastedTimeTracker.getWalltime().get())
                 .build();
         reportStateEvent.getBuilder().uhfCacheState(uhfCacheState);
+    }
+
+    @Subscribe
+    public void onBidProcessingFinishedEvent(BidProcessingFinishedEvent event) {
+        if (event.getParameters().getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
+            log.info("Flushing inconclusive results from cache");
+            feasibility.entrySet().removeIf(entry -> !entry.getValue().getResult().getSATFCResult().getResult().isConclusive());
+        }
     }
 
 }

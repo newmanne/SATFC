@@ -92,7 +92,7 @@ public class ProblemSaverDecorator extends AFeasibilitySolverDecorator implement
                     p.getRound(),
                     p.getTargetStation() != null ? p.getTargetStation().getId() : null,
                     p.getSATFCProblem().getName(),
-                    previousAssignmentNumber
+                    previousAssignmentNumber,
             };
             try {
                 problemCSVWriter.printRecord(record);

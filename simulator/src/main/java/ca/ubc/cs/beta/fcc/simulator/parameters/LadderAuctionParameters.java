@@ -2,7 +2,7 @@ package ca.ubc.cs.beta.fcc.simulator.parameters;
 
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import lombok.Data;
-import lombok.experimental.Builder;
+import lombok.Builder;
 
 import java.util.Map;
 

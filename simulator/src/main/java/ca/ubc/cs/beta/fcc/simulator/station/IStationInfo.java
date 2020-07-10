@@ -21,32 +21,68 @@ import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet
 public interface IStationInfo {
 
     int getId();
+
     Integer getVolume();
-    Map<Band, Double> getValues();
-    default double getValue(Band band) {
+
+    Map<Band, Long> getValues();
+
+    default long getValue(Band band) {
         Preconditions.checkState(getValues().containsKey(band), "Station %s has no value for band %s", getId(), band);
         return getValues().get(band);
     }
-    default double getValue() {
+
+    ImmutableSet<String> nonMainlandDMAs = ImmutableSet.of("Honolulu, HI", "Virgin Islands", "Anchorage, AK", "Fairbanks, AK", "Juneau, AK", "Puerto Rico");
+
+    default boolean isMainland() {
+        return !nonMainlandDMAs.contains(getDMA());
+    }
+
+    default long getValue() {
         return getValue(getHomeBand());
     }
+
     Nationality getNationality();
+
     Band getHomeBand();
+
     ImmutableSet<Integer> getDomain();
+
+    ImmutableSet<Integer> getFullDomain();
+
     default ImmutableSet<Integer> getDomain(Band band) {
         final Set<Integer> domain = getDomain();
         final Set<Integer> bandChannels = BandHelper.toChannels(band);
         return ImmutableSet.copyOf(Sets.intersection(domain, bandChannels));
     }
 
+    default ImmutableSet<Integer> getFullDomain(Band band) {
+        final Set<Integer> domain = getFullDomain();
+        final Set<Integer> bandChannels = BandHelper.toChannels(band);
+        return ImmutableSet.copyOf(Sets.intersection(domain, bandChannels));
+    }
+
+
     String getCity();
+
     String getCall();
+
     int getPopulation();
 
-    Bid queryPreferredBand(Map<Band, Double> offers, Band currentBand);
+    Bid queryPreferredBand(Map<Band, Long> offers, Band currentBand);
+
+    Boolean isCommercial();
+
+    boolean isEligible();
+
+    String getDMA();
 
     default Station toSATFCStation() {
         return new Station(getId());
     }
 
+    void impair();
+
+    void unimpair();
+
+    boolean isImpaired();
 }

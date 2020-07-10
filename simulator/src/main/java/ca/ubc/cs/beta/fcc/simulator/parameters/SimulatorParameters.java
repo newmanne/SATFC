@@ -22,6 +22,8 @@ import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.RandomUtils;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel;
+import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel2;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
@@ -29,19 +31,22 @@ import ca.ubc.cs.beta.stationpacking.execution.parameters.SATFCFacadeParameters;
 import ca.ubc.cs.beta.stationpacking.facade.datamanager.data.DataManager;
 import ca.ubc.cs.beta.stationpacking.solvers.certifiers.cgneighborhood.strategies.AddNeighbourLayerStrategy;
 import ca.ubc.cs.beta.stationpacking.solvers.componentgrouper.ConstraintGrouper;
+import ca.ubc.cs.beta.stationpacking.utils.JSONUtils;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
-import humanize.Humanize;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.google.common.io.Files;
+import lombok.*;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.math3.random.JDKRandomGenerator;
+import org.apache.commons.math3.random.RandomGenerator;
+import org.jgrapht.alg.NeighborIndex;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 import org.slf4j.Logger;
@@ -49,9 +54,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils.readCSV;
 
 /**
  * Created by newmanne on 2016-05-20.
@@ -61,23 +72,72 @@ public class SimulatorParameters extends AbstractOptions {
 
     private static Logger log;
 
-    private final String ARROW_DIR = "/ubc/cs/research/arrow/satfc/simulator/data/";
+    public static String getInternalFile(String filename) {
+        try {
+            File f = new File(SimulatorParameters.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            String jarPath = f.getCanonicalPath();
+            return new File(jarPath).getParentFile().getParentFile().getCanonicalPath() + File.separator + "simulator_data" + File.separator + filename;
+        } catch (URISyntaxException | IOException e) {
+            throw new IllegalStateException();
+        }
+    }
+
+    @Parameter(names = "-INFO-FILE", description = "csv file with headers FacID,Call,Country,Channel,City,Lat,Lon,Population,DMA,Eligible")
+    private String infoFile;
+
+    public String getInfoFile() {
+        return infoFile != null ? infoFile : getInternalFile("station_info.csv");
+    }
+
+    @Parameter(names = "-VOLUMES-FILE", description = "volumes csv file headers FacID, Volume")
+    private String volumeFile;
+
+    public String getVolumeFile() {
+        return volumeFile != null ? volumeFile : getInternalFile("volumes.csv");
+    }
 
     @Getter
-    @Parameter(names = "-INFO-FILE", description = "csv file")
-    private String infoFile = ARROW_DIR + "station_info_v2.csv";
-
-    @Getter
-    @Parameter(names = "-VOLUMES-FILE", description = "volumes file")
-    private String volumeFile = ARROW_DIR + "volumes.csv";
+    @Parameter(names = "-NOT-PARTICIPATING")
+    public List<Integer> notParticipating = new ArrayList<>();
 
     @Getter
     @Parameter(names = "-VALUES-SEED", description = "values file")
     private int valuesSeed = 1;
 
     @Getter
+    @Parameter(names = "-POP-VALUES", description = "Base valuations on population (public model)")
+    private boolean popValues = false;
+
+    @Getter
+    @Parameter(names = "-INFER-VALUES", description = "infer values for stations not in maxcfstick file")
+    private boolean inferValues = true;
+
+    // This file is private and cannot be included in the repo
+    @Getter
     @Parameter(names = "-MAX-CF-STICK-FILE", description = "maxcfstick")
-    private String maxCFStickFile = ARROW_DIR + "valuations.csv";
+    private String maxCFStickFile = System.getenv("SATFC_VALUE_FILE");
+
+    @Parameter(names = "-POP-VALUE-FILE", description = "population value file")
+    private String popValueFile;
+
+    public String getPopValueFile() {
+        return popValueFile != null ? popValueFile : getInternalFile("popValues.csv");
+    }
+
+    @Getter
+    @Parameter(names = "-VALUE-FILE", description = "CSV file with station value in each band for each American station (FacID, UHFValue, HVHFValue, LVHFValue)")
+    private String valueFile;
+
+    @Parameter(names = "-COMMERCIAL-FILE", description = "CSV file with whether eligible stations are commercial non-commercial (FacID, Commercial)")
+    private String commercialFile;
+
+    public String getCommercialFile() {
+        return commercialFile != null ? commercialFile : getInternalFile("commercial.csv");
+    }
+
+    @Getter
+    @Parameter(names = "-STARTING-ASSIGNMENT-FILE", description = "CSV file with columns Ch, FacID specifying a starting assignment for non-participating stations")
+    private String startingAssignmentFile;
 
     @Getter
     @Parameter(names = "-SEND-QUEUE", description = "queue name to send work on")
@@ -85,11 +145,6 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-LISTEN-QUEUE", description = "queue name to listen for work on")
     private String listenQueue = "listen";
-
-    @Getter
-    @Parameter(names = "-UNIT-VOLUME", description = "Sets all stations to have unit volume")
-    private boolean unitVolume = false;
-
 
     @Getter
     @Parameter(names = "-UHF-ONLY", description = "Ignore non-UHF stations")
@@ -108,8 +163,17 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean ignoreCanada = false;
 
     @Getter
-    @Parameter(names = "-MAX-CHANNEL", description = "highest available channel")
-    private Integer maxChannel = null;
+    @Parameter(names = "-MAX-CHANNEL", description = "highest available channel for the first stage", required = true)
+    private int maxChannel;
+
+    @Getter
+    @Parameter(names = "-MAX-CHANNEL-FINAL", description = "highest available channel in the last stage")
+    private Integer maxChannelFinal = null;
+
+    @Getter
+    @Parameter(names = "-SKIP-STAGE", description = "list of stages to skip")
+    private Set<Integer> skipStages = new HashSet<>();
+
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
@@ -119,25 +183,17 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-RESTORE-SIMULATION", description = "Restore simulation from state folder")
     private boolean restore = false;
 
-//    @Getter
-//    @Parameter(names = "-VALUES-FILE", description = "values file")
-//    private String valuesFile = ARROW_DIR + "values_v2.csv";
-
-    //    @Getter
-//    @Parameter(names = "-UNIT-VALUE", description = "Sets all stations to have unit value")
-//    private boolean unitValue = false;
-
     @Getter
     @Parameter(names = "-START-CITY", description = "City to start from")
     private String city;
     @Getter
+    @Parameter(names = "-START-DMA", description = "DMA to start from")
+    private String dma;
+
+
+    @Getter
     @Parameter(names = "-CITY-LINKS", description = "Number of links away from start city")
     private int nLinks = 0;
-
-//
-//    @Getter
-//    @Parameter(names = "-UNIFORM-PROBABILITY-PARTICIPATION", description = "A station participates uniformly with p")
-//    private Double uniformProbability;
 
     @Getter
     @Parameter(names = "-SIMULATOR-OUTPUT-FOLDER", description = "output file name")
@@ -146,12 +202,12 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-SOLVER-TYPE", description = "Type of solver")
     private SolverType solverType = SolverType.LOCAL;
 
+    @Getter
     @Parameter(names = "-PARTICIPATION-MODEL", description = "Type of solver")
     private ParticipationModel participationModel = ParticipationModel.PRICE_HIGHER_THAN_VALUE;
 
     @Parameter(names = "-UNCONSTRAINED-CHECKER", description = "Type of unconstrained checker")
     private UnconstrainedChecker unconstrainedChecker = UnconstrainedChecker.FCC;
-
 
     @Parameter(names = "-UHF-CACHE", description = "If true, cache problems")
     @Getter
@@ -162,7 +218,7 @@ public class SimulatorParameters extends AbstractOptions {
     private boolean lazyUHF = true;
 
     @Getter
-    @Parameter(names = "-REVISIT-TIMEOUTS", description = "If true, revisit timeout results")
+    @Parameter(names = "-REVISIT-TIMEOUTS", description = "If true, revisit (UHF) timeout results. False is how it was used in the auction")
     private boolean revisitTimeouts = false;
 
     @Parameter(names = "-GREEDY-SOLVER-FIRST", description = "If true, always try solving a problem with the greedy solver first")
@@ -173,12 +229,81 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private boolean greedyOnly = false;
 
+    public enum BidProcessingAlgorithm {
+        FCC, FIRST_TO_FINISH, FIRST_TO_FINISH_SINGLE_PROGRAM, NO_PRICE_DROPS_FOR_TIMEOUTS
+    }
+
+    @Getter
+    @Parameter(names = "-BID-PROCESSING", description = "Which bid processing algorithm to use")
+    private BidProcessingAlgorithm bidProcessingAlgorithm = BidProcessingAlgorithm.FCC;
+
+
+    @Getter
+    @Parameter(names = "-FIRST-TO-FINISH-ROUND-WALLTIME")
+    private Double roundWalltime = 1. * 60 * 60;
+
+    @Getter
+    @Parameter(names = "-FIRST-TO-FINISH-WORKERS")
+    private Integer firstToFinishWorkers;
+
+
+    @Parameter(names = "-NOISE-STD", description = "Noise to add to 1/3, 2/3")
+    @Getter
+    private double noiseStd = 0.05;
+
+    @Parameter(names = "-MIP-PARALLELISM", description = "Max threads to run for MIP solving")
+    @Getter
+    private int parallelism = Runtime.getRuntime().availableProcessors();
+
+    @Parameter(names = "-MIP-CUTOFF", description = "Number of seconds to run initial MIP. In CPU time unless you change the CPLEX params.")
+    @Getter
+    private double mipCutoff = 60 * 60 * 2;
+
+    @Parameter(names = "-STORE-PROBLEMS", description = "Write every problem to disk")
+    @Getter
+    private boolean storeProblems = false;
+
+    @Parameter(names = "-FORWARD-AUCTION-AMOUNTS", description = "A list of forward auction amounts, used as a termination condition. In units of billions")
+    private List<Double> forwardAuctionAmounts = new ArrayList<>();
+
+    public List<Long> getForwardAuctionAmounts() {
+        return forwardAuctionAmounts.stream().map(x -> (long) (x * 1e9)).collect(Collectors.toList());
+    }
+
+    @Parameter(names = "-EARLY-STOPPING", description = "Should early stopping be used?")
+    @Getter
+    private boolean earlyStopping = false;
+
+    @Parameter(names = "-WITHHOLDING-STATIONS-FILE", description = "File listing stations to be withheld")
+    @Getter
+    private String withholdingStationsFile;
+
+    @Parameter(names = "-STATIONS-TO-USE-FILE", description = "File listing stations that exist in the world")
+    @Getter
+    private String stationsToUseFile;
+
+    @Getter
+    private BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
+
     @Getter
     @ParametersDelegate
     private SATFCFacadeParameters facadeParameters = new SATFCFacadeParameters();
 
+    @Getter
+    private HistoricData historicData;
+
+    @Getter
+    private PopValueModel2 popValueModel;
+
+    @Getter
+    private RandomGenerator valuesGenerator;
+
+    public String getInteferenceFolder() {
+        return facadeParameters.fInterferencesFolder != null ? facadeParameters.fInterferencesFolder : getInternalFile("interference_data");
+    }
+
     public ISimulatorUnconstrainedChecker getUnconstrainedChecker(ParticipationRecord participation, ILadder ladder) {
-        switch(unconstrainedChecker) {
+        switch (unconstrainedChecker) {
             case FCC:
                 return new SimulatorUnconstrainedCheckerImpl(getConstraintManager(), participation, ladder);
             case BAD:
@@ -197,7 +322,7 @@ public class SimulatorParameters extends AbstractOptions {
     }
 
     public String getStationInfoFolder() {
-        return facadeParameters.fInterferencesFolder + File.separator + constraintSet;
+        return getInteferenceFolder() + File.separator + constraintSet;
     }
 
     public double getCutoff() {
@@ -206,9 +331,32 @@ public class SimulatorParameters extends AbstractOptions {
 
     public void setUp() {
         log = LoggerFactory.getLogger(Simulator.class);
+
+        Preconditions.checkState(SimulatorUtils.CLEARING_TARGETS.contains(maxChannel), "Unrecognized start clearing target %s", maxChannel);
+        if (maxChannelFinal != null) {
+            Preconditions.checkState(maxChannelFinal >= maxChannel, "Auction must end on a higher channel");
+            Preconditions.checkState(SimulatorUtils.CLEARING_TARGETS.contains(maxChannelFinal), "Unrecognized final clearing target %s", maxChannelFinal);
+        } else {
+            maxChannelFinal = maxChannel;
+        }
+
+        final BidProcessingAlgorithmParameters.BidProcessingAlgorithmParametersBuilder bidProcessingAlgorithmParametersBuilder = BidProcessingAlgorithmParameters.builder().bidProcessingAlgorithm(getBidProcessingAlgorithm());
+        if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH_SINGLE_PROGRAM)) {
+            bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
+        } else if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+            Preconditions.checkNotNull(firstToFinishWorkers, "First to finish algorithm requires specifying the number of workers!");
+            final DistributedFeasibilitySolver distributedFeasibilitySolver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue, firstToFinishWorkers);
+            bidProcessingAlgorithmParametersBuilder.distributedFeasibilitySolver(distributedFeasibilitySolver);
+            bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
+            bidProcessingAlgorithmParametersBuilder.executorService(Executors.newScheduledThreadPool(1));
+        }
+        log.info("Using {} bid processing algorithm", getBidProcessingAlgorithm());
+        bidProcessingAlgorithmParameters = bidProcessingAlgorithmParametersBuilder.build();
+
+
         RandomUtils.setRandom(facadeParameters.fInstanceParameters.Seed);
         eventBus = new EventBus();
-        BandHelper.setUHFChannels(maxChannel != null ? maxChannel : StationPackingUtils.UHFmax);
+        BandHelper.setUHFChannels(maxChannel);
         final File outputFolder = new File(getOutputFolder());
         if (isRestore()) {
             Preconditions.checkState(outputFolder.exists() && outputFolder.isDirectory(), "Expected to restore state but no state directory found!");
@@ -228,47 +376,83 @@ public class SimulatorParameters extends AbstractOptions {
             throw new RuntimeException(e);
         }
 
-        stationDB = new CSVStationDB(getInfoFile(), getStationManager());
+        stationDB = new CSVStationDB(getInfoFile(), getStationManager(), getWithholdingStationsFile());
+        historicData = new HistoricData(stationDB);
+
+        valuesGenerator = new JDKRandomGenerator();
+        valuesGenerator.setSeed(getValuesSeed());
+
+        if (popValues) {
+//            log.info("Initializing pop value model with {}", getPopValueFile());
+            popValueModel = new PopValueModel2(valuesGenerator, stationDB);
+        }
+
+        // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations
+        SimulatorUtils.assignValues(this);
+
+//        // TOOD:
+//        Map<Station, Integer> stationIntegerMap = icCounts(getStationManager().getDomains(), stationDB, getConstraintManager());
+//        try {
+//            Files.write(JSONUtils.toString(stationIntegerMap), new File("test.csv"), Charsets.UTF_8);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        log.info("DONE");
+//        // TODO:
 
         final Set<Integer> toRemove = new HashSet<>();
+        final Set<IStationInfo> notNeeded = new HashSet<>();
         for (IStationInfo s : stationDB.getStations()) {
+            if (!s.isMainland()) {
+                // Note that you have marked some stations in non-mainland USA as always ineligibible on your csv file (Hawaii, Alaska, Virgin Islands, Puerto Rico)
+                log.info("Station {} is in a non-mainland DMA ({}) and is being removed", s, s.getDMA());
+                toRemove.add(s.getId());
+            }
+
+            if (s.getNationality().equals(Nationality.US) && !s.isEligible()) {
+                notNeeded.add(s);
+                toRemove.add(s.getId());
+            }
             if (isIgnoreCanada() && s.getNationality().equals(Nationality.CA)) {
                 log.info("Station {} is a Canadian station and ignore Canada flag is set to true", s);
                 toRemove.add(s.getId());
             } else if ((isUhfOnly() || !isIncludeVHFBands()) && s.getDomain(Band.UHF).isEmpty()) {
-                log.info("Station {} has no domain in UHF, skipping due to flag", s);
+                log.info("Station {} has no domain in UHF, removing due to flag", s);
                 toRemove.add(s.getId());
-            } else {
-                // not removing
-                if (!isIncludeVHFBands()) {
-                    ((StationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
-                }
+            } else if (!isIncludeVHFBands()) {
+                // Remove the VHF bands of UHF stations if we are doing a UHF-only auction
+                ((IModifiableStationInfo) s).setMinChannel(StationPackingUtils.UHFmin);
             }
-//            if (city != null && nLinks >= 0) {
-//                ignorePredicateFactories.add(new CityAndLinksPredicateFactory(city, nLinks, getStationManager(), getConstraintManager()));
-//            }
+        }
+
+        if (!notNeeded.isEmpty()) {
+            log.info("The following {} US stations were not offered an opening price, meaning they must be Not Needed and can effectively be ignored. Excluding from auction" + System.lineSeparator() + "{}", notNeeded.size(), notNeeded);
         }
         toRemove.forEach(stationDB::removeStation);
-
-
-        log.info("Setting volumes");
-        IVolumeCalculator volumeCalculator;
-        if (isUnitVolume()) {
-            volumeCalculator = new UnitVolumeCalculator();
-        } else {
-            volumeCalculator = new CSVVolumeCalculator(volumeFile);
+        // WARNING: Understand that clearing target has not been set yet, so this will be using the full constraint graph (I think)
+        if (city != null && nLinks >= 0) {
+            log.info("City and links");
+            new CityAndLinks(city, dma, nLinks, getStationDB(), getConstraintManager()).function();
         }
+
+        // Assign volumes
+        log.info("Setting volumes");
+        final IVolumeCalculator volumeCalculator = new CSVVolumeCalculator(getVolumeFile());
+
         final Set<IStationInfo> americanStations = Sets.newHashSet(stationDB.getStations(Nationality.US));
         final Map<Integer, Integer> volumes = volumeCalculator.getVolumes(americanStations);
         for (IStationInfo stationInfo : americanStations) {
             int volume = volumes.get(stationInfo.getId());
-            ((StationInfo) stationInfo).setVolume(volume);
+            ((IModifiableStationInfo) stationInfo).setVolume(volume);
         }
 
-
-        // TOOD: This might make sense to do if you ever calculate volumes, but for now use FCC
-//        volumeCalculator = new NormalizingVolumeDecorator(volumeCalculator);
-
+        // Set stations as commercial or non-commercial
+        final CSVCommercial commercialReader = new CSVCommercial(getCommercialFile());
+        final Map<Integer, Boolean> commercialStatus = commercialReader.getCommercialStatus(americanStations);
+        for (IStationInfo stationInfo : americanStations) {
+            boolean commercial = commercialStatus.get(stationInfo.getId());
+            ((IModifiableStationInfo) stationInfo).setCommercial(commercial);
+        }
     }
 
     private String getStateFolder() {
@@ -319,7 +503,8 @@ public class SimulatorParameters extends AbstractOptions {
                 solver = new LocalFeasibilitySolver(facadeParameters);
                 break;
             case DISTRIBUTED:
-                solver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue);
+                // TODO: This won't work
+                solver = new DistributedFeasibilitySolver(facadeParameters.fRedisParameters.getJedis(), sendQueue, listenQueue, 0);
                 break;
             default:
                 throw new IllegalStateException();
@@ -333,18 +518,46 @@ public class SimulatorParameters extends AbstractOptions {
 
     public enum ParticipationModel {
         PRICE_HIGHER_THAN_VALUE,
-        UNIFORM
+        UNIFORM,
+        HISTORICAL_DATA,
+        COIN_FLIP
     }
 
     public IParticipationDecider getParticipationDecider(IPrices prices) {
+        IParticipationDecider decider;
         switch (participationModel) {
             case PRICE_HIGHER_THAN_VALUE:
-                return new OpeningOffPriceHigherThanPrivateValue(prices);
-//            case UNIFORM:
-//                return new UniformParticipationDecider(uniformProbability, prices);
+                decider = new OpeningOffPriceHigherThanPrivateValue(prices);
+                break;
+//            case COIN_FLIP:
+//                final IParticipationDecider tmp = new OpeningOffPriceHigherThanPrivateValue(prices);
+//                final PopValueModel popValueModel = getPopValueModel();
+//                Preconditions.checkNotNull(popValueModel, "Trying to use pop value model but null!");
+//                decider = s -> {
+//                    if (tmp.isParticipating(s)) {
+//                        return popValueModel.coinFlip(s);
+//                    } else {
+//                        return false;
+//                    }
+//                };
+//                break;
+            case HISTORICAL_DATA:
+                decider = s -> {
+                    boolean historicallyParticipated = historicData.getHistoricalStations().contains(s);
+                    if (historicallyParticipated) {
+                        if (!new OpeningOffPriceHigherThanPrivateValue(prices).isParticipating(s)) {
+                            throw new IllegalStateException("Station historically participated but value is not high enough!");
+                        }
+                    }
+                    return historicallyParticipated;
+                };
+                break;
             default:
                 throw new IllegalStateException();
         }
+        final IParticipationDecider currDecider = decider;
+        decider = s -> !getNotParticipating().contains(s.getId()) && currDecider.isParticipating(s);
+        return decider;
     }
 
     public enum ScoringRule {
@@ -357,17 +570,26 @@ public class SimulatorParameters extends AbstractOptions {
 
     }
 
-    // TODO: Hard to ratify this with endogenous clearing targets...
     @RequiredArgsConstructor
     public static class CityAndLinks {
 
-        @NonNull
         private final String city;
+        private final String dma;
         private final int links;
         private final IStationDB.IModifiableStationDB stationDB;
         private final IConstraintManager constraintManager;
 
+        public CityAndLinks(String city, int links, IStationDB.IModifiableStationDB stationDB, IConstraintManager constraintManager) {
+            this.city = city;
+            this.links = links;
+            this.stationDB = stationDB;
+            this.constraintManager = constraintManager;
+            this.dma = null;
+        }
+
         public void function() {
+            Preconditions.checkState(city != null || dma != null);
+
             // Step 1: Construct the interference graph based on stations in the DB and their domains
             final Map<Station, Set<Integer>> domains = stationDB.getStations()
                     .stream()
@@ -376,7 +598,8 @@ public class SimulatorParameters extends AbstractOptions {
             final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
 
             final Set<Station> cityStations = domains.keySet().stream()
-                    .filter(s -> stationDB.getStationById(s.getID()).getCity().equals(city))
+                    .filter(s -> city == null || stationDB.getStationById(s.getID()).getCity().equals(city))
+                    .filter(s -> dma == null || stationDB.getStationById(s.getID()).getCity().equals(dma))
                     .collect(Collectors.toSet());
 
             log.info("Found {} stations in city {}", cityStations.size(), city);
@@ -399,7 +622,7 @@ public class SimulatorParameters extends AbstractOptions {
                     toRemove.add(s);
                 }
             }
-            for (IStationInfo s: toRemove) {
+            for (IStationInfo s : toRemove) {
                 stationDB.removeStation(s.getId());
             }
         }
@@ -420,7 +643,7 @@ public class SimulatorParameters extends AbstractOptions {
             log.info("Reading volumes from {}", volumeFile);
             // Parse volumes
             final ImmutableMap.Builder<Integer, Integer> volumeBuilder = ImmutableMap.builder();
-            final Iterable<CSVRecord> volumeRecords = SimulatorUtils.readCSV(volumeFile);
+            final Iterable<CSVRecord> volumeRecords = readCSV(volumeFile);
             for (CSVRecord record : volumeRecords) {
                 int id = Integer.parseInt(record.get("FacID"));
                 int volume = Integer.parseInt(record.get("Volume"));
@@ -436,6 +659,30 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
+    public static class CSVCommercial {
+
+        final ImmutableMap<Integer, Boolean> commerical;
+
+        public CSVCommercial(String commercialFile) {
+            log.info("Reading commercial status from {}", commercialFile);
+            final ImmutableMap.Builder<Integer, Boolean> commericalBuilder = ImmutableMap.builder();
+            final Iterable<CSVRecord> commercialRecords = readCSV(commercialFile);
+            for (CSVRecord record : commercialRecords) {
+                int id = Integer.parseInt(record.get("FacID"));
+                boolean isCommerical = Boolean.parseBoolean(record.get("Commercial"));
+                commericalBuilder.put(id, isCommerical);
+            }
+            commerical = commericalBuilder.build();
+            log.info("Finished reading commercial status");
+        }
+
+        public Map<Integer, Boolean> getCommercialStatus(Set<IStationInfo> stations) {
+            return commerical;
+        }
+
+
+    }
+
     @RequiredArgsConstructor
     public static class NormalizingVolumeDecorator implements IVolumeCalculator {
 
@@ -446,7 +693,7 @@ public class SimulatorParameters extends AbstractOptions {
             final Map<Integer, Integer> volumes = decorated.getVolumes(stations);
             final Map<Integer, Integer> normalized = new HashMap<>();
 
-            double max = volumes.values().stream().mapToDouble(x->x).max().getAsDouble();
+            double max = volumes.values().stream().mapToDouble(x -> x).max().getAsDouble();
             for (Map.Entry<Integer, Integer> entry : volumes.entrySet()) {
                 normalized.put(entry.getKey(), (int) Math.round((entry.getValue() / max) * 1e6));
             }
@@ -454,84 +701,89 @@ public class SimulatorParameters extends AbstractOptions {
         }
     }
 
-//    public class FCCVolumeCalculator implements IVolumeCalculator {
-//
-//        @Override
-//        public void setVolumes(Set<StationInfo> stationInfo) {
-//            final Map<StationInfo, Double> nonNormlalizedVolumes = new HashMap<>();
-//            final IStationManager stationManager = getStationManager();
-//            final IConstraintManager constraintManager = getConstraintManager();
-//            log.debug("There are {} stations in the manager", stationManager.getStations().size());
-//            final Map<Station, Set<Integer>> domains = stationManager.getStations()
-//                    .stream()
-//                    .filter(s -> stationDB.getStationById(s.getID()) != null)
-//                    .collect(Collectors.toMap(s -> s, s -> stationDB.getStationById(s.getID()).getDomain()));
-//            final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, getConstraintManager());
-//            final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
-//            final Map<Station, Integer> icMap = new HashMap<>();
-//            for (Station a : domains.keySet()) {
-//                int icNum = 0;
-//                for (Station b : neighborIndex.neighborsOf(a)) {
-//                    int overallChanMax = 0;
-//                    for (Integer chanA : domains.get(a)) {
-//                        int chanMax = 0;
-//                        for (Integer chanB : domains.get(b)) {
-//                            if (!constraintManager.isSatisfyingAssignment(a, chanA, b, chanB)) {
-//                                chanMax += 1;
-//                            }
-//                        }
-//                        overallChanMax = Math.max(overallChanMax, chanMax);
-//                    }
-//                    icNum += overallChanMax;
-//                }
-//                icMap.put(a, icNum);
-//            }
-//
-//            for (StationInfo s: stationInfo) {
-//                int pop = s.getPopulation();
-//
-//            }
-//
-//        }
-//    }
-
-    public interface IValueCalculator {
-
-        void setValues(Set<StationInfo> stationInfos);
-
-    }
-
-    @Slf4j
-    public static class CSVValueReader implements IValueCalculator {
-
-        private final Map<Integer, Double> values;
-
-        public CSVValueReader(final String infoFile) {
-            log.info("Reading station values from {}", infoFile);
-            values = new HashMap<>();
-            final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
-            for (CSVRecord record : records) {
-                final int id = Integer.parseInt(record.get("FacID"));
-                final String valueString = record.get("Value");
-                Preconditions.checkState(!valueString.isEmpty());
-                double value = Double.parseDouble(valueString) * 1e6;
-                log.info("Value of {} for {}", Humanize.spellBigNumber(value), id);
-                values.put(id, value);
+    public Map<Integer, Integer> getStartingAssignment() {
+        final String sFile = getStartingAssignmentFile();
+        final Map<Integer, Integer> assignment = new HashMap<>();
+        if (sFile != null) {
+            for (CSVRecord record : readCSV(sFile)) {
+                final int facID = Integer.parseInt(record.get("FacID"));
+                final int chan = Integer.parseInt(record.get("Ch"));
+                assignment.put(facID, chan);
             }
         }
+        return assignment;
+    }
 
-        @Override
-        public void setValues(Set<StationInfo> stationInfos) {
-            for (StationInfo station : stationInfos) {
-                Double value = values.get(station.getId());
-                Preconditions.checkNotNull(value, "No value for station %s", station);
+    @Builder
+    @Data
+    public static class BidProcessingAlgorithmParameters {
+        BidProcessingAlgorithm bidProcessingAlgorithm;
+        DistributedFeasibilitySolver distributedFeasibilitySolver;
+        double roundTimer;
+        ScheduledExecutorService executorService;
+    }
+
+
+    public static Map<Station, Integer> icCounts(Map<Station, Set<Integer>> domains, IStationDB stationDB, IConstraintManager constraintManager) {
+        final SimpleGraph<Station, DefaultEdge> constraintGraph = ConstraintGrouper.getConstraintGraph(domains, constraintManager);
+        final NeighborIndex<Station, DefaultEdge> neighborIndex = new NeighborIndex<>(constraintGraph);
+        final Map<Station, Integer> icMap = new HashMap<>();
+
+        final Set<Station> stations = new HashSet<>(domains.keySet());
+
+        for (Station station : stations) {
+            if (stationDB.getStationById(station.getID()).getNationality().equals(Nationality.CA)) {
+                continue;
             }
-        }
 
-        public boolean hasValue(int id) {
-            return values.containsKey(id);
+            double icNum = 0;
+
+            final Set<Station> neighbours = neighborIndex.neighborsOf(station);
+            for (final Station neighbour : neighbours) {
+                boolean canNeighbour = stationDB.getStationById(neighbour.getID()).getNationality().equals(Nationality.CA);
+
+                int overallChanMax = 0;
+                for (int chanA : domains.get(station)) {
+                    int chanMax = 0;
+                    for (int chanB : domains.get(neighbour)) {
+                        if (!constraintManager.isSatisfyingAssignment(station, chanA, neighbour, chanB)) {
+                            chanMax += 1;
+                        }
+                    }
+                    overallChanMax = Math.max(overallChanMax, chanMax);
+                }
+                icNum += canNeighbour ? overallChanMax * 2.3 : overallChanMax;
+            }
+
+            icMap.put(station, (int) Math.round(icNum));
+            log.info("{} has {}", station, icNum);
+        }
+        return icMap;
+    }
+
+
+    public static class HistoricData {
+
+        @Getter
+        final Set<IStationInfo> historicalStations = new HashSet<>();
+        @Getter
+        final Map<Integer, Integer> historicalOpeningPrices = new HashMap<>();
+
+        public HistoricData(IStationDB stationDB) {
+            Iterable<CSVRecord> historicalStationsCSV = readCSV(SimulatorParameters.getInternalFile("actual_data/reverse-stations.csv"));
+            for (CSVRecord record : historicalStationsCSV) {
+                int facId = Integer.parseInt(record.get("facility_id"));
+                int historicOpeningPrice = Integer.parseInt(record.get("off_air_opening_price"));
+                boolean offAirAllowed = record.get("off_air_option").equals("Y");
+                boolean lvhfAllowed = record.get("lvhf_option").equals("Y");
+                boolean hvhfAllowed = record.get("hvhf_option").equals("Y");
+                // TODO: What if off air isn't allowed?
+
+                historicalOpeningPrices.put(facId, historicOpeningPrice);
+                historicalStations.add(stationDB.getStationById(facId));
+            }
+
         }
 
     }
-
 }

@@ -46,17 +46,15 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                                      double feasibilityVacancyContributionFloor,
                                      int nCores
     ) {
-        this.nCores = nCores;
         forkJoinPool = new ForkJoinPool(nCores);
         sequentialVacancyCalculator = new SequentialVacancyCalculator(participation, constraintManager, feasibilityVacancyContributionFloor);
     }
 
     private final SequentialVacancyCalculator sequentialVacancyCalculator;
-    private final int nCores;
     private final ForkJoinPool forkJoinPool;
 
     /**
-     * @param ladder     - the auction's ladder structure.
+     * @param ladder - the auction's ladder structure.
      * @return a map taking each station and band in the ladder to the station's vacancy on the band.
      */
     @Override
@@ -121,7 +119,7 @@ public class ParallelVacancyCalculator implements IVacancyCalculator {
                 final Band band,
                 final ILadder ladder,
                 final ImmutableTable<IStationInfo, Band, Set<IStationInfo>> bandNeighbourhoods,
-                final IPrices previousBenchmarkPrices) {
+                final IPrices<Double> previousBenchmarkPrices) {
             Preconditions.checkArgument(!band.equals(Band.OFF), "Cannot calculate vacancy for the OFF band.");
             log.trace("Calculating vacancy for station {} on band {}.", station, band);
 

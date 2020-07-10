@@ -1,6 +1,6 @@
 package ca.ubc.cs.beta.fcc.simulator.station;
 
-import ca.ubc.cs.beta.fcc.simulator.parameters.SimulatorParameters;
+import ca.ubc.cs.beta.fcc.simulator.station.decorators.WithholdingStationDecorator;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
@@ -9,14 +9,10 @@ import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.utils.StationPackingUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -28,25 +24,44 @@ public class CSVStationDB implements IStationDB.IModifiableStationDB {
     private final Map<Integer, IStationInfo> data;
 
     public CSVStationDB(String infoFile, IStationManager stationManager) {
+        this(infoFile, stationManager, null);
+    }
+
+    public CSVStationDB(String infoFile, IStationManager stationManager, String withholdingStationsFile) {
+        final Set<Integer> withholdingStations = new HashSet<>();
+        if (withholdingStationsFile != null) {
+            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(withholdingStationsFile);
+            for (CSVRecord record : csvRecords) {
+                withholdingStations.add(Integer.parseInt(record.get("FacID")));
+            }
+        }
+
         data = new HashMap<>();
         log.info("Reading station info from {}", infoFile);
         final Iterable<CSVRecord> records = SimulatorUtils.readCSV(infoFile);
         for (CSVRecord record : records) {
-            IStationInfo stationInfo;
+            IModifiableStationInfo stationInfo;
             final int id = Integer.parseInt(record.get("FacID"));
             final Nationality nationality = Nationality.valueOf(record.get("Country"));
             final ImmutableSet<Integer> domain = ImmutableSet.copyOf(stationManager.getDomain(new Station(id)));
             final int channel = Integer.parseInt(record.get("Channel"));
             final String city = record.get("City");
             final String call = record.get("Call");
+            final String DMA = record.get("DMA");
             final int pop = Integer.parseInt(record.get("Population"));
+            final boolean eligible = Boolean.parseBoolean(record.get("Eligible"));
             if (nationality.equals(Nationality.CA)) {
                 // Canadian stations have some channel 52 stations... messes everything up...
                 stationInfo = StationInfo.canadianStation(id, channel >= StationPackingUtils.UHFmin ? Band.UHF : BandHelper.toBand(channel), domain, city, call, pop);
             } else {
                 final Band band = BandHelper.toBand(channel);
-                stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop);
+                stationInfo = new StationInfo(id, nationality, band, domain, city, call, pop, DMA, eligible);
             }
+
+            if (withholdingStations.contains(stationInfo.getId())) {
+                stationInfo = new WithholdingStationDecorator(stationInfo);
+            }
+
             data.put(id, stationInfo);
         }
         log.info("Finished reading stations");

@@ -6,18 +6,18 @@ UHF:
     - name: PARALLEL
       args:
         configs:
-          - # Cache
-            - name: SAT_CACHE
-            - name: PREVIOUS_ASSIGNMENT
-            - name: CONNECTED_COMPONENTS
-            - name: UNDERCONSTRAINED
-            - name: ARC_CONSISTENCY
-            - name: UNSAT_CACHE
-            - name: SAT_CACHE
-            - name: DELAY
-              args:
-                time: 1.0
-                noise: 1.0
+#          - # Cache
+#            - name: SAT_CACHE
+#            - name: PREVIOUS_ASSIGNMENT
+#            - name: CONNECTED_COMPONENTS
+#            - name: UNDERCONSTRAINED
+#            - name: ARC_CONSISTENCY
+#            - name: UNSAT_CACHE
+#            - name: SAT_CACHE
+#            - name: DELAY
+#              args:
+#                time: 1.0
+#                noise: 1.0
           - # Presolver
             - name: CLASP
               args:

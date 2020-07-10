@@ -358,6 +358,7 @@ public class SATFCFacade implements AutoCloseable {
             //Get solver
             final ISolver solver = bundle.getSolver(instance);
 
+
             /*
              * Logging problem info
              */
@@ -371,7 +372,7 @@ public class SATFCFacade implements AutoCloseable {
 
             // Make sure that SATFC doesn't get hung. We give a VERY generous timeout window before throwing an exception
             final int SUICIDE_GRACE_IN_SECONDS = 5 * 60;
-            final long totalSuicideGraceTimeInMillis = (long) (aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000;
+            final long totalSuicideGraceTimeInMillis = (long) ((aCutoff + SUICIDE_GRACE_IN_SECONDS) * 1000);
 
             final DisjunctiveCompositeTerminationCriterion disjunctiveCompositeTerminationCriterion = new DisjunctiveCompositeTerminationCriterion(new WalltimeTerminationCriterion(aCutoff), criterion);
 

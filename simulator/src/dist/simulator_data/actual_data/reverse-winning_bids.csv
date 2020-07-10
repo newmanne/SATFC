@@ -1,0 +1,176 @@
+auction_id,call_sign,facility_id,dma,bidder_as_of_closing_pn,frn_as_of_closing_pn,pre_auction_band,winning_bid_option,compensation,pre_auction_csa_flag,post_auction_csa_flag
+1001,WCDC-TV,74419,"Albany-Schenectady-Troy, NY","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,34558086,No,Yes
+1001,WAGT,70699,"Augusta, GA","Gray Television Licensee, LLC",0003748241,UHF,Go off-air,40763036,No,No
+1001,WUTB,60552,"Baltimore, MD","Deerfield Media (Baltimore) Licensee, LLC",0022739833,UHF,Go off-air,122912964,Yes,Yes
+1001,WBIN-TV,14682,"Boston, MA","WBIN, Inc.",0020871042,UHF,Go off-air,68081337,Yes,Yes
+1001,WDPX-TV,6476,"Boston, MA","ION Media Boston License, Inc.",0003720208,UHF,Go off-air,43467644,No,Yes
+1001,WFXZ-CD,64833,"Boston, MA","WFXZ-CD Station, LLC",0021355565,UHF,Go off-air,63949770,No,Yes
+1001,WGBH-TV,72099,"Boston, MA",WGBH Educational Foundation,0003764560,UHF,Move to Low-VHF,161723929,No,Yes
+1001,WLVI,73238,"Boston, MA",WHDH-TV,0003613825,UHF,Go off-air,162108481,Yes,Yes
+1001,WMFP,41436,"Boston, MA","NRJ TV Boston License Co, LLC",0020523098,UHF,Go off-air,93647708,No,Yes
+1001,WYCN-CD,9766,"Boston, MA","OTA Broadcasting (BOS), LLC",0022430631,UHF,Go off-air,80401978,No,Yes
+1001,WYDN,18783,"Boston, MA",Educational Public TV Corporation,0008778565,UHF,Go off-air,134987151,No,Yes
+1001,WIVB-TV,7780,"Buffalo, NY","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,46015135,Yes,Yes
+1001,WNYB,30303,"Buffalo, NY","Faith Broadcasting Network, Inc.",0007202963,UHF,Move to Low-VHF,31960949,No,Yes
+1001,WVTT-CD,10869,"Buffalo, NY","Woodland Communications, LLC",0024819252,UHF,Move to High-VHF,9119631,No,Yes
+1001,WNNE,73344,"Burlington, VT-Plattsburgh, NY",Hearst Stations Inc.,0001587583,UHF,Go off-air,50464592,No,Yes
+1001,WVTA,69943,"Burlington, VT-Plattsburgh, NY","Vermont ETV, Inc.",0005067830,UHF,Go off-air,56648952,Yes,No
+1001,WPBO,66190,"Charleston-Huntington, WV",THE OHIO STATE UNIVERSITY,0006031983,UHF,Go off-air,8822670,No,No
+1001,WTSF,67798,"Charleston-Huntington, WV","Tri State Family Broadcasting, Inc",0002011948,UHF,Move to High-VHF,5540044,No,Yes
+1001,WLNN-CD,60888,"Charlotte, NC",Carolina Rays LLC,0018324095,UHF,Go off-air,21321125,No,Yes
+1001,WMYT-TV,20624,"Charlotte, NC","Fox Television Stations, LLC",0005795067,UHF,Go off-air,74739363,No,Yes
+1001,WTBL-CD,54983,"Charlotte, NC","OTA Broadcasting (CLT), LLC",0021349188,UHF,Go off-air,8193916,No,Yes
+1001,WVIR-TV,70309,"Charlottesville, VA",VIRGINIA BROADCASTING LLC,0005004528,UHF,Move to Low-VHF,46399285,No,Yes
+1001,WNGH-TV,23942,"Chattanooga, TN",GEORGIA PUBLIC TELECOMMUNICATIONS COMMISSION,0001844976,UHF,Move to Low-VHF,11949966,No,No
+1001,WTNB-CD,49240,"Chattanooga, TN",PTP Holdings LLC,0018503664,UHF,Move to Low-VHF,370099,No,No
+1001,WOCH-CD,35101,"Chicago, IL","NRJ TV Chicago License Co., LLC",0022029987,UHF,Go off-air,9219110,No,Yes
+1001,WPWR-TV,48772,"Chicago, IL","Fox Television Stations, LLC",0005795067,UHF,Go off-air,160748259,No,Yes
+1001,WSNS-TV,70119,"Chicago, IL",NBC Telemundo License LLC,0019509470,UHF,Go off-air,141658837,Yes,Yes
+1001,WWTO-TV,998,"Chicago, IL","Trinity Christian Center of Santa Ana, Inc.",0003791712,High-VHF,Go off-air,304250040,Yes,Yes
+1001,WXFT-DT,60539,"Chicago, IL",UniMas Chicago LLC,0003770898,UHF,Go off-air,126107725,Yes,Yes
+1001,WYCC,12279,"Chicago, IL","BD TRUSTEES COMM COLLEGE DIST # 508, CTY COOK, IL",0006754626,UHF,Go off-air,15959957,No,Yes
+1001,WOTH-CD,168414,"Cincinnati, OH","Block, Elliott B",0003754710,UHF,Go off-air,13266948,No,Yes
+1001,WAOH-CD,41070,"Cleveland-Akron, OH","Media-Com Television, Inc.",0002931756,UHF,Go off-air,1779772,No,No
+1001,WDLI-TV,67893,"Cleveland-Akron, OH","Trinity Christian Center of Santa Ana, Inc.",0003791712,UHF,Go off-air,31621996,No,Yes
+1001,WGGN-TV,11027,"Cleveland-Akron, OH","Christian Faith Broadcast, Inc.",0002940195,UHF,Move to Low-VHF,12061117,No,Yes
+1001,WRLM,43870,"Cleveland-Akron, OH","Radiant Life Ministries, Inc.",0005077524,UHF,Go off-air,37747192,No,Yes
+1001,WUAB,8532,"Cleveland-Akron, OH","WOIO License Subsidiary, LLC",0014580153,UHF,Go off-air,32293408,No,Yes
+1001,WJSP-TV,23918,"Columbus, GA",GEORGIA PUBLIC TELECOMMUNICATIONS COMMISSION,0001844976,UHF,Move to Low-VHF,7267147,No,No
+1001,WOUC-TV,50141,"Columbus, OH",OHIO UNIVERSITY,0005012729,UHF,Move to Low-VHF,18412349,No,No
+1001,WSFJ-TV,11118,"Columbus, OH","Trinity Christian Center of Santa Ana, Inc.",0003791712,UHF,Go off-air,16409542,No,Yes
+1001,KATA-CD,26950,"Dallas-Ft. Worth, TX","Mako Communications, LLC",0004985982,UHF,Go off-air,19602242,No,No
+1001,WBDT,70138,"Dayton, OH","WBDT TELEVISION, LLC",0020882692,UHF,Go off-air,27347344,Yes,Yes
+1001,WKOI-TV,67869,"Dayton, OH","Trinity Broadcasting of Indiana, Inc.",0004345815,UHF,Go off-air,20037695,No,Yes
+1001,WCMZ-TV,69273,"Flint-Saginaw-Bay City, MI",Central Michigan University,0002733764,UHF,Go off-air,14163505,No,Yes
+1001,WCWG,35385,"Greensboro-High Point-Winston Salem, NC","Greensboro TV, LLC",0022572515,UHF,Go off-air,105731122,No,Yes
+1001,WLXI,54452,"Greensboro-High Point-Winston Salem, NC","Radiant Life Ministries, Inc.",0005077524,UHF,Go off-air,60239656,No,Yes
+1001,WFXI,37982,"Greenville-New Bern-Washington, NC",Esteem Broadcasting of North Carolina LLC,0017293747,High-VHF,Go off-air,42070860,No,No
+1001,WGGS-TV,9064,"Greenville-Spartanburg, SC-Asheville, NC","Carolina Christian Broadcasting, Inc.",0016651648,UHF,Move to Low-VHF,44342767,No,No
+1001,WRET-TV,61011,"Greenville-Spartanburg, SC-Asheville, NC",SOUTH CAROLINA EDUCATIONAL TV COMMISSION,0001861160,UHF,Go off-air,43162610,Yes,No
+1001,WYCW,70149,"Greenville-Spartanburg, SC-Asheville, NC","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,45595498,Yes,Yes
+1001,WGCB-TV,55350,"Harrisburg-Lancaster-Lebanon-York, PA","NRJ TV RL License Co., LLC",0022033781,UHF,Go off-air,84023049,No,Yes
+1001,WLYH-TV,23338,"Harrisburg-Lancaster-Lebanon-York, PA","HSH Lancaster (WLYH) Licensee, LLC",0024403065,UHF,Go off-air,108475345,Yes,Yes
+1001,WPMT,10213,"Harrisburg-Lancaster-Lebanon-York, PA","WPMT, LLC",0021781448,UHF,Go off-air,50109234,Yes,Yes
+1001,WAZH-CD,57908,"Harrisonburg, VA","WMTM, LLC",0023631377,UHF,Go off-air,12042490,No,Yes
+1001,WVPY,66378,"Harrisonburg, VA","WVPY, LLC",0024635732,UHF,Go off-air,19891752,No,Yes
+1001,WCTX,33081,"Hartford-New Haven, CT","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,109592126,Yes,Yes
+1001,WEDY,13595,"Hartford-New Haven, CT","Connecticut Public Broadcasting, Inc.",0003574662,UHF,Go off-air,18900229,Yes,Yes
+1001,WRDM-CD,10153,"Hartford-New Haven, CT","ZGS Hartford, Inc.",0010070225,UHF,Go off-air,10574516,No,Yes
+1001,WUVN,3072,"Hartford-New Haven, CT","Entravision Holdings, LLC",0001529627,UHF,Go off-air,125568545,No,Yes
+1001,WHDF,65128,"Huntsville-Decatur-Florence, AL","Huntsville TV, L.L.C.",0010458032,UHF,Move to Low-VHF,6816745,No,Yes
+1001,WCLJ-TV,68007,"Indianapolis, IN","Trinity Broadcasting of Indiana, Inc.",0004345815,UHF,Go off-air,18759808,No,Yes
+1001,WHMB-TV,37102,"Indianapolis, IN","LeSEA Broadcasting of Indianapolis, Inc.",0011681483,UHF,Move to High-VHF,18325111,No,No
+1001,WNDY-TV,28462,"Indianapolis, IN","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,17755951,Yes,Yes
+1001,WKBS-TV,13929,"Johnstown-Altoona, PA","Cornerstone Television, Inc.",0003739364,UHF,Move to Low-VHF,10361255,No,No
+1001,WAGV,37809,"Knoxville, TN","Living Faith Ministries, Inc.",0002058089,UHF,Go off-air,7536418,No,Yes
+1001,WHTV,29706,"Lansing, MI","Spartan-TV, LLC",0004999611,UHF,Go off-air,13906280,No,Yes
+1001,WLNS-TV,74420,"Lansing, MI","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,13612555,Yes,Yes
+1001,WTLW,1222,"Lima, OH","American Christian Television Services, Inc.",0004378071,UHF,Move to Low-VHF,7697376,No,Yes
+1001,KAZA-TV,29234,"Los Angeles, CA","Southern California License, LLC",0004378972,UHF,Go off-air,91116442,No,Yes
+1001,KBEH,56384,"Los Angeles, CA",Hero Licenseco LLC,0017254418,UHF,Go off-air,146627980,No,Yes
+1001,KDOC-TV,24518,"Los Angeles, CA","Ellis Communications KDOC Licensee, LLC",0014866487,UHF,Move to High-VHF,66646098,No,Yes
+1001,KILM,63865,"Los Angeles, CA",KAZN-TV Licensee LLC,0017109539,UHF,Go off-air,76555610,No,Yes
+1001,KJLA,14000,"Los Angeles, CA","KJLA, LLC",0008195455,UHF,Go off-air,135542845,Yes,Yes
+1001,KLCS,38430,"Los Angeles, CA",Los Angeles Unified School District,0001526441,UHF,Go off-air,130510880,Yes,Yes
+1001,KNET-CD,3167,"Los Angeles, CA","NRJ TV III CA License Co., LLC",0022357883,UHF,Go off-air,53737188,Yes,Yes
+1001,KOCE-TV,4328,"Los Angeles, CA",KOCE-TV FOUNDATION,0012166948,UHF,Go off-air,138003711,Yes,Yes
+1001,KRCA,22161,"Los Angeles, CA",KRCA License LLC,0001529247,UHF,Go off-air,142337137,Yes,Yes
+1001,KSFV-CD,191101,"Los Angeles, CA","Venture Technologies Group, LLC",0003768876,UHF,Go off-air,63960458,No,Yes
+1001,KVCR-DT,58795,"Los Angeles, CA",San Bernardino Community College District,0001526086,UHF,Move to Low-VHF,157113171,No,No
+1001,KWHY-TV,26231,"Los Angeles, CA","KWHY-22 Broadcasting, LLC",0020557518,UHF,Move to Low-VHF,123474177,No,Yes
+1001,WBKI-TV,25173,"Louisville, KY",L.M. Communications Television LLC,0021860648,UHF,Go off-air,20656456,No,No
+1001,WWJS-CD,6838,"Louisville, KY","Smith Jr., John W",0005956214,UHF,Go off-air,9992700,No,No
+1001,WISC-TV,65143,"Madison, WI","Television Wisconsin, Inc.",0002715563,UHF,Move to High-VHF,48929182,No,No
+1001,WWTW,84214,"Memphis, TN","Broadcasting for the Challenged, Inc.",0005001458,UHF,Go off-air,485661,Yes,Yes
+1001,WDLP-CD,9425,"Miami - Ft. Lauderdale, FL",Mapale LLC,0014337364,UHF,Go off-air,3673224,No,No
+1001,WIMP-CD,4366,"Miami - Ft. Lauderdale, FL","SUNSHINE BROADCASTING COMPANY, INC..",0004536595,UHF,Go off-air,3138184,No,Yes
+1001,WLPH-CD,9614,"Miami - Ft. Lauderdale, FL","LocusPoint WLPH Licensee, LLC",0023606957,UHF,Go off-air,3994492,No,Yes
+1001,WCGV-TV,71278,"Milwaukee, WI","WCGV LICENSEE, LLC",0004970729,UHF,Go off-air,84317523,No,Yes
+1001,WMLW-TV,68545,"Milwaukee, WI","TV-49, Inc.",0019682483,UHF,Go off-air,69662432,No,Yes
+1001,WMVT,42665,"Milwaukee, WI",MILWAUKEE AREA TECHNICAL COLLEGE DISTRICT BOARD,0002687499,UHF,Go off-air,84931314,Yes,No
+1001,WVCY-TV,72342,"Milwaukee, WI",VCY America Inc.,0002718062,UHF,Go off-air,76342409,Yes,Yes
+1001,KCCO-TV,9632,"Minneapolis - St. Paul, MN",CBS Broadcasting Inc.,0003482189,High-VHF,Go off-air,9987598,No,Yes
+1001,KSMS-TV,35611,"Monterey-Salinas, CA","Entravision Holdings, LLC",0001529627,UHF,Go off-air,54300688,No,Yes
+1001,WGSI-CD,4350,"Myrtle Beach-Florence, SC","Beach TV of South Carolina, Inc.",0004954707,High-VHF,Go off-air,4951178,Yes,Yes
+1001,WEBR-CD,67866,"New York, NY","OTA Broadcasting (LGA), LLC",0021575980,UHF,Go off-air,72817599,No,Yes
+1001,WMBQ-CD,14322,"New York, NY","WMBQ-CA Station, LLC",0021284963,UHF,Go off-air,28313224,No,Yes
+1001,WMUN-CD,73207,"New York, NY","Local Media TV New York, LLC",0021400528,UHF,Go off-air,23191413,No,Yes
+1001,WNBC,47535,"New York, NY",NBC Telemundo License LLC,0019509470,UHF,Go off-air,214023017,Yes,Yes
+1001,WNJN,48477,"New York, NY",New Jersey Public Broadcasting Authority,0004368007,UHF,Go off-air,193892273,Yes,No
+1001,WNYJ-TV,20818,"New York, NY","FSINJ LICENSE CO, LLC",0001545607,UHF,Go off-air,120974061,No,No
+1001,WRNN-TV,74156,"New York, NY","WRNN License Company, LLC",0010622041,UHF,Go off-air,211680472,No,Yes
+1001,WTBY-TV,67993,"New York, NY","Trinity Broadcasting of New York, Inc.",0005077508,UHF,Go off-air,162402181,Yes,Yes
+1001,WXTV-DT,74215,"New York, NY","WXTV License Partnership, G.P.",0001531243,UHF,Go off-air,198965211,Yes,Yes
+1001,WZME,70493,"New York, NY","NRJ TV NY License Co., LLC",0021426382,UHF,Go off-air,191813165,Yes,Yes
+1001,WACX,60018,"Orlando-Daytona Beach-Melbourne, FL","Associated Christian Television System, Inc.",0005086111,UHF,Move to High-VHF,20310061,No,Yes
+1001,WTGL,9881,"Orlando-Daytona Beach-Melbourne, FL","Good Life Broadcasting, Inc.",0004570941,UHF,Go off-air,20394122,No,Yes
+1001,WFMZ-TV,39884,"Philadelphia, PA","Maranatha Broadcasting Company, Inc.",0007580152,UHF,Go off-air,140482163,Yes,Yes
+1001,WGTW-TV,7623,"Philadelphia, PA","Trinity Christian Center of Santa Ana, Inc.",0003791712,UHF,Go off-air,80807629,Yes,Yes
+1001,WLVT-TV,36989,"Philadelphia, PA",LEHIGH VALLEY PUBLIC TELECOMMUNICATIONS CORP.,0003264744,UHF,Go off-air,121752169,Yes,Yes
+1001,WMCN-TV,9739,"Philadelphia, PA","WMCN LICENSE HOLDINGS, LLC",0024132763,UHF,Go off-air,63144027,No,Yes
+1001,WNJT,48465,"Philadelphia, PA",New Jersey Public Broadcasting Authority,0004368007,UHF,Go off-air,138059363,Yes,No
+1001,WTSD-CD,191340,"Philadelphia, PA","Local Media TV Philadelphia, LLC",0021753660,UHF,Go off-air,62788846,No,Yes
+1001,WTVE,55305,"Philadelphia, PA","NRJ TV Philly License Co., LLC",0021167069,UHF,Go off-air,93879307,Yes,Yes
+1001,WUVP-DT,60560,"Philadelphia, PA",Univision Philadelphia LLC,0005414867,UHF,Go off-air,86150925,Yes,Yes
+1001,WWSI,23142,"Philadelphia, PA",NBC Telemundo License LLC,0019509470,UHF,Go off-air,125903049,Yes,Yes
+1001,WYBE,28480,"Philadelphia, PA","Independence Public Media  of Philadelphia, Inc.",0008411837,UHF,Go off-air,131578104,No,Yes
+1001,WBOA-CD,259,"Pittsburgh, PA","Fifth Street Enterprises, LLC",0024413338,UHF,Go off-air,19660828,No,Yes
+1001,WEMW-CD,68396,"Pittsburgh, PA","OTA Broadcasting (PIT), LLC",0023171168,UHF,Go off-air,12394400,No,Yes
+1001,WEPA-CD,68405,"Pittsburgh, PA","OTA Broadcasting (PIT), LLC",0023171168,UHF,Go off-air,20093644,No,Yes
+1001,WNNB-CD,7622,"Pittsburgh, PA","OTA Broadcasting (PIT), LLC",0023171168,UHF,Go off-air,19185317,No,Yes
+1001,WPCP-CD,68400,"Pittsburgh, PA","OTA Broadcasting (PIT), LLC",0023171168,UHF,Go off-air,16162391,No,Yes
+1001,WQED,41315,"Pittsburgh, PA",WQED Multimedia,0003189461,High-VHF,Move to Low-VHF,9853782,No,No
+1001,WQVC-CD,269,"Pittsburgh, PA","LocusPoint WQVC Licensee, LLC",0024314304,UHF,Go off-air,11196327,No,Yes
+1001,WVTX-CD,68408,"Pittsburgh, PA","OTA Broadcasting (PIT), LLC",0023171168,UHF,Go off-air,6100391,No,Yes
+1001,WLWC,3978,"Providence, RI-New Bedford, MA","OTA Broadcasting (PVD), LLC",0022331953,UHF,Go off-air,125932367,No,Yes
+1001,WRIW-CD,70184,"Providence, RI-New Bedford, MA","ZGS Providence, Inc.",0010070522,UHF,Go off-air,33807537,No,Yes
+1001,WSBE-TV,56092,"Providence, RI-New Bedford, MA",Rhode Island PBS Foundation,0021965389,UHF,Move to Low-VHF,94480615,No,Yes
+1001,WDWL,4110,Puerto Rico,"Teleadoracion Christian Network, Inc.",0018091587,UHF,Go off-air,7780506,No,Yes
+1001,WELU,26602,Puerto Rico,"Senda Educational Broadcasting, Inc.",0023414378,UHF,Go off-air,3756347,Yes,Yes
+1001,WIRS,39887,Puerto Rico,"AMERICA-CV STATION GROUP, INC.",0019526946,UHF,Go off-air,6945255,Yes,Yes
+1001,WKPV,58341,Puerto Rico,"AMERICA-CV STATION GROUP, INC.",0019526946,UHF,Go off-air,6657792,Yes,Yes
+1001,WMEI,26676,Puerto Rico,CMCG PUERTO RICO LLC,0013990346,UHF,Go off-air,9696619,No,No
+1001,WSJU-TV,4077,Puerto Rico,AERCO BROADCASTING CORPORATION,0003732435,UHF,Go off-air,5202091,No,No
+1001,WTCV,28954,Puerto Rico,"Spanish Broadcasting System Holding Company, Inc.",0003736220,UHF,Go off-air,4737874,Yes,Yes
+1001,WFPX-TV,21245,"Raleigh-Durham, NC","ION Media License Company, LLC",0003720042,UHF,Go off-air,41072437,No,Yes
+1001,WHFL-CD,22485,"Raleigh-Durham, NC","Free Life Ministries, Inc.",0005100284,UHF,Move to High-VHF,2721376,No,No
+1001,WNCN,50782,"Raleigh-Durham, NC","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Move to High-VHF,52001732,No,Yes
+1001,WRAY-TV,10133,"Raleigh-Durham, NC","Radiant Life Ministries, Inc.",0005077524,UHF,Go off-air,62419828,No,Yes
+1001,WZGS-CD,41095,"Raleigh-Durham, NC","ZGS Raleigh, Inc.",0016833139,UHF,Go off-air,30120779,No,Yes
+1001,WUPV,10897,"Richmond-Petersburg, VA","WUPV License Subsidiary, LLC",0021205638,UHF,Move to High-VHF,27291142,Yes,Yes
+1001,WFFP-TV,15507,"Roanoke-Lynchburg, VA","Morning Star Broadcasting, LLC",0023005150,UHF,Go off-air,23182528,Yes,Yes
+1001,WIFR,4689,"Rockford, IL","Gray Television Licensee, LLC",0018223693,UHF,Go off-air,50060965,No,Yes
+1001,K35DG-D,66321,"San Diego, CA",REGENTS OF THE UNIVERSITY OF CALIFORNIA,0001538784,UHF,Go off-air,24020383,No,Yes
+1001,KSEX-CD,11371,"San Diego, CA",D.T.V. LLC,0013224662,UHF,Go off-air,34697206,No,Yes
+1001,KEMO-TV,34440,"San Francisco-Oakland-San Jose, CA","Northstar San Francisco License, LLC",0021045596,UHF,Go off-air,65010883,No,Yes
+1001,KEXT-CD,70900,"San Francisco-Oakland-San Jose, CA","Central Valley Television, LLC",0023752801,UHF,Go off-air,55351366,No,Yes
+1001,KMTP-TV,43095,"San Francisco-Oakland-San Jose, CA",Minority Television Project Inc.,0008886293,UHF,Go off-air,87824258,No,Yes
+1001,KOFY-TV,51189,"San Francisco-Oakland-San Jose, CA",KBWB License LLC,0003472917,UHF,Go off-air,88357227,No,Yes
+1001,KQEH,35663,"San Francisco-Oakland-San Jose, CA",KQED Inc.,0001549765,UHF,Go off-air,95459109,Yes,Yes
+1001,KRCB,57945,"San Francisco-Oakland-San Jose, CA",Rural California Broadcasting  Corporation,0004367397,UHF,Move to Low-VHF,71979802,Yes,Yes
+1001,KRON-TV,65526,"San Francisco-Oakland-San Jose, CA","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Move to High-VHF,77962339,No,Yes
+1001,KTLN-TV,49153,"San Francisco-Oakland-San Jose, CA","OTA Broadcasting (SFO), LLC",0021186788,UHF,Go off-air,79397583,No,Yes
+1001,KTNC-TV,21533,"San Francisco-Oakland-San Jose, CA","NRJ TV SF License Co, LLC",0018608174,UHF,Go off-air,114173699,Yes,Yes
+1001,KTSF,37511,"San Francisco-Oakland-San Jose, CA","Lincoln Broadcasting Company, a California LP",0009298266,UHF,Go off-air,90159163,Yes,Yes
+1001,KMMA-CD,58616,"Santa Barbara-Santa Maria-San Luis Obispo, CA",Caballero Acquisition LLC,0014625362,UHF,Go off-air,173076,No,Yes
+1001,KSPR,35630,"Springfield, MO","Schurz Communications, Inc.",0015683808,UHF,Go off-air,0,No,No
+1001,WGBY-TV,72096,"Springfield-Holyoke, MA",WGBH Educational Foundation,0003764560,UHF,Move to High-VHF,57043939,No,No
+1001,WNYI,34329,"Syracuse, NY","word of god fellowship, inc.",0001843697,UHF,Move to High-VHF,2319390,No,Yes
+1001,WTTA,4108,"Tampa-St Petersburg-Sarasota, FL","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,19927820,Yes,Yes
+1001,WUSF-TV,69338,"Tampa-St Petersburg-Sarasota, FL",University of South Florida,0008022147,UHF,Go off-air,18754503,No,Yes
+1001,WAPG-CD,77678,"Tri-Cities, TN-VA",Holston Valley Broadcasting Corporation,0001770163,UHF,Go off-air,217449,No,Yes
+1001,WMSY-TV,5982,"Tri-Cities, TN-VA","Blue Ridge Public Television, Inc.",0004654091,UHF,Go off-air,5243122,No,Yes
+1001,WSBN-TV,5985,"Tri-Cities, TN-VA","Blue Ridge Public Television, Inc.",0004654091,UHF,Go off-air,597793,No,Yes
+1001,KCEB,83913,"Tyler-Longview, TX","KCEB License Company, LLC",0019342815,UHF,Go off-air,8554719,No,Yes
+1001,WAZF-CD,57907,"Washington, DC","WMTM, LLC",0023631377,UHF,Go off-air,513526,No,Yes
+1001,WDCA,51567,"Washington, DC","Fox Television Stations, LLC",0005795067,UHF,Go off-air,118834183,No,Yes
+1001,WDCW,30576,"Washington, DC","WDCW, LLC",0021781786,UHF,Go off-air,121992349,Yes,Yes
+1001,WJAL,10259,"Washington, DC","Entravision Holdings, LLC",0001529627,UHF,Go off-air,25492333,Yes,Yes
+1001,WMDO-CD,38437,"Washington, DC","Entravision Holdings, LLC",0001529627,UHF,Go off-air,58231415,No,Yes
+1001,WNVC,9999,"Washington, DC",Commonwealth Public Broadcasting Corporation,0006692347,UHF,Go off-air,124801961,No,Yes
+1001,WNVT,10019,"Washington, DC",Commonwealth Public Broadcasting Corporation,0006692347,UHF,Go off-air,57154459,No,Yes
+1001,WZDC-CD,50347,"Washington, DC","Onda Capital, Inc.",0011007515,UHF,Go off-air,66182037,No,Yes
+1001,WFGC,11123,"West Palm Beach-Ft. Pierce, FL","Christian Television of Palm Beach County, Inc.",0005936562,UHF,Move to High-VHF,3359483,No,No
+1001,WXEL-TV,61084,"West Palm Beach-Ft. Pierce, FL","South Florida PBS, Inc.",0001822923,UHF,Go off-air,4696299,Yes,Yes
+1001,WVIA-TV,47929,"Wilkes Barre-Scranton, PA",Northeastern Pennsylvania Educational Tel.A'ssn,0003263829,UHF,Go off-air,51934668,Yes,Yes
+1001,WKBN-TV,73153,"Youngstown, OH","NEXSTAR BROADCASTING, INC.",0009961889,UHF,Go off-air,34239997,Yes,Yes

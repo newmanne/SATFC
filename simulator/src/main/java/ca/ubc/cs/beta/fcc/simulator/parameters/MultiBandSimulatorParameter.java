@@ -9,8 +9,11 @@ import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
+import com.google.common.eventbus.EventBus;
 import lombok.Builder;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * Created by newmanne on 2016-10-02.
@@ -28,5 +31,9 @@ public class MultiBandSimulatorParameter {
     private IStationManager stationManager;
     private IConstraintManager constraintManager;
     private RoundTracker roundTracker;
+    private SimulatorParameters.BidProcessingAlgorithmParameters bidProcessingAlgorithmParameters;
+    private List<Long> forwardAuctionAmounts;
+    private boolean isEarlyStopping;
+    private EventBus eventBus;
 
 }

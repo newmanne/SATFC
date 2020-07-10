@@ -39,7 +39,7 @@ public class ParticipationRecord {
 
     public void setParticipation(IStationInfo s, Participation participation) {
         final Participation previousValue = participationMap.put(s, participation);
-        Preconditions.checkState(!Participation.INACTIVE.contains(previousValue), "Station %s switched form a terminal status %s to %s", s, previousValue, participation);
+        Preconditions.checkState(!Participation.EXITED.contains(previousValue), "Station %s switched form a terminal status %s to %s", s, previousValue, participation);
     }
 
     public Set<IStationInfo> getMatching(Participation participation) {

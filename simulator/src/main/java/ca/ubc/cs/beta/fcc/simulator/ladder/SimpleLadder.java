@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableList;
@@ -88,11 +89,15 @@ public class SimpleLadder implements IModifiableLadder {
         previousAssignmentHandler.updatePreviousAssignment(assignment);
         // Verify previous assignment state is consistent with the ladder
         for (IStationInfo ladderStation : getStations()) {
+            if (ladderStation.isImpaired()) {
+                continue;
+            }
             final Band ladderBand = getStationBand(ladderStation);
             if (ladderBand.isAirBand()) {
-                int assignedChannel = getPreviousAssignment().get(ladderStation.getId());
+                Integer assignedChannel = getPreviousAssignment().get(ladderStation.getId());
+                Preconditions.checkNotNull(assignedChannel, "Station %s does not have a channel in the previous assignment handler!", ladderStation);
                 Preconditions.checkState(BandHelper.toBand(assignedChannel).equals(ladderBand), "Station %s is on channel %s but ladder says is on band %s", ladderStation, assignedChannel, ladderBand);
-                Preconditions.checkState(ladderStation.getDomain(ladderBand).contains(assignedChannel), "Station %s is on channel %s not in domain %s", ladderBand, assignedChannel, ladderStation.getDomain());
+                Preconditions.checkState(ladderStation.getDomain(ladderBand).contains(assignedChannel), "Station %s is on channel %s not in domain %s", ladderStation, assignedChannel, ladderStation.getDomain());
             }
         }
         log.info("Moved {} from {} to {}", station, currentBand, band);

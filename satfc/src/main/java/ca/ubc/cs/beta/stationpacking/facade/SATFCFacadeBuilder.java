@@ -39,7 +39,7 @@ import ca.ubc.cs.beta.stationpacking.solvers.decorators.CNFSaverSolverDecorator;
 import ch.qos.logback.classic.Level;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.experimental.Builder;
+import lombok.Builder;
 
 /**
  * Builder in charge of creating a SATFC facade, feeding it the necessary options.
