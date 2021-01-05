@@ -47,7 +47,8 @@ public class ProblemGeneratorFactory {
                         parameters.fInstanceParameters.getDomains(),
                         parameters.fInstanceParameters.getPreviousAssignment(),
                         parameters.fInstanceParameters.fDataFoldername,
-                        null
+                        null,
+                        parameters.fInstanceParameters.Cutoff
                 ));
             } else if (parameters.fsrpkFile != null) {
                 reader = new SingleSrpkProblemReader(parameters.fsrpkFile, nameToProblem);
