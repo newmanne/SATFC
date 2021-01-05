@@ -37,6 +37,7 @@ import ilog.cplex.IloCplex;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.util.MathUtils;
 import org.apache.commons.math3.random.RandomGenerator;
@@ -77,7 +78,6 @@ public class VCGMip {
         @Parameter(names = "-CITY-DROP-AFTER")
         boolean cityDropAfter = true;
 
-
     }
 
     enum MIPType {
@@ -102,7 +102,17 @@ public class VCGMip {
         if (q.cityDropAfter && parameters.getCity() != null) {
             new SimulatorParameters.CityAndLinks(parameters.getCity(), parameters.getNLinks(), parameters.getStationDB(), parameters.getConstraintManager()).function();
         }
+
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
+
+        // For getting rid of impairing stations
+        if (parameters.getStationsToUseFile() != null) {
+            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(parameters.getStationsToUseFile());
+            for (CSVRecord record : csvRecords) {
+                stationDB.removeStation(Integer.parseInt(record.get("FacID")));
+            }
+        }
+
         final Map<Integer, Set<Integer>> domains = stationDB.getStations().stream().collect(Collectors.toMap(IStationInfo::getId, IStationInfo::getDomain));
         log.info("Looking at {} stations", domains.size());
         log.info("Using max channel {}", parameters.getMaxChannel());
@@ -126,7 +136,7 @@ public class VCGMip {
                     .filter(e -> !notParticipating.contains(e.getKey()))
                     .mapToDouble(e -> stationDB.getStationById(e.getKey()).getValues().get(BandHelper.toBand(e.getValue())))
                     .sum();
-            final double obj = mipResult.getObjectiveValue() * 1e3;
+            final double obj = mipResult.getObjectiveValue();
             if (computedValue != obj) {
                 log.warn("Computed {} but obj was {} difference of {}", computedValue, obj, Math.abs(computedValue - obj));
             } else {
@@ -210,8 +220,7 @@ public class VCGMip {
                     IloIntVar var = domainVars[i];
                     int chan = variablesDecoder.get(var).getChannel();
                     final Band band = BandHelper.toBand(chan);
-                    final long value = stationDB.getStationById(station).getValues().get(band) / 1000; // Smaller numbers could be easier to work with
-                    log.info("Value: {}, orig: {}", value, stationDB.getStationById(station).getValues().get(band));
+                    final long value = stationDB.getStationById(station).getValues().get(band);
                     values[i] = value;
                 }
                 objectiveSum.addTerms(values, domainVars);
@@ -235,7 +244,7 @@ public class VCGMip {
         default void setParams(IloCplex cplex) throws IloException {
         }
 
-        ;
+
     }
 
     @Slf4j
@@ -288,6 +297,7 @@ public class VCGMip {
                     variablesDecoder.put(var, new StationChannel(station, channel));
                 }
             }
+
 
             // Non participating stations get exactly 1 channel, participating get 0 or 1
             for (final Integer station : domains.keySet()) {
