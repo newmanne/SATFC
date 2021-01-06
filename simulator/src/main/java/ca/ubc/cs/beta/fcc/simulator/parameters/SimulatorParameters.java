@@ -298,6 +298,16 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     private RandomGenerator valuesGenerator;
 
+    @Getter
+    @Parameter(names = "-HVHF-FRAC", description = "How much stations value HVHF as a fraction of UHF")
+    private Double HVHFFrac = 2./3;
+
+    @Getter
+    @Parameter(names = "-LVHF-FRAC", description = "How much stations value LVHF as a fraction of UHF")
+    private Double LVHFFrac = 1./3;
+
+
+
     public String getInteferenceFolder() {
         return facadeParameters.fInterferencesFolder != null ? facadeParameters.fInterferencesFolder : getInternalFile("interference_data");
     }

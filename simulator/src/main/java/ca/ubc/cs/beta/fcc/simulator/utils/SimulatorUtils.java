@@ -136,7 +136,7 @@ public class SimulatorUtils {
     }
 
 
-    public static Map<Band, Long> createValueMap(long UHFPrice, IStationInfo station, RandomGenerator random, double noiseStd) {
+    public static Map<Band, Long> createValueMap(long UHFPrice, IStationInfo station, RandomGenerator random, double noiseStd, double HVHF, double LVHF) {
         Preconditions.checkArgument(UHFPrice >= 0, "Negative UHF Price! %s", UHFPrice);
         Preconditions.checkArgument(station.getPopulation() > 0, "Zero population station! %s", station);
 
@@ -146,7 +146,7 @@ public class SimulatorUtils {
         }
 
         if (UHFPrice < 3000) {
-            log.warn("UHF Price for {} rounds to {} in the nearest thousandth. Hard for this value model to work that way because of the 2/3, 1/3... Also suspiciously low. Changing to 3k", station, UHFPrice);
+            log.warn("UHF Price for {} rounds to {} in the nearest thousand. Hard for this value model to work that way because of the 2/3, 1/3... Also suspiciously low. Changing to 3k", station, UHFPrice);
             UHFPrice = 3000;
         }
 
@@ -162,7 +162,7 @@ public class SimulatorUtils {
         if (station.getHomeBand().isAbove(Band.LVHF)) {
             long HVHFValue;
             do {
-                HVHFValue = noisyValue(UHFPrice, random, 2. / 3, noiseStd);
+                HVHFValue = noisyValue(UHFPrice, random, HVHF, noiseStd);
 //                log.info("HVHF {} {} {}", station, HVHFValue, UHFPrice);
             }
             while (HVHFValue <= 0 || HVHFValue >= UHFPrice); // Should not be negative, should not be bigger than UHF price. Remember that normals are unbounded...
@@ -172,7 +172,7 @@ public class SimulatorUtils {
         // LVHF Value
         long LVHFValue;
         do {
-            LVHFValue = noisyValue(UHFPrice, random, 1. / 3, noiseStd);
+            LVHFValue = noisyValue(UHFPrice, random, LVHF, noiseStd);
 //            log.info("LVHF {} {} {}", station, valueMap.getOrDefault(Band.HVHF, (long) Math.floor(UHFPrice)), LVHFValue);
         } while (LVHFValue <= 0 || (LVHFValue >= valueMap.getOrDefault(Band.HVHF, Long.MAX_VALUE) || LVHFValue >= valueMap.getOrDefault(Band.UHF, Long.MAX_VALUE)));
         valueMap.put(Band.LVHF, LVHFValue);
@@ -249,7 +249,7 @@ public class SimulatorUtils {
                 Map<Band, Long> valueMap;
                 do {
                     value = entry.getValue().generateValue();
-                    valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd());
+                    valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                 } while (historic &&
                         parameters.getHistoricData().getHistoricalStations().contains(station) &&
                         valueMap.get(station.getHomeBand()) > parameters.getHistoricData().getHistoricalOpeningPrices().get(station.getId()));
@@ -290,7 +290,7 @@ public class SimulatorUtils {
 
                 dmaToUHFPricePerPop.putIfAbsent(station.getDMA(), new DescriptiveStatistics());
                 dmaToUHFPricePerPop.get(station.getDMA()).addValue(FastMath.log(value / station.getPopulation()));
-                final Map<Band, Long> valueMap = createValueMap(value, station, random, parameters.getNoiseStd());
+                final Map<Band, Long> valueMap = createValueMap(value, station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                 ((IModifiableStationInfo) station).setValues(valueMap);
                 stationsRemainingWithoutValues.remove(station);
             }
@@ -324,7 +324,7 @@ public class SimulatorUtils {
                     Map<Band, Long> valueMap;
                     do {
                         sample = distribution.sample();
-                        valueMap = createValueMap((long) (sample * station.getPopulation()), station, random, parameters.getNoiseStd());
+                        valueMap = createValueMap((long) (sample * station.getPopulation()), station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                     } while (historic &&
                             parameters.getHistoricData().getHistoricalStations().contains(station) &&
                             valueMap.get(station.getHomeBand()) > pOpenHistoric);
