@@ -1,69 +1,44 @@
-# Feasibility Checker
+# Reverse Auction Simulator
 
-This is the README for SATFC. For information on the reverse auction simulator, see [this README](simulator/README.md).
+This project contains the reverse auction simulator used in `Incentive Auction Design Alternatives: A Simulation Study`. 
 
-## Introduction
+Before attempting to run the simulator, make sure that you can run SATFC. Follow the instructions in the manual.
 
-**SATFC** (_SAT-based Feasibility Checker_) solves radio-spectrum repacking feasibility problems arising in the reverse auction of the FCC's upcoming broadcast incentive auction. It combines a formulation of feasibility checking based on propositional satisfiability with a heuristic pre-solver and a SAT solver tuned for the types of instances observed in auction simulations.
-authors & collaborators SATFC is the product of the ideas and hard work of Auctionomics, notably Alexandre Fréchette, Neil Newman, Paul Cernek, Emily Chenn, Guillaume Saulnier-Comte, Nick Arnosti, and Kevin Leyton-Brown.
+# Env variables
+This assumes you have compiled the libraries successfully and have not moved them.
 
-Questions, bug reports and feature suggestions should be directed to Neil Newman - newmanne at cs dot ubc dot ca
+`export SATFC_CLASP_LIBRARY=<path_to_satfc>/satfc/src/dist/clasp/jna/libjnaclasp.so`
 
-## Installation
+`export SATFC_SATENSTEIN_LIBRARY=<path_to_satfc>/satfc/src/dist/satenstein/jna/libjnasatenstein.so`
 
-Stand-alone, ready-to-go releases of SATFC and SATFCServer can be found on the [SATFC GitHub](https://github.com/FCC/SATFC/releases) page.
+`export SATFC_INTERFERENCE=<Path_to_constraints_folder>`. The constraints folder should point to a folder, where each subfolder is a constraint set (containing domain.csv and interference.csv files). Used the `-CONSTRAINT-SET` flag to select the name of the subfolder to use. Likely your only subfolder will the FCC's nov 2015 constraints.
 
-## Usage
+# Command Line Options
 
-Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The manual is also packaged with any stand-alone SATFC release.
+This section provides some command line options used for running simulations. The executable to run is `./FCCSimulator`.
 
-## Release Notes
+More parameters are available in `SimulatorParameters.java`.
 
-Rough information about the evolution of **SATFC** through major releases.
+##### Toggling VHF
 
-### SATFC 2.3 [29/3/2016]
+To run a simulation that only repacks the UHF band, always include the parameters `-UHF-ONLY true -INCLUDE-VHF false`.
 
-* Switch the default portfolio to a newly configured eight core portfolio 
+##### Setting the Value Model
+ 
+To run a simulation using the BD model, use the flag `-POP-VALUES true`. Note that unfortunately we are unable provide the data we used to run the MCS model. The seed controlling the value profiles is set by the `-VALUES-SEED <number>` parameter.
 
-### SATFC 2.2 [15/2/2016]
+##### Setting the Clearing Target
 
-* Improve the memory usage of SATFCServer
-* Various bugfixes
+Use the parameters `-MAX-CHANNEL <channel>` and `-MAX-CHANNEL-FINAL <channel>` to set a start and end stage for the auction (following the FCC's band plan). For example, a four stage auction mirroring the incentive auction would look like `-MAX-CHANNEL 29 -MAX-CHANNEL-FINAL 36`.
 
-### SATFC 2.0 [15/10/2015]
+##### Scoring
 
-* Introduce SATenstein, a local search based solver
+By default, the FCC volumes are used. To supply other volumes, use  `-VOLUMES-FILE <volume file path>`. Volumes files used in the paper are stored in `simulator/src/dist/simulator_data`. 
 
-### SATFC 1.8 [19/08/2015]
+##### Early Stopping
 
-* ADJ+2 and ADJ-2 constraints 
-* Enforce arc consistency as a form of preprocessing
-* Expanding neighbourhood UNSAT presolver
-* Identify conditionally underconstrained stations
-* Improve underconstrained station finding heuristic 
-* Upgrade to clasp 3.1.3
-* Multi-permutation server cache to guard against cache query slowdowns
+To use early stopping, you need to supply forward auction revenues (in billions). For example, `-EARLY-STOPPING true -FORWARD-AUCTION-AMOUNTS 25.35,23.61,21.59,19.63,17.57,15.40,13.11,10.66,7.95 -MAX-CHANNEL 29 -MAX-CHANNEL-FINAL 44`.
 
-### SATFC 1.7.1 [30/06/2015]
+##### Feasibility Checker
 
-* New required command line parameter for the server, _constraint.folder_, that tells the server where all of the data folders are so that it can properly size cache entries
-* Upgrade to clasp 3.1.2
-
-### SATFC 1.7 [8/06/2015]
-
-* New feature, _parallel portfolios_, allow SATFC to execute multiple solvers in parallel, returning a result as soon as any solver succeeds. Previous versions of SATFC applied each solver sequentially.
-* Enhanced the presolver technique to look beyond a station's immediate neighbours
-
-### SATFC 1.6 [19/05/2015]
-
-* Upgrade from **clasp** version from 2 to 3, along with new better performing configurations.
-* The **SATFCserver** now has a clever clean up procedures to prune away unnecessary entries if the cache becomes too big.
-* The cache is now updated on the fly. This means instances solved are immediately accessible to future cache queries (improving performance), and the cache server does not need to be restarted to have access to new data (improving usability). 
-
-### SATFC 1.5 [26/03/2015]
-
-* New feature, _containment cache_, that uses previously solved problems to solve new, related problems. Our experiments with this feature show that it provides significant performance increase, not only by taking care of problems that are seen often (e.g. from very similar auction runs), but also improving solving time of new, unseen problems. This cache is implemented as a standalone server, the **SATFCserver**, to allow multiple **SATFC** solvers to use the same cache and reduce memory overhead. This server in turn uses **redis** as its backbone cache data structure.
-
-### SATFC 1.3 [30/10/2014]
-
-* First official release of **SATFC** by the FCC.
+The feasibility checker can be configured using the `-CONFIG-FILE <config_YAML_file_path>` argument. While undocumented, example config files can be found in `satfc/src/dist/bundles`. These config files can be configured to allow the use of external SAT and MIP solvers. See also `YAMLBundle.java` in the SATFC project. The greedy feasibility checker is special; it is activated using `-GREEDY-SOLVER-ONLY true`.
