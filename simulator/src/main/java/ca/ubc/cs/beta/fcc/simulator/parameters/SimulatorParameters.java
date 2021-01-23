@@ -306,6 +306,11 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-LVHF-FRAC", description = "How much stations value LVHF as a fraction of UHF")
     private Double LVHFFrac = 1./3;
 
+    @Getter
+    @Parameter(names = "-LEFT-TAIL", description = "Use a pareto left tail w/ pops value model")
+    private Boolean useLeftTail = false;
+
+
 
 
     public String getInteferenceFolder() {
@@ -394,7 +399,7 @@ public class SimulatorParameters extends AbstractOptions {
 
         if (popValues) {
 //            log.info("Initializing pop value model with {}", getPopValueFile());
-            popValueModel = new PopValueModel2(valuesGenerator, stationDB);
+            popValueModel = new PopValueModel2(valuesGenerator, stationDB, useLeftTail);
         }
 
         // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations
@@ -566,7 +571,16 @@ public class SimulatorParameters extends AbstractOptions {
                 throw new IllegalStateException();
         }
         final IParticipationDecider currDecider = decider;
-        decider = s -> !getNotParticipating().contains(s.getId()) && currDecider.isParticipating(s);
+        decider = s -> {
+            if (getNotParticipating().contains(s.getId())) {
+                return false;
+            }
+            Boolean retval = s.isParticipating(prices.getOffers(s));
+            if (retval != null) {
+                return retval;
+            }
+            return currDecider.isParticipating(s);
+        };
         return decider;
     }
 
