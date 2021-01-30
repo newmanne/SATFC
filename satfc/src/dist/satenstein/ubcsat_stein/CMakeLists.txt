@@ -5,7 +5,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -lm -Wall -Wno-unused-variable -Wno-unus
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Need this because of inline functions
-if (APPLE)
+if (APPLE OR UNIX)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu89")
 ENDIF()
 
