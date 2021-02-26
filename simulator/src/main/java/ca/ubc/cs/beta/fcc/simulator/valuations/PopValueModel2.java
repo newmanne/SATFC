@@ -33,7 +33,7 @@ public class PopValueModel2 {
 //                return loc + (scale / shape) * ((1/(1-y))**shape - 1)
 //            Scale: 3.2427660969468493 Shape: 9.178023484452517
     private double invertParetoCDF(double y, double loc, double scale, double shape) {
-        return loc + (scale / shape) * (Math.pow((1. / 1. - y), shape) - 1);
+        return loc + (scale / shape) * (Math.pow((1. / (1. - y)), shape) - 1);
     }
 
     private double sample() {
