@@ -137,16 +137,17 @@ public class SimulatorUtils {
 
 
     public static Map<Band, Long> createValueMap(long UHFPrice, IStationInfo station, RandomGenerator random, double noiseStd, double HVHF, double LVHF) {
-        Preconditions.checkArgument(UHFPrice >= 0, "Negative UHF Price! %s", UHFPrice);
+        Preconditions.checkArgument(UHFPrice > 0, "Negative UHF Price! %s", UHFPrice);
         Preconditions.checkArgument(station.getPopulation() > 0, "Zero population station! %s", station);
 
+        long originalPrice = UHFPrice;
         UHFPrice = toNearestThousand((long) MathUtils.round(UHFPrice, -3));
         if (UHFPrice % 1000 != 0) {
             throw new IllegalStateException("Value is not a clean multiple of 1000");
         }
 
         if (UHFPrice < 3000) {
-            log.warn("UHF Price for {} rounds to {} in the nearest thousand. Hard for this value model to work that way because of the 2/3, 1/3... Also suspiciously low. Changing to 3k", station, UHFPrice);
+            log.warn("UHF Price for {} rounds to {} in the nearest thousand ({}). Hard for this value model to work that way because of the 2/3, 1/3... Also suspiciously low. Changing to 3k", station, UHFPrice, originalPrice);
             UHFPrice = 3000;
         }
 
@@ -289,7 +290,13 @@ public class SimulatorUtils {
                                 value > parameters.getHistoricData().getHistoricalOpeningPrices().get(station.getId()))); // If historic, we are conditioning on your home band value being lower than your off air opening price. So keep resampling until you sample a price at which participation would have occurred
 
                 dmaToUHFPricePerPop.putIfAbsent(station.getDMA(), new DescriptiveStatistics());
-                dmaToUHFPricePerPop.get(station.getDMA()).addValue(FastMath.log(value / station.getPopulation()));
+
+
+                double logValuePerPop = FastMath.log((double) value / station.getPopulation());
+                if (!Double.isFinite(logValuePerPop)) {
+                    throw new IllegalStateException("Non-finite value per pop? value, pop " + value + " " + station.getPopulation());
+                }
+                dmaToUHFPricePerPop.get(station.getDMA()).addValue(logValuePerPop);
                 final Map<Band, Long> valueMap = createValueMap(value, station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                 ((IModifiableStationInfo) station).setValues(valueMap);
                 stationsRemainingWithoutValues.remove(station);
@@ -301,6 +308,7 @@ public class SimulatorUtils {
                     nationalStats.addValue(v);
                 }
             }
+
 
             if (parameters.isInferValues()) {
                 int nationalCount = 0;
@@ -324,6 +332,10 @@ public class SimulatorUtils {
                     Map<Band, Long> valueMap;
                     do {
                         sample = distribution.sample();
+                        if (!(sample > 0)) {
+                            log.info(stats.toString());
+                            throw new IllegalStateException("Sample is " + sample);
+                        }
                         valueMap = createValueMap((long) (sample * station.getPopulation()), station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                     } while (historic &&
                             parameters.getHistoricData().getHistoricalStations().contains(station) &&

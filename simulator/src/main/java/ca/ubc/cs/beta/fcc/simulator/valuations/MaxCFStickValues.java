@@ -104,7 +104,13 @@ public class MaxCFStickValues {
                 log.debug("Stick wins {}", stationInfo);
             }
 
-            return (long) (Math.max(cfVal, stickVal) * 1e6);
+            long val = (long) (Math.max(cfVal, stickVal) * 1e6);
+
+            if (val == 0) {
+                throw new IllegalStateException("0 value?");
+            }
+
+            return val;
         }
 
     }

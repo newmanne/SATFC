@@ -355,6 +355,10 @@ public class SimulatorParameters extends AbstractOptions {
             maxChannelFinal = maxChannel;
         }
 
+        if (useLeftTail && !popValues) {
+            throw new IllegalArgumentException("Left tail requires pop values");
+        }
+
         final BidProcessingAlgorithmParameters.BidProcessingAlgorithmParametersBuilder bidProcessingAlgorithmParametersBuilder = BidProcessingAlgorithmParameters.builder().bidProcessingAlgorithm(getBidProcessingAlgorithm());
         if (getBidProcessingAlgorithm().equals(BidProcessingAlgorithm.FIRST_TO_FINISH_SINGLE_PROGRAM)) {
             bidProcessingAlgorithmParametersBuilder.roundTimer(roundWalltime);
