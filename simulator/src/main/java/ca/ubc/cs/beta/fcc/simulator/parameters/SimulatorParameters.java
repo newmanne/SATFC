@@ -174,6 +174,9 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-SKIP-STAGE", description = "list of stages to skip")
     private Set<Integer> skipStages = new HashSet<>();
 
+    @Getter
+    @Parameter(names = "-REMOVE-STATION", description = "Stations to skip")
+    private Set<Integer> removeStations = new HashSet<>();
 
     @Getter
     @Parameter(names = "-CONSTRAINT-SET", description = "constraint set name (not full path!)")
