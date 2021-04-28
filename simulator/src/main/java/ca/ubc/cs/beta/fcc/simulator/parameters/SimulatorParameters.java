@@ -313,7 +313,9 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-LEFT-TAIL", description = "Use a pareto left tail w/ pops value model")
     private Boolean useLeftTail = false;
 
-
+    @Getter
+    @Parameter(names = "-NEW-MIP", description = "Use the new MIP")
+    private Boolean useNewMIP = true;
 
 
     public String getInteferenceFolder() {

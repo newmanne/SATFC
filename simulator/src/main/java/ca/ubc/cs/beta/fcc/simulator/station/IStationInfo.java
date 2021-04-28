@@ -3,17 +3,13 @@ package ca.ubc.cs.beta.fcc.simulator.station;
 import ca.ubc.cs.beta.fcc.simulator.bidprocessing.Bid;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.BandHelper;
-import ca.ubc.cs.beta.fcc.simulator.valuations.MaxCFStickValues;
 import ca.ubc.cs.beta.stationpacking.base.Station;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import static ca.ubc.cs.beta.stationpacking.utils.GuavaCollectors.toImmutableSet;
 
 /**
  * Created by newmanne on 2016-06-20.
@@ -61,6 +57,9 @@ public interface IStationInfo {
         return ImmutableSet.copyOf(Sets.intersection(domain, bandChannels));
     }
 
+    default Boolean isParticipating(Map prices) {
+        return null;
+    }
 
     String getCity();
 

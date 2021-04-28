@@ -138,7 +138,9 @@ public class SimulatorUtils {
 
     public static Map<Band, Long> createValueMap(long UHFPrice, IStationInfo station, RandomGenerator random, double noiseStd, double HVHF, double LVHF) {
         Preconditions.checkArgument(UHFPrice > 0, "Negative UHF Price! %s", UHFPrice);
-        Preconditions.checkArgument(station.getPopulation() > 0, "Zero population station! %s", station);
+        if (station.getNationality().equals(Nationality.US)) {
+            Preconditions.checkArgument(station.getPopulation() > 0, "Zero population station! %s", station);
+        }
 
         long originalPrice = UHFPrice;
         UHFPrice = toNearestThousand((long) MathUtils.round(UHFPrice, -3));
@@ -201,10 +203,11 @@ public class SimulatorUtils {
         log.info("Assigning valuations to stations");
         final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
         final Collection<IStationInfo> americanStations = stationDB.getStations(Nationality.US);
+        final Collection<IStationInfo> canadianStations = stationDB.getStations(Nationality.CA);
         final Set<IStationInfo> stationsRemainingWithoutValues = new HashSet<>(americanStations);
 
         // To ensure consistent ordering (for random seed purposes), process by Band, ID.
-        Comparator<IStationInfo> consistentOrdering = (a, b) -> ComparisonChain.start().compare(a.getHomeBand(), b.getHomeBand()).compare(a.getId(), b.getId()).result();
+        Comparator<IStationInfo> consistentOrdering = (a, b) -> ComparisonChain.start().compare(a.getNationality(), b.getNationality()).compare(a.getHomeBand(), b.getHomeBand()).compare(a.getId(), b.getId()).result();
         Comparator<Map.Entry<IStationInfo, MaxCFStickValues.IValueGenerator>> consistentOrderingEntry = (a, b) -> consistentOrdering.compare(a.getKey(), b.getKey());
 
         final boolean historic = parameters.getParticipationModel().equals(SimulatorParameters.ParticipationModel.HISTORICAL_DATA);
@@ -250,10 +253,14 @@ public class SimulatorUtils {
                 Map<Band, Long> valueMap;
                 do {
                     value = entry.getValue().generateValue();
+                    if (station.getNationality().equals(Nationality.CA) && station.getPopulation() == 0) {
+                        value = 3000;
+                    }
                     valueMap = createValueMap((long) value, station, random, parameters.getNoiseStd(), parameters.getHVHFFrac(), parameters.getLVHFFrac());
                 } while (historic &&
                         parameters.getHistoricData().getHistoricalStations().contains(station) &&
                         valueMap.get(station.getHomeBand()) > parameters.getHistoricData().getHistoricalOpeningPrices().get(station.getId()));
+
 
                 ((IModifiableStationInfo) station).setValues(valueMap);
                 stationsRemainingWithoutValues.remove(station);

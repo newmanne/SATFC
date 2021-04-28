@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.BooleanUtils;
@@ -53,7 +54,7 @@ public class PopValueModel2 {
             log.info("Using pareto left tail!");
         }
         stationToGenerator = new HashMap<>();
-        for (IStationInfo station : stationDB.getStations(Nationality.US)) {
+        for (IStationInfo station : stationDB.getStations()) {
             final MaxCFStickValues.IValueGenerator valueGenerator = () -> (long) (station.getPopulation() * sample());
             stationToGenerator.put(station, valueGenerator);
         }

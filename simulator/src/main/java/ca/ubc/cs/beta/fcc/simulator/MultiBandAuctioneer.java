@@ -4,6 +4,7 @@ import ca.ubc.cs.beta.aeatk.misc.cputime.CPUTime;
 import ca.ubc.cs.beta.aeatk.misc.jcommander.JCommanderHelper;
 import ca.ubc.cs.beta.fcc.simulator.catchup.CatchupPoint;
 import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP;
+import ca.ubc.cs.beta.fcc.simulator.clearingtargetoptimization.ClearingTargetOptimizationMIP_2;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.IProblemMaker;
 import ca.ubc.cs.beta.fcc.simulator.feasibilityholder.ProblemMakerImpl;
 import ca.ubc.cs.beta.fcc.simulator.ladder.ILadder;
@@ -147,13 +148,16 @@ public class MultiBandAuctioneer {
                 .collect(toSet());
 
         if (!impairingStations.isEmpty()) {
-            log.info("There are {} impairing stations out of {} UHF non-participating stations. Placing them on a special ({}) channel", impairingStations.size(), participation.getMatching(Participation.EXITED_NOT_PARTICIPATING).stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL);
+            log.info("There are {} impairing stations ({} Canadian) out of {} UHF non-participating stations. Placing them on a special ({}) channel", impairingStations.size(), impairingStations.stream().filter(s -> s.getNationality().equals(Nationality.CA)).count(), participation.getMatching(Participation.EXITED_NOT_PARTICIPATING).stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL);
+            log.info("Impairing value fraction relative to participating stations: {}", (double) impairingStations.stream().mapToLong(IStationInfo::getValue).sum() / participation.getActiveStations().stream().mapToLong(IStationInfo::getValue).sum());
             for (IStationInfo impairingStation : impairingStations) {
                 assignment.remove(impairingStation.getId());
                 log.info("{} is impairing", impairingStation);
                 impairingStation.impair();
             }
             parameters.getEventBus().post(new DomainChangeEvent(ladder, parameters.getConstraintManager()));
+        } else {
+            log.info("No impairing stations");
         }
 
         // This is a bit awkward (Should go through the ladder... but oh well)
@@ -474,7 +478,7 @@ public class MultiBandAuctioneer {
 
     public static Map<Integer, Integer> clearingTargetOptimization(IStationDB stationDB, SimulatorParameters parameters, Set<IStationInfo> possibleToImpair, Integer currentSolution, Map<Integer, Set<Integer>> otherDomains, Map<Integer, Integer> startingAssignment) {
         try {
-            final ClearingTargetOptimizationMIP clearingTargetOptimizationMIP = new ClearingTargetOptimizationMIP();
+            final VCGMip.IMIPEncoder clearingTargetOptimizationMIP = parameters.getUseNewMIP() ? new ClearingTargetOptimizationMIP_2() : new ClearingTargetOptimizationMIP();
             final VCGMip.MIPMaker mipMaker;
             mipMaker = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIP);
             // Need to make sure you don't query impaired domain here, so temporarily unimpair the stations so you can get real domains...
@@ -492,13 +496,13 @@ public class MultiBandAuctioneer {
                 abortIfNecessary(phaseOneResult);
             }
             final int nImpairingStations = (int) Math.round(phaseOneResult.getObjectiveValue());
-
-            if ((currentSolution != null && currentSolution == nImpairingStations) || nImpairingStations == 0) {
+            log.info("{} stations will be impairing", nImpairingStations);
+            if (parameters.getUseNewMIP() || (currentSolution != null && currentSolution == nImpairingStations) || nImpairingStations == 0) {
                 // No point in going to phase 2, we didn't find anything better than we already knew about
                 log.debug("Skipping phase 2 of clearing target optimization");
                 return phaseOneResult.getAssignment();
             } else {
-                log.info("{} stations will impair. Now finding best set (by minimizing pop of impairing stations)", nImpairingStations);
+                log.info("Now finding best set (by minimizing pop of impairing stations)");
                 final ClearingTargetOptimizationMIP clearingTargetOptimizationMIPPhaseTwo = new ClearingTargetOptimizationMIP(nImpairingStations);
                 final VCGMip.MIPMaker mipMakerPhaseTwo = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIPPhaseTwo);
                 final VCGMip.MIPResult phaseTwoResult = mipMakerPhaseTwo.solve(domains, domains.keySet(), parameters.getMipCutoff(), parameters.getSeed(), parameters.getParallelism(), false, null, phaseOneResult.getAssignment(), false);

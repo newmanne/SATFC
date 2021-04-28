@@ -126,4 +126,9 @@ public abstract class AStationInfoDecorator implements IModifiableStationInfo {
     public void setVolume(Integer volume) {
         decorated.setVolume(volume);
     }
+
+    @Override
+    public Boolean isParticipating(Map prices) {
+        return decorated.isParticipating(prices);
+    }
 }
