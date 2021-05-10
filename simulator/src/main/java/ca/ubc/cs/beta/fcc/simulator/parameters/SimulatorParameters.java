@@ -315,7 +315,7 @@ public class SimulatorParameters extends AbstractOptions {
 
     @Getter
     @Parameter(names = "-NEW-MIP", description = "Use the new MIP")
-    private Boolean useNewMIP = true;
+    private Boolean useNewMIP = false;
 
 
     public String getInteferenceFolder() {

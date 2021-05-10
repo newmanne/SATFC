@@ -147,7 +147,7 @@ public class StationInfo implements IModifiableStationInfo {
 
     @Override
     public String toString() {
-        return call + " (" + id + ", HB=" + homeBand + ", C=" + nationality + ")";
+        return call + " (" + id + ", HB=" + homeBand + ", C=" + nationality + ", P=" + population + ")";
     }
 
     @Override

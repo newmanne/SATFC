@@ -27,6 +27,7 @@ import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
+import ca.ubc.cs.beta.fcc.simulator.valuations.PopValueModel2;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
 import ca.ubc.cs.beta.stationpacking.datamanagers.stations.IStationManager;
 import ca.ubc.cs.beta.stationpacking.facade.SATFCResult;
@@ -528,6 +529,9 @@ public class MultiBandSimulator {
 
     private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, long price, Map<IStationInfo, CatchupPoint> catchupPoints, double baseClock, Map<Band, Double> benchmarkPrices) {
         participation.setParticipation(station, Participation.FROZEN_PROVISIONALLY_WINNING);
+        if (PopValueModel2.stationToSample != null) {
+            log.info("Sample was: {}, corresponding to $/pop of {}", PopValueModel2.stationToSample.get(station), (double) station.getValue() / station.getPopulation());
+        }
         log.info("Station {}, with a value of {}, is now a provisional winner with a price of {}", station, Humanize.spellBigNumber(station.getValue()), Humanize.spellBigNumber(price));
         if (catchupPoints.get(station) == null || catchupPoints.get(station).getCatchUpPoint() > baseClock) {
             // If you were previously a provisional winner and don't bid to accept a lower price offer, your price doesn't change

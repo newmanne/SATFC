@@ -4,8 +4,8 @@ import ca.ubc.cs.beta.fcc.simulator.station.IStationDB;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.utils.SimulatorUtils;
-import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.math3.distribution.BinomialDistribution;
@@ -26,11 +26,13 @@ public class PopValueModel2 {
 
     private Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator;
 
+    public static Map<IStationInfo, Double> stationToSample;
+
     public Map<IStationInfo, MaxCFStickValues.IValueGenerator> get() {
         return stationToGenerator;
     }
 
-//            def inv(y, loc, scale, shape):
+    //            def inv(y, loc, scale, shape):
 //                return loc + (scale / shape) * ((1/(1-y))**shape - 1)
 //            Scale: 3.2427660969468493 Shape: 9.178023484452517
     private double invertParetoCDF(double y, double loc, double scale, double shape) {
@@ -39,8 +41,9 @@ public class PopValueModel2 {
         return valuePerPop;
     }
 
-    private double sample() {
+    private double sample(IStationInfo s) {
         double sample = random.nextDouble();
+        stationToSample.put(s, sample);
         if (useLeftTail && sample <= 0.15) {
             return invertParetoCDF(sample, 0.15, 3.2427660969468493, 9.178023484452517);
         }
@@ -49,13 +52,14 @@ public class PopValueModel2 {
 
     public PopValueModel2(RandomGenerator random, IStationDB stationDB, boolean useLeftTail) {
         this.random = random;
+        stationToSample = new HashMap<>();
         this.useLeftTail = useLeftTail;
         if (this.useLeftTail) {
             log.info("Using pareto left tail!");
         }
         stationToGenerator = new HashMap<>();
-        for (IStationInfo station : stationDB.getStations()) {
-            final MaxCFStickValues.IValueGenerator valueGenerator = () -> (long) (station.getPopulation() * sample());
+        for (IStationInfo station : stationDB.getStations(Nationality.US)) {
+            final MaxCFStickValues.IValueGenerator valueGenerator = () -> (long) (station.getPopulation() * sample(station));
             stationToGenerator.put(station, valueGenerator);
         }
     }
