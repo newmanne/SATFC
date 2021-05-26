@@ -151,7 +151,7 @@ public class MultiBandSimulator {
 
         log.info("Calculating new benchmark prices...");
         // Either 5% of previous value or 1% of starting value
-        final Function<Double, Double> calcDecrement = r1 -> Math.max(r1 * oldBaseClockPrice, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF));
+        final Function<Double, Double> calcDecrement = r1 -> Math.max(r1 * oldBaseClockPrice, Math.min(9, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF)));
         double mutableDecrement = calcDecrement.apply(parameters.getR1());
         double proposedNewBaseClockPrice = oldBaseClockPrice - mutableDecrement;
 
@@ -530,7 +530,7 @@ public class MultiBandSimulator {
     private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, long price, Map<IStationInfo, CatchupPoint> catchupPoints, double baseClock, Map<Band, Double> benchmarkPrices) {
         participation.setParticipation(station, Participation.FROZEN_PROVISIONALLY_WINNING);
         if (PopValueModel2.stationToSample != null) {
-            log.info("Sample was: {}, corresponding to $/pop of {}", PopValueModel2.stationToSample.get(station), (double) station.getValue() / station.getPopulation());
+            log.info("Sample was: {}, corresponding to $/pop of {}", PopValueModel2.stationToSample.getOrDefault(station, -1.), (double) station.getValue() / station.getPopulation());
         }
         log.info("Station {}, with a value of {}, is now a provisional winner with a price of {}", station, Humanize.spellBigNumber(station.getValue()), Humanize.spellBigNumber(price));
         if (catchupPoints.get(station) == null || catchupPoints.get(station).getCatchUpPoint() > baseClock) {

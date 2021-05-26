@@ -19,6 +19,7 @@ import java.util.Map;
 public class PopValueModel2 {
 
     private final RandomGenerator random;
+    private final boolean useRightTail;
 
     final private double C = 8.698140284166147;
     final private double A = -1.1087198440401997;
@@ -46,12 +47,16 @@ public class PopValueModel2 {
         stationToSample.put(s, sample);
         if (useLeftTail && sample <= 0.15) {
             return invertParetoCDF(sample, 0.15, 3.2427660969468493, 9.178023484452517);
+        } else if (useRightTail && sample >= 0.7) {
+            return invertParetoCDF(sample, 0.7, 357.5365545716556, -0.5464765002112937);
         }
+
         return Math.exp(sample * (C - A) + A);
     }
 
-    public PopValueModel2(RandomGenerator random, IStationDB stationDB, boolean useLeftTail) {
+    public PopValueModel2(RandomGenerator random, IStationDB stationDB, boolean useLeftTail, boolean useRightTail) {
         this.random = random;
+        this.useRightTail = useRightTail;
         stationToSample = new HashMap<>();
         this.useLeftTail = useLeftTail;
         if (this.useLeftTail) {

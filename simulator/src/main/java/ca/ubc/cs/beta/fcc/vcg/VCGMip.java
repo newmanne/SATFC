@@ -62,7 +62,7 @@ public class VCGMip {
     public static class VCGParameters extends AbstractOptions {
 
         @ParametersDelegate
-        private MultiBandSimulatorParameters simulatorParameters = new MultiBandSimulatorParameters();
+        MultiBandSimulatorParameters simulatorParameters = new MultiBandSimulatorParameters();
 
         @Parameter(names = "-VCG-PACKING")
         List<Integer> ids = new ArrayList<>();
@@ -465,7 +465,7 @@ public class VCGMip {
             for (Map.Entry<IloIntVar, StationChannel> entryDecoder : variablesDecoder.entrySet()) {
                 final IloIntVar variable = entryDecoder.getKey();
                 try {
-                    log.debug("{} = {}", variable.getName(), cplex.getValue(variable));
+//                    log.trace("{} = {}", variable.getName(), cplex.getValue(variable));
                     varSum += cplex.getValue(variable);
                     if (MathUtils.equals(cplex.getValue(variable), 1, eps)) {
                         final StationChannel stationChannelPair = entryDecoder.getValue();

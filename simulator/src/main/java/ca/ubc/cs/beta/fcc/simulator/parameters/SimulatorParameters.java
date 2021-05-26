@@ -314,6 +314,11 @@ public class SimulatorParameters extends AbstractOptions {
     private Boolean useLeftTail = false;
 
     @Getter
+    @Parameter(names = "-RIGHT-TAIL", description = "Use a pareto right tail w/ pops value model")
+    private Boolean useRightTail = true;
+
+
+    @Getter
     @Parameter(names = "-NEW-MIP", description = "Use the new MIP")
     private Boolean useNewMIP = false;
 
@@ -408,7 +413,7 @@ public class SimulatorParameters extends AbstractOptions {
 
         if (popValues) {
 //            log.info("Initializing pop value model with {}", getPopValueFile());
-            popValueModel = new PopValueModel2(valuesGenerator, stationDB, useLeftTail);
+            popValueModel = new PopValueModel2(valuesGenerator, stationDB, useLeftTail, useRightTail);
         }
 
         // Assign values early because otherwise you tend to make mistakes with the value seed and different numbers of calls to the generators based on removing and adding stations

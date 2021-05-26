@@ -110,3 +110,13 @@ createScript(project,
         'ca.ubc.cs.beta.fcc.scripts.Script',
         'script',
         ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
+
+createScript(project,
+        'ca.ubc.cs.beta.fcc.vcg.SimpleOffender',
+        'offenders',
+        ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
+
+createScript(project,
+        'ca.ubc.cs.beta.fcc.vcg.QuickCounts',
+        'counts',
+        ['-Djava.library.path=${CPLEX_DIR}', "-Xmx16g"])
