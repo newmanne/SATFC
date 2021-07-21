@@ -49,9 +49,10 @@ public class PopValueModel2 {
         double sample = random.nextDouble();
         stationToSample.put(s, sample);
         if (useLeftTail && sample <= PL) {
+            // Use -QL here
             return invertFunLower(sample, 2.79350472460374, -1.6449304793139794, -1.6982509349240957);
         } else if (useRightTail && sample >= PU) {
-            return invertFunUpper(sample, 188.55719235021868, 0.14803202314713465, 290.3604265696093);
+            return invertFunUpper(sample, 217.383479182883, -0.3601907796110828, 290.3604265696093);
         }
 
         return Math.exp(sample * (C - A) + A);
