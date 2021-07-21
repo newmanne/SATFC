@@ -21,9 +21,12 @@ public class PopValueModel2 {
     private final RandomGenerator random;
     private final boolean useRightTail;
 
-    final private double C = 8.698140284166147;
-    final private double A = -1.1087198440401997;
+    final private double C = 8.475590715290808;
+    final private double A = -0.8726349972734521;
     private final boolean useLeftTail;
+
+    private final double PL = 0.15;
+    private final double PU = 0.7;
 
     private Map<IStationInfo, MaxCFStickValues.IValueGenerator> stationToGenerator;
 
@@ -33,22 +36,22 @@ public class PopValueModel2 {
         return stationToGenerator;
     }
 
-    //            def inv(y, loc, scale, shape):
-//                return loc + (scale / shape) * ((1/(1-y))**shape - 1)
-//            Scale: 3.2427660969468493 Shape: 9.178023484452517
-    private double invertParetoCDF(double y, double loc, double scale, double shape) {
-        double valuePerPop = loc + (scale / shape) * (Math.pow((1. / (1. - y)), shape) - 1);
-//        log.warn("Value per pop is {}", valuePerPop);
-        return valuePerPop;
+    private double invertFunLower(double y, double scale, double shape, double loc) {
+        return (-scale/shape) * (Math.exp(-shape * Math.log(y/PL)) - 1) - loc;
     }
+
+    private double invertFunUpper(double y, double scale, double shape, double loc) {
+        return (scale * Math.pow((PU-1)/(y-1), shape) + shape * loc - scale) / shape;
+    }
+
 
     private double sample(IStationInfo s) {
         double sample = random.nextDouble();
         stationToSample.put(s, sample);
-        if (useLeftTail && sample <= 0.15) {
-            return invertParetoCDF(sample, 0.15, 3.2427660969468493, 9.178023484452517);
-        } else if (useRightTail && sample >= 0.7) {
-            return invertParetoCDF(sample, 0.7, 357.5365545716556, -0.5464765002112937);
+        if (useLeftTail && sample <= PL) {
+            return invertFunLower(sample, 2.79350472460374, -1.6449304793139794, -1.6982509349240957);
+        } else if (useRightTail && sample >= PU) {
+            return invertFunUpper(sample, 188.55719235021868, 0.14803202314713465, 290.3604265696093);
         }
 
         return Math.exp(sample * (C - A) + A);

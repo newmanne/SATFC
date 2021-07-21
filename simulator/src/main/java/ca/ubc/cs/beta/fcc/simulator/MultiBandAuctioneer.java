@@ -149,7 +149,7 @@ public class MultiBandAuctioneer {
 
         if (!impairingStations.isEmpty()) {
             log.info("There are {} impairing stations ({} Canadian) out of {} UHF non-participating stations. Placing them on a special ({}) channel", impairingStations.size(), impairingStations.stream().filter(s -> s.getNationality().equals(Nationality.CA)).count(), participation.getMatching(Participation.EXITED_NOT_PARTICIPATING).stream().filter(s -> s.getHomeBand().equals(Band.UHF)).count(), ClearingTargetOptimizationMIP.IMPAIRING_CHANNEL);
-            log.info("Impairing value fraction relative to participating stations: {}", (double) impairingStations.stream().mapToLong(IStationInfo::getValue).sum() / participation.getActiveStations().stream().mapToLong(IStationInfo::getValue).sum());
+//            log.info("Impairing value fraction relative to participating stations: {}", (double) impairingStations.stream().mapToLong(IStationInfo::getValue).sum() / participation.getActiveStations().stream().mapToLong(IStationInfo::getValue).sum());
             for (IStationInfo impairingStation : impairingStations) {
                 assignment.remove(impairingStation.getId());
                 log.info("{} is impairing", impairingStation);

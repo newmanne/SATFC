@@ -178,7 +178,7 @@ public class MultiBandSimulator {
                 newBenchmarkPrices.setPrice(station, band, oldBenchmarkPrices.getPrice(station, band));
             }
             final CatchupPoint catchupPoint = catchupPoints.get(station);
-            if (newBaseClockPrice < catchupPoint.getCatchUpPoint()) {
+            if (newBaseClockPrice < catchupPoint.getCatchUpPoint() || newBaseClockPrice == 0) {
                 // Station has caught up!
                 // If it is feasible in its pre-auction band, it is now bidding
                 // Else, it is Frozen, currently infeasible. Note that this MUST mean it is a VHF station or it should have been flagged a provisional winner
@@ -478,7 +478,7 @@ public class MultiBandSimulator {
                             exitStation(station, Participation.EXITED_NOT_NEEDED, feasibility.getSATFCResult().getWitnessAssignment(), participation, ladder, stationPrices);
                         }
                     }
-                    if (participation.isActive(station)) {
+                    if (participation.isActive(station) && !participation.getParticipation(station).equals(Participation.FROZEN_PENDING_CATCH_UP)) {
                         boolean limbo = !entry.getValue().getResult().isConclusive() && bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS);
                         participation.setParticipation(station, feasibleInHomeBand || limbo ? Participation.BIDDING : Participation.FROZEN_CURRENTLY_INFEASIBLE);
                     }
@@ -529,9 +529,6 @@ public class MultiBandSimulator {
 
     private void makeProvisionalWinner(ParticipationRecord participation, IStationInfo station, long price, Map<IStationInfo, CatchupPoint> catchupPoints, double baseClock, Map<Band, Double> benchmarkPrices) {
         participation.setParticipation(station, Participation.FROZEN_PROVISIONALLY_WINNING);
-        if (PopValueModel2.stationToSample != null) {
-            log.info("Sample was: {}, corresponding to $/pop of {}", PopValueModel2.stationToSample.getOrDefault(station, -1.), (double) station.getValue() / station.getPopulation());
-        }
         log.info("Station {}, with a value of {}, is now a provisional winner with a price of {}", station, Humanize.spellBigNumber(station.getValue()), Humanize.spellBigNumber(price));
         if (catchupPoints.get(station) == null || catchupPoints.get(station).getCatchUpPoint() > baseClock) {
             // If you were previously a provisional winner and don't bid to accept a lower price offer, your price doesn't change
