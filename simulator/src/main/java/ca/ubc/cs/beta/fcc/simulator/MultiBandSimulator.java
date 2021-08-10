@@ -170,6 +170,7 @@ public class MultiBandSimulator {
         // This is the benchmark price for a UHF station to go off air
         final double newBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
+        eventBus.post(new BaseClockMovedEvent(newBaseClockPrice));
 
         final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
         for (IStationInfo station : participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP)) {

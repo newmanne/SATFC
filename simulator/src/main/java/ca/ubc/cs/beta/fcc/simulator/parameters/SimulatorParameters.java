@@ -150,9 +150,11 @@ public class SimulatorParameters extends AbstractOptions {
     @Parameter(names = "-UHF-ONLY", description = "Ignore non-UHF stations")
     private boolean uhfOnly = false;
 
+    public final static double FCC_UHF_TO_OFF = 900;
+
     @Getter
     @Parameter(names = "-UHF-TO-OFF", description = "Price per unit volume if a UHF station moves to OFF")
-    private double UHFToOff = 900;
+    private double UHFToOff = FCC_UHF_TO_OFF;
 
     @Getter
     @Parameter(names = "-INCLUDE-VHF", description = "Include the VHF bands in the auctions")
@@ -321,6 +323,10 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-NEW-MIP", description = "Use the new MIP")
     private Boolean useNewMIP = false;
+
+    @Getter
+    @Parameter(names = "-SWITCH-FEASIBILITY-AT-BASE", description = "Switch feasibility when the base clock is reached")
+    private Boolean switchFeasibility = false;
 
 
     public String getInteferenceFolder() {

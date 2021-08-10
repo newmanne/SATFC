@@ -22,9 +22,11 @@ import ca.ubc.cs.beta.fcc.simulator.prices.IPrices;
 import ca.ubc.cs.beta.fcc.simulator.prices.PricesImpl;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.solver.LocalFeasibilitySolver;
+import ca.ubc.cs.beta.fcc.simulator.solver.callback.SATFCCallback;
 import ca.ubc.cs.beta.fcc.simulator.solver.callback.SimulatorResult;
 import ca.ubc.cs.beta.fcc.simulator.solver.decorator.*;
 import ca.ubc.cs.beta.fcc.simulator.solver.problem.ProblemType;
+import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.fcc.simulator.state.IStateSaver;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
@@ -45,6 +47,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import humanize.Humanize;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
@@ -57,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.*;
@@ -219,6 +223,45 @@ public class MultiBandAuctioneer {
         tmp = timeTrackingDecorator;
         parameters.getEventBus().register(tmp);
 
+        if (parameters.getSwitchFeasibility()) {
+            // Once you get below the price, switch the feasibility checker
+            final IFeasibilitySolver curSolver = tmp;
+            tmp = new IFeasibilitySolver() {
+
+                private boolean isAboveFCCBaseClock = true;
+
+                @Override
+                public void getFeasibility(SimulatorProblem problem, SATFCCallback callback) {
+                    if (isAboveFCCBaseClock) {
+                        ctSolver.getFeasibility(problem, callback);
+                    } else {
+                        curSolver.getFeasibility(problem, callback);
+                    }
+                }
+
+                @Override
+                public void waitForAllSubmitted() {
+                    ctSolver.waitForAllSubmitted();
+                    curSolver.waitForAllSubmitted();
+                }
+
+                @Override
+                public void close() throws Exception {
+                    curSolver.close();
+                    ctSolver.close();
+                }
+
+                @Subscribe
+                public void onBaseClockMovedEvent(BaseClockMovedEvent event) {
+                    if (isAboveFCCBaseClock && ((int) event.getBaseClock()) <= SimulatorParameters.FCC_UHF_TO_OFF) {
+                        log.info("Base clock has moved below real auction base clock");
+                        isAboveFCCBaseClock = false;
+                    }
+                }
+
+            };
+            parameters.getEventBus().register(tmp);
+        }
         @Cleanup final IFeasibilitySolver solver = tmp;
 
 
