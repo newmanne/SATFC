@@ -107,19 +107,44 @@ public class MultiBandAuctioneer {
             }
         }
 
-        // Initialize opening benchmarkPrices
-        log.info("Setting opening prices");
-        final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
-        final IPrices<Long> actualPrices = setOpeningPrices.getActualPrices();
-        final IPrices<Double> benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
+        ParticipationRecord participationTmp;
+        IPrices<Double> benchmarkPrices;
+        IPrices<Long> actualPrices;
+        while (true) {
+            // Initialize opening benchmarkPrices
+            log.info("Setting opening prices");
+            final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
+            actualPrices = setOpeningPrices.getActualPrices();
+            benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
 
-        log.info("Figuring out participation");
-        // Figure out participation
-        ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
+            log.info("Figuring out participation");
+            // Figure out participation
+            participationTmp = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
+
+            if (parameters.getRaiseClockToFullParticipation()) {
+                if (participationTmp.getOnAirStations().stream().anyMatch(s -> s.getNationality().equals(Nationality.US))) {
+                    long count = participationTmp.getOnAirStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
+                    long uhfCount = participationTmp.getOnAirStations().stream().filter(s -> s.getNationality().equals(Nationality.US) && s.getHomeBand().equals(Band.UHF)).count();
+                    double newBaseClock = parameters.getUHFToOff() * (1 + (parameters.getR1() / (1 - parameters.getR1())));
+                    log.info("Raising base clock price to get full participation to {}. {} stations not participating, {} UHF.", newBaseClock, count, uhfCount);
+                    parameters.setUHFToOff(newBaseClock);
+                } else {
+                    log.info("Full US participation achieved!");
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        final ParticipationRecord participation = participationTmp;
+
         // This dumps every participating station into OFF. This is fine (provided that the participation decider takes into account that the original OFF offer gives a positive utility), but is an oversimplification due to not simulating the initial clearing target optimization
         for (final IStationInfo s : stationDB.getStations()) {
             ladder.addStation(s, Participation.EXITED.contains(participation.getParticipation(s)) ? s.getHomeBand() : Band.OFF);
         }
+
+
+
 
         final Set<IStationInfo> nonParticipatingUSStations = stationDB.getStations(Nationality.US).stream()
                 .filter(s -> participation.getParticipation(s).equals(Participation.EXITED_NOT_PARTICIPATING)).collect(toSet());
@@ -253,7 +278,7 @@ public class MultiBandAuctioneer {
 
                 @Subscribe
                 public void onBaseClockMovedEvent(BaseClockMovedEvent event) {
-                    if (isAboveFCCBaseClock && ((int) event.getBaseClock()) <= SimulatorParameters.FCC_UHF_TO_OFF) {
+                    if (isAboveFCCBaseClock && (Math.round(event.getBaseClock())) <= SimulatorParameters.FCC_UHF_TO_OFF) {
                         log.info("Base clock has moved below real auction base clock");
                         isAboveFCCBaseClock = false;
                     }
@@ -315,6 +340,7 @@ public class MultiBandAuctioneer {
                         .forwardAuctionAmounts(parameters.getForwardAuctionAmounts())
                         .isEarlyStopping(parameters.isEarlyStopping())
                         .eventBus(parameters.getEventBus())
+                        .lockVHFUntilBase(parameters.getLockVHFUntilBase())
                         .build()
         );
 

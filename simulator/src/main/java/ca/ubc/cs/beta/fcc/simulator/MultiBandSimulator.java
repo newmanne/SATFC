@@ -74,6 +74,7 @@ public class MultiBandSimulator {
     private final List<Long> forwardAuctionAmounts;
     private final boolean earlyStopping;
     private final EventBus eventBus;
+    private final boolean lockVHFUntilBase;
 
     private final SATFCResult FAKE_UNSAT_RESULT = new SATFCResult(SATResult.UNSAT, 0., 0., ImmutableMap.of());
 
@@ -93,6 +94,7 @@ public class MultiBandSimulator {
         this.forwardAuctionAmounts = parameters.getForwardAuctionAmounts();
         this.earlyStopping = parameters.isEarlyStopping();
         this.eventBus = parameters.getEventBus();
+        this.lockVHFUntilBase = parameters.isLockVHFUntilBase();
     }
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
@@ -124,6 +126,7 @@ public class MultiBandSimulator {
             log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
         }
 
+        log.info("There are {} voluntarily exited stations (HB={})", participation.getMatching(Participation.EXITED_VOLUNTARILY).size(), participation.getMatching(Participation.EXITED_VOLUNTARILY).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())));
         log.info("There are {} bidding stations remaining (HB={}), {} provisional winners, and {} frozen currently infeasible stations", participation.getMatching(Participation.BIDDING).size(), participation.getMatching(Participation.BIDDING).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())), participation.getMatching(Participation.FROZEN_PROVISIONALLY_WINNING).size(), participation.getMatching(Participation.FROZEN_CURRENTLY_INFEASIBLE).size());
         final int pendingCatchup = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).size();
         if (pendingCatchup > 0) {
@@ -171,6 +174,15 @@ public class MultiBandSimulator {
         final double newBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
         eventBus.post(new BaseClockMovedEvent(newBaseClockPrice));
+
+        if (lockVHFUntilBase && oldBaseClockPrice > SimulatorParameters.FCC_UHF_TO_OFF && newBaseClockPrice <= SimulatorParameters.FCC_UHF_TO_OFF) {
+            log.info("Resetting benchmark prices for VHF to match UHF");
+            for (IStationInfo s: participation.getMatching(Participation.ACTIVE)) {
+                for (Band b: ladder.getAirBands().stream().filter(Band::isVHF).collect(Collectors.toSet())) {
+                    oldBenchmarkPrices.setPrice(s, b, oldBenchmarkPrices.getPrice(s, b));
+                }
+            }
+        }
 
         final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
         for (IStationInfo station : participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP)) {
@@ -232,9 +244,17 @@ public class MultiBandSimulator {
         final Map<IStationInfo, Bid> stationToBid = new HashMap<>();
         for (IStationInfo station : biddingStations) {
             log.debug("Asking station {} to submit a bid", station);
-            final Map<Band, Long> offers = actualPrices.getOffers(station);
+            Map<Band, Long> offers = actualPrices.getOffers(station);
             log.debug("Offers are {}:", prettyPrintOffers(offers));
             Preconditions.checkState(offers.get(station.getHomeBand()) == 0, "Station %s is being offered money %s to go to its home band!", station, offers.get(station.getHomeBand()));
+
+            if (lockVHFUntilBase && Math.round(newBaseClockPrice) > SimulatorParameters.FCC_UHF_TO_OFF) { // Still in the above region. Remove the VHF options
+                offers = new HashMap<>(offers);
+                for (Band b : ladder.getAirBands().stream().filter(b -> b.isVHF() && !station.getHomeBand().equals(b)).collect(Collectors.toSet())) {
+                    offers.remove(b);
+                }
+            }
+
             final Bid bid = station.queryPreferredBand(offers, ladder.getStationBand(station));
             validateBid(ladder, station, bid);
             stationToBid.put(station, bid);

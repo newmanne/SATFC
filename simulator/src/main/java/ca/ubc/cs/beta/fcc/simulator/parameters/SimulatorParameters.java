@@ -153,6 +153,7 @@ public class SimulatorParameters extends AbstractOptions {
     public final static double FCC_UHF_TO_OFF = 900;
 
     @Getter
+    @Setter
     @Parameter(names = "-UHF-TO-OFF", description = "Price per unit volume if a UHF station moves to OFF")
     private double UHFToOff = FCC_UHF_TO_OFF;
 
@@ -327,6 +328,14 @@ public class SimulatorParameters extends AbstractOptions {
     @Getter
     @Parameter(names = "-SWITCH-FEASIBILITY-AT-BASE", description = "Switch feasibility when the base clock is reached")
     private Boolean switchFeasibility = false;
+
+    @Getter
+    @Parameter(names = "-LOCK-VHF-UNTIL-BASE", description = "The auction is UHF only until the base clock")
+    private Boolean lockVHFUntilBase = false;
+
+    @Getter
+    @Parameter(names = "-RAISE-CLOCK-TO-FULL-PARTICIPATION", description = "Raise the clock until you get full participation")
+    private Boolean raiseClockToFullParticipation = false;
 
 
     public String getInteferenceFolder() {

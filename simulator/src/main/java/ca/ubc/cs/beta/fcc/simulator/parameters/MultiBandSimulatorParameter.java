@@ -35,5 +35,6 @@ public class MultiBandSimulatorParameter {
     private List<Long> forwardAuctionAmounts;
     private boolean isEarlyStopping;
     private EventBus eventBus;
+    private boolean lockVHFUntilBase;
 
 }

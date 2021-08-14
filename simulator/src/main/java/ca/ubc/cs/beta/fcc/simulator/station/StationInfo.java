@@ -126,7 +126,7 @@ public class StationInfo implements IModifiableStationInfo {
     }
 
     public Bid queryPreferredBand(Map<Band, Long> offers, Band currentBand) {
-        Preconditions.checkState(offers.get(homeBand) == 0, "Station being offered compensation for exiting!");
+//        Preconditions.checkState(offers.get(homeBand) == 0, "Station being offered compensation for exiting!");
         final Map<Band, Long> utilityOffers = offers.entrySet().stream().collect(toImmutableMap(Map.Entry::getKey, s -> getUtility(s.getKey(), s.getValue())));
         final Ordering<Band> primaryOrder = Ordering.natural().onResultOf(Functions.forMap(utilityOffers));
         final Ordering<Band> compound = primaryOrder.compound(Comparator.comparingInt(Band::ordinal));
