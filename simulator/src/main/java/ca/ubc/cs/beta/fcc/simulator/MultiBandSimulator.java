@@ -38,6 +38,7 @@ import ca.ubc.cs.beta.stationpacking.utils.Watch;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.eventbus.EventBus;
+import com.google.common.math.DoubleMath;
 import humanize.Humanize;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.util.MathUtils;
@@ -181,7 +182,7 @@ public class MultiBandSimulator {
 
 
         // If it's close, just set it to 900 so you don't have any headaches with comparison
-        if (roundTracker.getStage() == 1 && Precision.equals(tmpNewBaseClockPrice, SimulatorParameters.FCC_UHF_TO_OFF, 1)) {
+        if (roundTracker.getStage() == 1 && DoubleMath.fuzzyEquals(tmpNewBaseClockPrice, SimulatorParameters.FCC_UHF_TO_OFF, 1)) {
             tmpNewBaseClockPrice = SimulatorParameters.FCC_UHF_TO_OFF;
             vhfUnlockedThisRound = true;
             decrement = oldBaseClockPrice - SimulatorParameters.FCC_UHF_TO_OFF; // smooth out the decrement also
