@@ -36,5 +36,7 @@ public class MultiBandSimulatorParameter {
     private boolean isEarlyStopping;
     private EventBus eventBus;
     private boolean lockVHFUntilBase;
+    // I resisted adding this, but it's too annoying not to have it
+    private MultiBandSimulatorParameters allParameters;
 
 }

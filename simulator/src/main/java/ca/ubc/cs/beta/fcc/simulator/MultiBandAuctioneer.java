@@ -341,6 +341,7 @@ public class MultiBandAuctioneer {
                         .isEarlyStopping(parameters.isEarlyStopping())
                         .eventBus(parameters.getEventBus())
                         .lockVHFUntilBase(parameters.getLockVHFUntilBase())
+                        .allParameters(parameters)
                         .build()
         );
 
