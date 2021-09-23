@@ -175,7 +175,6 @@ public class MultiBandSimulator {
         double decrement = mutableDecrement;
 
 
-        boolean vhfUnlockedThisRound = false;
 
         // This is the benchmark price for a UHF station to go off air
         double tmpNewBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
@@ -184,7 +183,6 @@ public class MultiBandSimulator {
         // If it's close, just set it to 900 so you don't have any headaches with comparison
         if (roundTracker.getStage() == 1 && DoubleMath.fuzzyEquals(tmpNewBaseClockPrice, SimulatorParameters.FCC_UHF_TO_OFF, 1)) {
             tmpNewBaseClockPrice = SimulatorParameters.FCC_UHF_TO_OFF;
-            vhfUnlockedThisRound = true;
             decrement = oldBaseClockPrice - SimulatorParameters.FCC_UHF_TO_OFF; // smooth out the decrement also
         }
 
@@ -194,16 +192,6 @@ public class MultiBandSimulator {
 
         log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
         eventBus.post(new BaseClockMovedEvent(newBaseClockPrice));
-
-        if (lockVHFUntilBase && vhfUnlockedThisRound) {
-            log.info("Resetting VHF benchmark prices to what they would normally be at the start of the auction");
-            for (IStationInfo s: participation.getMatching(Participation.ACTIVE)) {
-                for (Band b: ladder.getAirBands().stream().filter(Band::isVHF).collect(Collectors.toSet())) {
-                    // UHF/OFF prices shouldn't need help, but the VHF benchmarks will be all wonky
-                    oldBenchmarkPrices.setPrice(s, b, allParameters.getOpeningBenchmarkPrices().get(b));
-                }
-            }
-        }
 
         final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
         for (IStationInfo station : participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP)) {
@@ -237,6 +225,11 @@ public class MultiBandSimulator {
 
         for (IStationInfo station : participation.getMatching(Sets.difference(Participation.ACTIVE, ImmutableSet.of(Participation.FROZEN_PENDING_CATCH_UP)))) {
             for (Band band : ladder.getBands()) {
+                if (!vhfUnlocked && band.isVHF()) {
+                    // Don't change any benchmark prices for VHF bands until the time at which VHF unlocks
+                    continue;
+                }
+
                 // If this station were a "comparable" UHF station, the prices for all of the moves...
                 // Use the personal decrement when available (because the station is newly caught up), otherwise use the normal decrement
                 final double benchmarkValue = oldBenchmarkPrices.getPrice(station, band) - reductionCoefficients.get(station, band) * personalDecrements.getOrDefault(station, decrement);

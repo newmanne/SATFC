@@ -40,6 +40,9 @@ public class MultiBandSimulatorParameters extends SimulatorParameters {
     }
 
     public Map<Band, Double> getOpeningBenchmarkPrices() {
+        if (getLockVHFUntilBase()) {
+            return ImmutableMap.of(Band.UHF, 0., Band.OFF, getUHFToOff(), Band.HVHF, getUHFToHVHFFrac() * Math.max(getUHFToOff(), SimulatorParameters.FCC_UHF_TO_OFF), Band.LVHF, getUHFToLVHFFrac() * Math.max(getUHFToOff(), SimulatorParameters.FCC_UHF_TO_OFF));
+        }
         return ImmutableMap.of(Band.UHF, 0., Band.OFF, getUHFToOff(), Band.HVHF, getUHFToHVHFFrac() * getUHFToOff(), Band.LVHF, getUHFToLVHFFrac() * getUHFToOff());
     }
 
