@@ -227,6 +227,7 @@ public class MultiBandSimulator {
             for (Band band : ladder.getBands()) {
                 if (!vhfUnlocked && band.isVHF()) {
                     // Don't change any benchmark prices for VHF bands until the time at which VHF unlocks
+                    newBenchmarkPrices.setPrice(station, band, oldBenchmarkPrices.getPrice(station, band));
                     continue;
                 }
 
