@@ -110,10 +110,11 @@ public class MultiBandAuctioneer {
         ParticipationRecord participationTmp;
         IPrices<Double> benchmarkPrices;
         IPrices<Long> actualPrices;
+        double newBaseClockPrice = parameters.getUHFToOff();
         while (true) {
             // Initialize opening benchmarkPrices
             log.info("Setting opening prices");
-            final OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
+            final OpeningPrices setOpeningPrices = setOpeningPrices(parameters, newBaseClockPrice);
             actualPrices = setOpeningPrices.getActualPrices();
             benchmarkPrices = setOpeningPrices.getBenchmarkPrices();
 
@@ -122,12 +123,10 @@ public class MultiBandAuctioneer {
             participationTmp = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
 
             if (parameters.getRaiseClockToFullParticipation()) {
-                if (participationTmp.getOnAirStations().stream().anyMatch(s -> s.getNationality().equals(Nationality.US))) {
-                    long count = participationTmp.getOnAirStations().stream().filter(s -> s.getNationality().equals(Nationality.US)).count();
-                    long uhfCount = participationTmp.getOnAirStations().stream().filter(s -> s.getNationality().equals(Nationality.US) && s.getHomeBand().equals(Band.UHF)).count();
-                    double newBaseClock = parameters.getUHFToOff() * (1 + (parameters.getR1() / (1 - parameters.getR1())));
-                    log.info("Raising base clock price to get full participation to {}. {} stations not participating, {} UHF.", newBaseClock, count, uhfCount);
-                    parameters.setUHFToOff(newBaseClock);
+                long uhfCount = participationTmp.getOnAirStations().stream().filter(s -> s.getNationality().equals(Nationality.US) && s.getHomeBand().equals(Band.UHF)).count();
+                if (uhfCount > 0) {
+                    newBaseClockPrice = newBaseClockPrice * (1 + (parameters.getR1() / (1 - parameters.getR1())));
+                    log.info("Raising base clock price to {} get full UHF participation. {} UHF stations not participating,.", newBaseClockPrice, uhfCount);
                 } else {
                     log.info("Full US participation achieved!");
                     break;
@@ -142,8 +141,6 @@ public class MultiBandAuctioneer {
         for (final IStationInfo s : stationDB.getStations()) {
             ladder.addStation(s, Participation.EXITED.contains(participation.getParticipation(s)) ? s.getHomeBand() : Band.OFF);
         }
-
-
 
 
         final Set<IStationInfo> nonParticipatingUSStations = stationDB.getStations(Nationality.US).stream()
@@ -278,7 +275,7 @@ public class MultiBandAuctioneer {
 
                 @Subscribe
                 public void onBaseClockMovedEvent(BaseClockMovedEvent event) {
-                    if (isAboveFCCBaseClock && (Math.round(event.getBaseClock())) <= SimulatorParameters.FCC_UHF_TO_OFF) {
+                    if (isAboveFCCBaseClock && (Math.round(event.getBaseClock())) <= SimulatorParameters.FCC_UHF_TO_OFF * 0.95) {
                         log.info("Base clock has moved below real auction base clock");
                         isAboveFCCBaseClock = false;
                     }
@@ -307,7 +304,7 @@ public class MultiBandAuctioneer {
                 .ladder(ladder)
                 .stage(roundTracker.getStage())
                 .prices(initialCompensations)
-                .baseClockPrice(parameters.getOpeningBenchmarkPrices().get(Band.OFF))
+                .baseClockPrice(newBaseClockPrice)
                 .offers(actualPrices)
                 .earlyStopped(false)
                 .catchupPoints(new HashMap<>())
@@ -515,20 +512,24 @@ public class MultiBandAuctioneer {
         private final IPrices<Long> actualPrices;
     }
 
-    public static OpeningPrices setOpeningPrices(MultiBandSimulatorParameters parameters) {
+    public static OpeningPrices setOpeningPrices(MultiBandSimulatorParameters parameters, double UHFToOff) {
         final IPrices<Double> benchmarkPrices = new PricesImpl<>();
         final IPrices<Long> actualPrices = new PricesImpl<>();
 
-        final Map<Band, Double> openingPricesPerUnitVolume = parameters.getOpeningBenchmarkPrices();
+        // Mess around and only raise the OFF price
+        final Map<Band, Double> openingPricesPerUnitVolume = parameters.getFixedOpeningBenchmarkPrices(UHFToOff);
+        final Map<Band, Double> fccOpeningPricesPerUnitVolume = parameters.getFCCOpeningBenchmarkPrices();
+
         final IStationDB stationDB = parameters.getStationDB();
 
         for (final IStationInfo s : stationDB.getStations()) {
             if (s.getNationality().equals(Nationality.CA)) {
                 continue;
             }
+            Map<Band, Double> perUnits = s.getHomeBand().isVHF() ? fccOpeningPricesPerUnitVolume : openingPricesPerUnitVolume;
             // In round 0, the benchmark prices of all stations are set equal to the opening benchmark prices of UHF stations, irrespective of home band
             for (Band band : parameters.getAuctionBands()) {
-                benchmarkPrices.setPrice(s, band, openingPricesPerUnitVolume.get(band));
+                benchmarkPrices.setPrice(s, band, perUnits.get(band));
             }
             for (Band band : parameters.getAuctionBands()) {
                 actualPrices.setPrice(s, band, SimulatorUtils.benchmarkToActualPrice(s, band, benchmarkPrices.getOffers(s)));

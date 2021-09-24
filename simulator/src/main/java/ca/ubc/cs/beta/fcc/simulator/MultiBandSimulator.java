@@ -138,9 +138,46 @@ public class MultiBandSimulator {
             log.info("There are {} stations frozen pending catchup", pendingCatchup);
         }
 
+        log.info("Calculating new benchmark prices...");
+        // Either 5% of previous value or 1% of starting value
+        final Function<Double, Double> calcDecrement = r1 -> Math.max(r1 * oldBaseClockPrice, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF));
+        double mutableDecrement = calcDecrement.apply(parameters.getR1());
+        double proposedNewBaseClockPrice = oldBaseClockPrice - mutableDecrement;
+
+        // Check for empty rounds
+        final OptionalDouble maxCatchupPoint = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).stream().mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max();
+        if (participation.getMatching(Participation.BIDDING).isEmpty() && maxCatchupPoint.isPresent() && proposedNewBaseClockPrice > maxCatchupPoint.getAsDouble()) {
+            // Need to prevent an empty round
+            final double r1 = Precision.round((oldBaseClockPrice - maxCatchupPoint.getAsDouble()) / oldBaseClockPrice, 2, BigDecimal.ROUND_CEILING);
+            log.info("Preventing an empty round by using R1={} due to base clock being at {} after a normal decrement and our highest uncaught station at {}", r1, proposedNewBaseClockPrice, maxCatchupPoint.getAsDouble());
+            mutableDecrement = calcDecrement.apply(r1);
+        }
+
+        double decrement = mutableDecrement;
+
+        // This is the benchmark price for a UHF station to go off air
+        double tmpNewBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
+
+
+        // If it's close, just set it to 900 so you don't have any headaches with comparison
+        if (roundTracker.getStage() == 1 && DoubleMath.fuzzyEquals(tmpNewBaseClockPrice, SimulatorParameters.FCC_UHF_TO_OFF, 1)) {
+            tmpNewBaseClockPrice = SimulatorParameters.FCC_UHF_TO_OFF;
+            decrement = oldBaseClockPrice - SimulatorParameters.FCC_UHF_TO_OFF; // smooth out the decrement also
+        }
+
+        final double newBaseClockPrice = tmpNewBaseClockPrice;
+
+        final boolean vhfUnlocked = !lockVHFUntilBase || newBaseClockPrice <= SimulatorParameters.FCC_UHF_TO_OFF * 0.95; // Unlock at 855
+        if (!vhfUnlocked) {
+            log.info("VHF is locked this round");
+        }
+
+        log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
+        eventBus.post(new BaseClockMovedEvent(newBaseClockPrice));
+
         final ImmutableTable<IStationInfo, Band, Double> reductionCoefficients;
         final ImmutableTable<IStationInfo, Band, Double> vacancies;
-        if (ladder.getAirBands().stream().anyMatch(Band::isVHF)) {
+        if (vhfUnlocked && ladder.getAirBands().stream().anyMatch(Band::isVHF)) {
             log.info("Computing vacancies...");
             vacancies = vacancyCalculator.computeVacancies(participation.getMatching(Participation.ACTIVE), ladder, previousState.getBenchmarkPrices());
 
@@ -157,41 +194,6 @@ public class MultiBandSimulator {
             reductionCoefficients = builder.build();
         }
 
-        log.info("Calculating new benchmark prices...");
-        // Either 5% of previous value or 1% of starting value
-        final Function<Double, Double> calcDecrement = r1 -> Math.max(r1 * oldBaseClockPrice, Math.min(9, parameters.getR2() * parameters.getOpeningBenchmarkPrices().get(Band.OFF)));
-        double mutableDecrement = calcDecrement.apply(parameters.getR1());
-        double proposedNewBaseClockPrice = oldBaseClockPrice - mutableDecrement;
-
-        // Check for empty rounds
-        final OptionalDouble maxCatchupPoint = participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP).stream().mapToDouble(s -> catchupPoints.get(s).getCatchUpPoint()).max();
-        if (participation.getMatching(Participation.BIDDING).isEmpty() && maxCatchupPoint.isPresent() && proposedNewBaseClockPrice > maxCatchupPoint.getAsDouble()) {
-            // Need to prevent an empty round
-            final double r1 = Precision.round((oldBaseClockPrice - maxCatchupPoint.getAsDouble()) / oldBaseClockPrice, 2, BigDecimal.ROUND_CEILING);
-            log.info("Preventing an empty round by using R1={} due to base clock being at {} after a normal decrement and our highest uncaught station at {}", r1, proposedNewBaseClockPrice, maxCatchupPoint.getAsDouble());
-            mutableDecrement = calcDecrement.apply(r1);
-        }
-
-        double decrement = mutableDecrement;
-
-
-
-        // This is the benchmark price for a UHF station to go off air
-        double tmpNewBaseClockPrice = Math.max(oldBaseClockPrice - decrement, 0);
-
-
-        // If it's close, just set it to 900 so you don't have any headaches with comparison
-        if (roundTracker.getStage() == 1 && DoubleMath.fuzzyEquals(tmpNewBaseClockPrice, SimulatorParameters.FCC_UHF_TO_OFF, 1)) {
-            tmpNewBaseClockPrice = SimulatorParameters.FCC_UHF_TO_OFF;
-            decrement = oldBaseClockPrice - SimulatorParameters.FCC_UHF_TO_OFF; // smooth out the decrement also
-        }
-
-        final double newBaseClockPrice = tmpNewBaseClockPrice;
-
-        final boolean vhfUnlocked = newBaseClockPrice <= SimulatorParameters.FCC_UHF_TO_OFF;
-
-        log.info("Base clock moved from {} to {}. Decrement this round is {}", oldBaseClockPrice, newBaseClockPrice, decrement);
-        eventBus.post(new BaseClockMovedEvent(newBaseClockPrice));
 
         final ImmutableMap.Builder<IStationInfo, Double> personalDecrementsBuilder = ImmutableMap.builder();
         for (IStationInfo station : participation.getMatching(Participation.FROZEN_PENDING_CATCH_UP)) {
@@ -225,8 +227,8 @@ public class MultiBandSimulator {
 
         for (IStationInfo station : participation.getMatching(Sets.difference(Participation.ACTIVE, ImmutableSet.of(Participation.FROZEN_PENDING_CATCH_UP)))) {
             for (Band band : ladder.getBands()) {
-                if (!vhfUnlocked && band.isVHF()) {
-                    // Don't change any benchmark prices for VHF bands until the time at which VHF unlocks
+                if (!vhfUnlocked && (band.isVHF() || station.getHomeBand().isVHF())) {
+                    // Don't change any benchmark prices for VHF bands or VHF stations until the time at which VHF unlocks
                     newBenchmarkPrices.setPrice(station, band, oldBenchmarkPrices.getPrice(station, band));
                     continue;
                 }
@@ -237,6 +239,9 @@ public class MultiBandSimulator {
                 newBenchmarkPrices.setPrice(station, band, Math.max(0, benchmarkValue));
             }
             for (Band band : ladder.getPossibleMoves(station)) {
+                if (!vhfUnlocked && band.isVHF()) {
+                    continue;
+                }
                 final long newPrice = SimulatorUtils.benchmarkToActualPrice(station, band, newBenchmarkPrices.getOffers(station));
                 if (actualPrices.getOffers(station).keySet().contains(band)) {
                     final long prevPrice = actualPrices.getPrice(station, band);
@@ -256,6 +261,10 @@ public class MultiBandSimulator {
         log.info("Collecting bids");
         // Collect bids from bidding stations
         final Set<IStationInfo> biddingStations = participation.getMatching(Participation.BIDDING);
+        if (!vhfUnlocked) {
+            biddingStations.removeAll(biddingStations.stream().filter(s -> s.getHomeBand().isVHF()).collect(Collectors.toSet()));
+        }
+
         final Map<IStationInfo, Bid> stationToBid = new HashMap<>();
         for (IStationInfo station : biddingStations) {
             log.debug("Asking station {} to submit a bid", station);
@@ -263,7 +272,7 @@ public class MultiBandSimulator {
             log.debug("Offers are {}:", prettyPrintOffers(offers));
             Preconditions.checkState(offers.get(station.getHomeBand()) == 0, "Station %s is being offered money %s to go to its home band!", station, offers.get(station.getHomeBand()));
 
-            if (lockVHFUntilBase && !vhfUnlocked) { // Still in the above region. Remove the VHF options
+            if (!vhfUnlocked) { // Still in the above region. Remove the VHF options
                 offers = new HashMap<>(offers);
                 for (Band b : ladder.getAirBands().stream().filter(b -> b.isVHF() && !station.getHomeBand().equals(b)).collect(Collectors.toSet())) {
                     offers.remove(b);
@@ -278,7 +287,7 @@ public class MultiBandSimulator {
 
         log.info("Processing bids");
         // TODO: You may want to play with the orderer for the first-to-finish algorithm, because in practice without N (stations) number of CPUs, it will matter a TON!
-        final ImmutableList<IStationInfo> stationsToQueryOrdering = stationOrderer.getQueryOrder(participation.getMatching(Participation.BIDDING), actualPrices, ladder, previousState.getPrices());
+        final ImmutableList<IStationInfo> stationsToQueryOrdering = stationOrderer.getQueryOrder(biddingStations, actualPrices, ladder, previousState.getPrices());
         final List<IStationInfo> stationsToQuery = new ArrayList<>(stationsToQueryOrdering);
 
         // TODO: Can you move these to their own class or something?

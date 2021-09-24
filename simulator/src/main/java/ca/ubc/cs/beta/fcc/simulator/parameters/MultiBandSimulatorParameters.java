@@ -39,12 +39,22 @@ public class MultiBandSimulatorParameters extends SimulatorParameters {
         super.setUp();
     }
 
-    public Map<Band, Double> getOpeningBenchmarkPrices() {
-        if (getLockVHFUntilBase()) {
-            return ImmutableMap.of(Band.UHF, 0., Band.OFF, getUHFToOff(), Band.HVHF, getUHFToHVHFFrac() * Math.max(getUHFToOff(), SimulatorParameters.FCC_UHF_TO_OFF), Band.LVHF, getUHFToLVHFFrac() * Math.max(getUHFToOff(), SimulatorParameters.FCC_UHF_TO_OFF));
-        }
-        return ImmutableMap.of(Band.UHF, 0., Band.OFF, getUHFToOff(), Band.HVHF, getUHFToHVHFFrac() * getUHFToOff(), Band.LVHF, getUHFToLVHFFrac() * getUHFToOff());
+    public Map<Band, Double> getFCCOpeningBenchmarkPrices() {
+        return getOpeningBenchmarkPrices(SimulatorParameters.FCC_UHF_TO_OFF);
     }
+
+    public Map<Band, Double> getFixedOpeningBenchmarkPrices(double UHFtoOff) {
+        return ImmutableMap.of(Band.UHF, 0., Band.OFF, UHFtoOff, Band.HVHF, getUHFToHVHFFrac() * SimulatorParameters.FCC_UHF_TO_OFF, Band.LVHF, getUHFToLVHFFrac() * SimulatorParameters.FCC_UHF_TO_OFF);
+    }
+
+    public Map<Band, Double> getOpeningBenchmarkPrices(double UHFtoOff) {
+        return ImmutableMap.of(Band.UHF, 0., Band.OFF, UHFtoOff, Band.HVHF, getUHFToHVHFFrac() * UHFtoOff, Band.LVHF, getUHFToLVHFFrac() * UHFtoOff);
+    }
+
+    public Map<Band, Double> getOpeningBenchmarkPrices() {
+        return getOpeningBenchmarkPrices(getUHFToOff());
+    }
+
 
     public LadderAuctionParameters getLadderAuctionParameter() {
         return LadderAuctionParameters
