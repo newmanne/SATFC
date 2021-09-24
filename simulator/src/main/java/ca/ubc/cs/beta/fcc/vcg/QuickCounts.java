@@ -45,64 +45,64 @@ public class QuickCounts {
     private static Logger log;
 
     public static void main(String[] args) throws IloException, IOException {
-        final VCGParameters z = new VCGParameters();
-        JCommanderHelper.parseCheckingForHelpAndVersion(args, z);
-        final MultiBandSimulatorParameters parameters = z.simulatorParameters;
-        SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
-        JCommanderHelper.logCallString(args, QuickCounts.class);
-        log = LoggerFactory.getLogger(QuickCounts.class);
-
-        SATFCFacade solver = new SATFCFacadeBuilder().build();
-
-        parameters.setUp();
-        if (parameters.getStationsToUseFile() != null) {
-            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(parameters.getStationsToUseFile());
-            for (CSVRecord record : csvRecords) {
-                int facID = Integer.parseInt(record.get("FacID"));
-                parameters.getStationDB().removeStation(facID);
-                log.info("Removing station {}", facID);
-            }
-        }
-
-        // Set up CT for 84 MHz
-        SimulatorUtils.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
-
-        final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
-        final VCGMip.IMIPEncoder clearingTargetOptimizationMIP = new ClearingTargetOptimizationMIP();
-        final VCGMip.MIPMaker mipMaker;
-        mipMaker = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIP);
-
-        // Set up counts
-        final Map<Integer, Integer> counts = new HashMap<>();
-        for (IStationInfo s : parameters.getStationDB().getStations()) {
-            counts.put(s.getId(), 0);
-        }
-
-        int goodCount = 0;
-
-        for (int j = 0; j < 1000; j++) {
-            log.info("Good count is {} out of {} trials", goodCount, j);
-
-            log.info("" + j);
-            SimulatorUtils.assignValues(parameters);
-            // Figure out participation
-            final MultiBandAuctioneer.OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
-            final IPrices<Long> actualPrices = setOpeningPrices.getActualPrices();
-            ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
-            final Set<IStationInfo> notParticipating = participation.getMatching(Participation.INACTIVE);
-
-            final Map<Integer, Set<Integer>> domains = notParticipating
-                    .stream().collect(toMap(
-                            IStationInfo::getId,
-                            s -> s.getDomain(s.getHomeBand())
-                    ));
-
-            SATFCResult satfcResult = solver.solve(domains, new HashMap<>(), 60, 1, parameters.getStationInfoFolder());
-
-            if (satfcResult.getResult().equals(SATResult.SAT)) {
-                log.info("No impairing stations");
-                goodCount++;
-            } else {
+//        final VCGParameters z = new VCGParameters();
+//        JCommanderHelper.parseCheckingForHelpAndVersion(args, z);
+//        final MultiBandSimulatorParameters parameters = z.simulatorParameters;
+//        SATFCFacadeBuilder.initializeLogging(parameters.getFacadeParameters().getLogLevel(), parameters.getFacadeParameters().logFileName);
+//        JCommanderHelper.logCallString(args, QuickCounts.class);
+//        log = LoggerFactory.getLogger(QuickCounts.class);
+//
+//        SATFCFacade solver = new SATFCFacadeBuilder().build();
+//
+//        parameters.setUp();
+//        if (parameters.getStationsToUseFile() != null) {
+//            Iterable<CSVRecord> csvRecords = SimulatorUtils.readCSV(parameters.getStationsToUseFile());
+//            for (CSVRecord record : csvRecords) {
+//                int facID = Integer.parseInt(record.get("FacID"));
+//                parameters.getStationDB().removeStation(facID);
+//                log.info("Removing station {}", facID);
+//            }
+//        }
+//
+//        // Set up CT for 84 MHz
+//        SimulatorUtils.adjustCTSimple(parameters.getMaxChannel(), parameters.getStationDB());
+//
+//        final IStationDB.IModifiableStationDB stationDB = parameters.getStationDB();
+//        final VCGMip.IMIPEncoder clearingTargetOptimizationMIP = new ClearingTargetOptimizationMIP();
+//        final VCGMip.MIPMaker mipMaker;
+//        mipMaker = new VCGMip.MIPMaker(stationDB, parameters.getStationManager(), parameters.getConstraintManager(), clearingTargetOptimizationMIP);
+//
+//        // Set up counts
+//        final Map<Integer, Integer> counts = new HashMap<>();
+//        for (IStationInfo s : parameters.getStationDB().getStations()) {
+//            counts.put(s.getId(), 0);
+//        }
+//
+//        int goodCount = 0;
+//
+//        for (int j = 0; j < 1000; j++) {
+//            log.info("Good count is {} out of {} trials", goodCount, j);
+//
+//            log.info("" + j);
+//            SimulatorUtils.assignValues(parameters);
+//            // Figure out participation
+//            final MultiBandAuctioneer.OpeningPrices setOpeningPrices = setOpeningPrices(parameters);
+//            final IPrices<Long> actualPrices = setOpeningPrices.getActualPrices();
+//            ParticipationRecord participation = new ParticipationRecord(stationDB, parameters.getParticipationDecider(actualPrices));
+//            final Set<IStationInfo> notParticipating = participation.getMatching(Participation.INACTIVE);
+//
+//            final Map<Integer, Set<Integer>> domains = notParticipating
+//                    .stream().collect(toMap(
+//                            IStationInfo::getId,
+//                            s -> s.getDomain(s.getHomeBand())
+//                    ));
+//
+//            SATFCResult satfcResult = solver.solve(domains, new HashMap<>(), 60, 1, parameters.getStationInfoFolder());
+//
+//            if (satfcResult.getResult().equals(SATResult.SAT)) {
+//                log.info("No impairing stations");
+//                goodCount++;
+//            } else {
 //                final Map<Integer, Set<Integer>> impairingDomains = notParticipating
 //                        .stream().collect(toMap(
 //                                IStationInfo::getId,
@@ -158,16 +158,16 @@ public class QuickCounts {
 //                    counts.put(s.getId(), counts.get(s.getId()) + 1);
 //                }
 
-            }
-
-        }
-
-        log.info("Good count is {}", goodCount);
-
-        log.info("" + JSONUtils.toString(counts));
-        log.info("Max value is " + counts.values().stream().mapToInt(s -> s).max().getAsInt());
-
-
+//            }
+//
+//        }
+//
+//        log.info("Good count is {}", goodCount);
+//
+//        log.info("" + JSONUtils.toString(counts));
+//        log.info("Max value is " + counts.values().stream().mapToInt(s -> s).max().getAsInt());
+//
+//
     }
 
 }
