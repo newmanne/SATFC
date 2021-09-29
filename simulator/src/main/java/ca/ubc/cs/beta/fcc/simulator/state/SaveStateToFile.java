@@ -60,7 +60,6 @@ public class SaveStateToFile implements IStateSaver {
         int greedySolved;
         UHFCacheState uhfCacheState;
 
-
         long biddingCompensation;
         long currentlyInfeasibleCompensation;
         long pendingCatchUpCompensation;
@@ -83,6 +82,8 @@ public class SaveStateToFile implements IStateSaver {
         Map<Band, Long> values;
         CatchupPoint catchupPoint;
         Boolean impaired;
+        Band homeband;
+
     }
 
     @Data
@@ -120,6 +121,7 @@ public class SaveStateToFile implements IStateSaver {
                     .values(s.getValues())
                     .catchupPoint(state.getCatchupPoints().get(s))
                     .impaired(s.isImpaired())
+                    .homeband(s.getHomeBand())
                     .participation(state.getParticipation().getParticipation(s));
             if (state.getRound() > 0) {
                 stationState.vacancies(state.getVacancies().row(s))
