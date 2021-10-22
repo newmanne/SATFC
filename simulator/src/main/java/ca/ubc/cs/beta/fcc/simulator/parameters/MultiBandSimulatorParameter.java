@@ -5,6 +5,7 @@ import ca.ubc.cs.beta.fcc.simulator.prevassign.IPreviousAssignmentHandler;
 import ca.ubc.cs.beta.fcc.simulator.prices.IPricesFactory;
 import ca.ubc.cs.beta.fcc.simulator.solver.IFeasibilitySolver;
 import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
+import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
 import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.vacancy.IVacancyCalculator;
 import ca.ubc.cs.beta.stationpacking.datamanagers.constraints.IConstraintManager;
@@ -14,6 +15,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by newmanne on 2016-10-02.
@@ -38,5 +40,6 @@ public class MultiBandSimulatorParameter {
     private boolean lockVHFUntilBase;
     // I resisted adding this, but it's too annoying not to have it
     private MultiBandSimulatorParameters allParameters;
+    private Map<IStationInfo, Long> fccPrices;
 
 }

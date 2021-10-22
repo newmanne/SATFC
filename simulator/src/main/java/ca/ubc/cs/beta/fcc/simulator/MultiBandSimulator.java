@@ -81,6 +81,7 @@ public class MultiBandSimulator {
 
     private final SATFCResult FAKE_UNSAT_RESULT = new SATFCResult(SATResult.UNSAT, 0., 0., ImmutableMap.of());
     private final MultiBandSimulatorParameters allParameters;
+    private final Map<IStationInfo, Long> fccPrices;
 
     public MultiBandSimulator(MultiBandSimulatorParameter parameters) {
         this.parameters = parameters.getParameters();
@@ -100,6 +101,7 @@ public class MultiBandSimulator {
         this.eventBus = parameters.getEventBus();
         this.lockVHFUntilBase = parameters.isLockVHFUntilBase();
         this.allParameters = parameters.getAllParameters();
+        this.fccPrices = parameters.getFccPrices();
     }
 
     public LadderAuctionState executeRound(LadderAuctionState previousState) {
@@ -128,7 +130,10 @@ public class MultiBandSimulator {
         // Start of a new stage. Stations may have unfrozen, what is the new provisional cost?
         if (roundTracker.getStage() > 1 && roundTracker.getRound() == 1) {
             final long provisionalCost = provisionalCost(stationPrices, participation);
+            final long provisionalCostExclude = provisionalCost(stationPrices, participation, true);
             log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
+            log.info("Exclude Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCostExclude));
+
         }
 
         log.info("There are {} voluntarily exited stations (HB={})", participation.getMatching(Participation.EXITED_VOLUNTARILY).size(), participation.getMatching(Participation.EXITED_VOLUNTARILY).stream().collect(Collectors.groupingBy(IStationInfo::getHomeBand, Collectors.counting())));
@@ -292,7 +297,7 @@ public class MultiBandSimulator {
 
         // TODO: Can you move these to their own class or something?
         boolean earlyTermination = false;
-        long runningProvisionalCost = provisionalCost(stationPrices, participation);
+        long runningProvisionalCost = provisionalCost(stationPrices, participation, true);
         final Set<IStationInfo> willBeFrozen = new HashSet<>();
         // When using a BP algorithm that doesn't freeze timeouts, track these stations
         final Set<IStationInfo> timeoutStations = new HashSet<>();
@@ -327,7 +332,7 @@ public class MultiBandSimulator {
                                 if (homeBandFeasibility.getSATFCResult().getResult().isConclusive() || !bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
                                     log.info("Station {} will become a provisional winner at the end of this round for {}", station, Humanize.spellBigNumber(stationPrices.get(station)));
                                 }
-                                if (earlyTerminationPossible) {
+                                if (earlyTerminationPossible && vhfUnlocked) { // Only count this if the station is below FCC prices
                                     runningProvisionalCost += stationPrices.get(station);
                                     if (runningProvisionalCost > forwardAuctionAmounts.get(roundTracker.getStage() - 1)) {
                                         log.info("Clearing costs are {} exceeding forward auction costs of {}, terminating the bid processing", runningProvisionalCost, forwardAuctionAmounts.get(roundTracker.getStage() - 1));
@@ -535,7 +540,9 @@ public class MultiBandSimulator {
 
         if (!earlyTermination) {
             final long provisionalCost = provisionalCost(stationPrices, participation);
+            final long provisionalCostExclude = provisionalCost(stationPrices, participation, true);
             log.info("Provisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCost));
+            log.info("Exclude proivisional clearing cost for this stage is at least {} (FROZEN_PROVISIONALLY_WINNING)", Humanize.spellBigNumber(provisionalCostExclude));
         }
 
         return LadderAuctionState.builder()
@@ -560,11 +567,15 @@ public class MultiBandSimulator {
                 .build();
     }
 
-    private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation) {
-        return stationPrices.entrySet().stream().filter(e -> participation.getParticipation(e.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING)).mapToLong(Entry::getValue).sum();
+    private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation, boolean excludePreFCCStations) {
+        return stationPrices.entrySet().stream().filter(e -> participation.getParticipation(e.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING) && (!excludePreFCCStations || e.getValue() <= fccPrices.get(e.getKey()))).mapToLong(Entry::getValue).sum();
     }
 
-    static void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Long> stationPrices) {
+    private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation) {
+        return provisionalCost(stationPrices, participation, false);
+    }
+
+        static void exitStation(IStationInfo station, Participation exitStatus, Map<Integer, Integer> newAssignment, ParticipationRecord participation, IModifiableLadder ladder, Map<IStationInfo, Long> stationPrices) {
         Preconditions.checkState(Participation.EXITED.contains(exitStatus), "Must be an exit Participation");
         log.info("Station {} (currently on band {}) is exiting, {}", station, ladder.getStationBand(station), exitStatus);
         participation.setParticipation(station, exitStatus);

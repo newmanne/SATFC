@@ -107,6 +107,15 @@ public class MultiBandAuctioneer {
             }
         }
 
+        final Map<IStationInfo, Long> fccPrices = new HashMap<>();
+        for (final IStationInfo s : stationDB.getStations()) {
+            if (s.getNationality().equals(Nationality.CA) || s.getHomeBand().isVHF()) {
+                continue;
+            }
+            fccPrices.put(s, (long) (s.getVolume() * SimulatorParameters.FCC_UHF_TO_OFF));
+        }
+
+
         ParticipationRecord participationTmp;
         IPrices<Double> benchmarkPrices;
         IPrices<Long> actualPrices;
@@ -339,6 +348,7 @@ public class MultiBandAuctioneer {
                         .eventBus(parameters.getEventBus())
                         .lockVHFUntilBase(parameters.getLockVHFUntilBase())
                         .allParameters(parameters)
+                        .fccPrices(fccPrices)
                         .build()
         );
 
