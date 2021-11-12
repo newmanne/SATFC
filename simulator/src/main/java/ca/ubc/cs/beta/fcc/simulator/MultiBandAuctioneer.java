@@ -250,10 +250,6 @@ public class MultiBandAuctioneer {
             problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
         }
 
-        final TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(tmp, simulatorWatch, simulatorCPU);
-        tmp = timeTrackingDecorator;
-        parameters.getEventBus().register(tmp);
-
         if (parameters.getSwitchFeasibility()) {
             // Once you get below the price, switch the feasibility checker
             final IFeasibilitySolver curSolver = tmp;
@@ -293,6 +289,10 @@ public class MultiBandAuctioneer {
             };
             parameters.getEventBus().register(tmp);
         }
+        final TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(tmp, simulatorWatch, simulatorCPU);
+        tmp = timeTrackingDecorator;
+        parameters.getEventBus().register(tmp);
+
         @Cleanup final IFeasibilitySolver solver = tmp;
 
 

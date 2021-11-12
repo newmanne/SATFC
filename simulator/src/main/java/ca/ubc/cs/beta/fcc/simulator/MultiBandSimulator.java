@@ -568,7 +568,7 @@ public class MultiBandSimulator {
     }
 
     private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation, boolean excludePreFCCStations) {
-        return stationPrices.entrySet().stream().filter(e -> participation.getParticipation(e.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING) && (!excludePreFCCStations || e.getValue() <= fccPrices.get(e.getKey()))).mapToLong(Entry::getValue).sum();
+        return stationPrices.entrySet().stream().filter(e -> participation.getParticipation(e.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING) && (!excludePreFCCStations || (e.getKey().getHomeBand().isVHF() || e.getValue() <= fccPrices.get(e.getKey())))).mapToLong(Entry::getValue).sum();
     }
 
     private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation) {
