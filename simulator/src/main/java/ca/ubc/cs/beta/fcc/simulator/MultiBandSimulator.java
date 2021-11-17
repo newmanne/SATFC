@@ -297,7 +297,7 @@ public class MultiBandSimulator {
 
         // TODO: Can you move these to their own class or something?
         boolean earlyTermination = false;
-        long runningProvisionalCost = provisionalCost(stationPrices, participation, true);
+        long runningProvisionalCost = provisionalCost(stationPrices, participation, false);
         final Set<IStationInfo> willBeFrozen = new HashSet<>();
         // When using a BP algorithm that doesn't freeze timeouts, track these stations
         final Set<IStationInfo> timeoutStations = new HashSet<>();
@@ -332,7 +332,7 @@ public class MultiBandSimulator {
                                 if (homeBandFeasibility.getSATFCResult().getResult().isConclusive() || !bidProcessingAlgorithmParameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.NO_PRICE_DROPS_FOR_TIMEOUTS)) {
                                     log.info("Station {} will become a provisional winner at the end of this round for {}", station, Humanize.spellBigNumber(stationPrices.get(station)));
                                 }
-                                if (earlyTerminationPossible && vhfUnlocked) { // Only count this if the station is below FCC prices
+                                if (earlyTerminationPossible) {
                                     runningProvisionalCost += stationPrices.get(station);
                                     if (runningProvisionalCost > forwardAuctionAmounts.get(roundTracker.getStage() - 1)) {
                                         log.info("Clearing costs are {} exceeding forward auction costs of {}, terminating the bid processing", runningProvisionalCost, forwardAuctionAmounts.get(roundTracker.getStage() - 1));
