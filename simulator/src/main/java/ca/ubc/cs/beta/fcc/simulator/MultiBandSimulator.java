@@ -23,6 +23,7 @@ import ca.ubc.cs.beta.fcc.simulator.solver.problem.SimulatorProblem;
 import ca.ubc.cs.beta.fcc.simulator.state.LadderAuctionState;
 import ca.ubc.cs.beta.fcc.simulator.state.RoundTracker;
 import ca.ubc.cs.beta.fcc.simulator.station.IStationInfo;
+import ca.ubc.cs.beta.fcc.simulator.station.Nationality;
 import ca.ubc.cs.beta.fcc.simulator.stepreductions.StepReductionCoefficientCalculator;
 import ca.ubc.cs.beta.fcc.simulator.unconstrained.ISimulatorUnconstrainedChecker;
 import ca.ubc.cs.beta.fcc.simulator.utils.Band;
@@ -568,7 +569,23 @@ public class MultiBandSimulator {
     }
 
     private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation, boolean excludePreFCCStations) {
-        return stationPrices.entrySet().stream().filter(e -> participation.getParticipation(e.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING) && (!excludePreFCCStations || (e.getKey().getHomeBand().isVHF() || e.getValue() <= fccPrices.get(e.getKey())))).mapToLong(Entry::getValue).sum();
+        long provisionalCost = 0;
+        for (Entry<IStationInfo, Long> entry: stationPrices.entrySet()) {
+            if (entry.getKey().getNationality().equals(Nationality.CA)) {
+                continue;
+            }
+            if (entry.getKey().getHomeBand().isVHF()) {
+                continue;
+            }
+            if (!participation.getParticipation(entry.getKey()).equals(Participation.FROZEN_PROVISIONALLY_WINNING)) {
+                continue;
+            }
+            if (excludePreFCCStations && entry.getValue() > fccPrices.get(entry.getKey())) {
+                continue;
+            }
+            provisionalCost += entry.getValue();
+        }
+        return provisionalCost;
     }
 
     private long provisionalCost(Map<IStationInfo, Long> stationPrices, ParticipationRecord participation) {

@@ -219,37 +219,6 @@ public class MultiBandAuctioneer {
             tmp = new SequentialSolverDecorator(tmp, parameters.createSolver());
         }
 
-        if (parameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
-            tmp = new DistributedSolverForBidProcessing(tmp, parameters.getBidProcessingAlgorithmParameters().getDistributedFeasibilitySolver());
-        }
-
-        if (parameters.isGreedyFirst()) {
-            final GreedyFlaggingDecorator greedyFlaggingDecorator = new GreedyFlaggingDecorator(tmp, parameters.getConstraintManager());
-            greedyFlaggingDecorator.init(ladder);
-            parameters.getEventBus().register(greedyFlaggingDecorator);
-            tmp = greedyFlaggingDecorator;
-        }
-
-        UHFCachingFeasibilitySolverDecorator uhfCache = null;
-        if (parameters.isUHFCache()) {
-            uhfCache = new UHFCachingFeasibilitySolverDecorator(tmp, participation, problemMaker, parameters.isLazyUHF(), parameters.isRevisitTimeouts(), ladder, parameters.getConstraintManager());
-            uhfCache.init(ladder, parameters.getConstraintManager());
-            parameters.getEventBus().register(uhfCache);
-            tmp = uhfCache;
-        }
-
-        final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
-        tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
-        parameters.getEventBus().register(tmp);
-
-        if (parameters.isStoreProblems()) {
-            final ProblemSaverDecorator problemSaverDecorator = new ProblemSaverDecorator(tmp, parameters.getProblemFolder());
-            parameters.getEventBus().register(problemSaverDecorator);
-            tmp = problemSaverDecorator;
-            problemSaverDecorator.writeInfo(problemSaverInfo);
-            problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
-        }
-
         if (parameters.getSwitchFeasibility()) {
             // Once you get below the price, switch the feasibility checker
             final IFeasibilitySolver curSolver = tmp;
@@ -289,6 +258,38 @@ public class MultiBandAuctioneer {
             };
             parameters.getEventBus().register(tmp);
         }
+
+        if (parameters.getBidProcessingAlgorithm().equals(SimulatorParameters.BidProcessingAlgorithm.FIRST_TO_FINISH)) {
+            tmp = new DistributedSolverForBidProcessing(tmp, parameters.getBidProcessingAlgorithmParameters().getDistributedFeasibilitySolver());
+        }
+
+        if (parameters.isGreedyFirst()) {
+            final GreedyFlaggingDecorator greedyFlaggingDecorator = new GreedyFlaggingDecorator(tmp, parameters.getConstraintManager());
+            greedyFlaggingDecorator.init(ladder);
+            parameters.getEventBus().register(greedyFlaggingDecorator);
+            tmp = greedyFlaggingDecorator;
+        }
+
+        UHFCachingFeasibilitySolverDecorator uhfCache = null;
+        if (parameters.isUHFCache()) {
+            uhfCache = new UHFCachingFeasibilitySolverDecorator(tmp, participation, problemMaker, parameters.isLazyUHF(), parameters.isRevisitTimeouts(), ladder, parameters.getConstraintManager());
+            uhfCache.init(ladder, parameters.getConstraintManager());
+            parameters.getEventBus().register(uhfCache);
+            tmp = uhfCache;
+        }
+
+        final FeasibilityResultDistributionDecorator.FeasibilityResultDistribution feasibilityResultDistribution = new FeasibilityResultDistributionDecorator.FeasibilityResultDistribution();
+        tmp = new FeasibilityResultDistributionDecorator(tmp, feasibilityResultDistribution);
+        parameters.getEventBus().register(tmp);
+
+        if (parameters.isStoreProblems()) {
+            final ProblemSaverDecorator problemSaverDecorator = new ProblemSaverDecorator(tmp, parameters.getProblemFolder());
+            parameters.getEventBus().register(problemSaverDecorator);
+            tmp = problemSaverDecorator;
+            problemSaverDecorator.writeInfo(problemSaverInfo);
+            problemSaverDecorator.writeStartingAssignment(ladder.getPreviousAssignment());
+        }
+
         final TimeTrackerFeasibilitySolverDecorator timeTrackingDecorator = new TimeTrackerFeasibilitySolverDecorator(tmp, simulatorWatch, simulatorCPU);
         tmp = timeTrackingDecorator;
         parameters.getEventBus().register(tmp);
@@ -366,7 +367,7 @@ public class MultiBandAuctioneer {
             log.info("Beginning stage {} of the auction", roundTracker.getStage());
             state.setEarlyStopped(false);
 
-            if (parameters.getForwardAuctionAmounts().size() >= roundTracker.getStage()) {
+            if (parameters.getForwardAuctionAmounts().size() >= roundTracker.getStage() && parameters.isEarlyStopping()) {
                 final long forwardAuctionAmount = parameters.getForwardAuctionAmounts().get(roundTracker.getStage() - 1);
                 log.info("Early termination for this stage will occur at a provisional cost of {}", Humanize.spellBigNumber(forwardAuctionAmount));
             }
