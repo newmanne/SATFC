@@ -318,8 +318,8 @@ public class YAMLBundle extends AVHFUHFSolverBundle {
                                             continue;
                                         }
                                         final List<String> splits = Splitter.on(" ").splitToList(line);
-                                        // TODO: Experiencing problem here with very small values
-                                        final long value = Long.parseLong(splits.get(1));
+                                        // TODO: Should really verify numbers are close to 0 or 1. But they sometimes return e.g. "9.9999999993243360e-01
+                                        final long value = Math.round(Double.parseDouble(splits.get(1)));
                                         if (value == 1) {
                                             final String varName = Splitter.on('#').splitToList(splits.get(0)).get(0).substring(1);
                                             final List<String> splits2 = Splitter.on('.').splitToList(varName);
