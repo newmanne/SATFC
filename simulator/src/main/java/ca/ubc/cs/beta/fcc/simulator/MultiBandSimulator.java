@@ -354,6 +354,7 @@ public class MultiBandSimulator {
             double currentCutoff = 1;
             double elapsedTime = 0;
             boolean finished = false;
+            final int initialSize = stationsToQuery.size();
             while (!finished) {
                 final Map<IStationInfo, SimulatorResult> results = new HashMap<>();
                 for (final IStationInfo station : stationsToQuery) {
@@ -381,15 +382,16 @@ public class MultiBandSimulator {
                         .sorted(Comparator.comparingDouble(x -> x.getValue().getSATFCResult().getRuntime()))
                         .collect(Collectors.toList());
 
-                for (final Entry<IStationInfo, SimulatorResult> entry : entryList) {
+                for (int i = 0; i < entryList.size(); i++) {
+                    final Entry<IStationInfo, SimulatorResult> entry = entryList.get(i);
                     final SimulatorResult result = entry.getValue();
                     final IStationInfo station = entry.getKey();
                     final Bid bid = stationToBid.get(station);
                     processBid(bid, station, result, ladder, stationPrices, actualPrices, participation);
                     stationsToQuery.remove(station);
                     // TODO: In the VHF case, you need to do more work here!
-                    if (participation.getParticipation(station).equals(Participation.EXITED_VOLUNTARILY)) {
-                        // Need to "restart" all checks, so add to the elapsed time
+                    if (participation.getParticipation(station).equals(Participation.EXITED_VOLUNTARILY) || i == entryList.size() - 1) {
+                        // Need to "restart" all checks, so add to the elapsed time. Also remember to add this time if you are at the end of the list and it was feasible
                         elapsedTime += result.getSATFCResult().getRuntime();
                         break;
                     }
@@ -407,14 +409,20 @@ public class MultiBandSimulator {
                     // double the cutoff
                     // Can't this leave you with a small pocket of useless time? No, because no time "elapses"
                     final double nextCutoff = Math.max(1, Math.min(currentCutoff * 2, timeLimit - elapsedTime));
+                    final long indeterminate = results.values().stream().filter(x -> !x.getSATFCResult().getResult().isConclusive()).count();
                     if (nextCutoff <= 0 || nextCutoff <= currentCutoff) {
                         // truly done
-                        log.info("Round has expired after the time limit of {}. {} stations remain indeterminate.", timeLimit, results.values().stream().filter(x -> !x.getSATFCResult().getResult().isConclusive()).count());
+                        log.info("Round has expired after the time limit of {}. {} / {} stations remain indeterminate.", timeLimit, indeterminate, initialSize);
                         finished = true;
                     } else {
-                        log.info("Increasing cutoff for the round from {} to {}", currentCutoff, nextCutoff);
+                        log.info("Increasing cutoff for the round from {} to {}. {} / {} stations remain indeterminate", currentCutoff, nextCutoff, indeterminate, initialSize);
                         currentCutoff = nextCutoff;
                     }
+                }
+
+                if (finished) {
+                    log.info("{} stations had checks longer than 1s during this round", results.entrySet().stream().filter(x -> x.getValue().getSATFCResult().getRuntime() > 1).count());
+                    log.info("Max round FC time was {}", results.entrySet().stream().mapToDouble(x -> x.getValue().getSATFCResult().getRuntime()).max());
                 }
             }
         } else {
