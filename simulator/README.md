@@ -29,7 +29,7 @@ To run a simulation using the BD model, use the flag `-POP-VALUES true`. Note th
 
 #### Handling Impairments
 
-To handle impairments as described in the paper, use `-RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`.
+To handle impairments as described in the paper, use `-RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`. 
 
 ##### Setting the Clearing Target
 
@@ -47,6 +47,12 @@ To use early stopping, you need to supply forward auction revenues (in billions)
 
 The feasibility checker can be configured using the `-CONFIG-FILE <config_YAML_file_path>` argument. While undocumented, example config files can be found in `satfc/src/dist/bundles`. These config files can be configured to allow the use of external SAT and MIP solvers. See also `YAMLBundle.java` in the SATFC project. The greedy feasibility checker is special; it is activated using `-GREEDY-SOLVER-ONLY true`.
 
-#### Alternative Bid Processing Algorithms
+The `-SWITCH-FEASIBILITY-AT-BASE` parameter is used to switch feasibility checkers after the impairment phase (so that the impairment phase consistently uses SATFC).
+
+An example complete command looks like `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -CONFIG-FILE /ubc/cs/research/arrow/satfc/bundles/default_solvers/satfc_gnovelty.yaml -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+
+##### Alternative Bid Processing Algorithms
 
 The parameter `-BID-PROCESSING` can trigger alternate bid processing algorithms. `-BID-PROCESSING NO_PRICE_DROPS_FOR_TIMEOUTS` will revisit timeouts.  The first-to-finish bid processing can be activated with `-BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM`.
+
+An example complete command looks like `-VALUES-SEED 6000 -MIP-PARALLELISM 8 -BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM -MAX-CHANNEL 36 -CONFIG-FILE satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
