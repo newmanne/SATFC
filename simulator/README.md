@@ -2,7 +2,7 @@
 
 This project contains the reverse auction simulator used in `Incentive Auction Design Alternatives: A Simulation Study`. 
 
-Before attempting to run the simulator, make sure that you can run SATFC. Follow the instructions in the manual.
+Before attempting to run the simulator, make sure that you can run SATFC. Follow the instructions in the [SATFC-manual](satfc/src/dist/SATFC-manual.pdf).
 
 # Env variables
 This assumes you have compiled the libraries successfully and have not moved them.
@@ -25,7 +25,11 @@ To run a simulation that only repacks the UHF band, always include the parameter
 
 ##### Setting the Value Model
  
-To run a simulation using the BD model, use the flag `-POP-VALUES true`. Note that unfortunately we are unable provide the data we used to run the MCS model. The seed controlling the value profiles is set by the `-VALUES-SEED <number>` parameter.
+To run a simulation using the BD model, use the flag `-POP-VALUES true`. Note that unfortunately we are unable provide the parameters that we used to run the MCS model as these were provided to us by the authors directly. The seed controlling the value profiles is set by the `-VALUES-SEED <number>` parameter.
+
+#### Handling Impairments
+
+To handle impairments as described in the paper, use `-RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`.
 
 ##### Setting the Clearing Target
 
@@ -42,3 +46,7 @@ To use early stopping, you need to supply forward auction revenues (in billions)
 ##### Feasibility Checker
 
 The feasibility checker can be configured using the `-CONFIG-FILE <config_YAML_file_path>` argument. While undocumented, example config files can be found in `satfc/src/dist/bundles`. These config files can be configured to allow the use of external SAT and MIP solvers. See also `YAMLBundle.java` in the SATFC project. The greedy feasibility checker is special; it is activated using `-GREEDY-SOLVER-ONLY true`.
+
+#### Alternative Bid Processing Algorithms
+
+The parameter `-BID-PROCESSING` can trigger alternate bid processing algorithms. `-BID-PROCESSING NO_PRICE_DROPS_FOR_TIMEOUTS` will revisit timeouts.  The first-to-finish bid processing can be activated with `-BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM`.
