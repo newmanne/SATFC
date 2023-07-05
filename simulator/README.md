@@ -11,11 +11,11 @@ This assumes you have compiled the libraries successfully and have not moved the
 
 `export SATFC_SATENSTEIN_LIBRARY=<path_to_satfc>/satfc/src/dist/satenstein/jna/libjnasatenstein.so`
 
-`export SATFC_INTERFERENCE=<Path_to_constraints_folder>`. The constraints folder should point to a folder, where each subfolder is a constraint set (containing domain.csv and interference.csv files). Used the `-CONSTRAINT-SET` flag to select the name of the subfolder to use. Likely your only subfolder will the FCC's nov 2015 constraints.
+`export SATFC_INTERFERENCE=<Path_to_constraints_folder>`. The constraints folder should point to a folder, where each subfolder is a constraint set (containing domain.csv and interference.csv files). Used the `-CONSTRAINT-SET` flag to select the name of the subfolder to use. Likely your only subfolder will the [FCC's nov 2015 constraints](https://github.com/newmanne/SATFC/tree/development/simulator/src/dist/simulator_data/interference_data/nov2015).
 
 # Command Line Options
 
-This section provides some command line options used for running simulations. The executable to run is `./FCCSimulator`.
+This section provides some command line options used for running simulations. The executable to run is `./FCCSimulator`. 
 
 More parameters are available in `SimulatorParameters.java`.
 
