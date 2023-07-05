@@ -1,0 +1,81 @@
+import os
+import logging
+import random
+import string
+import collections
+from collections import OrderedDict
+import time
+
+def copy_build():
+    from_dir = '/apps/FCCSimulator_Current'
+    to_dir =  '/apps/release_graveyard/' + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    logging.info("Copying the build from %s to %s/FCCSimulator" % (from_dir, to_dir))
+    !mkdir -p $to_dir
+    !cp -r $from_dir $to_dir/FCCSimulator
+    return to_dir
+
+def launch(JOBTYPES, to_dir, output_dir, base_output_folder='/shared/v10/'):
+    commands = []
+    for job, job_info in JOBTYPES.items():
+        job_info['cmd_args'] += ' --simulator_build_dir ' + to_dir
+        # This is a stupid way to swtich, but whatever
+        # job_info['cmd_args'] += ' --host vickrey'
+
+        bname = job
+        if '-POP-VALUES true' in job_info['fcc_args']:
+            if '_POP' not in bname:
+                bname += '_POP'
+            if '_POP' not in output_dir:
+                output_dir += '_POP'
+        if '-UHF-ONLY true' in job_info['fcc_args']:
+            if '_UHF_ONLY' not in bname:
+                bname += '_UHF_ONLY'
+            if '_UHF_ONLY' not in output_dir:
+                output_dir += '_UHF_ONLY'
+
+
+        command = f"""ipython /apps/satfc-scripts/distribute_multiband_simulator_v2.ipy -- --name {bname} --output_folder {base_output_folder}/{output_dir}/{job_info['condition']}/Seed_{job_info['seed']} --FCCSimulator_args "{job_info['fcc_args']}" """
+        if job_info.get('cmd_args'):
+            command = command + (" %s" % (job_info['cmd_args']))
+        if job_info.get('satfc_args'):
+            command = command + ' --SATFC_args "%s"' % (job_info['satfc_args'])
+        if job_info.get('n_threads_per_worker'):
+            command = command + ' --n_threads_per_worker %d' % (job_info['n_threads_per_worker'])
+        commands.append(command)
+
+    for command in commands:
+        print(command)
+        !$command
+        time.sleep(5)
+
+def jobs(TREATMENTS, n_runs=50, all_cmd='', np_seed=1, pop=False, uhf_band_only=False, cmd_args='', sequential_args=None):
+    JOBTYPES = OrderedDict()
+    if uhf_band_only:
+        all_cmd += ' -UHF-ONLY true -INCLUDE-VHF false'
+    if pop:
+        all_cmd += ' -POP-VALUES true'
+    all_cmd += ' -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true'
+
+    for seed in range(np_seed, np_seed + n_runs):
+        for treatment, cmd in TREATMENTS.items():
+            job_name = f"{treatment}_{seed}"
+            if isinstance(cmd, dict):
+                actual_cmd = cmd['command']
+                specific_cmd_args = cmd['command_args']
+            else:
+                specific_cmd_args = ''
+                actual_cmd = cmd
+
+            if sequential_args is None:
+                sequential_arg = ''
+            else:
+                sequential_arg = sequential_args[seed - np_seed]
+
+            fcc_arg = f'-VALUES-SEED {seed} -MIP-PARALLELISM 8 {actual_cmd} {all_cmd} {sequential_arg}'
+            JOBTYPES[job_name] = {
+                'fcc_args': fcc_arg,
+                'cmd_args': '--force_delete true ' + specific_cmd_args + ' ' + cmd_args,
+                'condition': treatment,
+                'seed': seed
+            }
+    return JOBTYPES

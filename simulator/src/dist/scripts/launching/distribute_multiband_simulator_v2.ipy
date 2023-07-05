@@ -1,0 +1,159 @@
+import argparse
+import logging
+import shutil
+import subprocess
+import time
+import csv
+import os
+from contextlib import contextmanager
+from jinja2 import Template
+
+def run_shell_command(command):
+    subprocess.check_call(command, shell=True)
+
+def vickrey_command(command, host):
+    run_shell_command("""ssh %s '%s'""" % (host, command))
+
+def tmp_command(command):
+    run_shell_command(command)
+
+@contextmanager
+def cd_and_do(newdir):
+    """Jump into a directory, do a thing, and jump back out"""
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
+
+def write_and_submit(directory, script, script_name, host):
+    with cd_and_do(directory):
+        with open(script_name, 'w') as submit_script_file:
+            submit_script_file.write(script)
+#        time.sleep(2) # Let the file settle down before ssh
+        vickrey_command("cd %s && /opt/torque/bin/qsub %s" % (directory, script_name), host)
+
+def write_and_submit_cedar(directory, script, script_name, host):
+    with cd_and_do(directory):
+        with open(script_name, 'w') as submit_script_file:
+            submit_script_file.write(script)
+#        time.sleep(2)
+    tmp_command("cd %s && sbatch %s" % (directory, script_name))
+
+#
+#tmp_command("cd %s && /opt/slurm/bin/sbatch --exclude=ada[01-05] %s" % (directory, script_name))
+#        vickrey_command("cd %s && /opt/slurm/bin/sbatch %s" % (directory, script_name), host)
+#        run_shell_command("cd %s && sbatch %s" % (directory, script_name))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description=
+        """Launch the auction simulator""",
+        epilog=
+        """by Neil Newman (newmanne@cs.ubc.ca)"""
+        )
+    parser.add_argument('--force_delete', type=bool, default=False)
+    parser.add_argument('--name', help='Name', type=str)
+
+    parser.add_argument('--SATFC_args', help='Additional arguments to use when calling SATFC', type=str)
+    parser.add_argument('--SATFC_build_dir', help='Directory containing SATFC release', type=str, default="/apps/SATFC_Current")
+
+    parser.add_argument('--SATFC_threads', help='Number of threads to reserver per node for SATFC', type=int, default=16)
+
+    parser.add_argument('--walltime', help='walltime', type=str, default='168:00:00')
+    parser.add_argument('--mem', help='mem', type=str, default='16G')
+
+    parser.add_argument('--output_folder', help='Where to collect all of the output', type=str, required=True)
+    parser.add_argument('--log_level', type=str, default=logging.INFO, help='the level of logging to display (default: %(default)s)')
+    parser.add_argument('--cluster', type=str, default='slurm', help='Cluster environment to dispatch')
+    parser.add_argument('--host', type=str, default='ada', help='Where to ssh')
+
+    # Simulator Args
+    parser.add_argument('--simulator_build_dir', help='Directory containing simulator release', type=str, default="/apps/FCCSimulator_Current")
+    parser.add_argument('--FCCSimulator_args', help='Additional args for simulator', type=str)
+    parser.add_argument('--vcg', default=False, help='Call VCG instead of auction', type=bool)
+
+    args = parser.parse_args()
+    #Initialize logging
+    logging.basicConfig(format='%(asctime)-15s [%(levelname)s] %(message)s', level=args.log_level)
+
+    if args.force_delete and os.path.exists(args.output_folder):
+        shutil.rmtree(args.output_folder)
+
+    logging.info('Creating output folder ' + args.output_folder)
+    if os.path.exists(args.output_folder):
+        parser.error('Output folder already exists! Not overwriting')
+    os.makedirs(args.output_folder)
+
+    simulator_build_dir = args.simulator_build_dir
+    output = args.output_folder
+
+    if args.cluster == 'torque':
+        raise ValueError("We aren't using torque anymore!")
+        preamble = Template("""#!/bin/bash
+#PBS -N {{ name }}_FCCSimulator
+#PBS -l walltime={{ walltime }}
+#PBS -l nodes=1:ppn={{ satfc_threads }}
+#PBS -l mem={{ mem }}
+#PBS -o FCCSimulator-o.txt
+#PBS -e FCCSimulator-e.txt
+{% if host == 'ada' %}
+#PBS -q cpu-long
+{% endif %}
+
+if [[ -n "$PBS_O_WORKDIR" ]]; then
+    cd $PBS_O_WORKDIR
+fi
+""")
+#SBATCH --mem={{ mem }}
+    elif args.cluster == 'slurm':
+        preamble = Template("""#!/bin/sh
+#SBATCH --time={{ walltime }}
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task={{ satfc_threads }}
+#SBATCH --job-name={{ name }}_FCCSimulator
+#SBATCH --output=FCCSimulator-o.txt
+
+echo "SLURM_JOBID="$SLURM_JOBID
+echo "SLURM_JOB_NODELIST"=$SLURM_JOB_NODELIST
+echo "SLURMTMPDIR="$SLURMTMPDIR
+echo "working directory="$SLURM_SUBMIT_DIR
+""")
+    else:
+        raise ValueError("Unknown cluster")
+
+    body = Template("""
+
+export PATH=/bin:$PATH
+. ~/.bashrc
+#source activate satfc_py2
+
+
+SIMULATOR="{{ simulator_build_dir }}"
+PARAMS="-SIMULATOR-OUTPUT-FOLDER {{ output_folder }} {{ FCCSimulator_args }}"
+
+echo "Executing:"
+echo "$SIMULATOR $PARAMS"
+eval $SIMULATOR $PARAMS
+""")
+    preamble_str = preamble.render(
+            name = args.name if args.name else "",
+            walltime=args.walltime,
+            satfc_threads=args.SATFC_threads,
+            host=args.host,
+            cluster=args.cluster,
+            mem=args.mem
+        )
+    body_str = body.render(
+        simulator_build_dir=simulator_build_dir + '/FCCSimulator/bin/' + ('VCG' if args.vcg else 'FCCSimulator'),
+        FCCSimulator_args=args.FCCSimulator_args if args.FCCSimulator_args else "",
+        output_folder=args.output_folder,
+        )
+    simulator_submit_script = preamble_str + '\n' + body_str
+
+    if args.cluster == 'torque':
+        # Write submit_script to file
+        write_and_submit(output, simulator_submit_script, 'submit_simulator_script.sh', args.host)
+    elif args.cluster == 'slurm':
+        write_and_submit_cedar(output, simulator_submit_script, 'submit_simulator_script.sh', 'borg.cs.ubc.ca')
