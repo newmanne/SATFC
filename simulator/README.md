@@ -53,9 +53,7 @@ An example complete command looks like `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -CO
 
 ##### Alternative Bid Processing Algorithms
 
-The parameter `-BID-PROCESSING` can trigger alternate bid processing algorithms. `-BID-PROCESSING NO_PRICE_DROPS_FOR_TIMEOUTS` will revisit timeouts.  The first-to-finish bid processing can be activated with `-BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM`.
-
-An example complete command looks like `-VALUES-SEED 6000 -MIP-PARALLELISM 8 -BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM -MAX-CHANNEL 36 -CONFIG-FILE satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+The parameter `-BID-PROCESSING` can trigger alternate bid processing algorithms. `-BID-PROCESSING NO_PRICE_DROPS_FOR_TIMEOUTS` will revisit timeouts.  The first-to-finish bid processing can be activated with `-BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM` (in the paper, `-CONFIG-FILE satfc_parallel_with_wait.yaml` was also used).
 
 # Analyzing Results
 
