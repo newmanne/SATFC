@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 
 from scipy.stats import wilcoxon
 
-DATA_DIR = '/shared/v10/'
+PRICES_PATH = '/apps/satfc/simulator/src/dist/simulator_data/prices.csv'
 FIGDIR = '/apps/notebooks/figures'
 COST = 'Total Cost'
 EFFICIENCY = 'Total Value Loss'
@@ -198,8 +198,6 @@ def format_normalized(df, baseline, op=operator.truediv, set_limits=True, x_col=
     if op == operator.truediv:
         plt.xlabel(f'Normalized Value Loss')
         plt.ylabel(f'Normalized Cost')
-#         plt.xlabel(f'Value Loss {op_to_rep[op]} {baseline_name} Value Loss')
-#         plt.ylabel(f'Cost {op_to_rep[op]} {baseline_name} Cost')
     else:
         plt.xlabel(f'Value Loss {op_to_rep[op]} {baseline_name} Value Loss')
         plt.ylabel(f'Cost {op_to_rep[op]} FCC Cost')
@@ -243,26 +241,9 @@ def format_figure(df, baseline, normalized, d, op=operator.truediv, limits=None,
     if limits is None:
         print(plt.gca().get_xlim(), plt.gca().get_ylim())
         
-#     plt.legend(loc='best')
     axis = plt.gca()
     handles, labels = axis.get_legend_handles_labels()
-    
-#     for h, l in zip(handles, labels):
-#         handles = mlines.Line2D([], [], color='black', marker='*', linestyle='None',
-#                           markersize=10, label='Blue stars')
 
-    
-#         c = 'red'
-#     #     c = None
-#     #     for k in d.keys():
-#     #         if d[k]['label'] == labels[0]:
-#     #             c = d[k]['color']
-#     #             break
-#     #     if c is None:
-#     #         raise ValueError()
-
-#         handles[0] = mpatches.Patch(color=c)
-    
     
     # Sort according to efficiency
     if len(labels) > 1 and not fixed_legend:
@@ -275,17 +256,11 @@ def format_figure(df, baseline, normalized, d, op=operator.truediv, limits=None,
                 order.append(labels.index(d[l]['label']))
         order = np.array(order)
     else:
-#         order = np.array(list(range(len(labels))))
         order = np.argsort(labels)
         print(order)
-    
-#     if normalized:
-#         labels[0] = '$$\textbf{lab}$$'
 
-    
     legend = axis.legend(handles=list(np.array(handles)[order]),labels=list(np.array(labels)[order]), loc='best') 
 
-#     legend = axis.legend(handles=list(np.array(handles)[order]),labels=list(np.array(labels)[order]), loc='best') 
     
 def save_fig(name, normalized, op, means_only=False, uhf_only=False, fig=None, model=None, exclude_pre_fcc=False):
     op_to_rep = {operator.truediv: 'relative', operator.sub: 'absolute'}
@@ -327,7 +302,7 @@ def parse_experiment(folders, skip_failures=False, delete_failures=False, count_
             value_loss_no_exclude = state.total_value_loss(exclude_pre_fcc=False)
             es = state._ending_state(exclude_pre_fcc=False)
 
-            uhf_data = pd.read_csv('/apps/notebooks/prices.csv').rename(columns={'facility_id': 'station'}).set_index('station')[['p_open', 'population']]
+            uhf_data = pd.read_csv(PRICES_PATH).rename(columns={'facility_id': 'station'}).set_index('station')[['p_open', 'population']]
             before_open = state.station_payments(positive_only=True).join(uhf_data).query('price > p_open')
             delta = (before_open['price'] - before_open['p_open']).sum()
             total = state.station_payments(positive_only=True).sum()
@@ -464,7 +439,6 @@ def standard_analysis(d, name, df, types=None, reference_types=None, means=None,
     if title:
         plt.title(model + '_' + name + ('_VHF' if not uhf_only else '') + ('_impairments' if exclude_pre_fcc else ''))
     if save:
-#         plt.legend(loc='upper left')
         save_fig(name, normalized, op, means_only=means_only, uhf_only=uhf_only, fig=fig, model=model, exclude_pre_fcc=exclude_pre_fcc)
     
 def dual_standard_analysis(d, name, df, types=None, reference_types=None, means=None, means_only=None, limits=None, auto_limits=True, save=True, fixed_legend=False, exclude_pre_fcc=False, title=False):
@@ -481,9 +455,6 @@ def dual_standard_analysis(d, name, df, types=None, reference_types=None, means=
                 s = df.query(f'model == "{model}" and UHF_Only == {UHF_Only}')
                 if not s.empty:
                     if not s['pre_fcc_n_stations'].sum() == 0:
-#                         print("N_STATIONS")
-#                         display(s.groupby('type')['pre_fcc_n_stations'].describe().drop('count', axis=1))
-#                         print("SUM POPS")
                         with pd.option_context('display.precision', 2):
                             display(s.groupby('type')['pre_fcc_sum_pops'].describe().drop('count', axis=1))
 

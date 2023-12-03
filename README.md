@@ -1,7 +1,7 @@
-
 # Feasibility Checker
 
-This is the README for SATFC. For information on the reverse auction simulator, see [this README](simulator/README.md).
+This is the README for SATFC. For information on the reverse auction simulator, see [this README](simulator/README.md). 
+
 
 ## Introduction
 
@@ -15,11 +15,11 @@ SATFC is the product of the ideas and hard work of [Auctionomics](http://www.auc
 
 ## Installation
 
-Stand-alone, ready-to-go releases of SATFC and SATFCServer can be found on the [SATFC GitHub](https://github.com/FCC/SATFC/releases) page.
+Stand-alone, ready-to-go releases of SATFC and SATFCServer can be found on the [SATFC GitHub](https://github.com/FCC/SATFC/releases) page. To compile from source, note that we use the [Gradle](https://gradle.org/) build system for dependency resolution. Run `gradlew installDist` to compile. More detail is available in the [SATFC-manual](satfc/src/dist/SATFC-manual.pdf) 
 
 ## Usage
 
-Please consult the manual [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The manual is also packaged with any stand-alone SATFC release.
+Please consult the [SATFC-manual](satfc/src/dist/SATFC-manual.pdf). The manual is also packaged with any stand-alone SATFC release.
 
 ## Release Notes
 
