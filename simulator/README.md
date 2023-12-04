@@ -66,10 +66,10 @@ Example simulation commands:
 By default, the FCC volumes are used. To supply other volumes, use  `-VOLUMES-FILE <volume file path>`. Volumes files used in the paper are stored [here](./src/dist/simulator_data/volumes.csv).
 
 Example simulation commands:
-* (FCC) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/volumes.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-* (Population) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_pop_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-* (Interference) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_int_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-* (Uniform) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/uniform.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (FCC) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE simulator_data/volumes.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Population) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE simulator_data/half_pop_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Interference) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE simulator_data/half_int_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Uniform) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE simulator_data/uniform.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
 
 
 ##### Early Stopping
