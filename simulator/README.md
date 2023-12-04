@@ -32,8 +32,8 @@ The command line flag `-SIMULATOR-OUTPUT-FOLDER` is used to set the output folde
 To run a simulation that only repacks the UHF band, always include the parameters `-UHF-ONLY true -INCLUDE-VHF false`.
 
 Example simulation commands:
-    - (UHF-Only) ` -VALUES-SEED 4000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -LOCK-VHF-UNTIL-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true`
-    - (UHF+VHF) `-VALUES-SEED 4000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -LOCK-VHF-UNTIL-BASE true -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true`
+- (UHF-Only) ` -VALUES-SEED 4000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -LOCK-VHF-UNTIL-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true`
+- (UHF+VHF) `-VALUES-SEED 4000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -LOCK-VHF-UNTIL-BASE true -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true`
 
 ##### Setting the Value Model
  
