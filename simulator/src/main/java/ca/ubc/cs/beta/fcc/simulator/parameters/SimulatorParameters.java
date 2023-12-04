@@ -491,11 +491,15 @@ public class SimulatorParameters extends AbstractOptions {
         }
 
         // Set stations as commercial or non-commercial
-        final CSVCommercial commercialReader = new CSVCommercial(getCommercialFile());
-        final Map<Integer, Boolean> commercialStatus = commercialReader.getCommercialStatus(americanStations);
-        for (IStationInfo stationInfo : americanStations) {
-            boolean commercial = commercialStatus.get(stationInfo.getId());
-            ((IModifiableStationInfo) stationInfo).setCommercial(commercial);
+        try {
+            final CSVCommercial commercialReader = new CSVCommercial(getCommercialFile());
+            final Map<Integer, Boolean> commercialStatus = commercialReader.getCommercialStatus(americanStations);
+            for (IStationInfo stationInfo : americanStations) {
+                boolean commercial = commercialStatus.get(stationInfo.getId());
+                ((IModifiableStationInfo) stationInfo).setCommercial(commercial);
+            }
+        } catch (RuntimeException e) {
+            // continue without setting
         }
     }
 
