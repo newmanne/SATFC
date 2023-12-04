@@ -66,10 +66,10 @@ Example simulation commands:
 By default, the FCC volumes are used. To supply other volumes, use  `-VOLUMES-FILE <volume file path>`. Volumes files used in the paper are stored [here](./src/dist/simulator_data/volumes.csv).
 
 Example simulation commands:
-    * (FCC) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/volumes.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (Population) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_pop_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (Interference) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_int_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (Uniform) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/uniform.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (FCC) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/volumes.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Population) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_pop_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Interference) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/half_int_score.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Uniform) `-VALUES-SEED 1000 -MIP-PARALLELISM 8 -VOLUMES-FILE /apps/FCCSimulator_Current/simulator_data/uniform.csv -MAX-CHANNEL 36 -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
 
 
 ##### Early Stopping
@@ -77,8 +77,8 @@ Example simulation commands:
 To use early stopping, you need to supply forward auction revenues (in billions). For example, `-EARLY-STOPPING true -FORWARD-AUCTION-AMOUNTS 25.35,23.61,21.59,19.63,17.57,15.40,13.11,10.66,7.95 -MAX-CHANNEL 29 -MAX-CHANNEL-FINAL 44`.
 
 Example simulation commands:
-    - (Early Stopping) `-VALUES-SEED 25000 -MIP-PARALLELISM 8 -EARLY-STOPPING true -FORWARD-AUCTION-AMOUNTS 25.35,23.61,21.59,19.63,17.57,15.40,13.11,10.66,7.95 -MAX-CHANNEL 29 -MAX-CHANNEL-FINAL 44 -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    - (Single-stage Oracle) `-VALUES-SEED 25000 -MIP-PARALLELISM 8   -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true -MAX-CHANNEL <corresponding_end_channel> -MAX-CHANNEL-FINAL <corresponding_end_channel>` (note that corresponding_end_channel here is based on the stage that the previous simulation ends at)
+- (Early Stopping) `-VALUES-SEED 25000 -MIP-PARALLELISM 8 -EARLY-STOPPING true -FORWARD-AUCTION-AMOUNTS 25.35,23.61,21.59,19.63,17.57,15.40,13.11,10.66,7.95 -MAX-CHANNEL 29 -MAX-CHANNEL-FINAL 44 -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+- (Single-stage Oracle) `-VALUES-SEED 25000 -MIP-PARALLELISM 8   -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true -MAX-CHANNEL <corresponding_end_channel> -MAX-CHANNEL-FINAL <corresponding_end_channel>` (note that corresponding_end_channel here is based on the stage that the previous simulation ends at)
 
 
 ##### Feasibility Checker
@@ -92,9 +92,9 @@ The relevant config files are here for [gnovelty](../satfc/src/dist/bundles/satf
 The `-SWITCH-FEASIBILITY-AT-BASE` parameter is used to switch feasibility checkers after the impairment phase (so that the impairment phase consistently uses SATFC).
 
 Example simulation commands:
-    * (CPLEX/Gurobi/Gnovelty) `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -CONFIG-FILE <relevant_bundle_file>.yaml -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (Greedy) `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -GREEDY-SOLVER-ONLY true -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (SATFC) `-VALUES-SEED 3000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (CPLEX/Gurobi/Gnovelty) `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -CONFIG-FILE <relevant_bundle_file>.yaml -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (Greedy) `-VALUES-SEED 3000 -MIP-PARALLELISM 8 -GREEDY-SOLVER-ONLY true -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (SATFC) `-VALUES-SEED 3000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -SWITCH-FEASIBILITY-AT-BASE true -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
 
 
 ##### Alternative Bid Processing Algorithms
@@ -102,8 +102,8 @@ Example simulation commands:
 The parameter `-BID-PROCESSING` can trigger alternate bid processing algorithms. `-BID-PROCESSING NO_PRICE_DROPS_FOR_TIMEOUTS` will revisit timeouts.  The first-to-finish bid processing can be activated with `-BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM` (in the paper, `-CONFIG-FILE satfc_parallel_with_wait.yaml` was also used).
 
 Example simulation commands:
-    * (using first-to-finish algorithm) `-VALUES-SEED 6000 -MIP-PARALLELISM 8 -BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM -MAX-CHANNEL 36 -CONFIG-FILE /ubc/cs/research/arrow/satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
-    * (default) `-VALUES-SEED 6000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -CONFIG-FILE /ubc/cs/research/arrow/satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (using first-to-finish algorithm) `-VALUES-SEED 6000 -MIP-PARALLELISM 8 -BID-PROCESSING FIRST_TO_FINISH_SINGLE_PROGRAM -MAX-CHANNEL 36 -CONFIG-FILE /ubc/cs/research/arrow/satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
+* (default) `-VALUES-SEED 6000 -MIP-PARALLELISM 8  -MAX-CHANNEL 36 -CONFIG-FILE /ubc/cs/research/arrow/satfc/bundles/satfc_parallel_with_wait.yaml -UHF-ONLY true -INCLUDE-VHF false -POP-VALUES true -RAISE-CLOCK-TO-FULL-PARTICIPATION true -LOCK-VHF-UNTIL-BASE true`
 
 # Analyzing Results
 
