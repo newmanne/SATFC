@@ -6,7 +6,7 @@ UHF:
       args:
         parameters:
         solverName: gnovelty+PCL
-        wrapperPath: /ubc/cs/research/arrow/satfc/aclib/satfc_wrapper.py
+        wrapperPath: /home/ubuntu/aclib/satfc_wrapper.py
     - name: PYTHON_VERIFIER
     - name: VERIFIER
 VHF:

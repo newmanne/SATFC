@@ -5,7 +5,7 @@ import pandas as pd
 from simulatorutils import MultiBandAuctionState, VCGState
 import os
 import seaborn as sns
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 from matplotlib.ticker import FuncFormatter
 import operator
 import subprocess
@@ -28,7 +28,8 @@ logger.setLevel(logging.INFO)
 
 from scipy.stats import wilcoxon
 
-PRICES_PATH = '/apps/satfc/simulator/src/dist/simulator_data/prices.csv'
+satfc_root = os.environ.get('SATFC', '/apps/satfc')
+PRICES_PATH = os.path.join(satfc_root, 'simulator/src/dist/simulator_data/prices.csv')
 FIGDIR = '/apps/notebooks/figures'
 COST = 'Total Cost'
 EFFICIENCY = 'Total Value Loss'
@@ -262,7 +263,7 @@ def format_figure(df, baseline, normalized, d, op=operator.truediv, limits=None,
     legend = axis.legend(handles=list(np.array(handles)[order]),labels=list(np.array(labels)[order]), loc='best') 
 
     
-def save_fig(name, normalized, op, means_only=False, uhf_only=False, fig=None, model=None, exclude_pre_fcc=False):
+def save_fig(name, normalized, op, means_only=False, uhf_only=False, fig=None, model=None, exclude_pre_fcc=False, fig_dir=FIGDIR):
     op_to_rep = {operator.truediv: 'relative', operator.sub: 'absolute'}
     fname = name
     if normalized:
@@ -275,7 +276,7 @@ def save_fig(name, normalized, op, means_only=False, uhf_only=False, fig=None, m
         fname += '_UHF_ONLY'
     if exclude_pre_fcc:
         fname += '_exclude_pre_FCC'
-    special_save_fig(fig, os.path.join(FIGDIR, f'{fname}.pdf'))
+    special_save_fig(fig, os.path.join(fig_dir, f'{fname}.png'))
 
 
 def parse_experiment(folders, skip_failures=False, delete_failures=False, count_rounds=False, end_only=True, extra=None, specific_end_stage=None, return_states=False, limit=None, name=None, use_cache=True):
@@ -329,11 +330,11 @@ def parse_experiment(folders, skip_failures=False, delete_failures=False, count_
                 'Final Stage': 1 if is_vcg else state.ending_stage(),
                 'Impairing Stations': state.impairing_stations().tolist(),
                 'Mean Overpayment': state.mean_overpayment(),
-                'Earliest Freeze': state.earliest_freeze(),
-                'Above Open Payment Fraction': fraction, 
-                'Frozen Above Open Fraction': fraction_of_stations_that_freeze_above_clock_given_freeze,
-                'Top 5 Cost': (es.sort_values('price', ascending=False)['price'].cumsum() / es['price'].sum()).iloc[4],
-                'Top 5 Value Loss': (pd.Series(sorted(state.unsummed_value_loss(), reverse=True)).cumsum() / state.total_value_loss()).iloc[4],
+                # 'Earliest Freeze': state.earliest_freeze(),
+                # 'Above Open Payment Fraction': fraction, 
+                # 'Frozen Above Open Fraction': fraction_of_stations_that_freeze_above_clock_given_freeze,
+                # 'Top 5 Cost': (es.sort_values('price', ascending=False)['price'].cumsum() / es['price'].sum()).iloc[4],
+                # 'Top 5 Value Loss': (pd.Series(sorted(state.unsummed_value_loss(), reverse=True)).cumsum() / state.total_value_loss()).iloc[4],
             }
             if count_rounds:
                 record['n_rounds'] = state.n_rounds()
@@ -391,7 +392,7 @@ def standard_pallet(types):
         d[t] = dict(PALLET[i])
     return d
 
-def standard_analysis(d, name, df, types=None, reference_types=None, means=None, means_only=None, limits=None, stages=None, model=False, save=True, fixed_legend=False, exclude_pre_fcc=False, title=False):
+def standard_analysis(d, name, df, types=None, reference_types=None, means=None, means_only=None, limits=None, stages=None, model=False, save=True, fixed_legend=False, exclude_pre_fcc=False, title=False, fig_dir=FIGDIR):
     if means is None:
         means = True
     if means_only is None:
@@ -439,47 +440,19 @@ def standard_analysis(d, name, df, types=None, reference_types=None, means=None,
     if title:
         plt.title(model + '_' + name + ('_VHF' if not uhf_only else '') + ('_impairments' if exclude_pre_fcc else ''))
     if save:
-        save_fig(name, normalized, op, means_only=means_only, uhf_only=uhf_only, fig=fig, model=model, exclude_pre_fcc=exclude_pre_fcc)
+        save_fig(name, normalized, op, means_only=means_only, uhf_only=uhf_only, fig=fig, model=model, exclude_pre_fcc=exclude_pre_fcc, fig_dir=fig_dir)
     
-def dual_standard_analysis(d, name, df, types=None, reference_types=None, means=None, means_only=None, limits=None, auto_limits=True, save=True, fixed_legend=False, exclude_pre_fcc=False, title=False):
-    display(df.reset_index().groupby('model')['type'].value_counts().to_frame())
-    cpu_duration = humanize.naturaldelta(dt.timedelta(seconds=df['cputime'].sum()))
-    wall_duration = humanize.naturaldelta(dt.timedelta(seconds=df['walltime'].sum()))
-    print(f'Took {cpu_duration} CPU time')
-    print(f'Took {wall_duration} wall time')
-    
-    if exclude_pre_fcc:
-        for model in ['pop', 'ulrich']:
-            for UHF_Only in [True, False]:
-                print(model, 'UHF_Only' if UHF_Only else 'With VHF')
-                s = df.query(f'model == "{model}" and UHF_Only == {UHF_Only}')
-                if not s.empty:
-                    if not s['pre_fcc_n_stations'].sum() == 0:
-                        with pd.option_context('display.precision', 2):
-                            display(s.groupby('type')['pre_fcc_sum_pops'].describe().drop('count', axis=1))
-
-    
+def dual_standard_analysis(d, name, df, types=None, reference_types=None, means=None, means_only=None, limits=None, auto_limits=True, save=True, fixed_legend=False, exclude_pre_fcc=False, title=False, fig_dir=FIGDIR):   
     if auto_limits and limits is None:
         limits = limits_from_frame(df, reference_type=reference_types[0] if reference_types is not None else types[0] if types is not None else 'FCC', exclude_pre_fcc=exclude_pre_fcc)
     for model, gdf in df.groupby('model'):
         print(f"Model {model}")
         uhf_only = gdf.loc[gdf['UHF_Only'] == True]
         not_uhf_only = gdf.loc[gdf['UHF_Only'] == False]
-        kwargs = dict(types=types, reference_types=reference_types, means=means, means_only=means_only, limits=limits, model=model, save=save, fixed_legend=fixed_legend, exclude_pre_fcc=exclude_pre_fcc, title=title)
+        kwargs = dict(types=types, reference_types=reference_types, means=means, means_only=means_only, limits=limits, model=model, save=save, fixed_legend=fixed_legend, exclude_pre_fcc=exclude_pre_fcc, title=title, fig_dir=fig_dir)
         if len(uhf_only) > 0:
             print(f"UHF ONLY")
             standard_analysis(d, name, uhf_only, **kwargs)
         if len(not_uhf_only) > 0:
             print(f"UHF+VHF")
             standard_analysis(d, name, not_uhf_only, **kwargs)
-
-
-def same_index(df):
-    master_set = None
-    for _, sub_df in df.reset_index().groupby('type'):
-        a = set(sub_df['auction'].unique().tolist())
-        if master_set is None:
-            master_set = a
-        else:
-            master_set &= a 
-    return df.query('auction in @master_set')

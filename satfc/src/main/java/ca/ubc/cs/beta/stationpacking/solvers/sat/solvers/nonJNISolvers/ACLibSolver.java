@@ -84,7 +84,7 @@ public class ACLibSolver implements ISolver {
             // Call process
             final Runtime rt = Runtime.getRuntime();
             final double cutOff = aTerminationCriterion.getRemainingTime();
-            processString = "python " + wrapperPath + " " + problemFile.getCanonicalPath() + " 0 " + cutOff + " 0 " + seed + " --output_solution_file " + solutionFile.getCanonicalPath() + " -algorithm " + solverName + " " + parameters;
+            processString = "python2 " + wrapperPath + " " + problemFile.getCanonicalPath() + " 0 " + cutOff + " 0 " + seed + " --output_solution_file " + solutionFile.getCanonicalPath() + " -algorithm " + solverName + " " + parameters;
             log.debug(processString);
             final Process pr = rt.exec(processString, null, new File(wrapperPath).getParentFile());
 

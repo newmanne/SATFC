@@ -6,7 +6,7 @@ UHF:
       args:
         solverName: gurobi600
         encodingCategory: MIP
-        wrapperPath: aclib/satfc_wrapper.py
+        wrapperPath: /home/ubuntu/aclib/satfc_wrapper.py
         parameters: gurobi600_Threads 1
     - name: PYTHON_VERIFIER
     - name: VERIFIER

@@ -22,11 +22,14 @@ from tempfile import NamedTemporaryFile
 import shutil
 import gzip
 
-SATFC_DIR = "/ubc/cs/research/arrow/satfc"
 CNF_BASE_DIR = "/global/scratch/newmanne/satfc/instances/cnfs"
-ALG_DIR = os.path.join(SATFC_DIR, "aclib/target_algorithms")
+
+satfc_root = os.environ.get('SATFC', '/home/ubunut/SATFC')
+ALG_DIR = os.path.join(satfc_root, "aclib/target_algorithms")
 SAT_ALG_DIR = os.path.join(ALG_DIR, "sat")
 MIP_ALG_DIR = os.path.join(ALG_DIR, "mip")
+RUNSOLVER_PATH = '/home/ubuntu/aclib/target_algorithms/runsolver/runsolver-3.3.4/src/runsolver'
+
 
 PURELY_SLS_SOLVERS = [
     'SATenstein', 'gnovelty+PCL', 'gnovelty+GCwa', 'gnovelty+GCa',
@@ -284,7 +287,7 @@ class SATFCWrapper(AbstractWrapper):
 
 
             else:
-                raise "Dont know to handle this algorithm"
+                raise ValueError("Dont know to handle this algorithm")
 
         hasResult = hasResult or resultMap.get('status', None)
 
@@ -319,4 +322,4 @@ class SATFCWrapper(AbstractWrapper):
 
 if __name__ == "__main__":
     wrapper = SATFCWrapper()
-    wrapper.main(['--runsolver-path', '/ubc/cs/research/arrow/satfc/runsolver/runsolver', '--mem-limit', '6144'])
+    wrapper.main(['--runsolver-path', RUNSOLVER_PATH, '--mem-limit', '6144'])

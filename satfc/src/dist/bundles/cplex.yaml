@@ -6,7 +6,7 @@ UHF:
       args:
         solverName: cplex
         encodingCategory: MIP
-        wrapperPath: /ubc/cs/research/arrow/satfc/aclib/satfc_wrapper.py
+        wrapperPath: /home/ubuntu/aclib/satfc_wrapper.py
         parameters:
     - name: PYTHON_VERIFIER
     - name: VERIFIER

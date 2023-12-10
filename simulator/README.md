@@ -1,6 +1,6 @@
 # Reverse Auction Simulator
 
-This project contains the reverse auction simulator used in `Incentive Auction Design Alternatives: A Simulation Study`. 
+This project contains the reverse auction simulator used in `Incentive Auction Design Alternatives: A Simulation Study`. Instructions for replicating figures in that paper can be found [here](src/dist/replication/README.md)
 
 Before attempting to run the simulator, make sure that you can run SATFC. Follow the instructions in the [SATFC-manual](../satfc/src/dist/SATFC-manual.pdf). Then, to compile from source, run `gradlew installDist` in the root of the repository. Note that we use the [Gradle](https://gradle.org/) build system for dependency resolution. The simulator executable will appear in `simulator/build/install/FCCSimulator/bin`.
 

@@ -139,7 +139,8 @@ class MultiBandAuctionState(object):
             specific_end_stage = 99
 
         na_values = ['Not Needed']
-        self.open_prices = pd.read_csv("/apps/satfc/simulator/src/dist/simulator_data/actual_data/open_prices.csv", dtype={'Go Off-Air': np.float64}, na_values=na_values).rename(columns={"Facility ID": "station"}).set_index('station')[['Go Off-Air', 'Interference -Free Population']].rename(columns={'Interference -Free Population': 'Population'})
+        satfc_root = os.environ.get('SATFC', '/apps/satfc')
+        self.open_prices = pd.read_csv(os.path.join(satfc_root, 'simulator/src/dist/simulator_data/actual_data/open_prices.csv'), dtype={'Go Off-Air': np.float64}, na_values=na_values).rename(columns={"Facility ID": "station"}).set_index('station')[['Go Off-Air', 'Interference -Free Population']].rename(columns={'Interference -Free Population': 'Population'})
 
         self.folder = folder
 
@@ -349,4 +350,4 @@ class MultiBandAuctionState(object):
 
     def earliest_freeze(self):
         # TODO: Not quite right for multi-stage
-        return self.df.query('price > 0')['catchupPoint.benchmarkPrices.OFF'].max()(base) newmanne@paxos:notebooks$
+        return self.df.query('price > 0')['catchupPoint.benchmarkPrices.OFF'].max()(base)
